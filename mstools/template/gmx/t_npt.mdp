@@ -1,0 +1,35 @@
+integrator      = md
+dt              = 0.002
+nsteps          = %nsteps%
+
+nstenergy          = %nstenergy%
+nstvout            = %nstvout%
+nstxout-compressed = %nstxtcout%
+compressed-x-grps  = %xtcgrps%
+
+cutoff-scheme   = verlet
+nstcalcenergy   = -1
+
+rlist           = 1.2
+coulombtype     = PME
+rcoulomb        = 1.2
+rvdw            = 1.2
+DispCorr        = EnerPres
+
+constraints      = h-bonds
+constraint-algorithm = lincs
+
+Tcoupl          = V-rescale
+tc-grps         = System
+tau-t           = 0.1
+ref-t           = %T%
+
+Pcoupl          = berendsen; parrinello-rahman
+pcoupltype      = isotropic
+tau-p           = 0.5
+compressibility = 4.5e-5
+ref-p           = %P%
+
+gen-vel         = %genvel%
+gen-temp        = %T%
+

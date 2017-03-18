@@ -1,5 +1,7 @@
 import random
 import subprocess
+import math
+from mstools.tools import count_atoms, gcd
 
 
 class Packmol:
@@ -10,6 +12,7 @@ class Packmol:
 
     @staticmethod
     def build_box(files: [str], numbers: [int], output: str,
+                  natoms:int = None,
                   size: [float] = None, length: float = None,
                   tolerance: float = None,
                   seed: int = None,
@@ -32,10 +35,21 @@ class Packmol:
         if len(files) != len(numbers):
             raise Exception('invalid numbers')
 
-        extensions = {filename.strip().split('.')[-1] for filename in files}
+        extensions = {filename.split('.')[-1].lower() for filename in files}
         if len(extensions) > 1:
             raise Exception('all file types should be the same')
         filetype = extensions.pop()
+
+        if natoms != None:
+            if natoms < 1:
+                raise Exception('invalid natoms')
+            n_each_file = [count_atoms(filename) for filename in files]
+
+            gcd_numbers = gcd(numbers)
+            numbers = [i / gcd_numbers for i in numbers]
+            multiple = math.ceil(natoms / (sum([n_each_file[i] * number for i, number in enumerate(numbers)])))
+            numbers = [multiple * i for i in numbers]
+
 
         if size != None:
             if len(size) != 3:
@@ -72,4 +86,6 @@ end structure
 
         sp = subprocess.Popen(['packmol'], stdin=subprocess.PIPE)
         sp.communicate(input=inp.encode())
+
+        return numbers
 
