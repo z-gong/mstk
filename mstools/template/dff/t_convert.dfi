@@ -1,0 +1,8 @@
+#DFF:DFFJOB
+  $MODEL
+    %MODEL%
+  $END
+  $MODEL=$SAVE
+    %OUTPUTMODEL%
+  $END
+#DFF:ENDJOB

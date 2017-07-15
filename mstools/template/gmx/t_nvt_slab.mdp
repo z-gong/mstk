@@ -14,8 +14,10 @@ nstcalcenergy   = -1
 rlist           = 1.2
 coulombtype     = PME
 rcoulomb        = 1.2
+
+vdwtype         = PME
 rvdw            = 1.2
-DispCorr        = EnerPres
+;DispCorr        = EnerPres
 
 Tcoupl          = %tcoupl%; no; V-rescale
 tc-grps         = System

@@ -1,6 +1,8 @@
-integrator      = %integrator%; sd; md
+integrator      = sd
 dt              = %dt%
 nsteps          = %nsteps%
+
+comm-mode       = none; angular
 
 nstenergy          = %nstenergy%
 nstxout            = %nstxout%
@@ -8,30 +10,34 @@ nstvout            = %nstvout%
 nstxout-compressed = %nstxtcout%
 compressed-x-grps  = %xtcgrps%
 
-cutoff-scheme   = verlet
+pbc     = no
+nstlist = 0
+ns-type = simple
+
+cutoff-scheme   = group
 nstcalcenergy   = -1
 
-rlist           = 1.2
-coulombtype     = PME
-rcoulomb        = 1.2
+rlist           = 0
+coulombtype     = cut-off
+rcoulomb        = 0
+vdwtype         = cut-off
+rvdw            = 0
+DispCorr        = no
 
-rvdw            = 1.2
-DispCorr        = EnerPres
-
-Tcoupl          = %tcoupl%; no; V-rescale
+Tcoupl          = no; V-rescale
 tc-grps         = System
-tau-t           = %tau-t%; 2; 0.1
+tau-t           = 2.0
 ref-t           = %T%
 
-Pcoupl          = %pcoupl%; parrinello-rahman; berendsen
+Pcoupl          = no; berendsen; parrinello-rahman
 pcoupltype      = isotropic
-tau-p           = %tau-p%; 2; 0.5
+tau-p           = 0.5
 compressibility = 4.5e-5
 ref-p           = %P%
 
 gen-vel         = %genvel%
 gen-temp        = %T%
 
-constraints      = %constraints%; h-bonds
+constraints      = h-bonds
 constraint-algorithm = lincs
 continuation     = %continuation%

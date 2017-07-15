@@ -1,4 +1,4 @@
-integrator      = %integrator%; sd; md
+integrator      = sd
 dt              = %dt%
 nsteps          = %nsteps%
 
@@ -17,16 +17,16 @@ rcoulomb        = 1.2
 rvdw            = 1.2
 DispCorr        = EnerPres
 
-Tcoupl          = %tcoupl%; no; V-rescale
+Tcoupl          = no; V-rescale
 tc-grps         = System
-tau-t           = %tau-t%; 2; 0.1
+tau-t           = 2; 0.1
 ref-t           = %T%
 
-Pcoupl          = no
-
-gen-vel         = %genvel%
-gen-temp        = %T%
-
-constraints      = %constraints%; h-bonds
+constraints      = h-bonds
 constraint-algorithm = lincs
 continuation     = %continuation%
+
+annealing         = single
+annealing_npoints = 5
+annealing_time    = 0 20 50 70 100
+annealing_temp    = 0 1000 1000 %T% %T%
