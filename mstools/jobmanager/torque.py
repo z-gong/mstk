@@ -7,8 +7,8 @@ from .node import Node
 
 
 class Torque(JobManager):
-    def __init__(self, queue_dict: OrderedDict):
-        super().__init__(list(queue_dict.keys())[0], list(queue_dict.values())[0])
+    def __init__(self, queue_dict: OrderedDict, **kwargs):
+        super().__init__(list(queue_dict.keys())[0], list(queue_dict.values())[0], **kwargs)
         self.queue_dict = queue_dict
         self.sh = '_job_torque.sh'
 
@@ -31,18 +31,20 @@ class Torque(JobManager):
         out = sh[:-2] + 'out'
         err = sh[:-2] + 'err'
         with open(sh, 'w') as f:
-            f.write('#!/bin/sh\n'
+            f.write('#!/bin/bash\n'
                     '#PBS -N %(name)s\n'
                     '#PBS -o %(out)s\n'
                     '#PBS -e %(err)s\n'
                     '#PBS -q %(queue)s\n'
                     '#PBS -l nodes=1:ppn=%(nprocs)s\n\n'
+                    '%(env_cmd)s\n\n'
                     'cd %(workdir)s\n'
                     % ({'name': name,
                         'out': out,
                         'err': err,
                         'queue': self.queue,
                         'nprocs': self.nprocs,
+                        'env_cmd': self.env_cmd,
                         'workdir': workdir
                         })
                     )
@@ -81,7 +83,7 @@ class Torque(JobManager):
 
         return None
 
-    def get_info(self, name) -> bool:
+    def is_running(self, name) -> bool:
         id = self.get_id_from_name(name)
         if id == None:
             return False

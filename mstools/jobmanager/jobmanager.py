@@ -1,7 +1,8 @@
 class JobManager:
-    def __init__(self, queue=None, nprocs=1):
+    def __init__(self, queue=None, nprocs=1, env_cmd=None):
         self.queue = queue
         self.nprocs = nprocs
+        self.env_cmd = env_cmd
 
     def refresh_preferred_queue(self) -> bool:
         return True
@@ -12,7 +13,7 @@ class JobManager:
     def submit(self):
         pass
 
-    def get_info(self, name):
+    def is_running(self, name):
         pass
 
     def kill_job(self, name):

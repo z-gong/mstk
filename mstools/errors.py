@@ -13,8 +13,10 @@ class PackmolError(Exception):
 class GmxError(Exception):
     pass
 
+
 class OpenBabelError(Exception):
     pass
+
 
 class JobManagerError(Exception):
     pass

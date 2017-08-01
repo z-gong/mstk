@@ -143,7 +143,6 @@ class GMX:
                 return (float(line.split()[1]), float(line.split()[2]))
         raise GmxError('Invalid property')
 
-
     def get_box(self, edr, begin=0) -> [float]:
         sp = subprocess.Popen([self.GMX_BIN, 'energy', '-f', edr, '-b', str(begin)], stdout=PIPE, stdin=PIPE,
                               stderr=PIPE)
@@ -357,8 +356,9 @@ class GMX:
                 cmd = re.sub('-ntomp\s+[0-9]+', '', cmd)  # remove -ntomp xx
                 cmd = 'mpirun -np %i %s' % (len(dirs), cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx
-                cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (len(dirs) // n_gpu) \
-                       + ''.join(map(str, range(len(dirs) % n_gpu)))  # add -gpu_id 01230123012
+                if n_gpu > 0:
+                    cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (len(dirs) // n_gpu) \
+                           + ''.join(map(str, range(len(dirs) % n_gpu)))  # add -gpu_id 01230123012
             else:
                 cmd = 'for i in %s; do cd $i; %s; done' % (' '.join(dirs), cmd)  # do it in every directory
             return cmd

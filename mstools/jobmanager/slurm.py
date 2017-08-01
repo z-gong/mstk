@@ -2,49 +2,58 @@ import subprocess
 from subprocess import Popen
 from collections import OrderedDict
 
+from .job import Job, JobState
 from .jobmanager import JobManager
+from ..errors import JobManagerError
 
 
 class Slurm(JobManager):
-    def __init__(self, queue_dict: OrderedDict):
+    def __init__(self, queue_dict: OrderedDict, **kwargs):
         # Current only support one queue
-        super().__init__(queue=list(queue_dict.keys())[0], nprocs=list(queue_dict.values())[0])
+        super().__init__(queue=list(queue_dict.keys())[0], nprocs=list(queue_dict.values())[0], **kwargs)
         self.sh = '_job_slurm.sh'
+
+    def replace_mpirun_srun(self, commands) -> (int, [str]):
+        n_process = 1
+        new_cmds = []
+        for cmd in commands:
+            if cmd.startswith('mpirun'):
+                n_process = int(cmd.split()[2])
+                cmd_srun = 'srun ' + ' '.join(cmd.split()[3:])
+                new_cmds.append(cmd_srun)
+            else:
+                new_cmds.append(cmd)
+        return n_process, new_cmds
 
     def generate_sh(self, workdir, commands, name, sh=None):
         if sh is None:
             sh = self.sh
         out = sh[:-2] + 'out'
         err = sh[:-2] + 'err'
+
+        n_process, srun_commands = self.replace_mpirun_srun(commands)
+
         with open(sh, 'w') as f:
-            f.write('''#!/bin/bash
-#SBATCH --job-name=%(name)s
-#SBATCH --partition=%(queue)s
-#SBATCH --output=%(out)s
-#SBATCH --error=%(err)s
-#SBATCH -n %(nprocs)s
-#SBATCH --tasks-per-node=%(tasks)s
-
-source /usr/share/Modules/init/bash
-unset MODULEPATH
-module use /lustre/usr/modulefiles/pi
-module purge
-module load icc/16.0 impi/5.1 mkl/11.3
-
-export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
-export I_MPI_FABRICS=shm:dapl
-
-cd %(workdir)s
-''' % ({'name': name,
-        'out': out,
-        'err': err,
-        'queue': self.queue,
-        'nprocs': self.nprocs,
-        'tasks': min(self.nprocs, 16),
-        'workdir': workdir
-        })
+            f.write('#!/bin/bash\n'
+                    '#SBATCH -J %(name)s\n'
+                    '#SBATCH -o %(out)s\n'
+                    '#SBATCH -e %(err)s\n'
+                    '#SBATCH -p %(queue)s\n'
+                    '#SBATCH --ntasks=%(n_process)s\n'
+                    '#SBATCH --cpus-per-task=%(n_thread)s\n\n'
+                    '%(env_cmd)s\n\n'
+                    'cd %(workdir)s\n\n'
+                    % ({'name': name,
+                        'out': out,
+                        'err': err,
+                        'queue': self.queue,
+                        'n_process': n_process,
+                        'n_thread': self.nprocs // n_process,
+                        'env_cmd': self.env_cmd,
+                        'workdir': workdir
+                        })
                     )
-            for cmd in commands:
+            for cmd in srun_commands:
                 f.write(cmd + '\n')
 
     def submit(self, sh=None):
@@ -52,46 +61,65 @@ cd %(workdir)s
             sh = self.sh
         Popen(['sbatch', sh]).communicate()
 
-    def get_info_from_id(self, id) -> bool:
-        # try:
-        # output = subprocess.check_output(['qstat', '-f', str(id)])
-        # except:
-        # return False
-
-        # for line in output.decode().splitlines():
-        # if line.strip().startswith('job_state'):
-        # state = line.split()[-1]
-        # if state in ['R', 'Q']:
-        # return True
-        # else:
-        # return False
+    def is_running_id(self, id) -> bool:
+        for job in self.get_jobs():
+            if job.id == id:
+                if job.state in [JobState.PENDING, JobState.RUNNING]:
+                    return True
+                else:
+                    return False
         return False
 
     def get_id_from_name(self, name: str) -> int:
-        # try:
-        # output = subprocess.check_output(['qstat'])
-        # except:
-        # raise
-
-        # for line in output.decode().splitlines():
-        # if line.find(name) != -1:
-        # return int(line.strip().split()[0])
+        for job in reversed(self.get_jobs()):  # reverse the job list, in case jobs with same name
+            if job.name == name:
+                return job.id
 
         return None
 
-    def get_info(self, name) -> bool:
+    def is_running(self, name) -> bool:
         id = self.get_id_from_name(name)
         if id == None:
             return False
-        return self.get_info_from_id(id)
+        return self.is_running_id(id)
 
     def kill_job(self, name) -> bool:
-        # id = self.get_id_from_name(name)
-        # if id == None:
-        # return False
-        # try:
-        # subprocess.check_call(['qdel', str(id)])
-        # except:
-        # raise Exception('Cannot kill job: %s' % name)
+        id = self.get_id_from_name(name)
+        if id == None:
+            return False
+        try:
+            subprocess.check_call(['scancel', str(id)])
+        except:
+            raise JobManagerError('Cannot kill job: %s' % name)
 
         return True
+
+    def get_jobs(self):
+        cmd = 'scontrol show job'
+        try:
+            output = subprocess.check_output(cmd.split())
+        except Exception as e:
+            raise JobManagerError(str(e))
+
+        jobs = []
+        for string in output.decode().split('\n\n'):  # split jobs
+            if string.startswith('JobId'):
+                for line in string.split():  # split properties
+                    key = line.split('=')[0]
+                    value = line.split('=')[1]
+                    if key == 'JobId':
+                        id = int(value)
+                    elif key == 'Name':
+                        name = value
+                    elif key == 'JobState':
+                        if value == 'PENDING':
+                            state = JobState.PENDING
+                        elif value == 'RUNNING':
+                            state = JobState.RUNNING
+                        else:
+                            state = JobState.DONE
+                    elif key == 'WorkDir':
+                        workdir = value
+                    job = Job(id=id, name=name, state=state, workdir=workdir)
+                    jobs.append(job)
+        return jobs

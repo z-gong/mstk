@@ -38,8 +38,8 @@ class NptBinarySlab(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
 
     def analyze(self):
-        import panedr
-        df = panedr.edr_to_df(self.procedure + '.edr')
+        from ...panedr import edr_to_df
+        df = edr_to_df(self.procedure + '.edr')
         potential_series = df.Potential[500:]
         density_series = df.Density[500:]
 

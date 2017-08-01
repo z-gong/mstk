@@ -18,7 +18,7 @@ class NvtSlab(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, jobname=None,
-                dt=0.001, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(1E4), nst_xtc=int(1E3), **kwargs):
+                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E3), **kwargs):
         if os.path.abspath(model_dir) != os.getcwd():
             shutil.copy(os.path.join(model_dir, gro), gro)
             shutil.copy(os.path.join(model_dir, top), top)
@@ -38,7 +38,7 @@ class NvtSlab(GmxSimulation):
 
         # NVT equilibrium
         self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-eq.mdp', T=T,
-                                           dt=0.001, nsteps=nst_eq, nstxtcout=0)
+                                           nsteps=nst_eq, nstxtcout=0)
         cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='em.gro', top=top, tpr_out='eq.tpr', get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
@@ -57,8 +57,8 @@ class NvtSlab(GmxSimulation):
         return commands
 
     def analyze(self):
-        import panedr
-        df = panedr.edr_to_df(self.procedure + '.edr')
+        from ...panedr import edr_to_df
+        df = edr_to_df(self.procedure + '.edr')
         surface_tension = df['#Surf*SurfTen']
         return {
             'surface_tension': surface_tension

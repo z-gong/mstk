@@ -2,8 +2,8 @@ from .jobmanager import JobManager
 
 
 class Local(JobManager):
-    def __init__(self, nprocs):
-        super().__init__(nprocs=nprocs)
+    def __init__(self, nprocs, **kwargs):
+        super().__init__(nprocs=nprocs, **kwargs)
         self.sh = '_job_local.sh'
 
     def generate_sh(self, workdir, commands, name=None, sh=None):
@@ -20,7 +20,7 @@ class Local(JobManager):
     def submit(self, sh=None):
         print('Localhost is only for test')
 
-    def get_info(self, name):
+    def is_running(self, name):
         raise Exception('Not supported on localhost')
 
     def kill_job(self, name):

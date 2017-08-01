@@ -24,7 +24,7 @@ class Npt(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
-                dt=0.001, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(1E4), nst_xtc=int(1E3), **kwargs):
+                dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E3), **kwargs):
         if os.path.abspath(model_dir) != os.getcwd():
             shutil.copy(os.path.join(model_dir, gro), gro)
             shutil.copy(os.path.join(model_dir, top), top)
@@ -41,7 +41,7 @@ class Npt(GmxSimulation):
         cmd = self.gmx.mdrun(name='em', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
-        # NVT annealing from 0 to 2000 K to target T with Langevin thermostat
+        # NVT annealing from 0 to 1000 K to target T with Langevin thermostat
         self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T,
                                            nsteps=int(1E5), nstxtcout=0)
         cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
@@ -51,7 +51,7 @@ class Npt(GmxSimulation):
 
         # NPT equilibrium with Langevin thermostat and Berendsen barostat
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P / Unit.bar,
-                                           dt=0.001, nsteps=nst_eq, nstxtcout=0, restart=True, pcoupl='berendsen')
+                                           nsteps=nst_eq, nstxtcout=0, restart=True, pcoupl='berendsen')
         cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='anneal.gro', top=top, tpr_out='eq.tpr',
                               cpt='anneal.cpt', get_cmd=True)
         commands.append(cmd)
@@ -104,7 +104,7 @@ class Npt(GmxSimulation):
         if dirs is None:
             dirs = ['.']
         import pandas as pd
-        import panedr
+        from ...panedr import edr_to_df
 
         # TODO check structure freezing
         temp_series = pd.Series()
@@ -113,13 +113,13 @@ class Npt(GmxSimulation):
         density_series = pd.Series()
         e_inter_series = pd.Series()
         for dir in dirs:
-            df = panedr.edr_to_df(os.path.join(dir, 'npt.edr'))
+            df = edr_to_df(os.path.join(dir, 'npt.edr'))
             temp_series = temp_series.append(df.Temperature)
             press_series = press_series.append(df.Pressure)
             potential_series = potential_series.append(df.Potential)
             density_series = density_series.append(df.Density)
 
-            df = panedr.edr_to_df(os.path.join(dir, 'hvap.edr'))
+            df = edr_to_df(os.path.join(dir, 'hvap.edr'))
             e_inter_series = e_inter_series.append(df.Potential)
 
         converged, when = is_converged(density_series)

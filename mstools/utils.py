@@ -37,20 +37,25 @@ def cd_or_create_and_cd(dir):
         raise Exception('Cannot read directory: %s' % dir)
 
 
-def get_T_list_from_range(t_min: int, t_max: int, interval: int = None) -> [int]:
-    if interval == None:
-        interval = 20
-    interval = max(5, interval)
-
-    if interval >= t_max - t_min:
+def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8, interval: int = None) -> [int]:
+    t_span = t_max - t_min
+    if t_max == t_min:
+        return [t_min]
+    if t_span <= 5:
         return [t_min, t_max]
 
-    i_min = math.floor(t_min / interval)
-    i_max = math.ceil(t_max / interval)
-    T_list = [i * interval for i in range(i_min, i_max + 1)]
-    if i_min == 0:
-        T_list[0] = 1
+    n_point = max(2, n_point)
 
+    if interval is None:
+        interval = t_span / (n_point - 1)
+        interval = max(5, interval)
+
+    n_point = math.ceil(t_span / interval) + 1
+
+    T_list = []
+    for i in range(n_point):
+        T = t_min + i * interval
+        T_list.append(round(T))
     return T_list
 
 
@@ -93,6 +98,7 @@ def estimate_density_from_formula(f) -> float:
     # unit: g/mL
     return Formula.read(f).estimate_density()
 
+
 def n_diff_lines(f1: str, f2: str):
     with open(f1) as f:
         l1 = f.readlines()
@@ -106,6 +112,5 @@ def n_diff_lines(f1: str, f2: str):
     for i in range(min(n1, n2)):
         if l1[i].strip() != l2[i].strip():
             n_diff += 1
-    n_diff += abs(n1-n2)
+    n_diff += abs(n1 - n2)
     return n_diff
-

@@ -43,7 +43,7 @@ class NvtVacuum(GmxSimulation):
     def analyze(self, dirs=None):
         if dirs is None:
             dirs = ['.']
-        import panedr
+        from ...panedr import edr_to_df
         import pandas as pd
         import numpy as np
 
@@ -51,7 +51,7 @@ class NvtVacuum(GmxSimulation):
         temp_series = pd.Series()
         pe_series = pd.Series()
         for dir in dirs:
-            df = panedr.edr_to_df(os.path.join(dir, self.procedure + '.edr'))
+            df = edr_to_df(os.path.join(dir, self.procedure + '.edr'))
             temp_series = temp_series.append(df.Temperature)
             pe_series = pe_series.append(df.Potential)
 
