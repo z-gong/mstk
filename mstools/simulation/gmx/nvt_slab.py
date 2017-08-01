@@ -2,6 +2,7 @@ import os
 import shutil
 
 from .gmx import GmxSimulation
+from ...wrapper.ppf import delta_ppf
 
 
 class NvtSlab(GmxSimulation):
@@ -18,13 +19,21 @@ class NvtSlab(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, jobname=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E3), **kwargs):
-        if os.path.abspath(model_dir) != os.getcwd():
-            shutil.copy(os.path.join(model_dir, gro), gro)
-            shutil.copy(os.path.join(model_dir, top), top)
-            for f in os.listdir(model_dir):
-                if f.endswith('.itp'):
-                    shutil.copy(os.path.join(model_dir, f), '.')
+                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E3),
+                drde=False, **kwargs):
+        if not drde:
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, gro), gro)
+                shutil.copy(os.path.join(model_dir, top), top)
+                for f in os.listdir(model_dir):
+                    if f.endswith('.itp'):
+                        shutil.copy(os.path.join(model_dir, f), '.')
+        else:
+            ### Temperature dependent parameters
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, self.msd), self.msd)
+            delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
+            self.export(ppf='ff.ppf')
 
         nprocs = self.jobmanager.nprocs
         commands = []

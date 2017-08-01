@@ -342,3 +342,11 @@ class PPF():
             raise Exception('Unknown parameter: ' + key)
 
         return bound
+
+def delta_ppf(ppf_file, ppf_out, T, dr=-0.01087, de=0.05557):
+    paras = {}
+    paras['all_dr'] = dr*(T-298) /100
+    paras['all_de'] = de*(T-298) /100
+    ppf = PPF(ppf_file)
+    ppf.set_nb_paras(paras, delta=True)
+    ppf.write(ppf_out)

@@ -6,6 +6,7 @@ import numpy
 from mstools.analyzer.series import is_converged
 from .gmx import GmxSimulation
 from ...unit import Unit
+from ...wrapper.ppf import delta_ppf
 
 
 class NptBinarySlab(GmxSimulation):
@@ -20,13 +21,21 @@ class NptBinarySlab(GmxSimulation):
         self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
                                              length=self.length)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None, **kwargs):
-        if os.path.abspath(model_dir) != os.getcwd():
-            shutil.copy(os.path.join(model_dir, gro), gro)
-            shutil.copy(os.path.join(model_dir, top), top)
-            for f in os.listdir(model_dir):
-                if f.endswith('.itp'):
-                    shutil.copy(os.path.join(model_dir, f), '.')
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
+                drde=False, **kwargs):
+        if not drde:
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, gro), gro)
+                shutil.copy(os.path.join(model_dir, top), top)
+                for f in os.listdir(model_dir):
+                    if f.endswith('.itp'):
+                        shutil.copy(os.path.join(model_dir, f), '.')
+        else:
+            ### Temperature dependent parameters
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, self.msd), self.msd)
+            delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
+            self.export(ppf='ff.ppf')
 
         nprocs = self.jobmanager.nprocs
         commands = []

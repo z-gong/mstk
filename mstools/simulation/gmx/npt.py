@@ -5,6 +5,8 @@ from .gmx import GmxSimulation
 from ...analyzer import is_converged, block_average
 from ...unit import Unit
 
+from ...wrapper.ppf import delta_ppf
+
 
 class Npt(GmxSimulation):
     def __init__(self, **kwargs):
@@ -24,13 +26,21 @@ class Npt(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E3), **kwargs):
-        if os.path.abspath(model_dir) != os.getcwd():
-            shutil.copy(os.path.join(model_dir, gro), gro)
-            shutil.copy(os.path.join(model_dir, top), top)
-            for f in os.listdir(model_dir):
-                if f.endswith('.itp'):
-                    shutil.copy(os.path.join(model_dir, f), '.')
+                dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
+                drde=False, **kwargs):
+        if not drde:
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, gro), gro)
+                shutil.copy(os.path.join(model_dir, top), top)
+                for f in os.listdir(model_dir):
+                    if f.endswith('.itp'):
+                        shutil.copy(os.path.join(model_dir, f), '.')
+        else:
+            ### Temperature dependent parameters
+            if os.path.abspath(model_dir) != os.getcwd():
+                shutil.copy(os.path.join(model_dir, self.msd), self.msd)
+            delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
+            self.export(ppf='ff.ppf')
 
         nprocs = self.jobmanager.nprocs
         commands = []

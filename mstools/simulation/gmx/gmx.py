@@ -20,8 +20,9 @@ class GmxSimulation(Simulation):
             self.dff.set_charge([self.msd], ppf)
             self.dff.export_gmx(self.msd, ppf, gro_out, top_out, mdp_out)
         else:
-            self.dff.checkout([self.msd], table=ff)
-            self.dff.export_gmx(self.msd, ff + '.ppf', gro_out, top_out, mdp_out)
+            ppf_out = 'ff.ppf'
+            self.dff.checkout([self.msd], table=ff, ppf_out=ppf_out)
+            self.dff.export_gmx(self.msd, ppf_out, gro_out, top_out, mdp_out)
 
         if minimize:
             print('Energy minimize ...')
