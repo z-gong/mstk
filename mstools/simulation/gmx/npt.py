@@ -27,7 +27,7 @@ class Npt(GmxSimulation):
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
-                drde=False, **kwargs):
+                drde=False, **kwargs) -> [str]:
         if not drde:
             if os.path.abspath(model_dir) != os.getcwd():
                 shutil.copy(os.path.join(model_dir, gro), gro)

@@ -102,24 +102,24 @@ class Slurm(JobManager):
             raise JobManagerError(str(e))
 
         jobs = []
-        for string in output.decode().split('\n\n'):  # split jobs
-            if string.startswith('JobId'):
-                for line in string.split():  # split properties
+        for job_str in output.decode().split('\n\n'):  # split jobs
+            if job_str.startswith('JobId'):
+                for line in job_str.split():  # split properties
                     key = line.split('=')[0]
-                    value = line.split('=')[1]
+                    val = line.split('=')[1]
                     if key == 'JobId':
-                        id = int(value)
+                        id = int(val)
                     elif key == 'Name':
-                        name = value
+                        name = val
                     elif key == 'JobState':
-                        if value == 'PENDING':
+                        if val == 'PENDING':
                             state = JobState.PENDING
-                        elif value == 'RUNNING':
+                        elif val == 'RUNNING':
                             state = JobState.RUNNING
                         else:
                             state = JobState.DONE
                     elif key == 'WorkDir':
-                        workdir = value
-                    job = Job(id=id, name=name, state=state, workdir=workdir)
-                    jobs.append(job)
+                        workdir = val
+                job = Job(id=id, name=name, state=state, workdir=workdir)
+                jobs.append(job)
         return jobs

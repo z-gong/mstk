@@ -18,7 +18,7 @@ class Nvt(GmxSimulation):
 
     def prepare(self, gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
                 nst_anneal=int(1.5E5), nst_cv=int(4E4), nst_vis=int(5E5), n_cv=5, n_vis=0,
-                prior_job_dir=None, **kwargs):
+                prior_job_dir=None, **kwargs) -> [str]:
         # Copy topology files from prior NPT simulation
         shutil.copy(os.path.join(prior_job_dir, top), '.')
         for f in os.listdir(prior_job_dir):
