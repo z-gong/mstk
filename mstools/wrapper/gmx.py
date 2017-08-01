@@ -347,7 +347,7 @@ class GMX:
         raise Exception('Cannot open trajectory')
 
     @staticmethod
-    def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel=8, n_gpu=2) -> [[str]]:
+    def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel=8, n_gpu=2, n_thread=None) -> [[str]]:
         import math, re
         def replace_gpu_multidir_cmd(dirs: [str], cmd: str) -> str:
             if cmd.startswith('export'):
@@ -359,6 +359,9 @@ class GMX:
                 if n_gpu > 0:
                     cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (len(dirs) // n_gpu) \
                            + ''.join(map(str, range(len(dirs) % n_gpu)))  # add -gpu_id 01230123012
+                if n_thread is not None:
+                    cmd += ' -ntomp' % n_thread
+
             else:
                 cmd = 'for i in %s; do cd $i; %s; done' % (' '.join(dirs), cmd)  # do it in every directory
             return cmd

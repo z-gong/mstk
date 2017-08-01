@@ -6,7 +6,7 @@ class Local(JobManager):
         super().__init__(nprocs=nprocs, **kwargs)
         self.sh = '_job_local.sh'
 
-    def generate_sh(self, workdir, commands, name=None, sh=None):
+    def generate_sh(self, workdir, commands, name=None, sh=None, **kwargs):
         if sh is None:
             sh = self.sh
         with open(sh, 'w') as f:

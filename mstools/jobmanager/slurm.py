@@ -1,3 +1,4 @@
+import math
 import subprocess
 from subprocess import Popen
 from collections import OrderedDict
@@ -25,13 +26,15 @@ class Slurm(JobManager):
                 new_cmds.append(cmd)
         return n_process, new_cmds
 
-    def generate_sh(self, workdir, commands, name, sh=None):
+    def generate_sh(self, workdir, commands, name, sh=None, n_thread=1, exclusive=False, **kwargs):
         if sh is None:
             sh = self.sh
         out = sh[:-2] + 'out'
         err = sh[:-2] + 'err'
 
         n_process, srun_commands = self.replace_mpirun_srun(commands)
+        n_node = math.ceil(n_process * n_thread / self.nprocs)
+        exclusive_cmd = '#SBATCH --exclusive\n' if exclusive else ''
 
         with open(sh, 'w') as f:
             f.write('#!/bin/bash\n'
@@ -40,7 +43,9 @@ class Slurm(JobManager):
                     '#SBATCH -e %(err)s\n'
                     '#SBATCH -p %(queue)s\n'
                     '#SBATCH --ntasks=%(n_process)s\n'
-                    '#SBATCH --cpus-per-task=%(n_thread)s\n\n'
+                    '#SBATCH --cpus-per-task=%(n_thread)s\n'
+                    '#SBATCH --nodes=%(n_node)s\n'
+                    '%(exclusive_cmd)s\n'
                     '%(env_cmd)s\n\n'
                     'cd %(workdir)s\n\n'
                     % ({'name': name,
@@ -48,7 +53,9 @@ class Slurm(JobManager):
                         'err': err,
                         'queue': self.queue,
                         'n_process': n_process,
-                        'n_thread': self.nprocs // n_process,
+                        'n_thread': n_thread,
+                        'n_node': n_node,
+                        'exclusive_cmd': exclusive_cmd,
                         'env_cmd': self.env_cmd,
                         'workdir': workdir
                         })

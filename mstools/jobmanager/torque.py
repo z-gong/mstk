@@ -25,7 +25,7 @@ class Torque(JobManager):
         self.nprocs = list(self.queue_dict.values())[0]
         return False
 
-    def generate_sh(self, workdir, commands, name, sh=None):
+    def generate_sh(self, workdir, commands, name, sh=None, **kwargs):
         if sh is None:
             sh = self.sh
         out = sh[:-2] + 'out'
