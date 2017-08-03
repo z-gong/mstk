@@ -46,6 +46,7 @@ class Slurm(JobManager):
 
         with open(sh, 'w') as f:
             f.write('#!/bin/bash\n'
+                    '#SBATCH -D %(workdir)s\n'
                     '#SBATCH -J %(name)s\n'
                     '#SBATCH -o %(out)s\n'
                     '#SBATCH -e %(err)s\n'
@@ -56,7 +57,6 @@ class Slurm(JobManager):
                     '%(exclusive_cmd)s'
                     '\n\n'
                     '%(env_cmd)s\n\n'
-                    'cd %(workdir)s\n\n'
                     % ({'name': name,
                         'out': out,
                         'err': err,

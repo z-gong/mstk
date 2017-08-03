@@ -44,18 +44,20 @@ def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8, interval: in
     if t_span <= 5:
         return [t_min, t_max]
 
-    n_point = max(2, n_point)
+    T_list = [t_min]
+    if interval is not None:
+        while T_list[-1] < t_max - interval / 5:
+            T_list.append(T_list[-1] + interval)
+    else:
+        while True:
+            interval = t_span / (n_point - 1)
+            if interval >= 5:
+                break
+            n_point -= 1
 
-    if interval is None:
-        interval = t_span / (n_point - 1)
-        interval = max(5, interval)
+        for i in range(1, n_point):
+            T_list.append(round(t_min + i * interval))
 
-    n_point = math.ceil(t_span / interval) + 1
-
-    T_list = []
-    for i in range(n_point):
-        T = t_min + i * interval
-        T_list.append(round(T))
     return T_list
 
 
