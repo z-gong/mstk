@@ -122,11 +122,11 @@ class TCOSP(FFTerm):
 
     def freeze(self):
         if self.k1 is not None:
-            self.k1.fixed=True
+            self.k1.fixed = True
         if self.k2 is not None:
-            self.k2.fixed=True
+            self.k2.fixed = True
         if self.k3 is not None:
-            self.k3.fixed=True
+            self.k3.fixed = True
 
 
 def get_ppf_term_from_line(line):
@@ -281,7 +281,7 @@ class PPF():
     def fit_torsion(self, dff_root, qmd, msd, restraint, torsion_key):
         import os
         import random
-        from  .dff import DFF
+        from .dff import DFF
 
         ### relax only one torsion
         self.freeze_torsions()
@@ -343,10 +343,11 @@ class PPF():
 
         return bound
 
+
 def delta_ppf(ppf_file, ppf_out, T, dr=-0.01087, de=0.05557):
     paras = {}
-    paras['all_dr'] = dr*(T-298) /100
-    paras['all_de'] = de*(T-298) /100
+    paras['all_dr'] = dr * (T - 298) / 100
+    paras['all_de'] = de * (T - 298) / 100
     ppf = PPF(ppf_file)
     ppf.set_nb_paras(paras, delta=True)
     ppf.write(ppf_out)

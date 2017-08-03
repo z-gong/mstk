@@ -3,7 +3,8 @@ import subprocess
 import sys
 from subprocess import PIPE, Popen
 
-from mstools.errors import DffError
+from ..errors import DffError
+from ..utils import random_string
 
 
 class DFF:
@@ -144,17 +145,24 @@ class DFF:
             model_list_str += '  MOL=%s' % model
         number_list_str = ' '.join(map(str, numbers))
 
+        msd_tmp = os.path.abspath(random_string()+'.msd')
         msd_out = os.path.abspath(msd_out)
         mol_corr = os.path.abspath(mol_corr)
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_packmol_multiple.dfi')).read()
+        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_packmol.dfi')).read()
         dfi = dfi.replace('%MODEL_LIST%', model_list_str).replace('%NUMBER_LIST%', number_list_str) \
-            .replace('%OUT%', msd_out).replace('%CORRMOL%', mol_corr).replace('%PBC%', ' '.join(map(str, box)))
+            .replace('%MSD_TMP%', msd_tmp).replace('%OUT%', msd_out)\
+            .replace('%CORRMOL%', mol_corr).replace('%PBC%', ' '.join(map(str, box)))
         with open(dfi_name + '.dfi', 'w') as f:
             f.write(dfi)
         sp = Popen([self.DFFJOB_BIN, dfi_name], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         out, err = sp.communicate()
         if err.decode() != '':
             raise DffError('Build failed: %s' % err.decode())
+
+        try:
+            os.remove(msd_tmp)
+        except:
+            pass
 
     def fit_torsion(self, qmd, msd, ppf_in, ppf_out, torsion, dfi_name='fit_torsion'):
         'TORS C1 C2 C3 C4 1000.0 180.0 15.0 12'

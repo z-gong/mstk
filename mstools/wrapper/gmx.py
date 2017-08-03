@@ -29,8 +29,19 @@ class GMX:
             sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
             sp.communicate()
 
-    def mdrun(self, name='md', nprocs=1, rerun: str = None, extend=False, silent=False, get_cmd=False):
-        cmd = '%s -quiet -nobackup mdrun -ntomp %i -deffnm %s' % (self.GMX_BIN, nprocs, name)
+    def mdrun(self, name='md', nprocs=1, n_thread=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
+        if n_thread is None:  # n_thread is None means auto
+            for i in [6, 5, 4]:  # available OpenMP threads: 6, 5, 4
+                if (nprocs / 2) % i == 0:
+                    n_thread = i
+                    break
+            else:
+                n_thread = nprocs
+        n_process = nprocs // n_thread
+
+        cmd = '%s -quiet -nobackup mdrun -ntomp %i -deffnm %s' % (self.GMX_BIN, n_thread, name)
+        if n_process > 1:
+            cmd = 'mpirun -np %i ' % n_process + cmd
 
         if rerun is not None:
             cmd = '%s -rerun %s' % (cmd, rerun)
@@ -353,6 +364,7 @@ class GMX:
             if cmd.startswith('export'):
                 pass
             elif cmd.find('gmx') != -1 and cmd.find(' mdrun ') != -1:
+                cmd = re.sub('mpirun\s+-np\s+[0-9]+', '', cmd)  # remove mpirun -np xx
                 cmd = re.sub('-ntomp\s+[0-9]+', '', cmd)  # remove -ntomp xx
                 cmd = 'mpirun -np %i %s' % (len(dirs), cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx

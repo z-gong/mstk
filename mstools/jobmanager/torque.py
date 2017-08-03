@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from .jobmanager import JobManager
 from .node import Node
+from .job import Job
 
 
 class Torque(JobManager):
@@ -99,6 +100,10 @@ class Torque(JobManager):
             raise Exception('Cannot kill job: %s' % name)
 
         return True
+
+    def get_all_jobs(self)->[Job]:
+        # TODO implement later
+        return []
 
     def get_nodes(self):
         def parse_used_cores(line):

@@ -1,3 +1,6 @@
+from .job import Job
+
+
 class JobManager:
     def __init__(self, queue=None, nprocs=1, env_cmd=None):
         self.queue = queue
@@ -18,3 +21,10 @@ class JobManager:
 
     def kill_job(self, name):
         pass
+
+    def get_all_jobs(self) -> [Job]:
+        return []
+
+    @property
+    def n_running_jobs(self) -> int:
+        return len(self.get_all_jobs())

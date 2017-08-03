@@ -16,25 +16,33 @@ class Slurm(JobManager):
 
     def replace_mpirun_srun(self, commands) -> (int, [str]):
         n_process = 1
-        new_cmds = []
+        cmds_replaced = []
         for cmd in commands:
             if cmd.startswith('mpirun'):
                 n_process = int(cmd.split()[2])
                 cmd_srun = 'srun ' + ' '.join(cmd.split()[3:])
-                new_cmds.append(cmd_srun)
+                cmds_replaced.append(cmd_srun)
             else:
-                new_cmds.append(cmd)
-        return n_process, new_cmds
+                cmds_replaced.append(cmd)
+        return n_process, cmds_replaced
 
-    def generate_sh(self, workdir, commands, name, sh=None, n_thread=1, exclusive=False, **kwargs):
+    def generate_sh(self, workdir, commands, name, sh=None, n_thread=None, exclusive=False, **kwargs):
         if sh is None:
             sh = self.sh
         out = sh[:-2] + 'out'
         err = sh[:-2] + 'err'
 
         n_process, srun_commands = self.replace_mpirun_srun(commands)
-        n_node = math.ceil(n_process * n_thread / self.nprocs)
-        exclusive_cmd = '#SBATCH --exclusive\n' if exclusive else ''
+        if n_thread is None:
+            n_thread = self.nprocs // n_process
+
+        if exclusive:
+            n_node = math.ceil(n_process * n_thread / self.nprocs)
+            node_cmd = '#SBATCH --nodes=%i\n' %n_node
+            exclusive_cmd = '#SBATCH --exclusive\n'
+        else:
+            node_cmd = ''
+            exclusive_cmd = ''
 
         with open(sh, 'w') as f:
             f.write('#!/bin/bash\n'
@@ -44,8 +52,9 @@ class Slurm(JobManager):
                     '#SBATCH -p %(queue)s\n'
                     '#SBATCH --ntasks=%(n_process)s\n'
                     '#SBATCH --cpus-per-task=%(n_thread)s\n'
-                    '#SBATCH --nodes=%(n_node)s\n'
-                    '%(exclusive_cmd)s\n'
+                    '%(node_cmd)s'
+                    '%(exclusive_cmd)s'
+                    '\n\n'
                     '%(env_cmd)s\n\n'
                     'cd %(workdir)s\n\n'
                     % ({'name': name,
@@ -54,7 +63,7 @@ class Slurm(JobManager):
                         'queue': self.queue,
                         'n_process': n_process,
                         'n_thread': n_thread,
-                        'n_node': n_node,
+                        'node_cmd': node_cmd,
                         'exclusive_cmd': exclusive_cmd,
                         'env_cmd': self.env_cmd,
                         'workdir': workdir
@@ -69,7 +78,7 @@ class Slurm(JobManager):
         Popen(['sbatch', sh]).communicate()
 
     def is_running_id(self, id) -> bool:
-        for job in self.get_jobs():
+        for job in self.get_all_jobs():
             if job.id == id:
                 if job.state in [JobState.PENDING, JobState.RUNNING]:
                     return True
@@ -78,7 +87,7 @@ class Slurm(JobManager):
         return False
 
     def get_id_from_name(self, name: str) -> int:
-        for job in reversed(self.get_jobs()):  # reverse the job list, in case jobs with same name
+        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
             if job.name == name:
                 return job.id
 
@@ -101,7 +110,7 @@ class Slurm(JobManager):
 
         return True
 
-    def get_jobs(self):
+    def get_all_jobs(self):
         cmd = 'scontrol show job'
         try:
             output = subprocess.check_output(cmd.split())
