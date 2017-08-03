@@ -372,7 +372,7 @@ class GMX:
                     cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (len(dirs) // n_gpu) \
                            + ''.join(map(str, range(len(dirs) % n_gpu)))  # add -gpu_id 01230123012
                 if n_thread is not None:
-                    cmd += ' -ntomp' % n_thread
+                    cmd += ' -ntomp %i' % n_thread
 
             else:
                 cmd = 'for i in %s; do cd $i; %s; done' % (' '.join(dirs), cmd)  # do it in every directory
