@@ -2,6 +2,7 @@ import math
 import os
 
 from .errors import OpenBabelError
+import subprocess
 
 
 def greatest_common_divisor(numbers):
@@ -116,3 +117,17 @@ def n_diff_lines(f1: str, f2: str):
             n_diff += 1
     n_diff += abs(n1 - n2)
     return n_diff
+
+
+def get_last_line(filename):
+    cmd = 'tail -n 1 %s' % filename
+    try:
+        out = subprocess.check_output(cmd.split()).decode()
+    except:
+        raise Exception('Cannot open file: %s' % filename)
+
+    try:
+        string = out.splitlines()[-1]
+    except:
+        string = ''
+    return string

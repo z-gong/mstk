@@ -4,6 +4,7 @@ import shutil
 from ..simulation import Simulation
 from ...errors import GmxError
 from ...wrapper import GMX
+from ...utils import get_last_line
 
 
 class GmxSimulation(Simulation):
@@ -34,15 +35,13 @@ class GmxSimulation(Simulation):
                 raise GmxError('Energy minimization failed')
 
     def check_finished(self, logs=None):
-        if logs == None:
+        if logs is None:
             logs = self.logs
         for log in logs:
             if not os.path.exists(log):
                 return False
-            with open(log) as f:
-                lines = f.readlines()
             try:
-                last_line = lines[-1]
+                last_line = get_last_line(log)
             except:
                 return False
             if not last_line.startswith('Finished mdrun'):

@@ -9,3 +9,6 @@ class Job():
         self.name = name
         self.state = state
         self.workdir = workdir
+
+    def __repr__(self):
+        return '<PBS Job: %i %s>' %(self.id, self.name)
