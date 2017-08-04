@@ -3,6 +3,8 @@ import subprocess
 from subprocess import Popen
 from collections import OrderedDict
 
+import os
+
 from .job import Job, JobState
 from .jobmanager import JobManager
 from ..errors import JobManagerError
@@ -66,7 +68,7 @@ class Slurm(JobManager):
                         'node_cmd': node_cmd,
                         'exclusive_cmd': exclusive_cmd,
                         'env_cmd': self.env_cmd,
-                        'workdir': workdir
+                        'workdir': os.path.realpath(workdir)
                         })
                     )
             for cmd in srun_commands:
