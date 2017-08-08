@@ -119,7 +119,6 @@ def estimate_density_from_formula(f) -> float:
     nBr = formula.atomdict.get('Br') or 0
     nI = formula.atomdict.get('I') or 0
     nOther = nAtoms - nC - nH - nO - nN - nS - nF - nCl - nBr - nI
-    print(nAtoms, nC, nH, nO, nN, nS, nF, nCl, nBr, nI, nOther)
     return (1.175 * nC + 0.572 * nH + 1.774 * nO + 1.133 * nN + 2.184 * nS
             + 1.416 * nF + 2.199 * nCl + 5.558 * nBr + 7.460 * nI
             + 0.911 * nOther) / nAtoms
