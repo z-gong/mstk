@@ -17,9 +17,9 @@ class DFF:
     def __init__(self, dff_root):
         self.DFF_ROOT = os.path.abspath(dff_root)
         if sys.platform == 'darwin':
-            self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin32m')
+            self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin64m')
         elif sys.platform.startswith('linux'):
-            self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin32x')
+            self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin64x')
         elif sys.platform.startswith('win'):
             self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin32w')
         else:

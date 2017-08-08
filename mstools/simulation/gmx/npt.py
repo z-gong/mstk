@@ -3,8 +3,6 @@ import shutil
 
 from .gmx import GmxSimulation
 from ...analyzer import is_converged, block_average
-from ...unit import Unit
-
 from ...wrapper.ppf import delta_ppf
 
 
@@ -60,7 +58,7 @@ class Npt(GmxSimulation):
         commands.append(cmd)
 
         # NPT equilibrium with Langevin thermostat and Berendsen barostat
-        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P / Unit.bar,
+        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P,
                                            nsteps=nst_eq, nstxtcout=0, restart=True, pcoupl='berendsen')
         cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='anneal.gro', top=top, tpr_out='eq.tpr',
                               cpt='anneal.cpt', get_cmd=True)
@@ -69,7 +67,7 @@ class Npt(GmxSimulation):
         commands.append(cmd)
 
         # NPT production with Langevin thermostat and Parrinello-Rahman barostat
-        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-npt.mdp', T=T, P=P / Unit.bar,
+        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-npt.mdp', T=T, P=P,
                                            dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
         cmd = self.gmx.grompp(mdp='grompp-npt.mdp', gro='eq.gro', top=top, tpr_out='npt.tpr',
@@ -141,7 +139,7 @@ class Npt(GmxSimulation):
                 'temperature': block_average(temp_series.loc[when:]),
                 'pressure': block_average(press_series.loc[when:]),
                 'potential': block_average(potential_series.loc[when:]),
-                'density': block_average(density_series.loc[when:]),
+                'density': block_average(density_series.loc[when:] / 1000),
                 'e_inter': block_average(e_inter_series.loc[when:]),
             }
         else:

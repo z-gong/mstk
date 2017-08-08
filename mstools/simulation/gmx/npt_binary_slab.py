@@ -5,7 +5,6 @@ import numpy
 
 from mstools.analyzer.series import is_converged
 from .gmx import GmxSimulation
-from ...unit import Unit
 from ...wrapper.ppf import delta_ppf
 
 
@@ -39,7 +38,7 @@ class NptBinarySlab(GmxSimulation):
 
         nprocs = self.jobmanager.nprocs
         commands = []
-        self.gmx.prepare_mdp_from_template('t_npt.mdp', T=T, P=P / Unit.bar, nsteps=int(1E6))
+        self.gmx.prepare_mdp_from_template('t_npt.mdp', T=T, P=P, nsteps=int(1E6))
         cmd = self.gmx.grompp(gro=gro, top=top, tpr_out=self.procedure, get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name=self.procedure, nprocs=nprocs, get_cmd=True)
