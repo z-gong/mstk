@@ -118,32 +118,15 @@ class Formula:
     @property
     def n_heavy_atom(self) -> int:
         n = 0
-        for element in self.atomdict.keys():
-            if element != 'H':
-                n += 1
+        for k, v in self.atomdict.items():
+            if k != 'H':
+                n += v
         return n
 
     @property
     def n_h(self) -> int:
         n = 0
-        for element in self.atomdict.keys():
-            if element == 'H':
-                n += 1
+        for k, v in self.atomdict.items():
+            if k == 'H':
+                n += v
         return n
-
-    def estimate_density(self) -> float:
-        formula = self.to_str()
-        density = {
-            'H2': 0.07,
-            'He': 0.15,
-        }
-        if formula in density.keys():
-            return density.get(formula)
-
-        # estimate density based on the ratio of hydrogen atoms and heavy atoms
-        try:
-            density = 1.8 / (self.n_h / self.n_heavy_atom)
-        except:
-            density = 0.8
-
-        return min(density, 0.8)

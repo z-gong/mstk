@@ -47,7 +47,7 @@ class Simulation():
             self.mol2_list.append(mol2)
             n_atom_list.append(len(py_mol.atoms))
             molwt_list.append(py_mol.molwt)
-            density_list.append(estimate_density_from_formula(py_mol.formula))
+            density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
         self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])

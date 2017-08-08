@@ -97,10 +97,32 @@ def create_mol_from_smiles(smiles: str, pdb_out: str = None, mol2_out: str = Non
 
 
 def estimate_density_from_formula(f) -> float:
-    from .formula import Formula
     # unit: g/mL
-    return Formula.read(f).estimate_density()
+    from .formula import Formula
+    formula = Formula.read(f)
+    string = formula.to_str()
+    density = {
+        'H2': 0.07,
+        'He': 0.15,
+    }
+    if string in density.keys():
+        return density.get(string)
 
+    nAtoms = formula.n_heavy_atom + formula.n_h
+    nC = formula.atomdict.get('C') or 0
+    nH = formula.atomdict.get('H') or 0
+    nO = formula.atomdict.get('O') or 0
+    nN = formula.atomdict.get('N') or 0
+    nS = formula.atomdict.get('S') or 0
+    nF = formula.atomdict.get('F') or 0
+    nCl = formula.atomdict.get('Cl') or 0
+    nBr = formula.atomdict.get('Br') or 0
+    nI = formula.atomdict.get('I') or 0
+    nOther = nAtoms - nC - nH - nO - nN - nS - nF - nCl - nBr - nI
+    print(nAtoms, nC, nH, nO, nN, nS, nF, nCl, nBr, nI, nOther)
+    return (1.175 * nC + 0.572 * nH + 1.774 * nO + 1.133 * nN + 2.184 * nS
+            + 1.416 * nF + 2.199 * nCl + 5.558 * nBr + 7.460 * nI
+            + 0.911 * nOther) / nAtoms
 
 def n_diff_lines(f1: str, f2: str):
     with open(f1) as f:
