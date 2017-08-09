@@ -79,27 +79,20 @@ class Slurm(JobManager):
             sh = self.sh
         Popen(['sbatch', sh]).communicate()
 
-    def is_running_id(self, id) -> bool:
-        for job in self.get_all_jobs():
-            if job.id == id:
+    def get_id_from_name(self, name: str) -> int:
+        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
+            if job.name == name:
+                return job.id
+        return None
+
+    def is_running(self, name) -> bool:
+        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
+            if job.name == name:
                 if job.state in [JobState.PENDING, JobState.RUNNING]:
                     return True
                 else:
                     return False
         return False
-
-    def get_id_from_name(self, name: str) -> int:
-        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
-            if job.name == name:
-                return job.id
-
-        return None
-
-    def is_running(self, name) -> bool:
-        id = self.get_id_from_name(name)
-        if id == None:
-            return False
-        return self.is_running_id(id)
 
     def kill_job(self, name) -> bool:
         id = self.get_id_from_name(name)
