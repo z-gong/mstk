@@ -40,7 +40,7 @@ class Slurm(JobManager):
 
         if exclusive:
             n_node = math.ceil(n_process * n_thread / self.nprocs)
-            node_cmd = '#SBATCH --nodes=%i\n' %n_node
+            node_cmd = '#SBATCH --nodes=%i\n' % n_node
             exclusive_cmd = '#SBATCH --exclusive\n'
         else:
             node_cmd = ''
@@ -68,7 +68,7 @@ class Slurm(JobManager):
                         'node_cmd': node_cmd,
                         'exclusive_cmd': exclusive_cmd,
                         'env_cmd': self.env_cmd,
-                        'workdir': os.path.realpath(workdir)
+                        'workdir': workdir
                         })
                     )
             for cmd in srun_commands:
@@ -132,7 +132,7 @@ class Slurm(JobManager):
                     elif key == 'JobState':
                         if val == 'PENDING':
                             state = JobState.PENDING
-                        elif val == 'RUNNING':
+                        elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
                             state = JobState.RUNNING
                         else:
                             state = JobState.DONE

@@ -1,4 +1,4 @@
-from .job import Job
+from .job import Job, JobState
 
 
 class JobManager:
@@ -27,4 +27,8 @@ class JobManager:
 
     @property
     def n_running_jobs(self) -> int:
-        return len(self.get_all_jobs())
+        n = 0
+        for job in  self.get_all_jobs():
+            if job.state != JobState.DONE:
+                n += 1
+        return n

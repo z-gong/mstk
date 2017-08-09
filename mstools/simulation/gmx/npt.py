@@ -84,13 +84,14 @@ class Npt(GmxSimulation):
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-hvap.mdp', nstxtcout=0, restart=True)
         cmd = self.gmx.grompp(mdp='grompp-hvap.mdp', gro='eq.gro', top=top_hvap, tpr_out='hvap.tpr', get_cmd=True)
         commands.append(cmd)
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, rerun='npt.xtc', get_cmd=True)
+        # Use OpenMP instead of MPI when rerun hvap
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_thread=nprocs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def extend(self, extend=500, jobname=None):
+    def extend(self, extend=500, jobname=None) -> [str]:
         '''
         extend simulation for 500 ps
         '''
@@ -103,10 +104,12 @@ class Npt(GmxSimulation):
         commands.append(cmd)
 
         # Rerun enthalpy of vaporization
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, rerun='npt.xtc', get_cmd=True)
+        # Use OpenMP instead of MPI when rerun hvap
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_thread=nprocs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
+        return commands
 
     def analyze(self, dirs=None):
         if dirs is None:
