@@ -344,7 +344,7 @@ class PPF():
         return bound
 
 
-def delta_ppf(ppf_file, ppf_out, T, dr=-0.01087, de=0.05557):
+def delta_ppf(ppf_file, ppf_out, T, dr=-0.01, de=0.056):
     paras = {}
     paras['all_dr'] = dr * (T - 298) / 100
     paras['all_de'] = de * (T - 298) / 100
