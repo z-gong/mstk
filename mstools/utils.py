@@ -62,8 +62,9 @@ def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8, interval: in
     return T_list
 
 
-def get_P_list_from_range(p_min, p_max, multiple=(5,), n_point: int = None) -> [int]:
-    P_list = []
+def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
+    p_min = max(p_min, 1)
+    p_max = max(p_max, 1)
 
     multiple = list(multiple)
     if 1 not in multiple:
@@ -73,10 +74,14 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,), n_point: int = None) -> [
     magnitude_min = int(math.log10(p_min))
     magnitude_max = math.ceil(math.log10(p_max))
 
+    P_list = []
     for i in range(magnitude_min, magnitude_max):
         for m in multiple:
-            P_list.append(10 ** i * m)
-    P_list.append(10 ** magnitude_max)
+            P = 10 ** i * m
+            if P <= p_max:
+                P_list.append(P)
+    if p_max not in P_list:
+        P_list.append(p_max)
     return P_list
 
 
@@ -122,6 +127,7 @@ def estimate_density_from_formula(f) -> float:
     return (1.175 * nC + 0.572 * nH + 1.774 * nO + 1.133 * nN + 2.184 * nS
             + 1.416 * nF + 2.199 * nCl + 5.558 * nBr + 7.460 * nI
             + 0.911 * nOther) / nAtoms
+
 
 def n_diff_lines(f1: str, f2: str):
     with open(f1) as f:

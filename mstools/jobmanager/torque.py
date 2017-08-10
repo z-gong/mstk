@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from .jobmanager import JobManager
 from .node import Node
-from .job import Job
+from .pbsjob import PbsJob
 
 
 class Torque(JobManager):
@@ -101,7 +101,7 @@ class Torque(JobManager):
 
         return True
 
-    def get_all_jobs(self)->[Job]:
+    def get_all_jobs(self)->[PbsJob]:
         # TODO implement later
         return []
 

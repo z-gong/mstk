@@ -1,11 +1,9 @@
 import math
 import subprocess
-from subprocess import Popen
 from collections import OrderedDict
+from subprocess import Popen
 
-import os
-
-from .job import Job, JobState
+from .pbsjob import PbsJob
 from .jobmanager import JobManager
 from ..errors import JobManagerError
 
@@ -80,15 +78,15 @@ class Slurm(JobManager):
         Popen(['sbatch', sh]).communicate()
 
     def get_id_from_name(self, name: str) -> int:
-        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
+        for job in self.all_jobs:
             if job.name == name:
                 return job.id
         return None
 
     def is_running(self, name) -> bool:
-        for job in reversed(self.get_all_jobs()):  # reverse the job list, in case jobs with same name
+        for job in self.all_jobs:
             if job.name == name:
-                if job.state in [JobState.PENDING, JobState.RUNNING]:
+                if job.state in [PbsJob.State.PENDING, PbsJob.State.RUNNING]:
                     return True
                 else:
                     return False
@@ -115,22 +113,28 @@ class Slurm(JobManager):
         jobs = []
         for job_str in output.decode().split('\n\n'):  # split jobs
             if job_str.startswith('JobId'):
-                for line in job_str.split():  # split properties
-                    key = line.split('=')[0]
-                    val = line.split('=')[1]
-                    if key == 'JobId':
-                        id = int(val)
-                    elif key == 'Name':
-                        name = val
-                    elif key == 'JobState':
-                        if val == 'PENDING':
-                            state = JobState.PENDING
-                        elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
-                            state = JobState.RUNNING
-                        else:
-                            state = JobState.DONE
-                    elif key == 'WorkDir':
-                        workdir = val
-                job = Job(id=id, name=name, state=state, workdir=workdir)
+                job = self.get_job_from_str(job_str)
                 jobs.append(job)
         return jobs
+
+    def get_job_from_str(self, job_str) -> PbsJob:
+        for line in job_str.split():  # split properties
+            key = line.split('=')[0]
+            val = line.split('=')[1]
+            if key == 'JobId':
+                id = int(val)
+            elif key == 'Name':
+                name = val
+            elif key == 'JobState':
+                state_str = val
+                if val == 'PENDING':
+                    state = PbsJob.State.PENDING
+                elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
+                    state = PbsJob.State.RUNNING
+                else:
+                    state = PbsJob.State.DONE
+            elif key == 'WorkDir':
+                workdir = val
+        job = PbsJob(id=id, name=name, state=state, workdir=workdir)
+        job.state_str = state_str
+        return job
