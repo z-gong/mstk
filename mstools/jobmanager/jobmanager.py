@@ -50,6 +50,7 @@ class JobManager:
 
     @property
     def n_running_jobs(self) -> int:
+        self.update_stored_jobs()  # must update stored jobs first
         n = 0
         for job in self.all_jobs:
             if job.state != PbsJob.State.DONE:
