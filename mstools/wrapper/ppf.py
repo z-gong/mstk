@@ -344,10 +344,16 @@ class PPF():
         return bound
 
 
-def delta_ppf(ppf_file, ppf_out, T, dr=-0.01, de=0.056):
-    paras = {}
-    paras['all_dr'] = dr * (T - 298) / 100
-    paras['all_de'] = de * (T - 298) / 100
+def delta_ppf(ppf_file, ppf_out, T, paras_delta=None):
+    if paras_delta is None:
+        paras_delta = {
+            'h_1_dr': -0.01 * (T - 298) / 100,
+            'h_1_de': 0.056 * (T - 298) / 100,
+            'c_4_dr': -0.01 * (T - 298) / 100,
+            'c_4_de': 0.056 * (T - 298) / 100,
+            'c_3_dr': -0.004 * (T - 298) / 100,
+            'c_3_de': 0.005 * (T - 298) / 100,
+        }
     ppf = PPF(ppf_file)
-    ppf.set_nb_paras(paras, delta=True)
+    ppf.set_nb_paras(paras_delta, delta=True)
     ppf.write(ppf_out)
