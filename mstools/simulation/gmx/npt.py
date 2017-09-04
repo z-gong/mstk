@@ -91,7 +91,7 @@ class Npt(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def extend(self, extend=500, jobname=None) -> [str]:
+    def extend(self, extend=500, jobname=None, sh=None) -> [str]:
         '''
         extend simulation for 500 ps
         '''
@@ -104,11 +104,12 @@ class Npt(GmxSimulation):
         commands.append(cmd)
 
         # Rerun enthalpy of vaporization
+        commands.append('export GMX_MAXCONSTRWARN=-1')
         # Use OpenMP instead of MPI when rerun hvap
         cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_thread=nprocs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
-        self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
+        self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure, sh=sh)
         return commands
 
     def analyze(self, dirs=None):

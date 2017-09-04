@@ -22,6 +22,7 @@ class Local(JobManager):
 
     def submit(self, sh=None):
         print('Localhost is only for test')
+        return True
 
     def is_running(self, name):
         raise JobManagerError('Not supported on localhost')

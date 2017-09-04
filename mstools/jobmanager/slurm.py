@@ -75,7 +75,12 @@ class Slurm(JobManager):
     def submit(self, sh=None):
         if sh is None:
             sh = self.sh
-        Popen(['sbatch', sh]).communicate()
+        sp = Popen(['sbatch', sh])
+        sp.communicate()
+        if sp.returncode == 0:
+            return True
+        else:
+            return False
 
     def get_id_from_name(self, name: str) -> int:
         for job in self.all_jobs:

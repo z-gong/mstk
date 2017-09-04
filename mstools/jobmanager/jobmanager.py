@@ -36,7 +36,7 @@ class JobManager:
     def generate_sh(self, workdir, commands: [str], name):
         pass
 
-    def submit(self):
+    def submit(self) -> bool:
         pass
 
     def is_running(self, name):
