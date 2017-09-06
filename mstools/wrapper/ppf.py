@@ -278,7 +278,7 @@ class PPF():
                     elif n == 3:
                         term.k3.value += delta
 
-    def fit_torsion(self, dff_root, qmd, msd, restraint, torsion_key):
+    def fit_torsion(self, dff_root, qmd, msd, restraint, torsion_key, dfi_name='fit_torsion'):
         import os
         import random
         from .dff import DFF
@@ -295,7 +295,7 @@ class PPF():
         ppf_tmp2 = 'tmp-%i.ppf' % random.randint(1E5, 1E6)
         self.write(ppf_tmp)
         try:
-            dff.fit_torsion(qmd, msd, ppf_tmp, ppf_tmp2, restraint)
+            dff.fit_torsion(qmd, msd, ppf_tmp, ppf_tmp2, restraint, dfi_name=dfi_name)
         except:
             raise
         else:
