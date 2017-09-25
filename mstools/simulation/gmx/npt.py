@@ -23,7 +23,7 @@ class Npt(GmxSimulation):
         if export:
             self.export(ppf=ppf, minimize=minimize)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
         if not drde:
@@ -99,7 +99,7 @@ class Npt(GmxSimulation):
 
         nprocs = self.jobmanager.nprocs
         commands = []
-        # Extending NPT production with Velocity Rescaling thermostat and Parrinello-Rahman barostat
+        # Extending NPT production
         cmd = self.gmx.mdrun(name='npt', nprocs=nprocs, extend=True, get_cmd=True)
         commands.append(cmd)
 
@@ -136,15 +136,23 @@ class Npt(GmxSimulation):
 
         converged, when = is_converged(density_series)
 
-        if converged:
-            return {
-                'simulation_length': density_series.index[-1],
-                'converged_from': when,
-                'temperature': block_average(temp_series.loc[when:]),
-                'pressure': block_average(press_series.loc[when:]),
-                'potential': block_average(potential_series.loc[when:]),
-                'density': block_average(density_series.loc[when:] / 1000),
-                'e_inter': block_average(e_inter_series.loc[when:]),
-            }
-        else:
+        if not converged:
             return None
+
+        return {
+            'simulation_length': density_series.index[-1],
+            'converged_from': when,
+            'temperature': list(block_average(temp_series.loc[when:])),
+            'pressure': list(block_average(press_series.loc[when:])),
+            'potential': list(block_average(potential_series.loc[when:])),
+            'density': list(block_average(density_series.loc[when:] / 1000)),
+            'e_inter': list(block_average(e_inter_series.loc[when:])),
+        }
+
+    def clean(self):
+        for f in os.listdir(os.getcwd()):
+            if f.startswith('em.') or f.startswith('anneal.') or f.startswith('eq.'):
+                try:
+                    os.remove(f)
+                except:
+                    pass

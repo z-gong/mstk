@@ -146,12 +146,12 @@ class GMX:
                 return float(line.split()[1])
         raise GmxError('Invalid property')
 
-    def get_property_and_stderr(self, edr, property: str, begin=0) -> [float, float]:
+    def get_property_and_stderr(self, edr, property: str, begin=0) -> (float, float):
         sp_out = self.energy(edr, properties=[property], begin=begin)
 
         for line in sp_out.decode().splitlines():
             if line.lower().startswith(property.lower()):
-                return (float(line.split()[1]), float(line.split()[2]))
+                return float(line.split()[1]), float(line.split()[2])
         raise GmxError('Invalid property')
 
     def get_box(self, edr, begin=0) -> [float]:
@@ -168,6 +168,21 @@ class GMX:
             if line.startswith('Box-Z'):
                 box[2] = float(line.split()[1])
         return box
+
+    def density(self, xtc, tpr, group='System', begin=0, center=True, silent=False, get_cmd=False):
+        cmd = '%s density -f %s -s %s -b %f' % (self.GMX_BIN, xtc, tpr, begin)
+        inp = group
+        if center:
+            cmd += ' -center'
+            inp = '%s\n%s' % (group, group)
+
+        if get_cmd:
+            cmd = 'echo "%s" | %s' % (inp, cmd)
+            return cmd
+        else:
+            (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
+            sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
+            sp.communicate(input=inp.encode())
 
     @staticmethod
     def scale_box(gro, gro_out, new_box: [float]):

@@ -32,6 +32,9 @@ class Simulation():
     def analyze(self) -> {str: float}:
         pass
 
+    def clean(self):
+        pass
+
     def set_system(self, smiles_list: [str], n_atoms: int, density: float = None):
         self.pdb_list = []
         self.mol2_list = []

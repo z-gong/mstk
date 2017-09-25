@@ -29,7 +29,7 @@ class Ptre():
         elif len(peaks) == 2:
             if not Ptre.test_updown(peaks):
                 result = 'Error: Two peaks with same direction.'
-            if Ptre.test_hpw(peaks, hpw_t, debug):
+            if Ptre.test_hpw(peaks, len(data) * interval, hpw_t, debug):
                 result = 'a'
             else:
                 result = 'c'
@@ -43,7 +43,7 @@ class Ptre():
 
     # half peak width test
     @staticmethod
-    def test_hpw(peaks, threshold, debug=False):
+    def test_hpw(peaks, length, threshold, debug=False):
 
         for i in range(0, len(peaks) - 1):
             hpw_ratio = (peaks[i + 1][0] - peaks[i][0]) / (peaks[i][2] + peaks[i + 1][2])
@@ -51,6 +51,11 @@ class Ptre():
                 print('hpw ratio:', i, hpw_ratio)
             if hpw_ratio < threshold:
                 return False
+        hpw_ratio = (peaks[0][0] + length - peaks[-1][0]) / (peaks[-1][2] + peaks[0][2])
+        if debug:
+            print('hpw ratio:', -1, hpw_ratio)
+        if hpw_ratio < threshold:
+            return False
         return True
 
     @staticmethod

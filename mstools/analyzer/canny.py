@@ -103,10 +103,13 @@ def non_max_suppress(data, width):
 
 def get_halfwidth(data, peaks):
     hpw = []
-    peaks_tmp = [0] + peaks + [len(data)]
+    peaks_tmp = [max(0, peaks[-1] - len(data)//2)] + peaks + [min(peaks[0] + len(data)//2, len(data))]
+    # print(peaks_tmp)
     for i in range(1,len(peaks_tmp)-1):
-        segment = data[peaks_tmp[i-1]:peaks_tmp[i+1]]
-        hpw.append(len(segment[segment > data[i]/2]))
+        segment = data[(peaks_tmp[i-1] + peaks_tmp[i])//2:(peaks_tmp[i+1]+peaks_tmp[i])//2]
+        # print(peaks_tmp[i], data[peaks_tmp[i]]/2)
+        hpw.append(len(segment[segment > data[peaks_tmp[i]]/2]))
+        # print(hpw[-1])
     return hpw
 
 def uniform(array):

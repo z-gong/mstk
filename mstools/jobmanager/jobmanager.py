@@ -19,11 +19,15 @@ class JobManager:
 
     def update_stored_jobs(self):
         self.stored_jobs = []
-        jobs = self.get_all_jobs()
-        time.sleep(1)
-        jobs += self.get_all_jobs()
-        time.sleep(1)
-        jobs += self.get_all_jobs()
+        jobs = []
+        for i in range(3, 0, -1):
+            # in case get_all_jobs() raise Exception
+            try:
+                jobs += self.get_all_jobs()
+            except:
+                pass
+            if i > 1:
+                time.sleep(1)
         for job in reversed(jobs):  # reverse the job list, in case jobs with same name
             if job not in self.stored_jobs:
                 self.stored_jobs.append(job)

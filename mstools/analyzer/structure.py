@@ -32,3 +32,15 @@ def is_interface(series: Series, debug=False) -> bool:
         return True
     else:
         return False
+
+
+def check_interface(series: Series) -> (bool, [float]):
+    interval = series.index[1] - series.index[0]
+
+    result, peaks = Ptre.test_data(series, interval)
+    peaks = [(0, -peaks[0][1], None)] + peaks + [(len(series) * interval, -peaks[-1][1], None)]
+
+    if result == Ptre._PATTERN_A:
+        return True, [p[0] + series.index[0] for p in peaks]
+    else:
+        return False, None
