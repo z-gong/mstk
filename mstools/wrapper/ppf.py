@@ -253,16 +253,22 @@ class PPF():
             if term.term == 'TCOSP':
                 term.freeze()
 
-    def init_torsion(self, torsion_key):
+    def relax_torsion(self, torsion_key):
         for term in self.terms:
             if term.term == 'TCOSP':
                 key_words = torsion_key.split(',')
                 key_words = [w.strip() for w in key_words]
                 term_key_words = [term.atom1, term.atom2, term.atom3, term.atom4]
                 if term_key_words == key_words or term_key_words == list(reversed(key_words)):
-                    term.k1 = Parameter('0')
-                    term.k2 = Parameter('0')
-                    term.k3 = Parameter('0')
+                    # term.k1 = Parameter('0')
+                    # term.k2 = Parameter('0')
+                    # term.k3 = Parameter('0')
+                    if term.k1 is not None:
+                        term.k1.fixed = False
+                    if term.k2 is not None:
+                        term.k2.fixed = False
+                    if term.k3 is not None:
+                        term.k3.fixed = False
 
     def modify_torsion(self, torsion_key, n, delta):
         for term in self.terms:
@@ -285,64 +291,31 @@ class PPF():
 
         ### relax only one torsion
         self.freeze_torsions()
-        self.init_torsion(torsion_key)
+        self.relax_torsion(torsion_key)
 
         ### Backup adj_nb_paras
         adj_nb_paras = self.get_adj_nb_paras()
 
         dff = DFF(dff_root=dff_root)
         ppf_tmp = 'tmp-%i.ppf' % random.randint(1E5, 1E6)
-        ppf_tmp2 = 'tmp-%i.ppf' % random.randint(1E5, 1E6)
+        ppf_out_tmp = 'tmp-%i.ppf' % random.randint(1E5, 1E6)
         self.write(ppf_tmp)
         try:
-            dff.fit_torsion(qmd, msd, ppf_tmp, ppf_tmp2, restraint, dfi_name=dfi_name)
+            # should set charge for MSD first
+            dff.set_charge([msd], ppf_tmp)
+            dff.fit_torsion(qmd, msd, ppf_tmp, ppf_out_tmp, restraint, dfi_name=dfi_name)
         except:
             raise
         else:
-            self.__init__(ppf_tmp2)
+            self.__init__(ppf_out_tmp)
             ### restore adj_nb_paras
             self.set_nb_paras(adj_nb_paras)
             os.remove(ppf_tmp)
-            os.remove(ppf_tmp2)
-
-    @staticmethod
-    def get_delta_for_para(key):
-        if key.endswith('r0'):
-            delta = 0.05
-        elif key.endswith('e0'):
-            delta = 0.001
-        elif key.endswith('bi'):
-            delta = 0.005
-        elif key.endswith('dr'):
-            delta = 0.02
-        elif key.endswith('de'):
-            delta = 0.02
-        elif key.endswith('dl'):
-            delta = 0.02
-        else:
-            raise Exception('Unknown parameter: ' + key)
-
-        return delta
-
-    @staticmethod
-    def get_bound_for_para(key):
-        if key.endswith('r0'):
-            bound = (3, 5)
-            if key.startswith('h_'):
-                bound = (2, 3)
-        elif key.endswith('e0'):
-            bound = (0.01, 0.5)
-            if key.startswith('h_'):
-                bound = (0.01, 0.05)
-            if key.startswith('c_'):
-                bound = (0.01, 0.1)
-        elif key.endswith('bi'):
-            bound = (-0.6, 0.6)
-        else:
-            raise Exception('Unknown parameter: ' + key)
-
-        return bound
-
+            os.remove(ppf_out_tmp)
+            os.remove(dfi_name + '.dfi')
+            os.remove(dfi_name + '.dfo')
+            os.remove('set_charge.dfi')
+            os.remove('set_charge.dfo')
 
 def delta_ppf(ppf_file, ppf_out, T, paras_delta=None):
     if paras_delta is None:
