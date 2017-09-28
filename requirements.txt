@@ -1,0 +1,5 @@
+openbabel
+numpy
+pandas
+scipy
+pymbar

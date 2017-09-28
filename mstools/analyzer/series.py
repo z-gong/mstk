@@ -1,10 +1,36 @@
-import random, math
+import math
+import random
 
-from pandas import Series
 import numpy as np
+from pandas import Series
+from pymbar import timeseries
 
 
-def is_converged(series: Series, tolerance=0.9, debug=False) -> (bool, float):
+def is_converged(series: Series, equil_frac_min=0.5) -> (bool, float):
+    n_points = len(series)
+    array = np.array(series)
+    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=min(1, n_points // 100))
+    if t0 > n_points * equil_frac_min:
+        return False, 0
+    return True, series.index[t0]
+
+
+def ave_and_stderr(series: Series, subsample=True) -> (float, float):
+    array = np.array(series)
+    if subsample:
+        indices = timeseries.subsampleCorrelatedData(array)
+        # do not subsample if only one uncorrelated data
+        if len(indices) > 1:
+            array = array[indices]
+    return np.mean(array), np.std(array, ddof=1) / math.sqrt(len(array))
+
+
+def is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool, float):
+    def gauss(mu, sigma, x):
+        h = 0.3989 / sigma
+        exponent = -(x - mu) ** 2 / 2 / sigma ** 2
+        return h * np.exp(exponent)
+
     n_block = 5
     start = series.index[0]
     end = series.index[-1]
@@ -68,13 +94,7 @@ def is_converged(series: Series, tolerance=0.9, debug=False) -> (bool, float):
         return False, 0
 
 
-def gauss(mu, sigma, x):
-    h = 0.3989 / sigma
-    exponent = -(x - mu) ** 2 / 2 / sigma ** 2
-    return h * np.exp(exponent)
-
-
-def block_average(series, n_block=5) -> (float, float):
+def block_average(series: Series, n_block=5) -> (float, float):
     '''
     Get block average and standard error
     '''

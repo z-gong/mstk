@@ -25,7 +25,7 @@ class NvtSlab(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E2),
+                dt=0.002, nst_eq=int(4E5), nst_run=int(5E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
         if not drde:
             if os.path.abspath(model_dir) != os.getcwd():
@@ -72,9 +72,9 @@ class NvtSlab(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def extend(self, extend=1000, jobname=None, sh=None) -> [str]:
+    def extend(self, extend=5000, jobname=None, sh=None) -> [str]:
         '''
-        extend simulation for 1000 ps
+        extend simulation for 5000 ps
         '''
         self.gmx.extend_tpr('nvt.tpr', extend)
 
@@ -90,7 +90,7 @@ class NvtSlab(GmxSimulation):
     def analyze(self, dirs=None):
         import pandas as pd
         from ...analyzer.series import is_converged
-        from ...analyzer.structure import check_interface
+        from ...analyzer.structure import is_interface
         from ...panedr import edr_to_df
 
         if dirs is None:
@@ -107,7 +107,7 @@ class NvtSlab(GmxSimulation):
         df = pd.read_table('density.xvg', skiprows=24, names=['Density'], index_col=0, sep='\s+')
         density_series = df.Density
 
-        is_interface, bounds = check_interface(density_series)
+        is_interface, bounds = is_interface(density_series)
         if not is_interface:
             raise Exception('No interface detected')
         z_liq_span = bounds[2] - bounds[1]

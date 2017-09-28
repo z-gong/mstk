@@ -2,7 +2,7 @@ import os
 import shutil
 
 from .gmx import GmxSimulation
-from ...analyzer import is_converged, block_average
+from ...analyzer import is_converged, ave_and_stderr
 from ...wrapper.ppf import delta_ppf
 
 
@@ -142,11 +142,11 @@ class Npt(GmxSimulation):
         return {
             'simulation_length': density_series.index[-1],
             'converged_from': when,
-            'temperature': list(block_average(temp_series.loc[when:])),
-            'pressure': list(block_average(press_series.loc[when:])),
-            'potential': list(block_average(potential_series.loc[when:])),
-            'density': list(block_average(density_series.loc[when:] / 1000)),
-            'e_inter': list(block_average(e_inter_series.loc[when:])),
+            'temperature': list(ave_and_stderr(temp_series.loc[when:])),
+            'pressure': list(ave_and_stderr(press_series.loc[when:])),
+            'potential': list(ave_and_stderr(potential_series.loc[when:])),
+            'density': list(ave_and_stderr(density_series.loc[when:] / 1000)),
+            'e_inter': list(ave_and_stderr(e_inter_series.loc[when:])),
         }
 
     def clean(self):
