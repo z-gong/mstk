@@ -9,7 +9,7 @@ from pymbar import timeseries
 def is_converged(series: Series, equil_frac_min=0.5) -> (bool, float):
     n_points = len(series)
     array = np.array(series)
-    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=min(1, n_points // 100))
+    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=max(1, n_points // 100))
     if t0 > n_points * equil_frac_min:
         return False, 0
     return True, series.index[t0]
