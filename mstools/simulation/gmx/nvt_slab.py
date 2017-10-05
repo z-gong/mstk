@@ -99,7 +99,7 @@ class NvtSlab(GmxSimulation):
         df = edr_to_df('nvt.edr')
         potential_series = df.Potential
 
-        converged, when = is_converged(potential_series)
+        converged, when = is_converged(potential_series, frac_min=0.3333)
         if not converged:
             return None
 
