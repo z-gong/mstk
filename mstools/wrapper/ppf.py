@@ -322,11 +322,15 @@ def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
     if drde_dict is None:
         drde_dict = {
             'h_1_dr': -0.01,
-            'h_1_de': 0.056,
-            'c_4_dr': -0.01,
-            'c_4_de': 0.056,
-            'c_3_dr': -0.004,
+            'h_1_de': 0.045,
+
+            'c_4_dr': -0.002,
+            'c_4_de': 0.02,
+
             'c_3_de': 0.005,
+
+            'o_2_dr': -0.002,
+            'o_2_de': 0.02,
         }
     paras_delta = {}
     for k, v in drde_dict.items():
