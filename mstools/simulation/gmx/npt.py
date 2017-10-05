@@ -151,7 +151,8 @@ class Npt(GmxSimulation):
 
     def clean(self):
         for f in os.listdir(os.getcwd()):
-            if f.startswith('em.') or f.startswith('anneal.') or f.startswith('eq.'):
+            if f.startswith('em.') or f.startswith('anneal.') or f.startswith('eq.') \
+                    or f.endswith('.dfo') or f.startswith('#'):
                 try:
                     os.remove(f)
                 except:
