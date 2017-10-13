@@ -5,9 +5,9 @@ from ..wrapper import Packmol, DFF
 
 
 class Simulation():
-    def __init__(self, packmol_bin=None, dff_root=None, jobmanager=None):
+    def __init__(self, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
         self.packmol = Packmol(packmol_bin=packmol_bin)
-        self.dff = DFF(dff_root=dff_root)
+        self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
 

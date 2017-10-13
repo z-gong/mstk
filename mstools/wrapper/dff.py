@@ -14,7 +14,7 @@ class DFF:
     '''
     pass
 
-    def __init__(self, dff_root):
+    def __init__(self, dff_root, default_db=None, default_table=None):
         self.DFF_ROOT = os.path.abspath(dff_root)
         if sys.platform == 'darwin':
             self.DFF_BIN_DIR = os.path.join(self.DFF_ROOT, 'bin64m')
@@ -28,14 +28,18 @@ class DFF:
         self.DFFJOB_BIN = os.path.join(self.DFF_BIN_DIR, 'dffjob.exe')
         self.DFFEXP_BIN = os.path.join(self.DFF_BIN_DIR, 'dffexp.exe')
         self.DFFFIT_BIN = os.path.join(self.DFF_BIN_DIR, 'dfffit.exe')
+        self.default_db = default_db or 'TEAMFF'
+        self.default_table = default_table or 'TEAM_LS'
 
     def convert_model_to_msd(self, model, msd_out):
         pass
 
-    def checkout(self, models: [str], db=None, table='TEAM_LS', ppf_out=None, dfi_name='checkout'):
-        if db == None:
-            db = os.path.join(self.DFF_ROOT, 'database/TEAMFF.dffdb')
-        if ppf_out == None:
+    def checkout(self, models: [str], db=None, table=None, ppf_out=None, dfi_name='checkout'):
+        if db is None:
+            db = os.path.join(self.DFF_ROOT, 'database', '%s.dffdb' % self.default_db)
+        if table is None:
+            table = self.default_table
+        if ppf_out is None:
             ppf_out = table + '.ppf'
         model_path = []
         for model in models:
@@ -52,12 +56,13 @@ class DFF:
         if err.decode() != '':
             raise DffError('Checkout failed: %s' % err.decode())
 
-    def typing(self, models: [str], rule='TEAM_LS', dfi_name='typing'):
+    def typing(self, models: [str], rule=None, dfi_name='typing'):
         model_path = []
         for model in models:
             model_path.append(os.path.abspath(model))
-        if rule == 'TEAM_LS':
-            rule = os.path.join(self.DFF_ROOT, 'database/TEAMFF.ref/TEAM_LS/TEAM_LS.ext')
+        if rule is None:
+            rule = os.path.join(self.DFF_ROOT, 'database',
+                                '%s.ref/%s/%s.ext' % (self.default_db, self.default_table, self.default_table))
         else:
             rule = os.path.abspath(rule)
         log = os.path.abspath(dfi_name + '.dfo')
@@ -145,12 +150,12 @@ class DFF:
             model_list_str += '  MOL=%s' % model
         number_list_str = ' '.join(map(str, numbers))
 
-        msd_tmp = os.path.abspath(random_string()+'.msd')
+        msd_tmp = os.path.abspath(random_string() + '.msd')
         msd_out = os.path.abspath(msd_out)
         mol_corr = os.path.abspath(mol_corr)
         dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_packmol.dfi')).read()
         dfi = dfi.replace('%MODEL_LIST%', model_list_str).replace('%NUMBER_LIST%', number_list_str) \
-            .replace('%MSD_TMP%', msd_tmp).replace('%OUT%', msd_out)\
+            .replace('%MSD_TMP%', msd_tmp).replace('%OUT%', msd_out) \
             .replace('%CORRMOL%', mol_corr).replace('%PBC%', ' '.join(map(str, box)))
         with open(dfi_name + '.dfi', 'w') as f:
             f.write(dfi)

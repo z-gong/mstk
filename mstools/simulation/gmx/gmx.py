@@ -8,13 +8,13 @@ from ...utils import get_last_line
 
 
 class GmxSimulation(Simulation):
-    def __init__(self, packmol_bin=None, dff_root=None, gmx_bin=None, jobmanager=None):
-        super().__init__(packmol_bin=packmol_bin, dff_root=dff_root, jobmanager=jobmanager)
+    def __init__(self, packmol_bin=None, dff_root=None, gmx_bin=None, jobmanager=None, **kwargs):
+        super().__init__(packmol_bin=packmol_bin, dff_root=dff_root, jobmanager=jobmanager, **kwargs)
         self.gmx = GMX(gmx_bin=gmx_bin)
         self.logs = []  # used for checking whether the job is successfully finished
 
     def export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp',
-               ppf=None, ff='TEAM_LS', minimize=False, vacuum=False):
+               ppf=None, ff=None, minimize=False, vacuum=False):
         print('Generate GROMACS files ...')
         if ppf is not None:
             self.dff.typing([self.msd])  # in order to set the atom type
