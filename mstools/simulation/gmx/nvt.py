@@ -1,5 +1,4 @@
 import os, shutil
-import math
 from .gmx import GmxSimulation
 
 
@@ -9,15 +8,12 @@ class Nvt(GmxSimulation):
         self.procedure = 'nvt'
         self.requirement = []
         self.logs = []
-        for i in range(5):
-            self.logs.append('cv%i.log' % i)
-            self.logs.append('dos%i.log' % i)
 
     def build(self, ppf=None, minimize=False):
         pass
 
     def prepare(self, gro='conf.gro', top='topol.top', T=None, P=None, jobname=None,
-                nst_anneal=int(1.5E5), nst_cv=int(4E4), nst_vis=int(5E5), n_cv=5, n_vis=0,
+                nst_anneal=int(1.5E5), nst_cv=int(4E4), nst_vis=int(5E5), n_cv=0, n_vis=0,
                 prior_job_dir=None, **kwargs) -> [str]:
         # Copy topology files from prior NPT simulation
         shutil.copy(os.path.join(prior_job_dir, top), '.')
@@ -36,7 +32,7 @@ class Nvt(GmxSimulation):
         # Heat capacity using 2-Phase Thermodynamics
         self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, nsteps=nst_anneal)
         self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-cv.mdp', T=T,
-                                           nsteps=nst_cv, nstvout=4, tcoupl='nose-hoover', restart=True)
+                                           nsteps=nst_cv, nstvout=2, tcoupl='nose-hoover', restart=True)
         self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-vis.mdp', T=T,
                                            nsteps=nst_vis, nstenergy=2, tcoupl='nose-hoover', restart=True)
         for i in range(max(n_cv, n_vis)):
@@ -76,16 +72,4 @@ class Nvt(GmxSimulation):
         return commands
 
     def analyze(self, dirs=None):
-        cv_list = []
-        for i in range(5):
-            with open('dos%i.log' % i) as f_dos:
-                lines = f_dos.readlines()
-            for line in lines:
-                if line.startswith('Heat capacity'):
-                    cv_list.append(float(line.split()[2]))
-                    break
-            else:
-                raise Exception('Heat capacity not found')
-
-        import numpy as np
-        return {'cv': [np.mean(cv_list), np.std(cv_list, ddof=1) / math.sqrt(5)]}
+        pass
