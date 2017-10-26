@@ -15,12 +15,12 @@ class NvtSlab(GmxSimulation):
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb',
-                               size=[self.length - 2, self.length - 2, self.length * 6 - 2],
+                               size=[self.length - 2, self.length - 2, self.length * 5 - 2],
                                slab=True, silent=True)
 
         print('Create box using DFF ...')
         self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
-                                         size=[self.length, self.length, self.length * 6])
+                                         size=[self.length, self.length, self.length * 5])
         if export:
             self.export(ppf=ppf, minimize=minimize)
 
@@ -99,7 +99,7 @@ class NvtSlab(GmxSimulation):
         df = edr_to_df('nvt.edr')
         potential_series = df.Potential
 
-        converged, when = is_converged(potential_series, frac_min=0.3333)
+        converged, when = is_converged(potential_series, frac_min=0.25)
         if not converged:
             return None
 

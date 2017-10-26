@@ -248,6 +248,17 @@ class PPF():
                             term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
                             term.e0.value *= (1 + new_paras[key]) ** 2
 
+                    ### scale C6 - quadratic
+                    key = term.atom[:3] + '_d2'  # c_4_d2, h_1_d2
+                    if key in new_paras.keys():
+                        term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
+                        term.e0.value *= (1 + new_paras[key]) ** 2
+                    else:
+                        key = 'all_d2'
+                        if key in new_paras.keys():
+                            term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
+                            term.e0.value *= (1 + new_paras[key]) ** 2
+
     def freeze_torsions(self):
         for term in self.terms:
             if term.term == 'TCOSP':
@@ -321,20 +332,20 @@ class PPF():
 def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
     if drde_dict is None:
         drde_dict = {
-            'h_1_dr': -0.01,
-            'h_1_de': 0.045,
-
-            'c_4_dr': -0.002,
-            'c_4_de': 0.02,
-
-            'c_3_de': 0.005,
-
-            'o_2_dr': -0.002,
-            'o_2_de': 0.02,
+            'h_1_d2': 0.027,
+            'c_4_d2': 0.027,
+            'o_2_d2': 0.020,
+            'c_3_d2': 0.009,
+            'o_1_d2': 0.005,
         }
     paras_delta = {}
     for k, v in drde_dict.items():
-        paras_delta[k] = v * (T - 298) / 100
+        if k.endswith('dr') or k.endswith('de') or k.endswith('dl'):
+            paras_delta[k] = v * (T - 298) / 100
+        elif k.endswith('d2'):
+            paras_delta[k] = v * ((T - 298) / 100 - ((T - 298) / 100) ** 2 * 0.1)
+        else:
+            raise Exception('Unknown parameter: %s' % k)
     ppf = PPF(ppf_file)
     ppf.set_nb_paras(paras_delta, delta=True)
     ppf.write(ppf_out)
