@@ -35,7 +35,7 @@ class Simulation():
     def clean(self):
         pass
 
-    def set_system(self, smiles_list: [str], n_atoms: int, density: float = None):
+    def set_system(self, smiles_list: [str], n_atoms: int, nmol_list: [int] = None, density: float = None):
         self.pdb_list = []
         self.mol2_list = []
         n_components = len(smiles_list)
@@ -52,7 +52,12 @@ class Simulation():
             molwt_list.append(py_mol.molwt)
             density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
-        self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
+        if nmol_list is None:
+            self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
+        else:
+            n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(nmol_list)])
+            self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in nmol_list]
+
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])
         if density is None:
             density = sum([density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(self.n_mol_list)

@@ -56,6 +56,20 @@ class DFF:
         if err.decode() != '':
             raise DffError('Checkout failed: %s' % err.decode())
 
+    def set_formal_charge(self, models: [str], dfi_name='setfc'):
+        model_path = []
+        for model in models:
+            model_path.append(os.path.abspath(model))
+        log = os.path.abspath(dfi_name + '.dfo')
+        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_set_formal_charge.dfi')).read()
+        dfi = dfi.replace('%MODELS%', '\n'.join(model_path)).replace('%LOG%', log)
+        with open(dfi_name + '.dfi', 'w') as f:
+            f.write(dfi)
+        sp = subprocess.Popen([self.DFFJOB_BIN, dfi_name], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = sp.communicate()
+        if err.decode() != '':
+            raise DffError('Set formal charge failed: %s' % err.decode())
+
     def typing(self, models: [str], rule=None, dfi_name='typing'):
         model_path = []
         for model in models:
@@ -145,9 +159,12 @@ class DFF:
             raise DffError('Box size needed')
 
         model_list_str = ''
-        for model in models:
+        for i, model in enumerate(models):
             model = os.path.abspath(model)
-            model_list_str += '  MOL=%s' % model
+            if i == 0:
+                model_list_str += 'MOL=%s' % model
+            else:
+                model_list_str += '\n    MOL=%s' % model
         number_list_str = ' '.join(map(str, numbers))
 
         msd_tmp = os.path.abspath(random_string() + '.msd')

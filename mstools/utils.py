@@ -86,11 +86,17 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
 
 
 def create_mol_from_smiles(smiles: str, pdb_out: str = None, mol2_out: str = None):
+    from .saved_mol2 import smiles_mol2_dict
     try:
         import pybel
         py_mol = pybel.readstring('smi', smiles)
-        py_mol.addh()
-        py_mol.make3D()
+        canSMILES = py_mol.write('can').strip()
+        saved_mol2 = smiles_mol2_dict.get(canSMILES)
+        if saved_mol2 != None:
+            py_mol = next(pybel.readfile('mol2', saved_mol2))
+        else:
+            py_mol.addh()
+            py_mol.make3D()
         if pdb_out != None:
             py_mol.write('pdb', pdb_out, overwrite=True)
         if mol2_out != None:
