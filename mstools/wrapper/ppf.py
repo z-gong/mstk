@@ -335,6 +335,7 @@ def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
             'h_1_d2': 0.027,
             'c_4_d2': 0.027,
             'o_2_d2': 0.020,
+            'n_3_d2': 0.025,
             'c_3_d2': 0.009,
             'o_1_d2': 0.005,
         }
