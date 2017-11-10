@@ -7,7 +7,7 @@ class JobManager:
     def __init__(self, queue=None, nprocs=1, env_cmd=None):
         self.queue = queue
         self.nprocs = nprocs
-        self.env_cmd = env_cmd
+        self.env_cmd = env_cmd or ''
         self.update_stored_jobs()
         self.stored_jobs_expire = 60  # seconds
 

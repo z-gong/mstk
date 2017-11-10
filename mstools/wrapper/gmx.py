@@ -76,7 +76,7 @@ class GMX:
             sp.communicate(input=group.encode())
 
     @staticmethod
-    def prepare_mdp_from_template(template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001,
+    def prepare_mdp_from_template(template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                                   restart=False, tcoupl='langevin', pcoupl='parrinello-rahman', constraints='h-bonds'):
         template = os.path.join(GMX.TEMPLATE_DIR, template)
@@ -125,7 +125,7 @@ class GMX:
                         .replace('%genvel%', genvel).replace('%continuation%', continuation) \
                         .replace('%integrator%', integrator).replace('%tcoupl%', tcoupl).replace('%tau-t%', tau_t) \
                         .replace('%pcoupl%', pcoupl).replace('%tau-p%', tau_p) \
-                        .replace('%constraints%', constraints))
+                        .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)))
 
     def energy(self, edr, properties: [str], begin=0, get_cmd=False):
         property_str = '\\n'.join(properties)

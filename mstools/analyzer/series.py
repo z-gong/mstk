@@ -6,6 +6,24 @@ from pandas import Series
 from pymbar import timeseries
 
 
+def efficiency_with_block_size(list: [float]) -> [float]:
+    n_points = len(list)
+    array = np.array(list)
+    import pylab
+    Size = []
+    S = []
+    for n_block in range(4, 100):
+        block_size = n_points / n_block
+        blocks = np.array_split(array, n_block)
+        ave_blocks = [np.mean(block) for block in blocks]
+        std_ave_blocks = np.std(ave_blocks, ddof=1)
+        s = block_size * std_ave_blocks ** 2 / np.std(array) ** 2
+        Size.append(block_size)
+        S.append(s)
+    pylab.scatter(Size, S)
+    pylab.show()
+
+
 def is_converged(series: Series, frac_min=0.5) -> (bool, float):
     n_points = len(series)
     array = np.array(series)

@@ -6,8 +6,10 @@ from ..wrapper import Packmol, DFF
 
 class Simulation():
     def __init__(self, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
-        self.packmol = Packmol(packmol_bin=packmol_bin)
-        self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
+        if packmol_bin != None:
+            self.packmol = Packmol(packmol_bin=packmol_bin)
+        if dff_root != None:
+            self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
 
@@ -35,7 +37,9 @@ class Simulation():
     def clean(self):
         pass
 
-    def set_system(self, smiles_list: [str], n_atoms: int, nmol_list: [int] = None, density: float = None):
+    def set_system(self, smiles_list: [str], n_atoms: int = None, n_mol_list: [int] = None, n_mol_ratio: [int] = None,
+                   density: float = None):
+        self.smiles_list = smiles_list[:]
         self.pdb_list = []
         self.mol2_list = []
         n_components = len(smiles_list)
@@ -52,11 +56,16 @@ class Simulation():
             molwt_list.append(py_mol.molwt)
             density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
-        if nmol_list is None:
-            self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
+        if n_mol_list is not None:
+            self.n_mol_list = n_mol_list
+        elif n_atoms is not None:
+            if n_mol_ratio is None:
+                self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
+            else:
+                n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(n_mol_ratio)])
+                self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]
         else:
-            n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(nmol_list)])
-            self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in nmol_list]
+            raise Exception('n_atoms or n_mol_list should be specified')
 
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])
         if density is None:

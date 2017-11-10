@@ -19,7 +19,8 @@ class Packmol:
         self.size: [float]
 
     def build_box(self, files: [str], numbers: [int], output: str,
-                  size: [float] = None, length: float = None, slab=False,
+                  size: [float] = None, length: float = None,
+                  slab=False, slab_multiple=False,
                   tolerance: float = 1.8, seed: int = None,
                   silent=False) -> [int]:
         '''
@@ -56,28 +57,30 @@ class Packmol:
             'seed {seed}\n'.format(filetype=filetype, tolerance=tolerance, output=output, seed=seed)
         )
 
-        # slab model for only one component
-        if slab and len(files) == 1:
-            filename = files[0]
-            n_gas = numbers[0] // 20  # put 1/20 molecules in gas phase
-            n_liq = numbers[0] - n_gas
-            box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], self.size[2] / 6)
-            box_gas = '0 0 %f %f %f %f' % (self.size[2] / 6, self.size[0], self.size[1], self.size[2])
-            inp += (
-                'structure {filename}\n'
-                'number {n_liq}\n'
-                'inside box {box_liq}\n'
-                'end structure\n'
-                'structure {filename}\n'
-                'number {n_gas}\n'
-                'inside box {box_gas}\n'
-                'end structure\n'.format(filename=filename, n_gas=n_gas, n_liq=n_liq, box_gas=box_gas, box_liq=box_liq)
-            )
+        # liquid-gas interface
+        if slab:
+            box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], self.size[0])
+            box_gas = '0 0 %f %f %f %f' % (self.size[0], self.size[0], self.size[1], self.size[2])
+            for i, filename in enumerate(files):
+                n_gas = numbers[i] // 50  # put 1/50 molecules in gas phase
+                n_liq = numbers[i] - n_gas
+                inp += (
+                    'structure {filename}\n'
+                    'number {n_liq}\n'
+                    'inside box {box_liq}\n'
+                    'end structure\n'
+                    'structure {filename}\n'
+                    'number {n_gas}\n'
+                    'inside box {box_gas}\n'
+                    'end structure\n'.format(filename=filename, n_gas=n_gas, n_liq=n_liq, box_gas=box_gas,
+                                             box_liq=box_liq)
+                )
 
         else:
             for i, filename in enumerate(files):
                 number = numbers[i]
-                if slab:
+                # slab model for multiple components
+                if slab_multiple:
                     lz_per_slab = self.size[3] / len(numbers)
                     box = '0 0 %f %f %f %f' % (i * lz_per_slab, self.size[0], self.size[1], (i + 1) * lz_per_slab)
                 else:

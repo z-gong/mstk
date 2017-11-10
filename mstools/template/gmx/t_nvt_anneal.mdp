@@ -29,4 +29,4 @@ continuation     = %continuation%
 annealing         = single
 annealing_npoints = 5
 annealing_time    = 0 25 50 75 100
-annealing_temp    = 0 1000 1000 %T% %T%
+annealing_temp    = 0 %TANNEAL% %TANNEAL% %T% %T%

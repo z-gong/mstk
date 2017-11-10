@@ -24,8 +24,8 @@ class NvtSlab(GmxSimulation):
         if export:
             self.export(ppf=ppf, minimize=minimize)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(5E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None, TANNEAL=None,
+                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
         if not drde:
             if os.path.abspath(model_dir) != os.getcwd():
@@ -51,10 +51,21 @@ class NvtSlab(GmxSimulation):
         cmd = self.gmx.mdrun(name='em', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
+        gro_em = 'em.gro'
+        # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
+        if TANNEAL != None:
+            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
+                                               nsteps=int(1E5), nstxtcout=0)
+            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
+            commands.append(cmd)
+            cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
+            commands.append(cmd)
+
+            gro_em = 'anneal.gro'
+
         # NVT equilibrium
-        self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-eq.mdp', T=T,
-                                           nsteps=nst_eq, nstxtcout=0)
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='em.gro', top=top, tpr_out='eq.tpr', get_cmd=True)
+        self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-eq.mdp', T=T, nsteps=nst_eq, nstxtcout=0)
+        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)

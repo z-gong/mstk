@@ -1,5 +1,6 @@
 import math
 import os
+import random
 
 from .errors import OpenBabelError
 import subprocess
@@ -85,26 +86,59 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
     return P_list
 
 
-def create_mol_from_smiles(smiles: str, pdb_out: str = None, mol2_out: str = None):
+def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None):
+    import pybel
     from .saved_mol2 import smiles_mol2_dict
     try:
-        import pybel
         py_mol = pybel.readstring('smi', smiles)
-        canSMILES = py_mol.write('can').strip()
-        saved_mol2 = smiles_mol2_dict.get(canSMILES)
-        if saved_mol2 != None:
-            py_mol = next(pybel.readfile('mol2', saved_mol2))
-        else:
-            py_mol.addh()
-            py_mol.make3D()
-        if pdb_out != None:
-            py_mol.write('pdb', pdb_out, overwrite=True)
-        if mol2_out != None:
-            py_mol.write('mol2', mol2_out, overwrite=True)
     except:
         raise OpenBabelError('Cannot create molecule from SMILES')
+
+    canSMILES = py_mol.write('can').strip()
+    saved_mol2 = smiles_mol2_dict.get(canSMILES)
+    if saved_mol2 != None:
+        py_mol = next(pybel.readfile('mol2', saved_mol2))
     else:
-        return py_mol
+        py_mol.addh()
+        py_mol.make3D()
+        if minimize:
+            py_mol.localopt()
+    if pdb_out != None:
+        py_mol.write('pdb', pdb_out, overwrite=True)
+    if mol2_out != None:
+        py_mol.write('mol2', mol2_out, overwrite=True)
+    return py_mol
+
+
+def generate_conformers(py_mol, number: int, redundant: int = 0):
+    import openbabel as ob
+    ff = ob.OBForceField.FindForceField('mmff94')
+
+    smiles = py_mol.write('can').strip()
+    py_mol.localopt()
+    x_list = []
+    for atom in py_mol.atoms:
+        for x in atom.coords:
+            x_list.append(x)
+    xmin, xmax = min(x_list), max(x_list)
+    xspan = xmax - xmin
+
+    conformers = []
+    for i in range(number + redundant):
+        conformer = create_mol_from_smiles(smiles, minimize=False)
+
+        for atom in conformer.atoms:
+            obatom = atom.OBAtom
+            random_coord = [(random.random() * xspan + xmin) * k for k in [2, 1, 0.5]]
+            obatom.SetVector(*random_coord)
+
+        conformer.localopt()
+        ff.Setup(conformer.OBMol)
+        conformer.OBMol.SetEnergy(ff.Energy())
+        conformers.append(conformer)
+
+    conformers.sort(key=lambda x: x.energy)
+    return conformers[:number]
 
 
 def estimate_density_from_formula(f) -> float:
