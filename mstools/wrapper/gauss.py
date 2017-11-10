@@ -59,7 +59,7 @@ class Gauss:
             content = f.read()
         with open(gjf, 'w') as f:
             f.write('%%nprocshared=%i\n' % nprocs)
-            f.write('%%mem=%iGB\n' % memMB)
+            f.write('%%mem=%iMB\n' % memMB)
             f.write(content)
 
         JOB_DIR = os.path.join(self.SCRDIR, random_string(6))
