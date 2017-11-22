@@ -82,21 +82,6 @@ class Slurm(JobManager):
         else:
             return False
 
-    def get_id_from_name(self, name: str) -> int:
-        for job in self.all_jobs:
-            if job.name == name:
-                return job.id
-        return None
-
-    def is_running(self, name) -> bool:
-        for job in self.all_jobs:
-            if job.name == name:
-                if job.state in [PbsJob.State.PENDING, PbsJob.State.RUNNING]:
-                    return True
-                else:
-                    return False
-        return False
-
     def kill_job(self, name) -> bool:
         id = self.get_id_from_name(name)
         if id == None:
@@ -109,6 +94,28 @@ class Slurm(JobManager):
         return True
 
     def get_all_jobs(self):
+        def get_job_from_str(job_str) -> PbsJob:
+            for line in job_str.split():  # split properties
+                key = line.split('=')[0]
+                val = line.split('=')[1]
+                if key == 'JobId':
+                    id = int(val)
+                elif key == 'Name':
+                    name = val
+                elif key == 'JobState':
+                    state_str = val
+                    if val == 'PENDING':
+                        state = PbsJob.State.PENDING
+                    elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
+                        state = PbsJob.State.RUNNING
+                    else:
+                        state = PbsJob.State.DONE
+                elif key == 'WorkDir':
+                    workdir = val
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir)
+            job.state_str = state_str
+            return job
+
         cmd = 'scontrol show job'
         try:
             output = subprocess.check_output(cmd.split())
@@ -118,28 +125,6 @@ class Slurm(JobManager):
         jobs = []
         for job_str in output.decode().split('\n\n'):  # split jobs
             if job_str.startswith('JobId'):
-                job = self.get_job_from_str(job_str)
+                job = get_job_from_str(job_str)
                 jobs.append(job)
         return jobs
-
-    def get_job_from_str(self, job_str) -> PbsJob:
-        for line in job_str.split():  # split properties
-            key = line.split('=')[0]
-            val = line.split('=')[1]
-            if key == 'JobId':
-                id = int(val)
-            elif key == 'Name':
-                name = val
-            elif key == 'JobState':
-                state_str = val
-                if val == 'PENDING':
-                    state = PbsJob.State.PENDING
-                elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
-                    state = PbsJob.State.RUNNING
-                else:
-                    state = PbsJob.State.DONE
-            elif key == 'WorkDir':
-                workdir = val
-        job = PbsJob(id=id, name=name, state=state, workdir=workdir)
-        job.state_str = state_str
-        return job

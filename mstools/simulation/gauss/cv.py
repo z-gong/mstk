@@ -26,14 +26,16 @@ class Cv(GaussSimulation):
         # TODO Only first molecule
         smiles = self.smiles_list[0]
         py_mol = create_mol_from_smiles(smiles)
-        name = '%s-%i' % (gjf_name, 0)
-        self.gauss.generate_gjf_cv(name, py_mol, T_list=T_list)
-        cmds = self.gauss.run_gjf(name + '.gjf', nprocs=nprocs, get_cmd=True)
-        commands += cmds
-        if n_conformer > 1:
-            conformers = generate_conformers(py_mol, n_conformer - 1)
+
+        if n_conformer == 1:
+            name = '%s-%i' % (gjf_name, 0)
+            self.gauss.generate_gjf_cv(name, py_mol, T_list=T_list)
+            cmds = self.gauss.run_gjf(name + '.gjf', nprocs=nprocs, get_cmd=True)
+            commands += cmds
+        else:
+            conformers = generate_conformers(py_mol, n_conformer)
             for i, conformer in enumerate(conformers):
-                name = '%s-%i' % (gjf_name, i + 1)
+                name = '%s-%i' % (gjf_name, i)
                 self.gauss.generate_gjf_cv(name, conformer, T_list=T_list)
                 cmds = self.gauss.run_gjf(name + '.gjf', nprocs=nprocs, get_cmd=True)
                 commands += cmds

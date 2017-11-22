@@ -5,6 +5,7 @@ from collections import OrderedDict
 from .jobmanager import JobManager
 from .node import Node
 from .pbsjob import PbsJob
+from ..errors import JobManagerError
 
 
 class Torque(JobManager):
@@ -39,7 +40,7 @@ class Torque(JobManager):
                     '#PBS -q %(queue)s\n'
                     '#PBS -l nodes=1:ppn=%(nprocs)s\n\n'
                     '%(env_cmd)s\n\n'
-                    'cd %(workdir)s\n'
+                    'cd %(workdir)s\n\n'
                     % ({'name': name,
                         'out': out,
                         'err': err,
@@ -62,39 +63,6 @@ class Torque(JobManager):
         else:
             return False
 
-    def get_info_from_id(self, id) -> bool:
-        try:
-            output = subprocess.check_output(['qstat', '-f', str(id)])
-        except:
-            return False
-
-        for line in output.decode().splitlines():
-            if line.strip().startswith('job_state'):
-                state = line.split()[-1]
-                if state in ['R', 'Q']:
-                    return True
-                else:
-                    return False
-        return False
-
-    def get_id_from_name(self, name: str) -> int:
-        try:
-            output = subprocess.check_output(['qstat'])
-        except:
-            raise
-
-        for line in output.decode().splitlines():
-            if line.find(name) != -1:
-                return int(line.strip().split()[0])
-
-        return None
-
-    def is_running(self, name) -> bool:
-        id = self.get_id_from_name(name)
-        if id == None:
-            return False
-        return self.get_info_from_id(id)
-
     def kill_job(self, name) -> bool:
         id = self.get_id_from_name(name)
         if id == None:
@@ -102,13 +70,47 @@ class Torque(JobManager):
         try:
             subprocess.check_call(['qdel', str(id)])
         except:
-            raise Exception('Cannot kill job: %s' % name)
+            raise JobManagerError('Cannot kill job: %s' % name)
 
         return True
 
-    def get_all_jobs(self) -> [PbsJob]:
-        # TODO implement later
-        return []
+    def get_all_jobs(self):
+        def get_job_from_str(job_str) -> PbsJob:
+            for line in job_str.replace('\n\t', '').splitlines():  # split properties
+                line = line.strip()
+                if line.startswith('Job Id'):
+                    id = int(line.split()[-1])
+                    continue
+                key, val = line.split(' = ')
+                if key == 'Job_Name':
+                    name = val
+                elif key == 'job_state':
+                    state_str = val
+                    if val == 'Q':
+                        state = PbsJob.State.PENDING
+                    elif val == 'R':
+                        state = PbsJob.State.RUNNING
+                    else:
+                        state = PbsJob.State.DONE
+                elif key == 'init_work_dir':
+                    workdir = val
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir)
+            job.state_str = state_str
+            return job
+
+        cmd = 'qstat -f'
+        try:
+            output = subprocess.check_output(cmd.split())
+        except Exception as e:
+            raise JobManagerError(str(e))
+
+        jobs = []
+        for job_str in output.decode().split('\n\n'):  # split jobs
+            if job_str.startswith('Job Id'):
+                job = get_job_from_str(job_str)
+                jobs.append(job)
+        return jobs
+
 
     def get_nodes(self):
         def parse_used_cores(line):

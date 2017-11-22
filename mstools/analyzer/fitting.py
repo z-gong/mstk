@@ -1,3 +1,17 @@
+def polyfit(x, y, degree):
+    from sklearn import linear_model
+    from sklearn.preprocessing import PolynomialFeatures
+
+    skx = list(zip(x))
+    skv = list(y)
+
+    poly = PolynomialFeatures(degree)
+    skx_ = poly.fit_transform(skx)
+    clf = linear_model.LinearRegression(fit_intercept=False)
+    clf.fit(skx_, skv)
+    return clf.coef_, clf.score(skx_, skv)
+
+
 def polyfit_2d(x, y, z, degree):
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
