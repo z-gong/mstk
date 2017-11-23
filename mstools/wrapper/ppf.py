@@ -151,6 +151,24 @@ def get_ppf_term_from_line(line):
     return term
 
 
+def get_atom_hybridization(key):
+    '''
+    c_4 -> c_4
+    n_35 -> n_3
+    n_4+ -> n_3
+    n_35+da -> n_2
+    n_25-ta -> n_3
+    cl0- -> cl1
+    '''
+    symbol = key[:2]
+    degree = int(key[2])
+    if key.find('-') != -1:
+        degree += 1
+    if key.find('+') != -1:
+        degree -= 1
+    return symbol + str(degree)
+
+
 class PPF():
     def __init__(self, ppf_file=None, string=None):
         lines = []
@@ -220,7 +238,7 @@ class PPF():
             for term in self.terms:
                 if term.term == 'N12_6':
                     ### scale r0
-                    key = term.atom[:3] + '_dr'  # c_4_dr, h_1_dr
+                    key = get_atom_hybridization(term.atom) + '_dr'  # c_4_dr, h_1_dr
                     if key in new_paras.keys():
                         term.r0.value *= (1 + new_paras[key])
                     else:
@@ -229,7 +247,7 @@ class PPF():
                             term.r0.value *= (1 + new_paras[key])
 
                     ### scale e0
-                    key = term.atom[:3] + '_de'  # c_4_de, h_1_de
+                    key = get_atom_hybridization(term.atom) + '_de'  # c_4_de, h_1_de
                     if key in new_paras.keys():
                         term.e0.value *= (1 + new_paras[key])
                     else:
@@ -238,7 +256,7 @@ class PPF():
                             term.e0.value *= (1 + new_paras[key])
 
                     ### scale C6
-                    key = term.atom[:3] + '_dl'  # c_4_dl, h_1_dl
+                    key = get_atom_hybridization(term.atom) + '_dl'  # c_4_dl, h_1_dl
                     if key in new_paras.keys():
                         term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
                         term.e0.value *= (1 + new_paras[key]) ** 2
@@ -249,7 +267,7 @@ class PPF():
                             term.e0.value *= (1 + new_paras[key]) ** 2
 
                     ### scale C6 - quadratic
-                    key = term.atom[:3] + '_d2'  # c_4_d2, h_1_d2
+                    key = get_atom_hybridization(term.atom) + '_d2'  # c_4_d2, h_1_d2
                     if key in new_paras.keys():
                         term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
                         term.e0.value *= (1 + new_paras[key]) ** 2
@@ -330,7 +348,7 @@ class PPF():
 
 
 def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
-    if drde_dict is None:
+    if drde_dict == None:
         drde_dict = {
             'h_1_dl': 0.014,
             'c_4_dl': 0.014,
@@ -347,7 +365,7 @@ def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
         elif k.endswith('d2'):
             paras_delta[k] = v * ((T - 298) / 100 - ((T - 298) / 100) ** 2 * 0.1)
         else:
-            raise Exception('Unknown parameter: %s' % k)
+            paras_delta[k] = v
     ppf = PPF(ppf_file)
     ppf.set_nb_paras(paras_delta, delta=True)
     ppf.write(ppf_out)
