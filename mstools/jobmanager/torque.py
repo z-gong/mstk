@@ -98,7 +98,7 @@ class Torque(JobManager):
             job.state_str = state_str
             return job
 
-        cmd = 'qstat -f'
+        cmd = 'qstat -f -u %s' % self.username
         try:
             output = subprocess.check_output(cmd.split())
         except Exception as e:
@@ -110,7 +110,6 @@ class Torque(JobManager):
                 job = get_job_from_str(job_str)
                 jobs.append(job)
         return jobs
-
 
     def get_nodes(self):
         def parse_used_cores(line):

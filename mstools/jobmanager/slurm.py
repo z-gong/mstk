@@ -116,6 +116,7 @@ class Slurm(JobManager):
             job.state_str = state_str
             return job
 
+        # TODO Only show jobs belong to self.username
         cmd = 'scontrol show job'
         try:
             output = subprocess.check_output(cmd.split())

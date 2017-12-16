@@ -86,7 +86,8 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
     return P_list
 
 
-def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None):
+def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None, resname: str = None):
+    # TODO resname only set for mol2_out
     import pybel
     from .saved_mol2 import smiles_mol2_dict
     try:
@@ -103,10 +104,28 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
         py_mol.make3D()
         if minimize:
             py_mol.localopt()
+
+    if resname != None:
+        obmol = py_mol.OBMol
+        res = obmol.GetResidue(0)
+        # if res == None:
+        #     res  = obmol.NewResidue()
+        #     for i in range(obmol.NumAtoms()):
+        #         obatom = obmol.GetAtomById(i)
+        #         obatom.SetResidue(res)
+        if res != None:
+            res.SetName('UNL')
+
     if pdb_out != None:
         py_mol.write('pdb', pdb_out, overwrite=True)
     if mol2_out != None:
         py_mol.write('mol2', mol2_out, overwrite=True)
+        if resname != None:
+            with open(mol2_out) as f:
+                content = f.read()
+            content = content.replace('UNL',  resname[:3])
+            with open(mol2_out, 'w') as f:
+                f.write(content)
     return py_mol
 
 

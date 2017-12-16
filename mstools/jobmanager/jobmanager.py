@@ -1,6 +1,8 @@
-from .pbsjob import PbsJob
 import datetime
+import os
+import pwd
 import time
+from .pbsjob import PbsJob
 
 
 class JobManager:
@@ -8,6 +10,7 @@ class JobManager:
         self.queue = queue
         self.nprocs = nprocs
         self.env_cmd = env_cmd or ''
+        self.username = pwd.getpwuid(os.getuid()).pw_name
 
         self.stored_jobs_expire = 60  # seconds
         self.stored_jobs = []

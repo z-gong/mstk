@@ -38,7 +38,7 @@ class Simulation():
         pass
 
     def set_system(self, smiles_list: [str], n_atoms: int = None, n_mol_list: [int] = None, n_mol_ratio: [int] = None,
-                   density: float = None):
+                   density: float = None, name_list: [str] = None):
         self.smiles_list = smiles_list[:]
         self.pdb_list = []
         self.mol2_list = []
@@ -47,9 +47,13 @@ class Simulation():
         molwt_list = []  # molecule weight of each molecule
         density_list = []  # estimated density of each molecule
         for i, smiles in enumerate(smiles_list):
-            pdb = 'mol-%i.pdb' % (i + 1)
-            mol2 = 'mol-%i.mol2' % (i + 1)
-            py_mol = create_mol_from_smiles(smiles, pdb_out=pdb, mol2_out=mol2)
+            pdb = 'mol-%i.pdb' % i
+            mol2 = 'mol-%i.mol2' % i
+            if name_list != None:
+                resname = name_list[i]
+            else:
+                resname = 'MO%i' % i
+            py_mol = create_mol_from_smiles(smiles, pdb_out=pdb, mol2_out=mol2, resname=resname)
             self.pdb_list.append(pdb)
             self.mol2_list.append(mol2)
             n_atom_list.append(len(py_mol.atoms))
