@@ -78,7 +78,8 @@ class GMX:
     @staticmethod
     def prepare_mdp_from_template(template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
-                                  restart=False, tcoupl='langevin', pcoupl='parrinello-rahman', constraints='h-bonds'):
+                                  restart=False, tcoupl='langevin', pcoupl='parrinello-rahman',
+                                  constraints='h-bonds', ppm=0):
         template = os.path.join(GMX.TEMPLATE_DIR, template)
         if not os.path.exists(template):
             raise GmxError('mdp template not found')
@@ -88,7 +89,7 @@ class GMX:
             tcoupl = 'no'
             tau_t = '2'
         elif tcoupl.lower() == 'nose-hoover':
-            integrator = 'md-vv'
+            integrator = 'md'
             tcoupl = 'nose-hoover'
             tau_t = '0.5'
         elif tcoupl.lower() == 'v-rescale':
@@ -116,16 +117,18 @@ class GMX:
             continuation = 'no'
 
         with open(template) as f_t:
-            with open(mdp_out, 'w') as f_mdp:
-                f_mdp.write(
-                    f_t.read().replace('%T%', str(T)).replace('%P%', str(P)).replace('%nsteps%', str(int(nsteps))) \
-                        .replace('%dt%', str(dt)).replace('%nstenergy%', str(nstenergy)) \
-                        .replace('%nstxout%', str(nstxout)).replace('%nstvout%', str(nstvout)) \
-                        .replace('%nstxtcout%', str(nstxtcout)).replace('%xtcgrps%', str(xtcgrps)) \
-                        .replace('%genvel%', genvel).replace('%continuation%', continuation) \
-                        .replace('%integrator%', integrator).replace('%tcoupl%', tcoupl).replace('%tau-t%', tau_t) \
-                        .replace('%pcoupl%', pcoupl).replace('%tau-p%', tau_p) \
-                        .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)))
+            contents = f_t.read()
+        contents = contents.replace('%T%', str(T)).replace('%P%', str(P)).replace('%nsteps%', str(int(nsteps))) \
+            .replace('%dt%', str(dt)).replace('%nstenergy%', str(nstenergy)) \
+            .replace('%nstxout%', str(nstxout)).replace('%nstvout%', str(nstvout)) \
+            .replace('%nstxtcout%', str(nstxtcout)).replace('%xtcgrps%', str(xtcgrps)) \
+            .replace('%genvel%', genvel).replace('%continuation%', continuation) \
+            .replace('%integrator%', integrator).replace('%tcoupl%', tcoupl).replace('%tau-t%', tau_t) \
+            .replace('%pcoupl%', pcoupl).replace('%tau-p%', tau_p) \
+            .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)).replace('%ppm%', str(ppm))
+
+        with open(mdp_out, 'w') as f_mdp:
+            f_mdp.write(contents)
 
     def energy(self, edr, properties: [str], begin=0, get_cmd=False):
         property_str = '\\n'.join(properties)

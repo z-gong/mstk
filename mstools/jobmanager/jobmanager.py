@@ -14,18 +14,19 @@ class JobManager:
 
         self.stored_jobs_expire = 60  # seconds
         self.stored_jobs = []
-        self.updated = False
         self.last_update = None
 
     @property
     def all_jobs(self) -> [PbsJob]:
-        if not self.updated or (datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
+        if self.last_update == None or (datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
             self.update_stored_jobs()
         return self.stored_jobs
 
     def update_stored_jobs(self):
+        print('Update job information')
+        self.stored_jobs = []
         jobs = []
-        for i in range(3, 0, -1):
+        for i in [3, 2, 1]:
             # in case get_all_jobs() raise Exception
             try:
                 jobs += self.get_all_jobs()

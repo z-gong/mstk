@@ -29,18 +29,19 @@ def is_converged(series: Series, frac_min=0.5) -> (bool, float):
     array = np.array(series)
     t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=max(1, n_points // 100))
     if t0 > n_points * (1 - frac_min):
-        return False, 0
+        return False, series.index[t0]
     return True, series.index[t0]
 
 
 def ave_and_stderr(series: Series, subsample=True) -> (float, float):
+    ave = np.mean(series)
     array = np.array(series)
     if subsample:
         indices = timeseries.subsampleCorrelatedData(array)
         # do not subsample if only one uncorrelated data
         if len(indices) > 1:
             array = array[indices]
-    return np.mean(array), np.std(array, ddof=1) / math.sqrt(len(array))
+    return ave, np.std(array, ddof=1) / math.sqrt(len(array))
 
 
 def is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool, float):

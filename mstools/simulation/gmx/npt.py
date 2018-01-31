@@ -37,6 +37,7 @@ class Npt(GmxSimulation):
             ### Temperature dependent parameters
             if os.path.abspath(model_dir) != os.getcwd():
                 shutil.copy(os.path.join(model_dir, self.msd), self.msd)
+            # TODO Assumes ppf file named 'ff.ppf'
             delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
             self.export(ppf='ff.ppf')
 

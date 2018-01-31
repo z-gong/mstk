@@ -39,6 +39,8 @@ class Simulation():
 
     def set_system(self, smiles_list: [str], n_atoms: int = None, n_mol_list: [int] = None, n_mol_ratio: [int] = None,
                    density: float = None, name_list: [str] = None):
+        if type(smiles_list) != list:
+            raise Exception('smiles_list should be list')
         self.smiles_list = smiles_list[:]
         self.pdb_list = []
         self.mol2_list = []

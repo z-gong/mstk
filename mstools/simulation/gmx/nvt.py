@@ -12,19 +12,22 @@ class Nvt(GmxSimulation):
     def build(self, ppf=None, minimize=False):
         pass
 
-    def prepare(self, gro='conf.gro', top='topol.top', T=298, jobname=None,
-                n_msd=0, n_velacc=0, n_vis=0,
-                nst_msd=int(1E6), nst_velacc=int(1E5), nstvout_velacc=10, nst_vis=int(5E5), nstenergy_vis=2,
-                prior_job_dir=None, **kwargs) -> [str]:
-        # Copy topology files from prior NPT simulation
+    def prepare(self, prior_job_dir=None, gro='conf.gro', top='topol.top', T=298, jobname=None,
+                n_msd=0, nst_msd=int(1E6),
+                n_velacc=0, nst_velacc=int(1E5), nstvout_velacc=10,
+                n_vis=0, nst_vis=int(5E5), nstenergy_vis=2,
+                **kwargs) -> [str]:
+        if prior_job_dir == None:
+            raise Exception('prior_job_dir is needed for NVT simulation')
+
+        # Copy gro and topology files from prior NPT simulation
+        shutil.copy(os.path.join(prior_job_dir, gro), '.')
         shutil.copy(os.path.join(prior_job_dir, top), '.')
         for f in os.listdir(prior_job_dir):
             if f.endswith('.itp'):
                 shutil.copy(os.path.join(prior_job_dir, f), '.')
-
         # Scale gro box for NVT simulation
         box = self.gmx.get_box(os.path.join(prior_job_dir, 'npt.edr'))
-        shutil.copy(os.path.join(prior_job_dir, 'npt.gro'), gro)
         self.gmx.scale_box(gro, gro, box)
 
         nprocs = self.jobmanager.nprocs
