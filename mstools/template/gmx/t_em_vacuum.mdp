@@ -12,6 +12,8 @@ cutoff-scheme   = group
 rlist           = 0
 coulombtype     = cut-off
 rcoulomb        = 0
+epsilon-r       = %dielectric%
+
 vdwtype         = cut-off
 rvdw            = 0
 DispCorr        = no

@@ -29,9 +29,12 @@ class JobManager:
         for i in [3, 2, 1]:
             # in case get_all_jobs() raise Exception
             try:
-                jobs += self.get_all_jobs()
+                jobs = self.get_all_jobs()
             except Exception as e:
                 print(repr(e))
+            if jobs != []:
+                break
+            # TODO in case get_all_jobs() failed, retry after 1s
             if i > 1:
                 time.sleep(1)
         for job in reversed(jobs):  # reverse the job list, in case jobs with same name

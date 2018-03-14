@@ -8,13 +8,11 @@ from ..errors import GmxError
 
 class GMX:
     TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gmx/')
-    '''
-    wrappers for GROMACS
-    '''
-    pass
 
     def __init__(self, gmx_bin):
         self.GMX_BIN = gmx_bin
+        # TODO temporary hack for dielectric constant in mdp
+        self._DIELECTRIC = 1.0
 
     def grompp(self, mdp='grompp.mdp', gro='conf.gro', top='topol.top', tpr_out='md.tpr',
                cpt=None, maxwarn=3, silent=False, get_cmd=False):
@@ -75,11 +73,10 @@ class GMX:
             sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
             sp.communicate(input=group.encode())
 
-    @staticmethod
-    def prepare_mdp_from_template(template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
+    def prepare_mdp_from_template(self, template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                                   restart=False, tcoupl='langevin', pcoupl='parrinello-rahman',
-                                  constraints='h-bonds', ppm=0):
+                                  constraints='h-bonds', ppm=0, dielectric=None):
         template = os.path.join(GMX.TEMPLATE_DIR, template)
         if not os.path.exists(template):
             raise GmxError('mdp template not found')
@@ -116,6 +113,9 @@ class GMX:
             genvel = 'yes'
             continuation = 'no'
 
+        if dielectric == None:
+            dielectric = self._DIELECTRIC
+
         with open(template) as f_t:
             contents = f_t.read()
         contents = contents.replace('%T%', str(T)).replace('%P%', str(P)).replace('%nsteps%', str(int(nsteps))) \
@@ -125,7 +125,8 @@ class GMX:
             .replace('%genvel%', genvel).replace('%continuation%', continuation) \
             .replace('%integrator%', integrator).replace('%tcoupl%', tcoupl).replace('%tau-t%', tau_t) \
             .replace('%pcoupl%', pcoupl).replace('%tau-p%', tau_p) \
-            .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)).replace('%ppm%', str(ppm))
+            .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)).replace('%ppm%', str(ppm)) \
+            .replace('%dielectric%', str(dielectric))
 
         with open(mdp_out, 'w') as f_mdp:
             f_mdp.write(contents)
