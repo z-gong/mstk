@@ -10,8 +10,9 @@ from ..utils import random_string
 class GMX:
     TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gmx/')
 
-    def __init__(self, gmx_bin):
+    def __init__(self, gmx_bin, mdrun=None):
         self.GMX_BIN = gmx_bin
+        self.MDRUN = mdrun or gmx_bin + ' mdrun'
         # TODO temporary hack for dielectric constant in mdp
         self._DIELECTRIC = 1.0
 
@@ -38,7 +39,7 @@ class GMX:
                 n_omp = nprocs
         n_mpi = nprocs // n_omp
 
-        cmd = '%s -quiet -nobackup mdrun -ntomp %i -deffnm %s' % (self.GMX_BIN, n_omp, name)
+        cmd = '%s -quiet -nobackup -ntomp %i -deffnm %s' % (self.MDRUN, n_omp, name)
         if n_mpi > 1:
             cmd = 'mpirun -np %i ' % n_mpi + cmd
 

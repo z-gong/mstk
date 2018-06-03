@@ -109,9 +109,12 @@ class Slurm(JobManager):
 
     def get_all_jobs(self):
         def get_job_from_str(job_str) -> PbsJob:
+            workdir = None
             for line in job_str.split():  # split properties
-                key = line.split('=')[0]
-                val = line.split('=')[1]
+                try:
+                    key, val = line.split('=')[0:2]
+                except:
+                    continue
                 if key == 'JobId':
                     id = int(val)
                 elif key == 'UserId':

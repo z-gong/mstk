@@ -1,5 +1,5 @@
 class PbsJob():
-    def __init__(self, id, name, state, workdir, user=None):
+    def __init__(self, id, name, state, workdir=None, user=None):
         self.id = id
         self.name = name
         self.state = state
