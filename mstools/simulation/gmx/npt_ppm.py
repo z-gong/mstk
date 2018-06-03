@@ -1,17 +1,25 @@
 import os
 import shutil
+import math
+from collections import OrderedDict
 
 from .gmx import GmxSimulation
-from ...analyzer import is_converged, ave_and_stderr
+from ...analyzer import is_converged, block_average, average_of_blocks
 
 
 class NptPPM(GmxSimulation):
-    def __init__(self, amplitudes=(0.02, 0.04, 0.06, 0.08, 0.10), **kwargs):
+    def __init__(self, amplitudes_steps=None, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt-ppm'
         self.requirement = []
         self.logs = []
-        self.amplitudes = amplitudes
+        self.n_atoms_default = 6000
+        self.amplitudes_steps = amplitudes_steps or OrderedDict([(0.01, int(3.0e6)),
+                                                                 (0.02, int(1.5e6)),
+                                                                 (0.03, int(1.0e6)),
+                                                                 (0.04, int(0.5e6)),
+                                                                 (0.05, int(0.5e6)),
+                                                                 ])
 
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
@@ -24,7 +32,7 @@ class NptPPM(GmxSimulation):
             self.export(ppf=ppf, minimize=minimize)
 
     def prepare(self, prior_job_dir=None, gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
-                dt=0.002, nst_eq=int(1E5), nst_run=int(1E6), nst_edr=50,
+                dt=0.001, nst_eq=int(1E5), nst_edr=50, replicate=None,
                 **kwargs) -> [str]:
         if prior_job_dir == None:
             raise Exception('prior_job_dir is needed for PPM simulation')
@@ -36,10 +44,13 @@ class NptPPM(GmxSimulation):
             if f.endswith('.itp'):
                 shutil.copy(os.path.join(prior_job_dir, f), '.')
 
+        if replicate != None:
+            self.gmx.replicate_gro(gro, top, replicate)
+
         nprocs = self.jobmanager.nprocs
         commands = []
 
-        for ppm in self.amplitudes:
+        for ppm, nst_run in self.amplitudes_steps.items():
             name_eq = 'eq-%.2f' % ppm
             name_ppm = 'ppm-%.2f' % ppm
 
@@ -72,9 +83,9 @@ class NptPPM(GmxSimulation):
         '''
         nprocs = self.jobmanager.nprocs
         commands = []
-        for ppm in self.amplitudes:
+        for ppm in self.amplitudes_steps.keys():
             name_ppm = 'ppm-%.2f' % ppm
-            self.gmx.extend_tpr(name_ppm, extend)
+            self.gmx.extend_tpr(name_ppm, extend, silent=True)
             # Extending NPT production
             cmd = self.gmx.mdrun(name=name_ppm, nprocs=nprocs, extend=True, get_cmd=True)
             commands.append(cmd)
@@ -82,35 +93,42 @@ class NptPPM(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure, sh=sh)
         return commands
 
-    def analyze(self, dirs=None):
+    def analyze(self, dirs=None, check_converge=True):
+        import numpy as np
         from ...panedr import edr_to_df
         from ...analyzer.fitting import polyfit
-        import numpy as np
 
         vis_list = []
         stderr_list = []
-        for ppm in self.amplitudes:
+        for ppm in self.amplitudes_steps.keys():
             name_ppm = 'ppm-%.2f' % ppm
             df = edr_to_df('%s.edr' % name_ppm)
             density_series = df.Density
-            inv_vis_series = df['1/Viscosity']
+            inv_series = df['1/Viscosity']
 
-            converged, when = is_converged(density_series)
+            if check_converge:
+                converged, when = is_converged(density_series)
+            else:
+                converged = True
+                when = 0
 
+            # select last half of data if not converged
             if not converged:
                 when = density_series.index[len(density_series) // 2]
 
-            inv_vis, stderr = ave_and_stderr(inv_vis_series.loc[when:])
-            vis_list.append(1000 / inv_vis)  # convert Pa.s to cP
-            stderr_list.append(stderr)
+            # use block average to estimate stderr, because 1/viscosity fluctuate heavily
+            inv_blocks = average_of_blocks(inv_series.loc[when:])
+            vis_blocks = [1000 / inv for inv in inv_blocks]  # convert Pa.s to cP
+            vis_list.append(np.mean(vis_blocks))
+            stderr_list.append(np.std(vis_blocks, ddof=1) / math.sqrt(len(vis_blocks)))
 
-        # coef_ = np.polynomial.polynomial.polyfit(self.amplitudes, vis_list, 1, w=stderr_list)
-        coef_, score = polyfit(self.amplitudes, vis_list, 1)
+        coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1, weight=1 / np.array(stderr_list))
 
         return {
-            'viscosity': coef_[0],
-            'score': score,
-            'vis_list': vis_list,
+            'viscosity'  : coef_[0],
+            'score'      : score,
+            'vis_list'   : vis_list,
+            'stderr_list': stderr_list,
         }
 
     def clean(self):

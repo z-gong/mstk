@@ -9,40 +9,53 @@ from ..errors import JobManagerError
 
 
 class Slurm(JobManager):
-    def __init__(self, queue_dict: OrderedDict, **kwargs):
-        # Current only support one queue
-        super().__init__(queue=list(queue_dict.keys())[0], nprocs=list(queue_dict.values())[0], **kwargs)
+    def __init__(self, queue_list, **kwargs):
+        queue = queue_list[0]
+        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
         self.sh = '_job_slurm.sh'
+        self.submit_cmd = 'sbatch'
 
     def replace_mpirun_srun(self, commands) -> (int, [str]):
-        n_process = 1
+        n_mpi = 1
         cmds_replaced = []
         for cmd in commands:
             if cmd.startswith('mpirun'):
-                n_process = int(cmd.split()[2])
-                cmd_srun = 'srun ' + ' '.join(cmd.split()[3:])
+                n_mpi = int(cmd.split()[2])
+                cmd_srun = 'srun -n %i ' % n_mpi + ' '.join(cmd.split()[3:])
                 cmds_replaced.append(cmd_srun)
             else:
                 cmds_replaced.append(cmd)
-        return n_process, cmds_replaced
+        return n_mpi, cmds_replaced
 
-    def generate_sh(self, workdir, commands, name, sh=None, n_thread=None, exclusive=False, **kwargs):
+    def generate_sh(self, workdir, commands, name, sh=None, n_tasks=None, **kwargs):
+        '''
+        If do not set n_tasks, default a whole node is used (which means n_tasks equal to self.nprocs_request)
+
+        :param workdir:
+        :param commands:
+        :param name:
+        :param sh:
+        :param n_tasks:
+        :param kwargs:
+        :return:
+        '''
         if sh is None:
             sh = self.sh
         out = sh[:-2] + 'out'
         err = sh[:-2] + 'err'
 
-        n_process, srun_commands = self.replace_mpirun_srun(commands)
-        if n_thread is None:
-            n_thread = self.nprocs // n_process
+        n_mpi, srun_commands = self.replace_mpirun_srun(commands)
 
-        if exclusive:
-            n_node = math.ceil(n_process * n_thread / self.nprocs)
-            node_cmd = '#SBATCH --nodes=%i\n' % n_node
-            exclusive_cmd = '#SBATCH --exclusive\n'
+        if n_tasks == None:
+            n_node = 1
+            n_tasks = self.nprocs_request
         else:
-            node_cmd = ''
-            exclusive_cmd = ''
+            n_node = int(math.ceil(n_tasks / self.nprocs_request))
+
+        if self.ngpu > 0:
+            gpu_cmd = '#SBATCH --gres=gpu:%i\n' % self.ngpu * n_node
+        else:
+            gpu_cmd = ''
 
         with open(sh, 'w') as f:
             f.write('#!/bin/bash\n'
@@ -51,22 +64,22 @@ class Slurm(JobManager):
                     '#SBATCH -o %(out)s\n'
                     '#SBATCH -e %(err)s\n'
                     '#SBATCH -p %(queue)s\n'
-                    '#SBATCH --ntasks=%(n_process)s\n'
-                    '#SBATCH --cpus-per-task=%(n_thread)s\n'
-                    '%(node_cmd)s'
-                    '%(exclusive_cmd)s'
-                    '\n\n'
+                    '#SBATCH --time=%(walltime)i:00:00\n'
+                    '#SBATCH --nodes=%(n_node)i\n'
+                    '#SBATCH --ntasks=%(n_tasks)i\n'
+                    '%(gpu_cmd)s'
+                    '\n'
                     '%(env_cmd)s\n\n'
-                    % ({'name': name,
-                        'out': out,
-                        'err': err,
-                        'queue': self.queue,
-                        'n_process': n_process,
-                        'n_thread': n_thread,
-                        'node_cmd': node_cmd,
-                        'exclusive_cmd': exclusive_cmd,
-                        'env_cmd': self.env_cmd,
-                        'workdir': workdir
+                    % ({'name'    : name,
+                        'out'     : out,
+                        'err'     : err,
+                        'queue'   : self.queue,
+                        'walltime': self.walltime,
+                        'n_node'  : n_node,
+                        'n_tasks' : n_tasks,
+                        'gpu_cmd' : gpu_cmd,
+                        'env_cmd' : self.env_cmd,
+                        'workdir' : workdir
                         })
                     )
             for cmd in srun_commands:
@@ -75,7 +88,8 @@ class Slurm(JobManager):
     def submit(self, sh=None):
         if sh is None:
             sh = self.sh
-        sp = Popen(['sbatch', sh])
+        cmd = self.submit_cmd + ' ' + sh
+        sp = Popen(cmd.split())
         sp.communicate()
         if sp.returncode == 0:
             return True
@@ -100,7 +114,9 @@ class Slurm(JobManager):
                 val = line.split('=')[1]
                 if key == 'JobId':
                     id = int(val)
-                elif key == 'Name':
+                elif key == 'UserId':
+                    user = val.split('(')[0]  # UserId=username(uid)
+                elif key == 'JobName' or key == 'Name':
                     name = val
                 elif key == 'JobState':
                     state_str = val
@@ -112,11 +128,11 @@ class Slurm(JobManager):
                         state = PbsJob.State.DONE
                 elif key == 'WorkDir':
                     workdir = val
-            job = PbsJob(id=id, name=name, state=state, workdir=workdir)
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user)
             job.state_str = state_str
             return job
 
-        # TODO Only show jobs belong to self.username
+        # Show all jobs. Then check the user
         cmd = 'scontrol show job'
         try:
             output = subprocess.check_output(cmd.split())
@@ -127,5 +143,7 @@ class Slurm(JobManager):
         for job_str in output.decode().split('\n\n'):  # split jobs
             if job_str.startswith('JobId'):
                 job = get_job_from_str(job_str)
-                jobs.append(job)
+                # Show all jobs. Then check the user
+                if job.user == self.username:
+                    jobs.append(job)
         return jobs

@@ -3,7 +3,6 @@ import shutil
 
 from .gauss import GaussSimulation
 from ...utils import create_mol_from_smiles, generate_conformers
-from ...analyzer import is_converged, ave_and_stderr
 
 
 class Cv(GaussSimulation):
@@ -16,7 +15,7 @@ class Cv(GaussSimulation):
     def build(self, export=True, ppf=None, minimize=False):
         pass
 
-    def prepare(self, gjf_name=None, n_conformer=1, T_list: [float] = None, jobname=None) -> [str]:
+    def prepare(self, gjf_name=None, n_conformer=0, T_list: [float] = None, jobname=None) -> [str]:
         if gjf_name == None:
             gjf_name = 'conf'
         self.logs = ['%s-%i.log' % (gjf_name, i) for i in range(n_conformer)]
@@ -27,7 +26,7 @@ class Cv(GaussSimulation):
         smiles = self.smiles_list[0]
         py_mol = create_mol_from_smiles(smiles)
 
-        if n_conformer == 1:
+        if n_conformer == 0:
             name = '%s-%i' % (gjf_name, 0)
             self.gauss.generate_gjf_cv(name, py_mol, T_list=T_list)
             cmds = self.gauss.run_gjf(name + '.gjf', nprocs=nprocs, get_cmd=True)

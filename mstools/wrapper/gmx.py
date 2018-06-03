@@ -4,6 +4,7 @@ import subprocess
 from subprocess import Popen, PIPE
 
 from ..errors import GmxError
+from ..utils import random_string
 
 
 class GMX:
@@ -27,19 +28,19 @@ class GMX:
             sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
             sp.communicate()
 
-    def mdrun(self, name='md', nprocs=1, n_thread=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
-        if n_thread is None:  # n_thread is None means auto
-            for i in [6, 5, 4]:  # available OpenMP threads: 6, 5, 4
-                if (nprocs / 2) % i == 0:
-                    n_thread = i
+    def mdrun(self, name='md', nprocs=1, n_omp=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
+        if n_omp == None:  # n_omp is None means auto
+            for i in [6, 4, 2]:  # available OpenMP threads: 6, 4, 2
+                if nprocs % i == 0:
+                    n_omp = i
                     break
             else:
-                n_thread = nprocs
-        n_process = nprocs // n_thread
+                n_omp = nprocs
+        n_mpi = nprocs // n_omp
 
-        cmd = '%s -quiet -nobackup mdrun -ntomp %i -deffnm %s' % (self.GMX_BIN, n_thread, name)
-        if n_process > 1:
-            cmd = 'mpirun -np %i ' % n_process + cmd
+        cmd = '%s -quiet -nobackup mdrun -ntomp %i -deffnm %s' % (self.GMX_BIN, n_omp, name)
+        if n_mpi > 1:
+            cmd = 'mpirun -np %i ' % n_mpi + cmd
 
         if rerun is not None:
             cmd = '%s -rerun %s' % (cmd, rerun)
@@ -73,7 +74,8 @@ class GMX:
             sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
             sp.communicate(input=group.encode())
 
-    def prepare_mdp_from_template(self, template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
+    def prepare_mdp_from_template(self, template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001,
+                                  TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                                   restart=False, tcoupl='langevin', pcoupl='parrinello-rahman',
                                   constraints='h-bonds', ppm=0, dielectric=None):
@@ -131,32 +133,63 @@ class GMX:
         with open(mdp_out, 'w') as f_mdp:
             f_mdp.write(contents)
 
-    def energy(self, edr, properties: [str], begin=0, get_cmd=False):
-        property_str = '\\n'.join(properties)
+    def energy(self, edr, properties: [str], begin=0, end=None, fluct_props=False, get_cmd=False):
         cmd = '%s -quiet -nobackup energy -f %s -b %s' % (self.GMX_BIN, edr, str(begin))
+        if end != None:
+            cmd += ' -e %s' % (str(end))
+        if fluct_props:
+            cmd += ' -fluct_props'
         if get_cmd:
+            property_str = '\\n'.join(properties)
             cmd = 'echo "%s" | %s' % (property_str, cmd)
             return cmd
         else:
             sp = Popen(cmd.split(), stdout=PIPE, stdin=PIPE, stderr=PIPE)
-            sp_out = sp.communicate(input=property_str.encode())[0]
-            return sp_out
+            property_str = '\n'.join(properties)
+            out, err = sp.communicate(input=property_str.encode())
+            return out
 
-    def get_property(self, edr, property: str, begin=0) -> float:
-        sp_out = self.energy(edr, properties=[property], begin=begin)
+    def get_property(self, edr, property: str, begin=0, end=None) -> float:
+        sp_out = self.energy(edr, properties=[property], begin=begin, end=end)
 
         for line in sp_out.decode().splitlines():
             if line.lower().startswith(property.lower()):
                 return float(line.split()[1])
         raise GmxError('Invalid property')
 
-    def get_property_and_stderr(self, edr, property: str, begin=0) -> (float, float):
-        sp_out = self.energy(edr, properties=[property], begin=begin)
+    def get_fluct_props(self, edr, begin=0, end=None) -> (float, float):
+        '''
+        Get thermal expansion and compressibility using fluctuation of enthalpy, volume
+        Only works for NPT simulation
+        :param edr:
+        :param begin:
+        :param end:
+        :return:
+        '''
+        sp_out = self.energy(edr, properties=['temp', 'vol', 'enthalpy'], begin=begin, end=end, fluct_props=True)
 
+        expansion = None
+        compressibility = None
         for line in sp_out.decode().splitlines():
-            if line.lower().startswith(property.lower()):
-                return float(line.split()[1]), float(line.split()[2])
-        raise GmxError('Invalid property')
+            if line.startswith('Coefficient of Thermal Expansion Alpha_P'):
+                expansion = float(line.split()[-2])
+            elif line.startswith('Isothermal Compressibility Kappa'):
+                compressibility = float(line.split()[-2]) * 1e5
+        return expansion, compressibility
+
+    def get_properties_stderr(self, edr, properties: [str], begin=0, end=None) -> [[float]]:
+        sp_out = self.energy(edr, properties=properties, begin=begin, end=end)
+
+        lines = sp_out.decode().splitlines()
+        results = []
+        for prop in properties:
+            for line in lines:
+                if line.lower().startswith(prop.lower()):
+                    results.append([float(line.split()[1]), float(line.split()[2])])
+                    break
+            else:
+                raise GmxError('Invalid property')
+        return results
 
     def get_box(self, edr, begin=0) -> [float]:
         sp = subprocess.Popen([self.GMX_BIN, 'energy', '-f', edr, '-b', str(begin)], stdout=PIPE, stdin=PIPE,
@@ -173,8 +206,11 @@ class GMX:
                 box[2] = float(line.split()[1])
         return box
 
-    def density(self, xtc, tpr, group='System', begin=0, center=True, silent=False, get_cmd=False):
-        cmd = '%s density -f %s -s %s -b %f' % (self.GMX_BIN, xtc, tpr, begin)
+    def density(self, trj, tpr, xvg='density.xvg', group='System', begin=0, end=None,
+                center=False, silent=False, get_cmd=False):
+        cmd = '%s -quiet -nobackup density -f %s -s %s -b %f -o %s' % (self.GMX_BIN, trj, tpr, begin, xvg)
+        if end != None:
+            cmd += ' -e %f' % end
         inp = group
         if center:
             cmd += ' -center'
@@ -252,6 +288,33 @@ class GMX:
             for i, molecule in enumerate(molecules):
                 f.write('%s %i\n' % (molecule, numbers[i]))
 
+    def replicate_gro(self, gro, top, nbox, silent=True):
+        from functools import reduce
+        import operator
+
+        gro_tmp = random_string(8) + '.gro'
+        cmd = '%s -quiet genconf -f %s -o %s -nbox %i %i %i' % (self.GMX_BIN, gro, gro_tmp, nbox[0], nbox[1], nbox[2])
+        (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
+        sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
+        sp.communicate()
+        shutil.move(gro_tmp, gro)
+
+        with open(top) as f:
+            content = f.read()
+
+        LASTLINE = ''
+        LAST = False
+        for line in content.splitlines():
+            if line.find('molecules') > -1 and line.find('[') > -1:
+                LAST = True
+                continue
+            if LAST and not line.strip() == '' and not line.startswith(';'):
+                LASTLINE += line + '\n'
+        LASTLINE *= (reduce(operator.mul, nbox, 1) - 1)
+
+        with open(top, 'a') as f:
+            f.write(LASTLINE)
+
     def pdb2gro(self, pdb, gro_out, box: [float]):
         if len(box) != 3:
             raise GmxError('Invalid box')
@@ -269,6 +332,28 @@ class GMX:
                     '-nonormalize'],
                    stdin=PIPE, stdout=stdout, stderr=stderr)
         sp.communicate(input=str(group).encode())
+
+    def diffusion(self, xtc, tpr, group='System', begin=0, end=None, xvg_out='msd.xvg',
+                  beginfit=-1, endfit=-1):
+        cmd = '%s -quiet -nobackup msd -f %s -s %s -o %s -b %s -beginfit %s -endfit %s' % (
+            self.GMX_BIN, xtc, tpr, xvg_out, str(begin), str(beginfit), str(endfit))
+        if end != None:
+            cmd += ' -e %s' % str(end)
+
+        sp = Popen(cmd.split(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = sp.communicate(input=str(group).encode())
+
+        for line in out.decode().splitlines():
+            if line.startswith('D['):
+                words = line.strip().split(']')[-1].strip().split()
+                diffusion = float(words[0])
+                stderr = float(words[2][:-1])
+                unit = float(words[3])
+                diffusion *= unit  # cm^2/s
+                stderr *= unit  # cm^2/s
+                return diffusion, stderr
+
+        raise GmxError('Error running gmx msd')
 
     def msd_com(self, xtc, tpr, resname, beginfit=-1, endfit=-1, xvg_out=None, silent=False):
         ndx = 'com-' + resname + '.ndx'
@@ -316,7 +401,7 @@ class GMX:
 
         line_number_molecule = []
         line_number_atom = []
-        line_number_system = 0
+        line_number_system = None
         for n, line in enumerate(lines):
             if line.find('[') != -1 and line.find('moleculetype') != -1:
                 line_number_molecule.append(n)
@@ -334,6 +419,8 @@ class GMX:
             for n in range(line_number_molecule[i], line_number_atom[i]):
                 f_out.write(lines[n] + '\n')
             line_number_next_section = line_number_molecule[i + 1] if i < n_molecules - 1 else line_number_system
+            if line_number_next_section == None:
+                line_number_next_section = len(lines)
             n_atoms = 0
             f_out.write('[ atoms ]\n')
             for n in range(line_number_atom[i] + 1, line_number_next_section):
@@ -347,17 +434,25 @@ class GMX:
                 f_out.write(line + '\n')
                 n_atoms += 1
 
-        for n in range(line_number_system, len(lines)):
-            f_out.write(lines[n] + '\n')
+        if line_number_system != None:
+            for n in range(line_number_system, len(lines)):
+                f_out.write(lines[n] + '\n')
 
-    def slice_gro_from_traj(self, trr, tpr, gro_out, begin, end, dt, silent=True):
+    def cut_traj(self, trr, trr_out, begin, end, silent=False):
+        cmd = '%s -quiet -nobackup trjconv -f %s -o %s -b %s -e %s' % (
+            self.GMX_BIN, trr, trr_out, str(begin), str(end))
+        (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
+        sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
+        sp.communicate()
+
+    def slice_gro_from_traj(self, trr, tpr, gro_out, begin, end, dt, silent=False):
         cmd = '%s -quiet -nobackup trjconv -f %s -s %s -o %s -b %s -e %s -dt %s -sep -pbc whole' % (
             self.GMX_BIN, trr, tpr, gro_out, str(begin), str(end), str(dt))
         (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
         sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
         sp.communicate(input='System'.encode())
 
-    def extend_tpr(self, tpr, extend, silent=True):
+    def extend_tpr(self, tpr, extend, silent=False):
         cmd = '%s -quiet convert-tpr -s %s -o %s -extend %s' % (self.GMX_BIN, tpr, tpr, str(extend))
         (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
         sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
@@ -377,20 +472,50 @@ class GMX:
         raise Exception('Cannot open trajectory')
 
     @staticmethod
-    def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel=8, n_gpu=2, n_thread=None) -> [[str]]:
+    def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel,
+                                   n_gpu=0, n_omp=None, n_procs=None) -> [[str]]:
+        '''
+        Set n_omp in most case. If n_procs is set, n_omp has no effect.
+        :param dirs:
+        :param commands:
+        :param n_parallel:
+        :param n_gpu:
+        :param n_procs:
+        :param n_omp:
+        :return:
+        '''
         import math, re
         def replace_gpu_multidir_cmd(dirs: [str], cmd: str) -> str:
+            n_multi = len(dirs)
             if cmd.startswith('export'):
                 pass
+
             elif cmd.find('gmx') != -1 and cmd.find(' mdrun ') != -1:
+                n_mpi = n_multi
+                n_thread = n_omp
+
+                if n_procs != None:
+                    if cmd.find('mpirun') != -1:
+                        # optimize n_mpi and n_thread
+                        for i in [6, 4, 2]:
+                            if n_procs % (n_multi * i) == 0:
+                                n_thread = i
+                                n_mpi = n_procs // n_thread
+                                break
+
+                    else:
+                        # set n_mpi equal to n_multi
+                        n_thread = n_procs // n_mpi
+
                 cmd = re.sub('mpirun\s+-np\s+[0-9]+', '', cmd)  # remove mpirun -np xx
                 cmd = re.sub('-ntomp\s+[0-9]+', '', cmd)  # remove -ntomp xx
-                cmd = 'mpirun -np %i %s' % (len(dirs), cmd)  # add mpirun -np xx
+
+                cmd = 'mpirun -np %i %s' % (n_mpi, cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx
                 if n_gpu > 0:
-                    cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (len(dirs) // n_gpu) \
-                           + ''.join(map(str, range(len(dirs) % n_gpu)))  # add -gpu_id 01230123012
-                if n_thread is not None:
+                    cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
+                           + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
+                if n_thread != None:
                     cmd += ' -ntomp %i' % n_thread
 
             else:

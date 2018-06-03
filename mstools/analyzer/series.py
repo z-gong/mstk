@@ -6,6 +6,39 @@ from pandas import Series
 from pymbar import timeseries
 
 
+def block_average(series: Series, n_block=5) -> (float, float):
+    '''
+    Get block average and standard error
+    '''
+    block_aves = average_of_blocks(series, n_block)
+    ave, stderr = np.mean(block_aves), np.std(block_aves, ddof=1) / math.sqrt(n_block)
+    stderr = float('%.1e' % stderr)  # 2 effective number for stderr
+    return ave, stderr
+
+
+def average_of_blocks(series: Series, n_block=5) -> [float]:
+    '''
+    Split data to several blocks and return the average of each block
+    '''
+    n_points = len(series)
+    block_size = n_points // n_block
+    blocks = []
+    for n in range(n_block - 1):
+        blocks.append(series.iloc[block_size * n:block_size * (n + 1)])
+    blocks.append(series.iloc[block_size * (n_block - 1):])
+    block_aves = [np.mean(b) for b in blocks]
+    return block_aves
+
+
+def is_converged(series: Series, frac_min=0.5) -> (bool, float):
+    n_points = len(series)
+    array = np.array(series)
+    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=max(1, n_points // 100))
+    if t0 > n_points * (1 - frac_min):
+        return False, series.index[t0]
+    return True, series.index[t0]
+
+
 def efficiency_with_block_size(list: [float]) -> [float]:
     n_points = len(list)
     array = np.array(list)
@@ -24,16 +57,14 @@ def efficiency_with_block_size(list: [float]) -> [float]:
     pylab.show()
 
 
-def is_converged(series: Series, frac_min=0.5) -> (bool, float):
-    n_points = len(series)
-    array = np.array(series)
-    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=max(1, n_points // 100))
-    if t0 > n_points * (1 - frac_min):
-        return False, series.index[t0]
-    return True, series.index[t0]
+def _ave_and_stderr(series: Series, subsample=True) -> (float, float):
+    '''
+    deprecated
 
-
-def ave_and_stderr(series: Series, subsample=True) -> (float, float):
+    :param series:
+    :param subsample:
+    :return:
+    '''
     ave = np.mean(series)
     array = np.array(series)
     if subsample:
@@ -44,7 +75,16 @@ def ave_and_stderr(series: Series, subsample=True) -> (float, float):
     return ave, np.std(array, ddof=1) / math.sqrt(len(array))
 
 
-def is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool, float):
+def _is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool, float):
+    '''
+    deprecated
+
+    :param series:
+    :param tolerance:
+    :param debug:
+    :return:
+    '''
+
     def gauss(mu, sigma, x):
         h = 0.3989 / sigma
         exponent = -(x - mu) ** 2 / 2 / sigma ** 2
@@ -111,21 +151,3 @@ def is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool
 
     else:
         return False, 0
-
-
-def block_average(series: Series, n_block=5) -> (float, float):
-    '''
-    Get block average and standard error
-    '''
-    n_points = len(series)
-    if n_block is None:
-        n_block = 5
-
-    block_size = n_points // n_block
-    blocks = []
-    for n in range(n_block - 1):
-        blocks.append(series.iloc[block_size * n:block_size * (n + 1)])
-    blocks.append(series.iloc[block_size * (n_block - 1):])
-
-    block_aves = [np.mean(b) for b in blocks]
-    return np.mean(series), np.std(block_aves, ddof=1) / math.sqrt(n_block)

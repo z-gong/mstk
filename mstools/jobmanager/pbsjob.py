@@ -1,13 +1,14 @@
 class PbsJob():
-    def __init__(self, id, name, state, workdir):
+    def __init__(self, id, name, state, workdir, user=None):
         self.id = id
         self.name = name
         self.state = state
         self.workdir = workdir
-        self.state_str = str(self.state)
+        self.user = user
+        self.state_str = None
 
     def __repr__(self):
-        return '<PbsJob: %i %s %i>' % (self.id, self.name, self.state)
+        return '<PbsJob: %i %s %i %s>' % (self.id, self.name, self.state, self.user)
 
     def __eq__(self, other):
         return self.id == other.id
@@ -16,4 +17,3 @@ class PbsJob():
         PENDING = 0
         RUNNING = 1
         DONE = 9
-

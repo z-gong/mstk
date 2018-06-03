@@ -38,8 +38,7 @@ def cd_or_create_and_cd(dir):
     except:
         raise Exception('Cannot read directory: %s' % dir)
 
-
-def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8, interval: int = None) -> [int]:
+def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8) -> [int]:
     t_span = t_max - t_min
     if t_max == t_min:
         return [t_min]
@@ -47,18 +46,36 @@ def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8, interval: in
         return [t_min, t_max]
 
     T_list = [t_min]
-    if interval is not None:
-        while T_list[-1] < t_max - interval / 5:
-            T_list.append(T_list[-1] + interval)
-    else:
-        while True:
-            interval = t_span / (n_point - 1)
-            if interval >= 5:
-                break
-            n_point -= 1
+    while True:
+        interval = t_span / (n_point - 1)
+        if interval >= 5:
+            break
+        n_point -= 1
 
-        for i in range(1, n_point):
-            T_list.append(round(t_min + i * interval))
+    for i in range(1, n_point):
+        T_list.append(round(t_min + i * interval))
+
+    return T_list
+
+def get_T_list_VLE_from_range(t_min: int, t_max: int, n_point: int = 8) -> [int]:
+    t_span = t_max - t_min
+    if t_max == t_min:
+        return [t_min]
+    if t_span <= 5:
+        return [t_min, t_max]
+
+    T_list = [t_min]
+
+    # TODO n_point=8
+    interval = t_span / 13
+
+    T_list.append(round(t_min + 4 * interval))
+    T_list.append(round(t_min + 7 * interval))
+    T_list.append(round(t_min + 9 * interval))
+    T_list.append(round(t_min + 10 * interval))
+    T_list.append(round(t_min + 11 * interval))
+    T_list.append(round(t_min + 12 * interval))
+    T_list.append(round(t_min + 13 * interval))
 
     return T_list
 

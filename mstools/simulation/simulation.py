@@ -15,9 +15,7 @@ class Simulation():
 
         self.n_mol_list: [int]
         self.msd: str = 'init.msd'
-
-    def set_procedure(self, procedure):
-        self.procedure = procedure
+        self.n_atoms_default: int = None
 
     def build(self):
         pass
@@ -31,13 +29,19 @@ class Simulation():
     def check_finished(self):
         pass
 
-    def analyze(self) -> {str: float}:
+    def analyze(self):
         pass
 
     def clean(self):
         pass
 
-    def set_system(self, smiles_list: [str], n_atoms: int = None, n_mol_list: [int] = None, n_mol_ratio: [int] = None,
+    def post_process(self, **kwargs):
+        pass
+
+    def get_post_data(self, **kwargs):
+        pass
+
+    def set_system(self, smiles_list: [str], n_mol_list: [int] = None, n_atoms: int = None, n_mol_ratio: [int] = None,
                    density: float = None, name_list: [str] = None):
         if type(smiles_list) != list:
             raise Exception('smiles_list should be list')
@@ -62,18 +66,18 @@ class Simulation():
             molwt_list.append(py_mol.molwt)
             density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
-        if n_mol_list is not None:
-            self.n_mol_list = n_mol_list
-        elif n_atoms is not None:
-            if n_mol_ratio is None:
-                self.n_mol_list = [math.ceil(n_atoms / n_components / n_atom) for n_atom in n_atom_list]
-            else:
-                n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(n_mol_ratio)])
-                self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]
+        if n_mol_list != None:
+            self.n_mol_list = n_mol_list[:]
         else:
-            raise Exception('n_atoms or n_mol_list should be specified')
+            n_atoms = n_atoms or self.n_atoms_default
+            if n_mol_ratio == None:
+                n_mol_ratio = [1] * n_components
+            n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(n_mol_ratio)])
+            self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]
 
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])
         if density is None:
             density = sum([density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(self.n_mol_list)
-        self.length = (10 / 6.022 * mass / density) ** (1 / 3)  # assume cubic box
+        self.vol = 10 / 6.022 * mass / density
+        self.length = self.vol ** (1 / 3)  # assume cubic box
+        self.box = [self.length, self.length, self.length]

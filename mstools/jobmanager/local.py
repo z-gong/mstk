@@ -4,9 +4,9 @@ from ..errors import JobManagerError
 
 
 class Local(JobManager):
-    def __init__(self, queue_dict: OrderedDict, **kwargs):
-        # Current only support one queue
-        super().__init__(queue=list(queue_dict.keys())[0], nprocs=list(queue_dict.values())[0], **kwargs)
+    def __init__(self, queue_list, **kwargs):
+        queue = queue_list[0]
+        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
         self.sh = '_job_local.sh'
 
     def generate_sh(self, workdir, commands, name=None, sh=None, **kwargs):

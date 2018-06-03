@@ -20,7 +20,7 @@ class Packmol:
 
     def build_box(self, files: [str], numbers: [int], output: str,
                   size: [float] = None, length: float = None,
-                  slab=False, slab_multiple=False,
+                  slab=None, slab_multiple=False,
                   tolerance: float = 1.8, seed: int = None,
                   silent=False) -> [int]:
         '''
@@ -58,11 +58,12 @@ class Packmol:
         )
 
         # liquid-gas interface
-        if slab:
-            box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], self.size[0])
-            box_gas = '0 0 %f %f %f %f' % (self.size[0], self.size[0], self.size[1], self.size[2])
+        if slab != None:
+            box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], slab)
+            box_gas = '0 0 %f %f %f %f' % (slab, self.size[0], self.size[1], self.size[2])
             for i, filename in enumerate(files):
-                n_gas = numbers[i] // 50  # put 1/50 molecules in gas phase
+                # put 1/50 molecules in gas phase. Do not put too many in case of nucleation in gas phase
+                n_gas = numbers[i] // 50
                 n_liq = numbers[i] - n_gas
                 inp += (
                     'structure {filename}\n'
@@ -72,8 +73,8 @@ class Packmol:
                     'structure {filename}\n'
                     'number {n_gas}\n'
                     'inside box {box_gas}\n'
-                    'end structure\n'.format(filename=filename, n_gas=n_gas, n_liq=n_liq, box_gas=box_gas,
-                                             box_liq=box_liq)
+                    'end structure\n'.format(filename=filename, n_liq=n_liq, n_gas=n_gas,
+                                             box_liq=box_liq, box_gas=box_gas)
                 )
 
         else:

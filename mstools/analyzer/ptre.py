@@ -22,10 +22,11 @@ class Ptre():
         if len(peaks) == 0:
             result = 'b'
         elif len(peaks) == 1:
-            if peaks[0][2] * 2 * hpw_t < len(data):
-                result = 'a'
-            else:
-                result = 'c'
+            # if peaks[0][2] * 2 * hpw_t < len(data):
+            #     result = 'a'
+            # else:
+            #     result = 'c'
+            result = 'c'
         elif len(peaks) == 2:
             if not Ptre.test_updown(peaks):
                 result = 'Error: Two peaks with same direction.'

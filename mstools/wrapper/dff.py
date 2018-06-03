@@ -29,7 +29,7 @@ class DFF:
         self.DFFEXP_BIN = os.path.join(self.DFF_BIN_DIR, 'dffexp.exe')
         self.DFFFIT_BIN = os.path.join(self.DFF_BIN_DIR, 'dfffit.exe')
         self.default_db = default_db or 'TEAMFF'
-        self.default_table = default_table or 'TEAM_LS'
+        self.default_table = default_table or 'MGI'
 
     def convert_model_to_msd(self, model, msd_out):
         pass

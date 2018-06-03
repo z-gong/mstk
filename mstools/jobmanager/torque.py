@@ -9,23 +9,26 @@ from ..errors import JobManagerError
 
 
 class Torque(JobManager):
-    def __init__(self, queue_dict: OrderedDict, **kwargs):
-        super().__init__(list(queue_dict.keys())[0], list(queue_dict.values())[0], **kwargs)
-        self.queue_dict = queue_dict
+    def __init__(self, queue_list, **kwargs):
+        queue = queue_list[0]
+        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
         self.sh = '_job_torque.sh'
 
     def refresh_preferred_queue(self) -> bool:
-        if len(self.queue_dict) > 1:
-            available_queues = self.get_available_queues()
-            for queue in self.queue_dict.keys():
-                if queue in available_queues.keys() and available_queues[queue] > 0:
-                    self.queue = queue
-                    self.nprocs = self.queue_dict[queue]
-                    return True
+        return True
 
-        self.queue = list(self.queue_dict.keys())[0]
-        self.nprocs = list(self.queue_dict.values())[0]
-        return False
+        # TODO disable this function
+        # if len(self.queue_dict) > 1:
+        #     available_queues = self.get_available_queues()
+        #     for queue in self.queue_dict.keys():
+        #         if queue in available_queues.keys() and available_queues[queue] > 0:
+        #             self.queue = queue
+        #             self.nprocs = self.queue_dict[queue]
+        #             return True
+        # 
+        # self.queue = list(self.queue_dict.keys())[0]
+        # self.nprocs = list(self.queue_dict.values())[0]
+        # return False
 
     def generate_sh(self, workdir, commands, name, sh=None, **kwargs):
         if sh is None:
@@ -38,16 +41,18 @@ class Torque(JobManager):
                     '#PBS -o %(out)s\n'
                     '#PBS -e %(err)s\n'
                     '#PBS -q %(queue)s\n'
-                    '#PBS -l nodes=1:ppn=%(nprocs)s\n\n'
+                    '#PBS -l walltime=%(walltime)i:00:00\n'
+                    '#PBS -l nodes=1:ppn=%(nprocs_request)s\n\n'
                     '%(env_cmd)s\n\n'
                     'cd %(workdir)s\n\n'
-                    % ({'name': name,
-                        'out': out,
-                        'err': err,
-                        'queue': self.queue,
-                        'nprocs': self.nprocs,
-                        'env_cmd': self.env_cmd,
-                        'workdir': workdir
+                    % ({'name'          : name,
+                        'out'           : out,
+                        'err'           : err,
+                        'queue'         : self.queue,
+                        'walltime'      : self.walltime,
+                        'nprocs_request': self.nprocs_request,
+                        'env_cmd'       : self.env_cmd,
+                        'workdir'       : workdir
                         })
                     )
             for cmd in commands:
@@ -84,6 +89,8 @@ class Torque(JobManager):
                 key, val = line.split(' = ')
                 if key == 'Job_Name':
                     name = val
+                if key == 'Job_Owner':
+                    user = val.split('@')[0]  # Job_Owner = username@hostname
                 elif key == 'job_state':
                     state_str = val
                     if val == 'Q':
@@ -94,10 +101,11 @@ class Torque(JobManager):
                         state = PbsJob.State.DONE
                 elif key == 'init_work_dir':
                     workdir = val
-            job = PbsJob(id=id, name=name, state=state, workdir=workdir)
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user)
             job.state_str = state_str
             return job
 
+        # Only show jobs belong to self.username
         cmd = 'qstat -f -u %s' % self.username
         try:
             output = subprocess.check_output(cmd.split())
@@ -108,7 +116,9 @@ class Torque(JobManager):
         for job_str in output.decode().split('\n\n'):  # split jobs
             if job_str.startswith('Job Id'):
                 job = get_job_from_str(job_str)
-                jobs.append(job)
+                # Only show jobs belong to self.username, so this is always True
+                if job.user == self.username:
+                    jobs.append(job)
         return jobs
 
     def get_nodes(self):

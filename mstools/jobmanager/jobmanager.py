@@ -6,15 +6,20 @@ from .pbsjob import PbsJob
 
 
 class JobManager:
-    def __init__(self, queue=None, nprocs=1, env_cmd=None):
+    def __init__(self, queue=None, nprocs=1, ngpu=0, nprocs_request=None, env_cmd=None):
         self.queue = queue
         self.nprocs = nprocs
+        self.ngpu = ngpu
+        self.nprocs_request= nprocs_request or nprocs
         self.env_cmd = env_cmd or ''
         self.username = pwd.getpwuid(os.getuid()).pw_name
 
         self.stored_jobs_expire = 60  # seconds
         self.stored_jobs = []
         self.last_update = None
+
+        self.priority = 0
+        self.walltime = 24
 
     @property
     def all_jobs(self) -> [PbsJob]:

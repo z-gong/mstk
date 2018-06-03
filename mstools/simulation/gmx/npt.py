@@ -2,7 +2,7 @@ import os
 import shutil
 
 from .gmx import GmxSimulation
-from ...analyzer import is_converged, ave_and_stderr
+from ...analyzer import is_converged, block_average
 from ...wrapper.ppf import delta_ppf
 
 
@@ -12,14 +12,14 @@ class Npt(GmxSimulation):
         self.procedure = 'npt'
         self.requirement = []
         self.logs = ['npt.log', 'hvap.log']
+        self.n_atoms_default = 3000
 
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
-        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2, silent=True)
+        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', size=[i - 2 for i in self.box], silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
-                                         length=self.length)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', size=self.box)
         if export:
             self.export(ppf=ppf, minimize=minimize)
 
@@ -86,7 +86,7 @@ class Npt(GmxSimulation):
         cmd = self.gmx.grompp(mdp='grompp-hvap.mdp', gro='eq.gro', top=top_hvap, tpr_out='hvap.tpr', get_cmd=True)
         commands.append(cmd)
         # Use OpenMP instead of MPI when rerun hvap
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_thread=nprocs, rerun='npt.xtc', get_cmd=True)
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
@@ -96,7 +96,7 @@ class Npt(GmxSimulation):
         '''
         extend simulation for 500 ps
         '''
-        self.gmx.extend_tpr('npt.tpr', extend)
+        self.gmx.extend_tpr('npt.tpr', extend, silent=True)
 
         nprocs = self.jobmanager.nprocs
         commands = []
@@ -107,47 +107,75 @@ class Npt(GmxSimulation):
         # Rerun enthalpy of vaporization
         commands.append('export GMX_MAXCONSTRWARN=-1')
         # Use OpenMP instead of MPI when rerun hvap
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_thread=nprocs, rerun='npt.xtc', get_cmd=True)
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc', get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure, sh=sh)
         return commands
 
-    def analyze(self, dirs=None):
-        if dirs is None:
-            dirs = ['.']
-        import pandas as pd
+    def analyze(self, check_converge=True, **kwargs):
+        import numpy as np
         from ...panedr import edr_to_df
 
-        # TODO check structure freezing
-        temp_series = pd.Series()
-        press_series = pd.Series()
-        potential_series = pd.Series()
-        density_series = pd.Series()
-        e_inter_series = pd.Series()
-        for dir in dirs:
-            df = edr_to_df(os.path.join(dir, 'npt.edr'))
-            temp_series = temp_series.append(df.Temperature)
-            press_series = press_series.append(df.Pressure)
-            potential_series = potential_series.append(df.Potential)
-            density_series = density_series.append(df.Density)
+        df = edr_to_df('npt.edr')
+        potential_series = df.Potential
+        density_series = df.Density
+        df = edr_to_df('hvap.edr')
+        e_inter_series = (df.Potential)
+        length = potential_series.index[-1]
 
-            df = edr_to_df(os.path.join(dir, 'hvap.edr'))
-            e_inter_series = e_inter_series.append(df.Potential)
+        ### Check structure freezing using Diffusion. Only use last 400 ps data
+        diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', begin=length - 400)
+        if diffusion < 1E-8:  # cm^2/s
+            return {
+                'failed': True,
+                'reason': 'freeze'
+            }
 
-        converged, when = is_converged(density_series)
+        ### Check convergence
+        if not check_converge:
+            when = 0
+        else:
+            # use potential to do a initial determination
+            # use at least 4/5 of the data
+            _, when_pe = is_converged(potential_series, frac_min=0)
+            when_pe = min(when_pe, length * 0.2)
+            # use density to do a final determination
+            _, when_dens = is_converged(density_series, frac_min=0)
+            when = max(when_pe, when_dens)
+            if when > length * 0.5:
+                return None
 
-        if not converged:
-            return None
+        ### Get expansion and compressibility using fluctuation method
+        nblock = 5
+        blocksize = (length - when) / nblock
+        expan_list = []
+        compr_list = []
+        for i in range(nblock):
+            begin = when + blocksize * i
+            end = when + blocksize * (i + 1)
+            expan, compr = self.gmx.get_fluct_props('npt.edr', begin=begin, end=end)
+            expan_list.append(expan)
+            compr_list.append(compr)
+        expansion, expan_stderr = np.mean(expan_list), np.std(expan_list, ddof=1) / np.sqrt(nblock)
+        compressi, compr_stderr = np.mean(compr_list), np.std(compr_list, ddof=1) / np.sqrt(nblock)
+        expan_stderr = float('%.1e' % expan_stderr)  # 2 effective number for stderr
+        compr_stderr = float('%.1e' % compr_stderr)  # 2 effective number for stderr
 
+        temperature_and_stderr, pressure_and_stderr, potential_and_stderr, density_and_stderr = \
+            self.gmx.get_properties_stderr('npt.edr',
+                                           ['Temperature', 'Pressure', 'Potential', 'Density'],
+                                           begin=when)
         return {
-            'simulation_length': density_series.index[-1],
-            'converged_from': when,
-            'temperature': list(ave_and_stderr(temp_series.loc[when:])),
-            'pressure': list(ave_and_stderr(press_series.loc[when:])),
-            'potential': list(ave_and_stderr(potential_series.loc[when:])),
-            'density': list(ave_and_stderr(density_series.loc[when:] / 1000)),
-            'e_inter': list(ave_and_stderr(e_inter_series.loc[when:])),
+            'simulation_length': length,
+            'converged_from'   : when,
+            'temperature'      : temperature_and_stderr,  # K
+            'pressure'         : pressure_and_stderr,  # bar
+            'potential'        : potential_and_stderr,  # kJ/mol
+            'density'          : [i / 1000 for i in density_and_stderr],  # g/mL
+            'e_inter'          : list(block_average(e_inter_series.loc[when:])),  # kJ/mol
+            'expansion'        : [expansion, expan_stderr],
+            'compressibility'  : [compressi, compr_stderr],
         }
 
     def clean(self):
@@ -158,3 +186,63 @@ class Npt(GmxSimulation):
                     os.remove(f)
                 except:
                     pass
+
+    @staticmethod
+    def post_process(T_list, P_list, result_list, **kwargs) -> (dict, str):
+        if len(set(T_list)) < 5 or len(set(P_list)) < 5:
+            return None, 'T or P points less than 5'
+
+        from mstools.analyzer.fitting import polyfit_2d
+
+        density_list = []
+        e_inter_list = []
+        compres_list = []
+        for i, result in enumerate(result_list):
+            density_list.append(result['density'][0])
+            e_inter_list.append(result['e_inter'][0])
+            compres_list.append(result['compressibility'][0])
+
+        coeff_density, score_density = polyfit_2d(T_list, P_list, density_list, 4)
+        post_result = {'density-poly4-coeff': list(coeff_density),
+                       'density-poly4-score': score_density,
+                       }
+        coeff_e_inter, score_e_inter = polyfit_2d(T_list, P_list, e_inter_list, 4)
+        post_result.update({'e_inter-poly4-coeff': list(coeff_e_inter),
+                            'e_inter-poly4-score': score_e_inter,
+                            })
+
+        return post_result, 'density-poly4-score %.4f e_inter-poly4-score %.4f' % (score_density, score_e_inter)
+
+    @staticmethod
+    def get_post_data(post_result, T, P, smiles_list, n_mol_list, **kwargs) -> dict:
+        from mstools.analyzer.fitting import polyval_derivative_2d
+        coeff_density = post_result['density-poly4-coeff']
+        score_density = post_result['density-poly4-score']
+
+        density, dDdT, dDdP = polyval_derivative_2d(T, P, 4, coeff_density)  # g/mL
+        expansion = -1 / density * dDdT  # K^-1
+        compressibility = 1 / density * dDdP  # bar^-1
+
+        coeff_e_inter = post_result['e_inter-poly4-coeff']
+        score_e_inter = post_result['e_inter-poly4-score']
+
+        e_inter, dEdT, dEdP = polyval_derivative_2d(T, P, 4, coeff_e_inter)
+        e_inter /= n_mol_list[0]  # kJ/mol
+        hvap = 8.314 * T / 1000 - e_inter  # kJ/mol
+        cp_inter = dEdT * 1000 / n_mol_list[0]  # J/mol.K
+
+        import pybel
+        py_mol = pybel.readstring('smi', smiles_list[0])
+        cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
+
+        return {
+            'density'        : density,
+            'expansion'      : expansion,
+            'compressibility': compressibility,
+            'e_inter'        : e_inter,
+            'hvap'           : hvap,
+            'cp_inter'       : cp_inter,
+            'cp_pv'          : cp_pv,
+            'score-density'  : score_density,
+            'score-e_inter'  : score_e_inter,
+        }
