@@ -17,8 +17,8 @@ class Simulation():
         self.n_mol_list: [int]
         self.msd = 'init.msd'
         self.pdb = 'init.pdb'
-        self._single = '_single.msd'
-        self._single = '_single.pdb'
+        self._single_msd = '_single.msd'
+        self._single_pdb = '_single.pdb'
 
     def build(self):
         pass

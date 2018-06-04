@@ -21,10 +21,10 @@ class Npt(GmxSimulation):
         self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr=self.pdb, size=self.box)
 
         # build msd for fast export
-        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single, size=self.box,
+        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb, size=self.box,
                                inp_file='build_single.inp', silent=True)
-        self.dff.build_box_after_packmol(self.mol2_list, [1] * len(self.pdb_list), self._single,
-                                         mol_corr=self._single, size=self.box)
+        self.dff.build_box_after_packmol(self.mol2_list, [1] * len(self.pdb_list), self._single_msd,
+                                         mol_corr=self._single_pdb, size=self.box)
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
@@ -45,7 +45,7 @@ class Npt(GmxSimulation):
             ### Temperature dependent parameters
             # TODO Assumes ppf file named ff.ppf
             if os.path.abspath(model_dir) != os.getcwd():
-                shutil.copy(os.path.join(model_dir, self._single), self._single)
+                shutil.copy(os.path.join(model_dir, self._single_msd), self._single_msd)
             delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
             mol_numbers = self.gmx.get_top_mol_numbers(top)
             self.fast_export_single(ppf='ff.ppf', gro_out='_single.gro', top_out=top)

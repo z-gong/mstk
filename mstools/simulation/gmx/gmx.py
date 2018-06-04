@@ -39,7 +39,7 @@ class GmxSimulation(Simulation):
     def fast_export_single(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp',
                     ppf=None, ff=None, minimize=False, vacuum=False):
         print('Generate GROMACS files ...')
-        msd = self._single
+        msd = self._single_msd
         self.dff.set_formal_charge([msd])
         if ppf is not None:
             self.dff.typing([msd])  # in order to set the atom type
