@@ -19,17 +19,15 @@ class NvtSlab(GmxSimulation):
         if length == None:
             ### Slim box (z=2.0*x) in case of fully vaporization at high T
             length = (self.vol / 2.0) ** (1 / 3)
-        lx, ly, lz = length, length, length * 6.0
+        self.box = [length, length, length * 6.0]
         slab = self.vol / length ** 2
 
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb',
-                               size=[lx - 2, ly - 2, lz - 2],
-                               slab=slab, silent=True)
+                               size=[i - 2 for i in self.box], slab=slab, silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
-                                         size=[lx, ly, lz])
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', size=self.box)
 
         # build msd for fast export
         self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb, size=self.box,
@@ -39,7 +37,7 @@ class NvtSlab(GmxSimulation):
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
-            self.gmx.pdb2gro(self.pdb, 'conf.gro', [lx / 10, ly / 10, lz / 10], silent=True)  # A to nm
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None, TANNEAL=None,
