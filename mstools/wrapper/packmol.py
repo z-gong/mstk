@@ -22,7 +22,7 @@ class Packmol:
                   size: [float] = None, length: float = None,
                   slab=None, slab_multiple=False,
                   tolerance: float = 1.8, seed: int = None,
-                  silent=False) -> [int]:
+                  inp_file='build.inp', silent=False) -> [int]:
         '''
         Build box directly from files
         '''
@@ -94,14 +94,14 @@ class Packmol:
                     'end structure\n'.format(filename=filename, number=number, box=box)
                 )
 
-        with open('build.inp', 'w') as f:
+        with open(inp_file, 'w') as f:
             f.write(inp)
 
         # TODO subprocess PIPE not work for Packmol new version, do not know why
         if silent:
-            os.system(self.PACKMOL_BIN + ' < build.inp > /dev/null')
+            os.system(self.PACKMOL_BIN + ' < %s > /dev/null' % inp_file)
         else:
-            os.system(self.PACKMOL_BIN + ' < build.inp')
+            os.system(self.PACKMOL_BIN + ' < %s' % inp_file)
 
             # (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
             # sp = subprocess.Popen([self.PACKMOL_BIN], stdin=PIPE, stdout=stdout, stderr=stderr)

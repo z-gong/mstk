@@ -12,10 +12,13 @@ class Simulation():
             self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
+        self.n_atoms_default: int = None
 
         self.n_mol_list: [int]
-        self.msd: str = 'init.msd'
-        self.n_atoms_default: int = None
+        self.msd = 'init.msd'
+        self.pdb = 'init.pdb'
+        self._single = '_single.msd'
+        self._single = '_single.pdb'
 
     def build(self):
         pass

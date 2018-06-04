@@ -150,14 +150,6 @@ class GMX:
             out, err = sp.communicate(input=property_str.encode())
             return out
 
-    def get_property(self, edr, property: str, begin=0, end=None) -> float:
-        sp_out = self.energy(edr, properties=[property], begin=begin, end=end)
-
-        for line in sp_out.decode().splitlines():
-            if line.lower().startswith(property.lower()):
-                return float(line.split()[1])
-        raise GmxError('Invalid property')
-
     def get_fluct_props(self, edr, begin=0, end=None) -> (float, float):
         '''
         Get thermal expansion and compressibility using fluctuation of enthalpy, volume
@@ -289,6 +281,53 @@ class GMX:
             for i, molecule in enumerate(molecules):
                 f.write('%s %i\n' % (molecule, numbers[i]))
 
+    @staticmethod
+    def get_top_mol_numbers(top):
+        with open(top) as f:
+            lines = f.read().splitlines()
+
+        newlines = []
+        mols = []
+        START = False
+        for line in lines:
+            if line.find('[') != -1 and line.find('molecules') != -1:  # [ molecules ]
+                START = True
+                newlines.append(line)
+                continue
+            if not START:
+                newlines.append(line)
+            if START and not line.strip() == '' and not line.startswith(';'):
+                words = line.strip().split()
+                mols.append([words[0], int(words[1])])
+        return mols
+
+    @staticmethod
+    def modify_top_mol_numbers(top, numbers):
+        with open(top) as f:
+            lines = f.read().splitlines()
+
+        newlines = []
+        mols = []
+        START = False
+        for line in lines:
+            if line.find('[') != -1 and line.find('molecules') != -1:  # [ molecules ]
+                START = True
+                newlines.append(line)
+                continue
+            if not START:
+                newlines.append(line)
+            if START and not line.strip() == '' and not line.startswith(';'):
+                words = line.strip().split()
+                mols.append([words[0], int(words[1])])
+        if len(mols) != len(numbers):
+            raise GmxError('Type of molecules in top not consistent')
+
+        for i, [mol_name, _] in enumerate(mols):
+            newlines.append('%s\t%i' % (mol_name, numbers[i]))
+
+        with open(top, 'w')  as f:
+            f.write('\n'.join(newlines))
+
     def replicate_gro(self, gro, top, nbox, silent=True):
         from functools import reduce
         import operator
@@ -316,10 +355,13 @@ class GMX:
         with open(top, 'a') as f:
             f.write(LASTLINE)
 
-    def pdb2gro(self, pdb, gro_out, box: [float]):
+    def pdb2gro(self, pdb, gro_out, box: [float], silent=False):
         if len(box) != 3:
             raise GmxError('Invalid box')
-        sp = Popen([self.GMX_BIN, 'editconf', '-f', pdb, '-o', gro_out, '-box', str(box[0]), str(box[1]), str(box[2])])
+
+        (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
+        sp = Popen([self.GMX_BIN, 'editconf', '-f', pdb, '-o', gro_out, '-box', str(box[0]), str(box[1]), str(box[2])],
+                   stdin=PIPE, stdout=stdout, stderr=stderr)
         sp.communicate()
 
     def velacc(self, trr, tpr=None, group=None, begin=0, xvg_out='velacc', silent=False):

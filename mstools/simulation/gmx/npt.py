@@ -16,30 +16,40 @@ class Npt(GmxSimulation):
 
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
-        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', size=[i - 2 for i in self.box], silent=True)
-
+        self.packmol.build_box(self.pdb_list, self.n_mol_list, self.pdb, size=[i - 2 for i in self.box], silent=True)
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', size=self.box)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr=self.pdb, size=self.box)
+
+        # build msd for fast export
+        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single, size=self.box,
+                               inp_file='build_single.inp', silent=True)
+        self.dff.build_box_after_packmol(self.mol2_list, [1] * len(self.pdb_list), self._single,
+                                         mol_corr=self._single, size=self.box)
+
         if export:
-            self.export(ppf=ppf, minimize=minimize)
+            self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True) # A to nm
+            self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
-        if not drde:
-            if os.path.abspath(model_dir) != os.getcwd():
-                shutil.copy(os.path.join(model_dir, gro), gro)
-                shutil.copy(os.path.join(model_dir, top), top)
-                for f in os.listdir(model_dir):
-                    if f.endswith('.itp'):
-                        shutil.copy(os.path.join(model_dir, f), '.')
-        else:
+        if os.path.abspath(model_dir) != os.getcwd():
+            shutil.copy(os.path.join(model_dir, gro), gro)
+            shutil.copy(os.path.join(model_dir, top), top)
+            for f in os.listdir(model_dir):
+                if f.endswith('.itp'):
+                    shutil.copy(os.path.join(model_dir, f), '.')
+
+        if drde:
             ### Temperature dependent parameters
+            # TODO Assumes ppf file named ff.ppf
             if os.path.abspath(model_dir) != os.getcwd():
-                shutil.copy(os.path.join(model_dir, self.msd), self.msd)
-            # TODO Assumes ppf file named 'ff.ppf'
+                shutil.copy(os.path.join(model_dir, self._single), self._single)
             delta_ppf(os.path.join(model_dir, 'ff.ppf'), 'ff.ppf', T)
-            self.export(ppf='ff.ppf')
+            mol_numbers = self.gmx.get_top_mol_numbers(top)
+            self.fast_export_single(ppf='ff.ppf', gro_out='_single.gro', top_out=top)
+            self.gmx.modify_top_mol_numbers(top, [n for m, n in mol_numbers])
 
         nprocs = self.jobmanager.nprocs
         commands = []

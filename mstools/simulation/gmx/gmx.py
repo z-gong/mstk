@@ -16,15 +16,16 @@ class GmxSimulation(Simulation):
     def export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp',
                ppf=None, ff=None, minimize=False, vacuum=False):
         print('Generate GROMACS files ...')
-        self.dff.set_formal_charge([self.msd])
+        msd = self.msd
+        self.dff.set_formal_charge([msd])
         if ppf is not None:
-            self.dff.typing([self.msd])  # in order to set the atom type
-            self.dff.set_charge([self.msd], ppf)
-            self.dff.export_gmx(self.msd, ppf, gro_out, top_out, mdp_out)
+            self.dff.typing([msd])  # in order to set the atom type
+            self.dff.set_charge([msd], ppf)
+            self.dff.export_gmx(msd, ppf, gro_out, top_out, mdp_out)
         else:
             ppf_out = 'ff.ppf'
-            self.dff.checkout([self.msd], table=ff, ppf_out=ppf_out)
-            self.dff.export_gmx(self.msd, ppf_out, gro_out, top_out, mdp_out)
+            self.dff.checkout([msd], table=ff, ppf_out=ppf_out)
+            self.dff.export_gmx(msd, ppf_out, gro_out, top_out, mdp_out)
 
         if minimize:
             print('Energy minimize ...')
@@ -34,6 +35,20 @@ class GmxSimulation(Simulation):
                 shutil.move('em.gro', gro_out)
             else:
                 raise GmxError('Energy minimization failed')
+
+    def fast_export_single(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp',
+                    ppf=None, ff=None, minimize=False, vacuum=False):
+        print('Generate GROMACS files ...')
+        msd = self._single
+        self.dff.set_formal_charge([msd])
+        if ppf is not None:
+            self.dff.typing([msd])  # in order to set the atom type
+            self.dff.set_charge([msd], ppf)
+            self.dff.export_gmx(msd, ppf, gro_out, top_out, mdp_out)
+        else:
+            ppf_out = 'ff.ppf'
+            self.dff.checkout([msd], table=ff, ppf_out=ppf_out)
+            self.dff.export_gmx(msd, ppf_out, gro_out, top_out, mdp_out)
 
     def check_finished(self, logs=None):
         if logs is None:
