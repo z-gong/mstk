@@ -90,6 +90,7 @@ class TCOSP(FFTerm):
         self.atom3 = atom_types[2].strip()
         self.atom4 = atom_types[3].strip()
 
+        self.k0 = None  # There are cases TOCSP: a1, a2, a3, a4: 0, 0, 0
         self.k1 = None
         self.k2 = None
         self.k3 = None
@@ -98,7 +99,9 @@ class TCOSP(FFTerm):
         n_multi = len(para_list) // 3
         for i in range(n_multi):
             k = Parameter(para_list[3 * i + 1])
-            if para_list[3 * i + 2].startswith('1'):
+            if para_list[3 * i + 2].startswith('0'):
+                self.k0 = k
+            elif para_list[3 * i + 2].startswith('1'):
                 self.k1 = k
             elif para_list[3 * i + 2].startswith('2'):
                 self.k2 = k
@@ -112,6 +115,8 @@ class TCOSP(FFTerm):
     @property
     def para_str(self):
         para_list = []
+        if self.k0 is not None:
+            para_list.append('0*, %s, 0*' % self.k0)
         if self.k3 is not None:
             para_list.append('0*, %s, 3*' % self.k3)
         if self.k1 is not None:
@@ -121,6 +126,8 @@ class TCOSP(FFTerm):
         return ', '.join(para_list)
 
     def freeze(self):
+        if self.k0 is not None:
+            self.k0.fixed = True
         if self.k1 is not None:
             self.k1.fixed = True
         if self.k2 is not None:
