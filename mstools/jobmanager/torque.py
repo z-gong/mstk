@@ -41,7 +41,7 @@ class Torque(JobManager):
                     '#PBS -o %(out)s\n'
                     '#PBS -e %(err)s\n'
                     '#PBS -q %(queue)s\n'
-                    '#PBS -l walltime=%(walltime)i:00:00\n'
+                    '#PBS -l walltime=%(time)i:00:00\n'
                     '#PBS -l nodes=1:ppn=%(nprocs_request)s\n\n'
                     '%(env_cmd)s\n\n'
                     'cd %(workdir)s\n\n'
@@ -49,7 +49,7 @@ class Torque(JobManager):
                         'out'           : out,
                         'err'           : err,
                         'queue'         : self.queue,
-                        'walltime'      : self.walltime,
+                        'time'          : self.time,
                         'nprocs_request': self.nprocs_request,
                         'env_cmd'       : self.env_cmd,
                         'workdir'       : workdir

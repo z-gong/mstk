@@ -10,7 +10,7 @@ class JobManager:
         self.queue = queue
         self.nprocs = nprocs
         self.ngpu = ngpu
-        self.nprocs_request= nprocs_request or nprocs
+        self.nprocs_request = nprocs_request or nprocs
         self.env_cmd = env_cmd or ''
         self.username = pwd.getpwuid(os.getuid()).pw_name
 
@@ -19,11 +19,20 @@ class JobManager:
         self.last_update = None
 
         self.priority = 0
-        self.walltime = 24
+        self.time = 24
+
+    @property
+    def walltime(self):
+        return self.time
+
+    @walltime.setter
+    def walltime(self, hours):
+        self.time = hours
 
     @property
     def all_jobs(self) -> [PbsJob]:
-        if self.last_update == None or (datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
+        if self.last_update == None or (
+                datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
             self.update_stored_jobs()
         return self.stored_jobs
 

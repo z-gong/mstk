@@ -12,7 +12,8 @@ class Npt(GmxSimulation):
         self.procedure = 'npt'
         self.requirement = []
         self.logs = ['npt.log', 'hvap.log']
-        self.n_atoms_default = 3000
+        self.n_atom_default = 3000
+        self.n_mol_default = 75
 
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
@@ -28,7 +29,7 @@ class Npt(GmxSimulation):
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
-            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True) # A to nm
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
@@ -134,6 +135,13 @@ class Npt(GmxSimulation):
         e_inter_series = (df.Potential)
         length = potential_series.index[-1]
 
+        ### Check structure freezing using Density
+        if density_series.min() / 1000 < 0.1:  # g/mL
+            return {
+                'failed': True,
+                'reason': 'vaporize'
+            }
+
         ### Check structure freezing using Diffusion. Only use last 400 ps data
         diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', begin=length - 400)
         if diffusion < 1E-8:  # cm^2/s
@@ -199,6 +207,8 @@ class Npt(GmxSimulation):
 
     @staticmethod
     def post_process(T_list, P_list, result_list, **kwargs) -> (dict, str):
+        from scipy import interpolate
+
         if len(set(T_list)) < 5 or len(set(P_list)) < 5:
             return None, 'T or P points less than 5'
 
@@ -221,11 +231,27 @@ class Npt(GmxSimulation):
                             'e_inter-poly4-score': score_e_inter,
                             })
 
+        _t_list = []
+        _ei_list = []
+        for i, t in enumerate(T_list):
+            p = P_list[i]
+            result = result_list[i]
+            if p > 2:
+                continue
+            _t_list.append(t)
+            _ei_list.append(result['e_inter'][0])
+        spl = interpolate.splrep(_t_list, _ei_list)
+        spl = [spl[0].tolist(), spl[1].tolist(), spl[2]]
+        post_result.update({'e_inter-spline': spl,
+                            })
+
         return post_result, 'density-poly4-score %.4f e_inter-poly4-score %.4f' % (score_density, score_e_inter)
 
     @staticmethod
     def get_post_data(post_result, T, P, smiles_list, n_mol_list, **kwargs) -> dict:
+        from scipy import interpolate
         from mstools.analyzer.fitting import polyval_derivative_2d
+
         coeff_density = post_result['density-poly4-coeff']
         score_density = post_result['density-poly4-score']
 
@@ -245,6 +271,10 @@ class Npt(GmxSimulation):
         py_mol = pybel.readstring('smi', smiles_list[0])
         cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
 
+        spl = post_result['e_inter-spline']
+        ei_spl = interpolate.splev(T, spl) / n_mol_list[0]
+        hvap_spl = 8.314 * T / 1000 - ei_spl  # kJ/mol
+
         return {
             'density'        : density,
             'expansion'      : expansion,
@@ -255,4 +285,6 @@ class Npt(GmxSimulation):
             'cp_pv'          : cp_pv,
             'score-density'  : score_density,
             'score-e_inter'  : score_e_inter,
+            'ei-spline'      : ei_spl,
+            'hvap-spline'    : hvap_spl,
         }

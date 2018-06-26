@@ -12,6 +12,7 @@ class NvtVacuum(GmxSimulation):
         self.procedure = 'nvt-vacuum'
         self.logs = ['vacuum.log']
         self.requirement = []
+        self.n_atoms_default = 1
 
     def build(self, export=True, ppf=None, minimize=False):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)

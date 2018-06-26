@@ -39,40 +39,42 @@ def is_converged(series: Series, frac_min=0.5) -> (bool, float):
     return True, series.index[t0]
 
 
-def efficiency_with_block_size(list: [float]) -> [float]:
-    n_points = len(list)
-    array = np.array(list)
-    import pylab
-    Size = []
-    S = []
-    for n_block in range(4, 100):
-        block_size = n_points / n_block
+def efficiency_with_block_size(l: [float]) -> [float]:
+    array = np.array(l)
+    n_points = len(l)
+    bsize_list = []
+    n_block_list = []
+    s_list = []
+
+    for bsize in range(1, int(math.sqrt(n_points))):
+        n_block = int(n_points / bsize)
+        bsize_list.append(bsize)
+        n_block_list.append(n_block)
+
+    for n_block in range(int(math.sqrt(n_points)), 4, -1):
+        bsize = int(n_points / n_block)
+        bsize_list.append(bsize)
+        n_block_list.append(n_block)
+
+    for i, bsize in enumerate(bsize_list):
+        n_block = n_block_list[i]
         blocks = np.array_split(array, n_block)
         ave_blocks = [np.mean(block) for block in blocks]
         std_ave_blocks = np.std(ave_blocks, ddof=1)
-        s = block_size * std_ave_blocks ** 2 / np.std(array) ** 2
-        Size.append(block_size)
-        S.append(s)
-    pylab.scatter(Size, S)
+        s = bsize * std_ave_blocks ** 2 / np.std(array) ** 2
+        s_list.append(s)
+
+    import pylab
+    pylab.plot(bsize_list, s_list, '.')
     pylab.show()
 
 
-def _ave_and_stderr(series: Series, subsample=True) -> (float, float):
-    '''
-    deprecated
-
-    :param series:
-    :param subsample:
-    :return:
-    '''
+def mean_and_uncertainty(series: Series, inefficiency=None) -> (float, float):
     ave = np.mean(series)
     array = np.array(series)
-    if subsample:
-        indices = timeseries.subsampleCorrelatedData(array)
-        # do not subsample if only one uncorrelated data
-        if len(indices) > 1:
-            array = array[indices]
-    return ave, np.std(array, ddof=1) / math.sqrt(len(array))
+    if inefficiency == None:
+        inefficiency = timeseries.statisticalInefficiency(array)
+    return ave, np.std(array, ddof=1) / math.sqrt(len(array) / inefficiency)
 
 
 def _is_converged_by_overlap(series: Series, tolerance=0.9, debug=False) -> (bool, float):

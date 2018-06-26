@@ -12,7 +12,8 @@ class Simulation():
             self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
-        self.n_atoms_default: int = None
+        self.n_atom_default: int = None
+        self.n_mol_default: int = None
 
         self.n_mol_list: [int]
         self.msd = 'init.msd'
@@ -72,10 +73,12 @@ class Simulation():
         if n_mol_list != None:
             self.n_mol_list = n_mol_list[:]
         else:
-            n_atoms = n_atoms or self.n_atoms_default
             if n_mol_ratio == None:
                 n_mol_ratio = [1] * n_components
             n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(n_mol_ratio)])
+            if n_atoms == None:
+                n_atoms = n_atom_all * math.ceil(self.n_mol_default / sum(n_mol_ratio))
+                n_atoms = max(n_atoms, self.n_atom_default)
             self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]
 
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])

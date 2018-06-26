@@ -64,22 +64,22 @@ class Slurm(JobManager):
                     '#SBATCH -o %(out)s\n'
                     '#SBATCH -e %(err)s\n'
                     '#SBATCH -p %(queue)s\n'
-                    '#SBATCH --time=%(walltime)i:00:00\n'
+                    '#SBATCH --time=%(time)i:00:00\n'
                     '#SBATCH --nodes=%(n_node)i\n'
                     '#SBATCH --ntasks=%(n_tasks)i\n'
                     '%(gpu_cmd)s'
                     '\n'
                     '%(env_cmd)s\n\n'
-                    % ({'name'    : name,
-                        'out'     : out,
-                        'err'     : err,
-                        'queue'   : self.queue,
-                        'walltime': self.walltime,
-                        'n_node'  : n_node,
-                        'n_tasks' : n_tasks,
-                        'gpu_cmd' : gpu_cmd,
-                        'env_cmd' : self.env_cmd,
-                        'workdir' : workdir
+                    % ({'name'   : name,
+                        'out'    : out,
+                        'err'    : err,
+                        'queue'  : self.queue,
+                        'time'   : self.time,
+                        'n_node' : n_node,
+                        'n_tasks': n_tasks,
+                        'gpu_cmd': gpu_cmd,
+                        'env_cmd': self.env_cmd,
+                        'workdir': workdir
                         })
                     )
             for cmd in srun_commands:

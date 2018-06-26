@@ -40,8 +40,8 @@ class GMX:
         n_mpi = nprocs // n_omp
 
         cmd = '%s -quiet -nobackup -ntomp %i -deffnm %s' % (self.GMX_MDRUN, n_omp, name)
-        if n_mpi > 1:
-            cmd = 'mpirun -np %i ' % n_mpi + cmd
+        # always use mpirun even if only one process
+        cmd = 'mpirun -np %i ' % n_mpi + cmd
 
         if rerun is not None:
             cmd = '%s -rerun %s' % (cmd, rerun)
@@ -538,8 +538,9 @@ class GMX:
                 n_thread = n_omp
 
                 if n_procs != None:
-                    if cmd.find('mpirun') != -1:
+                    if cmd.find('mpirun') != -1 and cmd.find('mpirun -np 1') == -1:
                         # optimize n_mpi and n_thread
+                        # do not optimize for mpirun -np 1. This happens for rerun hvap
                         for i in [6, 4, 2]:
                             if n_procs % (n_multi * i) == 0:
                                 n_thread = i
