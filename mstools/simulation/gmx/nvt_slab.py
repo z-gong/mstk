@@ -14,7 +14,7 @@ class NvtSlab(GmxSimulation):
         self.requirement = []
         self.logs = ['nvt.log']
         self.n_atom_default = 12000
-        self.n_mol_default= 360
+        self.n_mol_default= 400
 
     def build(self, export=True, ppf=None, minimize=False, length=None):
         if length == None:

@@ -6,6 +6,7 @@ nstenergy          = %nstenergy%
 nstxout            = %nstxout%
 nstvout            = %nstvout%
 nstxout-compressed = %nstxtcout%
+compressed-x-precision = 100
 compressed-x-grps  = %xtcgrps%
 
 cutoff-scheme   = verlet
