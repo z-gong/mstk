@@ -58,9 +58,6 @@ class JobManager:
         self.stored_jobs.reverse()  # reverse the job list
         self.last_update = datetime.datetime.now()
 
-    def refresh_preferred_queue(self) -> bool:
-        return True
-
     def generate_sh(self, workdir, commands: [str], name):
         pass
 
@@ -93,6 +90,6 @@ class JobManager:
         self.update_stored_jobs()  # must update stored jobs first
         n = 0
         for job in self.all_jobs:
-            if job.state != PbsJob.State.DONE:
+            if job.state != PbsJob.State.DONE and job.queue == self.queue:
                 n += 1
         return n

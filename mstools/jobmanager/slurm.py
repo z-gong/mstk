@@ -1,6 +1,5 @@
 import math
 import subprocess
-from collections import OrderedDict
 from subprocess import Popen
 
 from .pbsjob import PbsJob
@@ -9,9 +8,8 @@ from ..errors import JobManagerError
 
 
 class Slurm(JobManager):
-    def __init__(self, queue_list, **kwargs):
-        queue = queue_list[0]
-        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
+    def __init__(self, queue, nprocs, ngpu, nprocs_request, **kwargs):
+        super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
         self.sh = '_job_slurm.sh'
         self.submit_cmd = 'sbatch'
 
@@ -121,6 +119,8 @@ class Slurm(JobManager):
                     user = val.split('(')[0]  # UserId=username(uid)
                 elif key == 'JobName' or key == 'Name':
                     name = val
+                elif key == 'Partition':
+                    queue = val
                 elif key == 'JobState':
                     state_str = val
                     if val == 'PENDING':
@@ -131,7 +131,7 @@ class Slurm(JobManager):
                         state = PbsJob.State.DONE
                 elif key == 'WorkDir':
                     workdir = val
-            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user)
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user, queue=queue)
             job.state_str = state_str
             return job
 

@@ -1,6 +1,5 @@
 import subprocess
 from subprocess import PIPE, Popen
-from collections import OrderedDict
 
 from .jobmanager import JobManager
 from .node import Node
@@ -9,26 +8,9 @@ from ..errors import JobManagerError
 
 
 class Torque(JobManager):
-    def __init__(self, queue_list, **kwargs):
-        queue = queue_list[0]
-        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
+    def __init__(self, queue, nprocs, ngpu, nprocs_request, **kwargs):
+        super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
         self.sh = '_job_torque.sh'
-
-    def refresh_preferred_queue(self) -> bool:
-        return True
-
-        # TODO disable this function
-        # if len(self.queue_dict) > 1:
-        #     available_queues = self.get_available_queues()
-        #     for queue in self.queue_dict.keys():
-        #         if queue in available_queues.keys() and available_queues[queue] > 0:
-        #             self.queue = queue
-        #             self.nprocs = self.queue_dict[queue]
-        #             return True
-        # 
-        # self.queue = list(self.queue_dict.keys())[0]
-        # self.nprocs = list(self.queue_dict.values())[0]
-        # return False
 
     def generate_sh(self, workdir, commands, name, sh=None, **kwargs):
         if sh is None:
@@ -89,6 +71,8 @@ class Torque(JobManager):
                 key, val = line.split(' = ')
                 if key == 'Job_Name':
                     name = val
+                if key == 'queue':
+                    queue = val
                 if key == 'Job_Owner':
                     user = val.split('@')[0]  # Job_Owner = username@hostname
                 elif key == 'job_state':
@@ -101,7 +85,7 @@ class Torque(JobManager):
                         state = PbsJob.State.DONE
                 elif key == 'init_work_dir':
                     workdir = val
-            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user)
+            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user, queue=queue)
             job.state_str = state_str
             return job
 

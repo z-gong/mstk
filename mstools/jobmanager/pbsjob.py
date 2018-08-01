@@ -1,10 +1,11 @@
 class PbsJob():
-    def __init__(self, id, name, state, workdir=None, user=None):
+    def __init__(self, id, name, state, workdir=None, user=None, queue=None):
         self.id = id
         self.name = name
         self.state = state
         self.workdir = workdir
         self.user = user
+        self.queue = queue
         self.state_str = None
 
     def __repr__(self):

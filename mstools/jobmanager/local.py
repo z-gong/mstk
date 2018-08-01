@@ -1,12 +1,10 @@
 from .jobmanager import JobManager
-from collections import OrderedDict
 from ..errors import JobManagerError
 
 
 class Local(JobManager):
-    def __init__(self, queue_list, **kwargs):
-        queue = queue_list[0]
-        super().__init__(queue=queue[0], nprocs=queue[1], ngpu=queue[2], nprocs_request=queue[3], **kwargs)
+    def __init__(self, nprocs, ngpu, **kwargs):
+        super().__init__(nprocs=nprocs, ngpu=ngpu, **kwargs)
         self.sh = '_job_local.sh'
 
     def generate_sh(self, workdir, commands, name=None, sh=None, **kwargs):
