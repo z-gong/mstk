@@ -14,9 +14,9 @@ class Parameter():
 
     def __str__(self):
         if self.fixed:
-            return str(self.value) + '*'
+            return '%.5f*' % self.value
         else:
-            return str(self.value)
+            return '%.5f' % self.value
 
 
 class FFTerm():
@@ -39,7 +39,7 @@ class BINC(FFTerm):
         self.binc = Parameter(value)
 
     def __str__(self):
-        return '%s: %s, %s: %s: %s' % (self.term, self.atom1, self.atom2, self.binc, self.comment)
+        return '%s: %s, %s: %11s: %s' % (self.term, self.atom1, self.atom2, self.binc, self.comment)
 
 
 class LJ(FFTerm):
@@ -50,7 +50,7 @@ class LJ(FFTerm):
         self.e0 = Parameter(value.split(',')[1])
 
     def __str__(self):
-        return '%s: %s: %s, %s: %s' % (self.term, self.atom, self.r0, self.e0, self.comment)
+        return '%s: %s: %11s, %10s: %s' % (self.term, self.atom, self.r0, self.e0, self.comment)
 
 
 class BHARM(FFTerm):
@@ -223,7 +223,7 @@ class PPF():
 
         return adj_paras
 
-    def set_nb_paras(self, new_paras: Dict, delta=False):
+    def set_nb_paras(self, new_paras: Dict, delta=False, delta_comment=None, delta_warning=False):
         for term in self.terms:
             if term.term == 'N12_6':
                 key = term.atom + '_e0'
@@ -241,48 +241,51 @@ class PPF():
                     term.binc.fixed = False
 
         ### temperature dependent
-        if delta:
-            for term in self.terms:
-                if term.term == 'N12_6':
-                    ### scale r0
-                    key = get_atom_hybridization(term.atom) + '_dr'  # c_4_dr, h_1_dr
-                    if key in new_paras.keys():
-                        term.r0.value *= (1 + new_paras[key])
-                    else:
-                        key = 'all_dr'  # all_dr
-                        if key in new_paras.keys():
-                            term.r0.value *= (1 + new_paras[key])
+        if not delta:
+            return
 
-                    ### scale e0
-                    key = get_atom_hybridization(term.atom) + '_de'  # c_4_de, h_1_de
-                    if key in new_paras.keys():
-                        term.e0.value *= (1 + new_paras[key])
-                    else:
-                        key = 'all_de'  # all_de
-                        if key in new_paras.keys():
-                            term.e0.value *= (1 + new_paras[key])
+        for term in self.terms:
+            if not term.term == 'N12_6':
+                continue
 
-                    ### scale C6
-                    key = get_atom_hybridization(term.atom) + '_dl'  # c_4_dl, h_1_dl
-                    if key in new_paras.keys():
-                        term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
-                        term.e0.value *= (1 + new_paras[key]) ** 2
-                    else:
-                        key = 'all_dl'
-                        if key in new_paras.keys():
-                            term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
-                            term.e0.value *= (1 + new_paras[key]) ** 2
+            ### scale r0
+            key = get_atom_hybridization(term.atom) + '_dr'  # c_4_dr, h_1_dr
+            if key in new_paras.keys():
+                term.r0.value *= (1 + new_paras[key])
+            else:
+                key = 'all_dr'  # all_dr
+                if key in new_paras.keys():
+                    term.r0.value *= (1 + new_paras[key])
 
-                    ### scale C6 - quadratic
-                    key = get_atom_hybridization(term.atom) + '_d2'  # c_4_d2, h_1_d2
-                    if key in new_paras.keys():
-                        term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
-                        term.e0.value *= (1 + new_paras[key]) ** 2
-                    else:
-                        key = 'all_d2'
-                        if key in new_paras.keys():
-                            term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
-                            term.e0.value *= (1 + new_paras[key]) ** 2
+            ### scale e0
+            key = get_atom_hybridization(term.atom) + '_de'  # c_4_de, h_1_de
+            if key in new_paras.keys():
+                term.e0.value *= (1 + new_paras[key])
+            else:
+                key = 'all_de'  # all_de
+                if key in new_paras.keys():
+                    term.e0.value *= (1 + new_paras[key])
+
+            ### scale C6
+            _TD = False
+            key = get_atom_hybridization(term.atom) + '_dl'  # c_4_dl, h_1_dl
+            if key in new_paras.keys():
+                term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
+                term.e0.value *= (1 + new_paras[key]) ** 2
+                if delta_comment != None:
+                    term.comment += ', ' + delta_comment
+                _TD = True
+            else:
+                key = 'all_dl'
+                if key in new_paras.keys():
+                    term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
+                    term.e0.value *= (1 + new_paras[key]) ** 2
+                    if delta_comment != None:
+                        term.comment += ', ' + delta_comment
+                    _TD = True
+
+            if delta_warning and not _TD:
+                print('WARNING: T-dependent paras not found for', term.atom)
 
     def freeze_torsions(self):
         for term in self.terms:
@@ -377,10 +380,8 @@ def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
     for k, v in drde_dict.items():
         if k.endswith('dr') or k.endswith('de') or k.endswith('dl'):
             paras_delta[k] = v * (T - 298) / 100
-        elif k.endswith('d2'):
-            paras_delta[k] = v * ((T - 298) / 100 - ((T - 298) / 100) ** 2 * 0.1)
         else:
             paras_delta[k] = v
     ppf = PPF(ppf_file)
-    ppf.set_nb_paras(paras_delta, delta=True)
+    ppf.set_nb_paras(paras_delta, delta=True, delta_comment='T=%.1fK' % T, delta_warning=True)
     ppf.write(ppf_out)

@@ -131,9 +131,32 @@ class Npt(GmxSimulation):
         df = edr_to_df('npt.edr')
         potential_series = df.Potential
         density_series = df.Density
-        df = edr_to_df('hvap.edr')
-        e_inter_series = (df.Potential)
+        t_real = df.Temperature.mean()
         length = potential_series.index[-1]
+
+        df_hvap = edr_to_df('hvap.edr')
+        einter_series = (df_hvap.Potential)
+
+        ### Check the ensemble. KS test on the distribution of kinetic energy
+        ### TODO This can be optimized
+        import physical_validation as pv
+        parser = pv.data.GromacsParser(self.gmx.GMX_BIN)
+        data = parser.get_simulation_data(mdp='grompp-npt.mdp', top='topol.top', edr='npt.edr')
+        p = pv.kinetic_energy.distribution(data, strict=True, verbosity=0)
+        # If test does not pass, set the desired temperature to t_real.
+        # Because small deviation in temperature exists for Langevin thermostat
+        # 3 Kelvin of deviation is permitted
+        if p < 0.01 and abs(data.ensemble.temperature - t_real) < 3:
+            try:
+                data._SimulationData__ensemble._EnsembleData__t = t_real
+                p = pv.kinetic_energy.distribution(data, strict=True, verbosity=0)
+            except Exception as e:
+                print(repr(e))
+        if p < 0.01:
+            return {
+                'failed': True,
+                'reason': 'incorrect_ensemble'
+            }
 
         ### Check structure freezing using Density
         if density_series.min() / 1000 < 0.1:  # g/mL
@@ -142,8 +165,8 @@ class Npt(GmxSimulation):
                 'reason': 'vaporize'
             }
 
-        ### Check structure freezing using Diffusion. Only use last 400 ps data
-        diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', begin=length - 400)
+        ### Check structure freezing using Diffusion of COM of molecules. Only use last 400 ps data
+        diffusion, _ = self.gmx.diffusion('npt.xtc', 'npt.tpr', mol=True, begin=length - 400)
         if diffusion < 1E-8:  # cm^2/s
             return {
                 'failed': True,
@@ -191,7 +214,7 @@ class Npt(GmxSimulation):
             'pressure'         : pressure_and_stderr,  # bar
             'potential'        : potential_and_stderr,  # kJ/mol
             'density'          : [i / 1000 for i in density_and_stderr],  # g/mL
-            'e_inter'          : list(block_average(e_inter_series.loc[when:])),  # kJ/mol
+            'e_inter'          : list(block_average(einter_series.loc[when:])),  # kJ/mol
             'expansion'        : [expansion, expan_stderr],
             'compressibility'  : [compressi, compr_stderr],
         }
@@ -240,8 +263,11 @@ class Npt(GmxSimulation):
                 continue
             _t_list.append(t)
             _ei_list.append(result['e_inter'][0])
-        spl = interpolate.splrep(_t_list, _ei_list)
-        spl = [spl[0].tolist(), spl[1].tolist(), spl[2]]
+        if len(_t_list) < 4:
+            spl = None
+        else:
+            spl = interpolate.splrep(_t_list, _ei_list)
+            spl = [spl[0].tolist(), spl[1].tolist(), spl[2]]
         post_result.update({'e_inter-spline': spl,
                             })
 
@@ -272,8 +298,12 @@ class Npt(GmxSimulation):
         cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
 
         spl = post_result['e_inter-spline']
-        ei_spl = interpolate.splev(T, spl) / n_mol_list[0]
-        hvap_spl = 8.314 * T / 1000 - ei_spl  # kJ/mol
+        if spl is None:
+            ei_spl = e_inter
+            hvap_spl = hvap
+        else:
+            ei_spl = interpolate.splev(T, spl) / n_mol_list[0]
+            hvap_spl = 8.314 * T / 1000 - ei_spl  # kJ/mol
 
         return {
             'density'        : density,

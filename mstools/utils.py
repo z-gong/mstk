@@ -38,6 +38,7 @@ def cd_or_create_and_cd(dir):
     except:
         raise Exception('Cannot read directory: %s' % dir)
 
+
 def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8) -> [int]:
     t_span = t_max - t_min
     if t_max == t_min:
@@ -56,6 +57,7 @@ def get_T_list_from_range(t_min: int, t_max: int, n_point: int = 8) -> [int]:
         T_list.append(round(t_min + i * interval))
 
     return T_list
+
 
 def get_T_list_VLE_from_range(t_min: int, t_max: int, n_point: int = 8) -> [int]:
     t_span = t_max - t_min
@@ -103,6 +105,25 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
     return P_list
 
 
+def get_TP_corner(TP_list: [tuple]) -> [tuple]:
+    TP_corner = []
+    for t, p in TP_list:
+        p_list = [TP[1] for TP in TP_list if TP[0] == t]
+        if min(p_list) < p and max(p_list) > p:
+            continue
+        t_list = [TP[0] for TP in TP_list if TP[1] == p]
+        if min(t_list) < t and max(t_list) > t:
+            continue
+        else:
+            TP_corner.append((t, p))
+    return TP_corner
+
+
+def TP_in_range(TP, TP_corner: [tuple]) -> bool:
+    ### TODO To implement
+    return False
+
+
 def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None, resname: str = None):
     # TODO resname only set for mol2_out
     import pybel
@@ -114,7 +135,7 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
 
     canSMILES = py_mol.write('can').strip()
     saved_mol2 = smiles_mol2_dict.get(canSMILES)
-    if saved_mol2 != None:
+    if saved_mol2 is not None:
         py_mol = next(pybel.readfile('mol2', saved_mol2))
     else:
         py_mol.addh()
@@ -122,7 +143,7 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
         if minimize:
             py_mol.localopt()
 
-    if resname != None:
+    if resname is not None:
         obmol = py_mol.OBMol
         res = obmol.GetResidue(0)
         # if res == None:
@@ -130,17 +151,17 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
         #     for i in range(obmol.NumAtoms()):
         #         obatom = obmol.GetAtomById(i)
         #         obatom.SetResidue(res)
-        if res != None:
+        if res is not None:
             res.SetName('UNL')
 
-    if pdb_out != None:
+    if pdb_out is not None:
         py_mol.write('pdb', pdb_out, overwrite=True)
-    if mol2_out != None:
+    if mol2_out is not None:
         py_mol.write('mol2', mol2_out, overwrite=True)
-        if resname != None:
+        if resname is not None:
             with open(mol2_out) as f:
                 content = f.read()
-            content = content.replace('UNL',  resname[:3])
+            content = content.replace('UNL', resname[:3])
             with open(mol2_out, 'w') as f:
                 f.write(content)
     return py_mol
@@ -177,6 +198,20 @@ def generate_conformers(py_mol, number: int, redundant: int = 0):
     return conformers[:number]
 
 
+def is_alkane(py_mol) -> bool:
+    import pybel
+    from .formula import Formula
+    atom_set = set(Formula(py_mol.formula).atomdict.keys())
+    if atom_set != {'C', 'H'}:
+        return False
+
+    for s in ['[CX2]', '[CX3]', 'c', '[#6;v0,v1,v2,v3]']:
+        if pybel.Smarts(s).findall(py_mol) != []:
+            return False
+    else:
+        return True
+
+
 def estimate_density_from_formula(f) -> float:
     # unit: g/mL
     from .formula import Formula
@@ -189,7 +224,7 @@ def estimate_density_from_formula(f) -> float:
     if string in density.keys():
         return density.get(string)
 
-    nAtoms = formula.n_heavy_atom + formula.n_h
+    nAtoms = formula.n_heavy + formula.n_h
     nC = formula.atomdict.get('C') or 0
     nH = formula.atomdict.get('H') or 0
     nO = formula.atomdict.get('O') or 0

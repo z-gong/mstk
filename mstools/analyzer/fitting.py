@@ -177,19 +177,22 @@ def fit_vle_st(T_list, st_list, Tc, guess=None):
     return popt
 
 
-def vle_log10p(T, A, B, C):
-    return A - B / (T + C)
 
+def vle_log10pvap(T, A, B):
+    return A - B / T
 
-def fit_vle_log10p(T_list, logP_list, guess=None):
+def vle_pvap(T, A, B):
+    return 10 ** vle_log10pvap(T, A, B)
+
+def fit_vle_pvap(T_list, pvap_list, guess=None):
     import numpy as np
     from scipy.optimize import curve_fit
 
     T_array = np.array(T_list)
-    y_array = np.array(logP_list)
+    y_array = np.log10(np.array(pvap_list))
 
-    guess = guess or [8.0, 2000.0, -50.0]
+    guess = guess or [10, 3000]
 
-    popt, pcov = curve_fit(vle_log10p, T_array, y_array, guess)
+    popt, pcov = curve_fit(vle_log10pvap, T_array, y_array, guess)
 
     return popt

@@ -5,7 +5,6 @@ nsteps          = -1
 
 cutoff-scheme   = verlet
 
-rlist           = 0.8
 coulombtype     = cut-off
 epsilon-r       = %dielectric%
 

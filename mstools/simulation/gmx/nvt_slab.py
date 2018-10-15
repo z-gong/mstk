@@ -1,8 +1,10 @@
 import os
 import shutil
+import math
 
 from .gmx import GmxSimulation
 from ...analyzer.series import block_average
+from ...analyzer.structure import N_vaporize_condense
 from ...analyzer.fitting import *
 from ...wrapper.ppf import delta_ppf
 
@@ -14,10 +16,10 @@ class NvtSlab(GmxSimulation):
         self.requirement = []
         self.logs = ['nvt.log']
         self.n_atom_default = 12000
-        self.n_mol_default= 400
+        self.n_mol_default = 400
 
     def build(self, export=True, ppf=None, minimize=False, length=None):
-        if length == None:
+        if length is None:
             ### Slim box (z=2.0*x) in case of fully vaporization at high T
             length = (self.vol / 2.0) ** (1 / 3)
         self.box = [length, length, length * 6.0]
@@ -128,8 +130,8 @@ class NvtSlab(GmxSimulation):
         potential_series = df.Potential
         length = potential_series.index[-1]
 
-        ### Check structure freezing using Diffusion. Only use last 400 ps of data
-        diffusion, _ = self.gmx.diffusion('nvt.xtc', 'nvt.tpr', begin=length - 400)
+        ### Check structure freezing using Diffusion of COM of molecules. Only use last 400 ps of data
+        diffusion, _ = self.gmx.diffusion('nvt.xtc', 'nvt.tpr', mol=True, begin=length - 400)
         if diffusion < 1E-8:  # cm^2/s
             return {
                 'failed': True,
@@ -141,23 +143,55 @@ class NvtSlab(GmxSimulation):
         _, when = is_converged(potential_series, frac_min=0)
         when = min(when, length * 0.2)
 
-        # cut trj to 40 pieces, analyze the change of density of liq and gas phases
-        n_pieces = 40
+        # cut trj to pieces, analyze the change of density of liq and gas phases
         dt = potential_series.index[1] - potential_series.index[0]
         n_frame = len(potential_series.loc[when:])
-        dt_split = int(n_frame / n_pieces) * dt  # use int instead of math.ceil, ensure each piece has same length
+        dt_piece = 200  # ps
+        # use int in stead of math.ceil. make sure each peace has at least dt_piece
+        n_pieces = int((potential_series.index[-1] - when) / dt_piece)
 
         if debug:
-            print('n_frame=%i dt=%f dt_split=%f' % (n_frame, dt, dt_split))
+            print('n_frame=%i dt=%f dt_piece=%f n_pieces=%i' % (n_frame, dt, dt_piece, n_pieces))
+            self.lz_liq_series = pd.Series()
+            self.lz_gas_series = pd.Series()
+            self.lz_int_series = pd.Series()
 
-        dliq_series = pd.Series()
-        dgas_series = pd.Series()
+            import mdtraj
+            time: [float] = []  # time of frames, saved to calculate vaporize
+            Ngas: [int] = []  # number of molecules in gas phases
+            phases: [[str]] = []  # [['l', 'g','i'], ...] # n_atoms * n_frames
+
+            def in_which_phase(z):
+                z -= idxmax
+                while z < 0:
+                    z += lz
+                while z > lz:
+                    z -= lz
+                if z < r1 - s1 * mul or z > r2 + s2 * mul:
+                    return 'l'  # liquid phase
+                elif z > r1 + s1 * mul + 1 and z < r2 - s2 * mul - 1:  # shrink 1 nm for gas phase near interface
+                    return 'g'  # gas phase
+                else:
+                    return 'i'  # interface
+
+            def in_gas(z):
+                z -= idxmax
+                while z < 0:
+                    z += lz
+                while z > lz:
+                    z -= lz
+                if z > r1 + s1 * mul and z < r2 - s2 * mul:
+                    return True
+                return False
+
+        dliq_series = pd.Series()  # density of liquid phase timeseries
+        dgas_series = pd.Series()  # density of liquid phase timeseries
         for n in range(n_pieces):
             xvg = 'density-%i.xvg' % n
-            begin = when + dt_split * n
-            end = when + dt_split * (n + 1) - dt
+            begin = when + dt_piece * n
+            end = when + dt_piece * (n + 1) - dt
             if debug:
-                print('Time span: ', begin, end)
+                print('Time: ', begin, end)
 
             self.gmx.density('nvt.xtc', 'nvt.tpr', xvg=xvg, begin=begin, end=end, silent=True)
             df = pd.read_table(xvg, skiprows=24, names=['Density'], index_col=0, sep='\s+')
@@ -165,14 +199,16 @@ class NvtSlab(GmxSimulation):
             if not debug:
                 os.remove(xvg)
 
-            lz = density_series.index[-1] - density_series.index[0]
             dz = density_series.index[1] - density_series.index[0]
+            lz = dz * len(density_series)
+
             # Move gas phase to center. Series index starts from 0
+            idxmax = density_series.idxmax()
             density_series.index -= density_series.idxmax()
             _index_list = density_series.index.tolist()
             for i, v in enumerate(_index_list):
                 if v < 0:
-                    _index_list[i] += dz * len(density_series)
+                    _index_list[i] += lz
             density_series.index = _index_list
             density_series = density_series.sort_index()
 
@@ -180,49 +216,56 @@ class NvtSlab(GmxSimulation):
             if not is_interface or not is_gas_center:
                 continue
 
-            # Move Liquid phase to exact center. Series not starts from 0
+            # Move gas phase to exact center. Series index not starts from 0
             center = sum(nodes) / 2
             _index_list = density_series.index.tolist()
             if center < lz / 2:
                 shift = lz / 2 - center
                 for i, v in enumerate(_index_list):
                     if v > lz - shift:
-                        _index_list[i] -= dz * len(density_series)
+                        _index_list[i] -= lz
             else:
                 shift = center - lz / 2
                 for i, v in enumerate(_index_list):
                     if v < shift:
-                        _index_list[i] += dz * len(density_series)
+                        _index_list[i] += lz
             density_series.index = _index_list
             density_series = density_series.sort_index()
 
-            # Fit tanh to determine the thickness of liquid phase
+            # Fit Tanh to determine the thickness of liquid phase
             dens_series_left = density_series.loc[:center]
             dens_series_righ = density_series.loc[center:]
             _max = max(density_series)
             _min = min(density_series)
             _c = (_max + _min) / 2
             _A = (_max - _min) / 2
-            if debug:
-                print(dens_series_left)
-                print(dens_series_righ)
             _coef1 = fit_tanh(dens_series_left.index, dens_series_left, guess=[_c, -_A, nodes[0], 1])
             _coef2 = fit_tanh(dens_series_righ.index, dens_series_righ, guess=[_c, _A, nodes[1], 1])
-            if debug:
-                print('Tanh: ', _coef1)
-                print('Tanh: ', _coef2)
+            # if debug:
+            #     print(dens_series_left)
+            #     print(dens_series_righ)
+            #     print('Tanh: ', _coef1)
+            #     print('Tanh: ', _coef2)
             c1, A1, r1, s1 = _coef1  # A1 is negative
             c2, A2, r2, s2 = _coef2  # A2 is positive
 
-            if abs(c1 - A1 - density_series.max()) > 30 or abs(c2 + A2 - density_series.max()) > 30 or \
-                    abs(c1 + A1 - density_series.min()) > 100 or abs(c2 - A2 - density_series.min()) > 100:
+            # Check if density fluctuate along the z axis
+            if abs(c1 - A1 - density_series.max()) > 50 / 1000 * density_series.max() or \
+                    abs(c2 + A2 - density_series.max()) > 50 / 1000 * density_series.max() or \
+                    abs(c1 + A1 - density_series.min()) > 100 / 1000 * density_series.max() or \
+                    abs(c2 - A2 - density_series.min()) > 100 / 1000 * density_series.max():
                 continue
 
             mul = 2.6466524123622457  # arctanh(0.99)
             lz_liq = r1 - density_series.index[0] + density_series.index[-1] - r2 + dz - s1 * mul - s2 * mul
             lz_gas = r2 - r1 - s1 * mul - s2 * mul
+            lz_int = (s1 + s2) * mul * 2  # thickness of two interfaces
             if debug:
-                print('Thickness of liquid and gas phases: ', lz_liq, lz_gas)
+                print('Thickness of liquid, gas and interfaces: ', lz_liq, lz_gas, lz_int)
+                self.lz_liq_series.at[begin] = lz_liq
+                self.lz_gas_series.at[begin] = lz_gas
+                self.lz_int_series.at[begin] = lz_int
+
             # Liquid phase should be at least 2 nm. Gas phase should be at least 5 nm
             if lz_liq < 2 or lz_gas < 5:
                 continue
@@ -234,13 +277,37 @@ class NvtSlab(GmxSimulation):
             dliq_series.at[begin] = d_liq
             dgas_series.at[begin] = d_gas
 
+            if debug:
+                gro_com = 'com-%i.gro' % n
+                self.gmx.traj_com('nvt.xtc', 'nvt.tpr', gro_com, begin=begin, end=end, silent=True)
+                trj: mdtraj.Trajectory = mdtraj.load(gro_com)
+
+                if phases == []:
+                    phases = [[] for i in range(trj.n_atoms)]
+                for n_frame, xyz_array in enumerate(trj.xyz):
+                    time.append(trj.time[n_frame])
+                    Ngas.append(0)
+                    for n_atom, xyz in enumerate(xyz_array):
+                        phase = in_which_phase(xyz[2])
+                        phases[n_atom].append(phase)
+                        if in_gas(xyz[2]):
+                            Ngas[-1] += 1
+                        # if n_frame == 0:
+                        #     print(xyz, phase, idxmax, lz, nodes, lz_interface)
+                    # import sys
+                    # sys.exit()
+
         if debug:
+            self.dliq_series = dliq_series
+            self.dgas_series = dgas_series
+            self.Ngas_series = pd.Series(Ngas, time)
+            self.phase_series_list = [pd.Series(l, time) for l in phases]
             print(dliq_series)
             print(dgas_series)
 
         # Failed if more than 1/4 pieces do not have interface
-        # Failed if pieces at last 1/4 time span have no interface
-        if len(dliq_series) < n_pieces * 0.75 or dliq_series.index[-1] < length * 0.75:
+        # Failed if pieces at last 1/5 time span have no interface
+        if len(dliq_series) < n_pieces * 0.75 or dliq_series.index[-1] < length * 0.8:
             return {
                 'failed': True,
                 'reason': 'no_interface'
@@ -248,15 +315,23 @@ class NvtSlab(GmxSimulation):
 
         _, when_liq = is_converged(dliq_series, frac_min=0)
         _, when_gas = is_converged(dgas_series, frac_min=0)
-        if when_liq > length * 0.75:
+        # Convergence should be at least 4 ns
+        if when_liq > length - 4000:
             return None
-        if when_gas > length * 0.75:
+        if when_gas > length - 4000:
             if dgas_series.loc[when_gas:].mean() > 5:
                 return None
             else:
                 # Even if not converge. The density is so small < 5 kg/m^3. Considered as converged.
-                when_gas = length * 0.75
+                when_gas = length - 4000
         when = max(when_liq, when_gas)
+
+        if debug:
+            self.N_vaporize = self.N_condense = 0
+            for phase_series in self.phase_series_list:
+                n_vap, n_con = N_vaporize_condense(phase_series.loc[when:])
+                self.N_vaporize += n_vap
+                self.N_condense += n_con
 
         temperature_and_stderr, pressure_and_stderr, pzz_and_stderr, st_and_stderr, potential_and_stderr = \
             self.gmx.get_properties_stderr('nvt.edr',
@@ -292,12 +367,10 @@ class NvtSlab(GmxSimulation):
         dliq_list = []
         dgas_list = []
         st_list = []
-        pzz_list = []
         for i, result in enumerate(result_list):
             dliq_list.append(result['density_liq'][0])
             dgas_list.append(result['density_gas'][0])
             st_list.append(result['surface_tension'][0])
-            pzz_list.append(result['pzz'][0])
         coeff_d_minus = fit_vle_d_minus(T_list, np.array(dliq_list) - np.array(dgas_list),
                                         guess=[max(T_list) / 0.9, 1])  # Tc, B
         Tc = coeff_d_minus[0]

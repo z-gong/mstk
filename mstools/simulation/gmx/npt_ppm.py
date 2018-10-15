@@ -14,11 +14,11 @@ class NptPPM(GmxSimulation):
         self.requirement = []
         self.logs = []
         self.n_atoms_default = 6000
-        self.amplitudes_steps = amplitudes_steps or OrderedDict([(0.01, int(3.0e6)),
-                                                                 (0.02, int(1.5e6)),
-                                                                 (0.03, int(1.0e6)),
-                                                                 (0.04, int(0.5e6)),
-                                                                 (0.05, int(0.5e6)),
+        self.amplitudes_steps = amplitudes_steps or OrderedDict([(0.010, int(3.0e6)),
+                                                                 (0.020, int(1.5e6)),
+                                                                 (0.030, int(1.0e6)),
+                                                                 (0.040, int(0.5e6)),
+                                                                 (0.050, int(0.5e6)),
                                                                  ])
 
     def build(self, export=True, ppf=None, minimize=False):
@@ -34,7 +34,7 @@ class NptPPM(GmxSimulation):
     def prepare(self, prior_job_dir=None, gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
                 dt=0.001, nst_eq=int(1E5), nst_edr=50, replicate=None,
                 **kwargs) -> [str]:
-        if prior_job_dir == None:
+        if prior_job_dir is None:
             raise Exception('prior_job_dir is needed for PPM simulation')
 
         # Copy gro and topology files from prior NPT simulation
@@ -44,15 +44,15 @@ class NptPPM(GmxSimulation):
             if f.endswith('.itp'):
                 shutil.copy(os.path.join(prior_job_dir, f), '.')
 
-        if replicate != None:
+        if replicate is not None:
             self.gmx.replicate_gro(gro, top, replicate)
 
         nprocs = self.jobmanager.nprocs
         commands = []
 
         for ppm, nst_run in self.amplitudes_steps.items():
-            name_eq = 'eq-%.2f' % ppm
-            name_ppm = 'ppm-%.2f' % ppm
+            name_eq = 'eq-%.3f' % ppm
+            name_ppm = 'ppm-%.3f' % ppm
 
             # NPT-PPM equilibrium with Nose-Hoover thermostat and Berendsen barostat
             self.gmx.prepare_mdp_from_template('t_npt_ppm.mdp', mdp_out='grompp-%s.mdp' % name_eq, T=T, P=P,
@@ -101,7 +101,7 @@ class NptPPM(GmxSimulation):
         vis_list = []
         stderr_list = []
         for ppm in self.amplitudes_steps.keys():
-            name_ppm = 'ppm-%.2f' % ppm
+            name_ppm = 'ppm-%.3f' % ppm
             df = edr_to_df('%s.edr' % name_ppm)
             density_series = df.Density
             inv_series = df['1/Viscosity']

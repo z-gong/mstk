@@ -1,5 +1,5 @@
 import os
-import shutil
+import math
 
 from .gauss import GaussSimulation
 from ...utils import create_mol_from_smiles, generate_conformers
@@ -16,7 +16,7 @@ class Cv(GaussSimulation):
         pass
 
     def prepare(self, gjf_name=None, n_conformer=0, T_list: [float] = None, jobname=None) -> [str]:
-        if gjf_name == None:
+        if gjf_name is None:
             gjf_name = 'conf'
         self.logs = ['%s-%i.log' % (gjf_name, i) for i in range(n_conformer)]
         commands = []
@@ -84,6 +84,9 @@ class Cv(GaussSimulation):
                     if line.strip().startswith('Corrected for'):
                         line = f.readline()
                         Cv_corr = float(line.strip().split()[3]) * 4.184
+                        # Cv_corr might by NaN, this is a bug of gaussian
+                        if math.isnan(Cv_corr):
+                            Cv_corr = Cv
                         Cv_corr_list.append(Cv_corr)
                     else:
                         Cv_corr_list.append(Cv)
@@ -91,13 +94,13 @@ class Cv(GaussSimulation):
 
         import numpy as np
 
-        if logs == None:
+        if logs is None:
             logs = self.logs
         Cv_T = {}
         Cv_corr_T = {}
         for log in logs:
             results = process_log(log)
-            if results != None:
+            if results is not None:
                 T_list, scale_list, Cv_list, Cv_corr_list = results
                 for i, T in enumerate(T_list):
                     if T not in Cv_T.keys():
@@ -117,7 +120,7 @@ class Cv(GaussSimulation):
             Cv_corr_ave[T] = [np.mean(Cv_corr_T[T]), np.std(Cv_corr_T[T], ddof=1)]
 
         return {
-            'Cv': Cv_ave,
+            'Cv'          : Cv_ave,
             'Cv-corrected': Cv_corr_ave,
         }
 

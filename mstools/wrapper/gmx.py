@@ -20,7 +20,7 @@ class GMX:
                cpt=None, maxwarn=3, silent=False, get_cmd=False):
         cmd = '%s -quiet -nobackup grompp -f %s -c %s -p %s -o %s -maxwarn %i' % (
             self.GMX_BIN, mdp, gro, top, tpr_out, maxwarn)
-        if cpt != None:
+        if cpt is not None:
             cmd = '%s -t %s' % (cmd, cpt)
         if get_cmd:
             return cmd
@@ -30,7 +30,7 @@ class GMX:
             sp.communicate()
 
     def mdrun(self, name='md', nprocs=1, n_omp=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
-        if n_omp == None:  # n_omp is None means auto
+        if n_omp is None:  # n_omp is None means auto
             for i in [6, 4, 2]:  # available OpenMP threads: 6, 4, 2
                 if nprocs % i == 0:
                     n_omp = i
@@ -75,8 +75,7 @@ class GMX:
             sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
             sp.communicate(input=group.encode())
 
-    def prepare_mdp_from_template(self, template: str, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001,
-                                  TANNEAL=800,
+    def prepare_mdp_from_template(self, template, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                                   restart=False, tcoupl='langevin', pcoupl='parrinello-rahman',
                                   constraints='h-bonds', ppm=0, dielectric=None):
@@ -87,7 +86,7 @@ class GMX:
         if tcoupl.lower() == 'langevin':
             integrator = 'sd'
             tcoupl = 'no'
-            tau_t = '2'
+            tau_t = str(0.001 / dt)  # inverse friction coefficient
         elif tcoupl.lower() == 'nose-hoover':
             integrator = 'md'
             tcoupl = 'nose-hoover'
@@ -97,7 +96,7 @@ class GMX:
             tcoupl = 'v-rescale'
             tau_t = '0.1'
         else:
-            raise Exception('tcoupl not good, should be one of langvein, nose-hoover, v-rescale')
+            raise Exception('Invalid tcoupl, should be one of langvein, nose-hoover, v-rescale')
 
         if pcoupl.lower() == 'berendsen':
             tau_p = '1'
@@ -107,7 +106,7 @@ class GMX:
             tau_p = '5'
             constraints = 'none'
         else:
-            raise Exception('pcoupl not good, should be one of berendsen, parrinello-rahman, mttk')
+            raise Exception('Invalid pcoupl, should be one of berendsen, parrinello-rahman, mttk')
 
         if restart:
             genvel = 'no'
@@ -116,7 +115,9 @@ class GMX:
             genvel = 'yes'
             continuation = 'no'
 
-        if dielectric == None:
+        nstlist = max(1, int(0.01 / dt))
+
+        if dielectric is None:
             dielectric = self._DIELECTRIC
 
         with open(template) as f_t:
@@ -129,14 +130,14 @@ class GMX:
             .replace('%integrator%', integrator).replace('%tcoupl%', tcoupl).replace('%tau-t%', tau_t) \
             .replace('%pcoupl%', pcoupl).replace('%tau-p%', tau_p) \
             .replace('%constraints%', constraints).replace('%TANNEAL%', str(TANNEAL)).replace('%ppm%', str(ppm)) \
-            .replace('%dielectric%', str(dielectric))
+            .replace('%nstlist%', str(nstlist)).replace('%dielectric%', str(dielectric))
 
         with open(mdp_out, 'w') as f_mdp:
             f_mdp.write(contents)
 
     def energy(self, edr, properties: [str], begin=0, end=None, fluct_props=False, get_cmd=False):
         cmd = '%s -quiet -nobackup energy -f %s -b %s' % (self.GMX_BIN, edr, str(begin))
-        if end != None:
+        if end is not None:
             cmd += ' -e %s' % (str(end))
         if fluct_props:
             cmd += ' -fluct_props'
@@ -202,7 +203,7 @@ class GMX:
     def density(self, trj, tpr, xvg='density.xvg', group='System', begin=0, end=None,
                 center=False, silent=False, get_cmd=False):
         cmd = '%s -quiet -nobackup density -f %s -s %s -b %f -o %s' % (self.GMX_BIN, trj, tpr, begin, xvg)
-        if end != None:
+        if end is not None:
             cmd += ' -e %f' % end
         inp = group
         if center:
@@ -365,9 +366,9 @@ class GMX:
         sp.communicate()
 
     def velacc(self, trr, tpr=None, group=None, begin=0, xvg_out='velacc', silent=False):
-        if tpr == None:
+        if tpr is None:
             tpr = trr
-        if group == None:
+        if group is None:
             raise GmxError('No group specifed')
 
         (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
@@ -376,12 +377,15 @@ class GMX:
                    stdin=PIPE, stdout=stdout, stderr=stderr)
         sp.communicate(input=str(group).encode())
 
-    def diffusion(self, xtc, tpr, group='System', begin=0, end=None, xvg_out='msd.xvg',
+    def diffusion(self, xtc, tpr, group='System', mol=False, begin=0, end=None, xvg_out='msd.xvg',
                   beginfit=-1, endfit=-1):
         cmd = '%s -quiet -nobackup msd -f %s -s %s -o %s -b %s -beginfit %s -endfit %s' % (
             self.GMX_BIN, xtc, tpr, xvg_out, str(begin), str(beginfit), str(endfit))
-        if end != None:
+        if end is not None:
             cmd += ' -e %s' % str(end)
+        if mol:
+            # calculate the MSD of COM of molecules
+            cmd += ' -mol'
 
         sp = Popen(cmd.split(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
         out, err = sp.communicate(input=str(group).encode())
@@ -401,7 +405,7 @@ class GMX:
     def msd_com(self, xtc, tpr, resname, beginfit=-1, endfit=-1, xvg_out=None, silent=False):
         ndx = 'com-' + resname + '.ndx'
         GMX.select_com(tpr, resname, ndx_out=ndx)
-        if xvg_out == None:
+        if xvg_out is None:
             xvg_out = 'msd-com-%s.xvg' % resname
 
         (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
@@ -414,20 +418,20 @@ class GMX:
                 return line
         raise GmxError('Error running gmx msd')
 
-    def traj_com(self, xtc, tpr, xtc_out=None, silent=False):
+    def traj_com(self, xtc, tpr, trj_out='com.xtc', begin=0, end=0, silent=False):
         ndx = 'com.ndx'
         self.select_com(tpr, 'all', ndx_out=ndx)
-        if xtc_out == None:
-            xtc_out = 'com.xtc'
 
         (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
-        sp = Popen([self.GMX_BIN, 'traj', '-s', tpr, '-f', xtc, '-oxt', xtc_out, '-mol', '-n', ndx],
-                   stdout=stdout, stderr=stderr)
+        cmd = '%s -quiet -nobackup traj -s %s -f %s -oxt %s -com -mol -n %s -b %f -e %f' % (
+            self.GMX_BIN, tpr, xtc, trj_out, ndx, begin, end)
+        sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
         sp.communicate()
-        return xtc_out, ndx
+        return trj_out, ndx
 
-    def select_com(self, tpr, resname, ndx_out='selection.ndx'):
-        sp = Popen([self.GMX_BIN, 'select', '-s', tpr, '-on', ndx_out], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    def select_com(self, tpr, resname='all', ndx_out='com.ndx'):
+        cmd = '%s -quiet -nobackup select -s %s -on %s' % (self.GMX_BIN, tpr, ndx_out)
+        sp = Popen(cmd.split(), stdin=PIPE, stdout=PIPE, stderr=PIPE)
         if resname == 'all':
             select_com_str = 'res_com of all'
         else:
@@ -462,7 +466,7 @@ class GMX:
             for n in range(line_number_molecule[i], line_number_atom[i]):
                 f_out.write(lines[n] + '\n')
             line_number_next_section = line_number_molecule[i + 1] if i < n_molecules - 1 else line_number_system
-            if line_number_next_section == None:
+            if line_number_next_section is None:
                 line_number_next_section = len(lines)
             n_atoms = 0
             f_out.write('[ atoms ]\n')
@@ -477,7 +481,7 @@ class GMX:
                 f_out.write(line + '\n')
                 n_atoms += 1
 
-        if line_number_system != None:
+        if line_number_system is not None:
             for n in range(line_number_system, len(lines)):
                 f_out.write(lines[n] + '\n')
 
@@ -501,19 +505,6 @@ class GMX:
         sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
         sp.communicate()
 
-    def get_length_of_traj(self, traj) -> float:
-        cmd = '%s -quiet check -f %s' % (self.GMX_BIN, traj)
-        sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
-        out, err = sp.communicate()
-
-        # The output of gmx check are in stderr
-        for line in err.decode().splitlines():
-            if line.startswith('Last frame'):
-                length = float(line.split()[-1])
-                return length
-
-        raise Exception('Cannot open trajectory')
-
     @staticmethod
     def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel,
                                    n_gpu=0, n_omp=None, n_procs=None) -> [[str]]:
@@ -530,19 +521,22 @@ class GMX:
         import math, re
         def replace_gpu_multidir_cmd(dirs: [str], cmd: str) -> str:
             n_multi = len(dirs)
-            if cmd.startswith('export'):
+            if cmd.startswith('export '):
                 pass
 
             elif cmd.find('gmx') != -1 and cmd.find(' mdrun ') != -1:
                 n_mpi = n_multi
                 n_thread = n_omp
 
-                if n_procs != None:
-                    if cmd.find('mpirun') != -1 and cmd.find('mpirun -np 1') == -1:
+                if n_procs is not None:
+                    if cmd.find('mpirun ') != -1 and cmd.find('mpirun -np 1 ') == -1:
                         # optimize n_mpi and n_thread
+                        # GPU tasks prefer more n_mpi
+                        # ensure n_mpi equals 2*n
                         # do not optimize for mpirun -np 1. This happens for rerun hvap
-                        for i in [6, 4, 2]:
-                            if n_procs % (n_multi * i) == 0:
+                        optimal_omp = [6, 4, 2] if n_gpu > 0 else [8, 6, 4, 2]
+                        for i in optimal_omp:
+                            if n_procs % (n_multi * i * 2) == 0:
                                 n_thread = i
                                 n_mpi = n_procs // n_thread
                                 break
@@ -559,7 +553,7 @@ class GMX:
                 if n_gpu > 0:
                     cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
                            + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
-                if n_thread != None:
+                if n_thread is not None:
                     cmd += ' -ntomp %i' % n_thread
 
             else:

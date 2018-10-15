@@ -2,6 +2,7 @@ integrator      = sd
 dt              = %dt%
 nsteps          = %nsteps%
 
+nstcalcenergy      = -1
 nstenergy          = %nstenergy%
 nstxout            = %nstxout%
 nstvout            = %nstvout%
@@ -9,9 +10,8 @@ nstxout-compressed = %nstxtcout%
 compressed-x-grps  = %xtcgrps%
 
 cutoff-scheme   = verlet
-nstcalcenergy   = -1
+nstlist         = %nstlist%
 
-rlist           = 1.2
 coulombtype     = PME
 rcoulomb        = 1.2
 epsilon-r       = %dielectric%
@@ -19,9 +19,9 @@ epsilon-r       = %dielectric%
 rvdw            = 1.2
 DispCorr        = EnerPres
 
-Tcoupl          = no; V-rescale
+tcoupl          = no
 tc-grps         = System
-tau-t           = 2; 0.1
+tau-t           = 1
 ref-t           = %T%
 
 constraints      = h-bonds

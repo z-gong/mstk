@@ -1,7 +1,15 @@
 class Formula:
-    def __init__(self):
+    def __init__(self, formula=None):
         self.atomlist = []  # list of (atom, number)
         self.atomdict = {}
+        if formula is not None:
+            self.load(formula)
+
+    def load(self, formula):
+        token_list = self.get_token(formula)
+        self.calculate(token_list)
+        self.count()
+        self.atomlist = self.sort()
 
     @staticmethod
     def read(mol_str):
@@ -116,12 +124,16 @@ class Formula:
             return str(num)
 
     @property
-    def n_heavy_atom(self) -> int:
+    def n_heavy(self) -> int:
         n = 0
         for k, v in self.atomdict.items():
             if k != 'H':
                 n += v
         return n
+
+    @property
+    def n_heavy_atom(self) -> int:
+        return self.n_heavy
 
     @property
     def n_h(self) -> int:

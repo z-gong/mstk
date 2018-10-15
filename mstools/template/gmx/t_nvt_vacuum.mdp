@@ -4,18 +4,17 @@ nsteps          = %nsteps%
 
 comm-mode       = none; angular
 
+nstcalcenergy      = -1
 nstenergy          = %nstenergy%
 nstxout            = %nstxout%
 nstvout            = %nstvout%
 nstxout-compressed = %nstxtcout%
 compressed-x-grps  = %xtcgrps%
 
-pbc     = no
-nstlist = 0
-ns-type = simple
-
+pbc             = no
+ns-type         = simple
 cutoff-scheme   = group
-nstcalcenergy   = -1
+nstlist         = 0
 
 rlist           = 0
 coulombtype     = cut-off
@@ -26,16 +25,12 @@ vdwtype         = cut-off
 rvdw            = 0
 DispCorr        = no
 
-Tcoupl          = no; V-rescale
+tcoupl          = no
 tc-grps         = System
-tau-t           = 2.0
+tau-t           = 1
 ref-t           = %T%
 
-Pcoupl          = no; berendsen; parrinello-rahman
-pcoupltype      = isotropic
-tau-p           = 0.5
-compressibility = 4.5e-5
-ref-p           = %P%
+pcoupl          = no
 
 gen-vel         = %genvel%
 gen-temp        = %T%

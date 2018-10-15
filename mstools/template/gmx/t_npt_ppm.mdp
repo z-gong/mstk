@@ -1,7 +1,8 @@
-integrator      = %integrator%; sd; md
-dt              = %dt%
+integrator      = %integrator%; md
+dt              = %dt%; 0.001
 nsteps          = %nsteps%
 
+nstcalcenergy      = -1
 nstenergy          = %nstenergy%
 nstxout            = %nstxout%
 nstvout            = %nstvout%
@@ -9,9 +10,8 @@ nstxout-compressed = %nstxtcout%
 compressed-x-grps  = %xtcgrps%
 
 cutoff-scheme   = verlet
-nstcalcenergy   = -1
+nstlist         = %nstlist%
 
-rlist           = 1.2
 coulombtype     = PME
 rcoulomb        = 1.2
 epsilon-r       = %dielectric%
@@ -19,14 +19,14 @@ epsilon-r       = %dielectric%
 rvdw            = 1.2
 DispCorr        = EnerPres
 
-Tcoupl          = %tcoupl%; no; V-rescale
+tcoupl          = %tcoupl%; nose-hoover
 tc-grps         = System
-tau-t           = %tau-t%; 2; 0.1
+tau-t           = %tau-t%; 0.5
 ref-t           = %T%
 
-Pcoupl          = %pcoupl%; parrinello-rahman; berendsen
+pcoupl          = %pcoupl%; parrinello-rahman; berendsen
 pcoupltype      = isotropic
-tau-p           = %tau-p%; 2; 0.5
+tau-p           = %tau-p%; 5; 1
 compressibility = 4.5e-5
 ref-p           = %P%
 
