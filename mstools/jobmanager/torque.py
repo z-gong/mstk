@@ -40,7 +40,7 @@ class Torque(JobManager):
             for cmd in commands:
                 f.write(cmd + '\n')
 
-    def submit(self, sh=None):
+    def submit(self, sh=None, **kwargs):
         if sh is None:
             sh = self.sh
         sp = Popen(['qsub', sh])
@@ -51,13 +51,13 @@ class Torque(JobManager):
             return False
 
     def kill_job(self, name) -> bool:
-        id = self.get_id_from_name(name)
-        if id == None:
+        job = self.get_job_from_name(name)
+        if job is None:
             return False
         try:
-            subprocess.check_call(['qdel', str(id)])
+            subprocess.check_call(['qdel', str(job.id)])
         except:
-            raise JobManagerError('Cannot kill job: %s' % name)
+            return False
 
         return True
 

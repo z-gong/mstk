@@ -21,6 +21,8 @@ class JobManager:
         self.priority = 0
         self.time = 24
 
+        self.is_remote = False
+
     @property
     def walltime(self):
         return self.time
@@ -31,10 +33,13 @@ class JobManager:
 
     @property
     def all_jobs(self) -> [PbsJob]:
-        if self.last_update == None or (
+        if self.last_update is None or (
                 datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
             self.update_stored_jobs()
         return self.stored_jobs
+
+    def is_working(self) -> bool:
+        pass
 
     def update_stored_jobs(self):
         print('Update job information')
@@ -61,25 +66,29 @@ class JobManager:
     def generate_sh(self, workdir, commands: [str], name):
         pass
 
-    def submit(self) -> bool:
+    def upload(self, **kwargs) -> bool:
         pass
 
-    def get_id_from_name(self, name: str) -> int:
-        for job in self.all_jobs:
+    def download(self, **kwargs) -> bool:
+        pass
+
+    def submit(self, **kwargs) -> bool:
+        pass
+
+    def get_job_from_name(self, name: str) -> PbsJob:
+        # if several job have same name, return the one with the largest id (most recent job)
+        for job in sorted(self.all_jobs, key=lambda x: x.id, reverse=True):
             if job.name == name:
-                return job.id
+                return job
         return None
 
     def is_running(self, name) -> bool:
-        for job in self.all_jobs:
-            if job.name == name:
-                if job.state in [PbsJob.State.PENDING, PbsJob.State.RUNNING]:
-                    return True
-                else:
-                    return False
-        return False
+        job = self.get_job_from_name(name)
+        if job is None:
+            return False
+        return job.state in [PbsJob.State.PENDING, PbsJob.State.RUNNING]
 
-    def kill_job(self, name):
+    def kill_job(self, name) -> bool:
         pass
 
     def get_all_jobs(self) -> [PbsJob]:

@@ -1,6 +1,6 @@
 import math
 import subprocess
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 from .pbsjob import PbsJob
 from .jobmanager import JobManager
@@ -12,6 +12,12 @@ class Slurm(JobManager):
         super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
         self.sh = '_job_slurm.sh'
         self.submit_cmd = 'sbatch'
+
+    def is_working(self) -> bool:
+        cmd = 'sinfo --version'
+        sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+        stdout, stderr = sp.communicate()
+        return stdout.decode().startswith('slurm')
 
     def replace_mpirun_srun(self, commands) -> (int, [str]):
         n_mpi = 1
@@ -44,7 +50,7 @@ class Slurm(JobManager):
 
         n_mpi, srun_commands = self.replace_mpirun_srun(commands)
 
-        if n_tasks == None:
+        if n_tasks is None:
             n_node = 1
             n_tasks = self.nprocs_request
         else:
@@ -83,70 +89,63 @@ class Slurm(JobManager):
             for cmd in srun_commands:
                 f.write(cmd + '\n')
 
-    def submit(self, sh=None):
+    def submit(self, sh=None, **kwargs) -> bool:
         if sh is None:
             sh = self.sh
         cmd = self.submit_cmd + ' ' + sh
-        sp = Popen(cmd.split())
-        sp.communicate()
-        if sp.returncode == 0:
-            return True
-        else:
-            return False
+        return subprocess.call(cmd.split()) == 0
 
     def kill_job(self, name) -> bool:
-        id = self.get_id_from_name(name)
-        if id == None:
+        job = self.get_job_from_name(name)
+        if job is None:
             return False
-        try:
-            subprocess.check_call(['scancel', str(id)])
-        except:
-            raise JobManagerError('Cannot kill job: %s' % name)
 
-        return True
+        cmd = f'scancel {job.id}'
+        return subprocess.call(cmd.split()) == 0
 
     def get_all_jobs(self):
-        def get_job_from_str(job_str) -> PbsJob:
-            workdir = None
-            for line in job_str.split():  # split properties
-                try:
-                    key, val = line.split('=')[0:2]
-                except:
-                    continue
-                if key == 'JobId':
-                    id = int(val)
-                elif key == 'UserId':
-                    user = val.split('(')[0]  # UserId=username(uid)
-                elif key == 'JobName' or key == 'Name':
-                    name = val
-                elif key == 'Partition':
-                    queue = val
-                elif key == 'JobState':
-                    state_str = val
-                    if val == 'PENDING':
-                        state = PbsJob.State.PENDING
-                    elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
-                        state = PbsJob.State.RUNNING
-                    else:
-                        state = PbsJob.State.DONE
-                elif key == 'WorkDir':
-                    workdir = val
-            job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user, queue=queue)
-            job.state_str = state_str
-            return job
-
         # Show all jobs. Then check the user
         cmd = 'scontrol show job'
-        try:
-            output = subprocess.check_output(cmd.split())
-        except Exception as e:
-            raise JobManagerError(str(e))
+        sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+        stdout, stderr = sp.communicate()
+        if sp.returncode != 0:
+            print(stderr.decode())
+            return []
 
         jobs = []
-        for job_str in output.decode().split('\n\n'):  # split jobs
+        for job_str in stdout.decode().split('\n\n'):  # split jobs
             if job_str.startswith('JobId'):
-                job = get_job_from_str(job_str)
+                job = self.get_job_from_str(job_str)
                 # Show all jobs. Then check the user
                 if job.user == self.username:
                     jobs.append(job)
         return jobs
+
+    def get_job_from_str(self, job_str) -> PbsJob:
+        workdir = None
+        for line in job_str.split():  # split properties
+            try:
+                key, val = line.split('=')[0:2]
+            except:
+                continue
+            if key == 'JobId':
+                id = int(val)
+            elif key == 'UserId':
+                user = val.split('(')[0]  # UserId=username(uid)
+            elif key == 'JobName' or key == 'Name':
+                name = val
+            elif key == 'Partition':
+                queue = val
+            elif key == 'JobState':
+                state_str = val
+                if val in ('PENDING', 'RESV_DEL_HOLD'):
+                    state = PbsJob.State.PENDING
+                elif val in ('CONFIGURING', 'RUNNING', 'COMPLETING', 'STOPPED', 'SUSPENDED'):
+                    state = PbsJob.State.RUNNING
+                else:
+                    state = PbsJob.State.DONE
+            elif key == 'WorkDir':
+                workdir = val
+        job = PbsJob(id=id, name=name, state=state, workdir=workdir, user=user, queue=queue)
+        job.state_str = state_str
+        return job
