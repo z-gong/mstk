@@ -23,6 +23,36 @@ def polyfit(x: [float], y: [float], degree: int, weight: [float] = None):
     return clf.coef_, clf.score(skx_, skv)
 
 
+def polyval(x, coeff):
+    from numpy.polynomial.polynomial import polyval as np_polyval
+    return np_polyval(x, coeff)
+
+
+def polyval_derivative(x: float, coeff: [float]) -> (float, float):
+    '''
+    when degree == 2, len(coeff) = 3,
+        y = c0 + c1 * x + c2 * xx
+        dy/dx = c1 + 2*c2 * x
+    when degree == 3, len(coeff) = 4,
+        y = c0 + c1 * x + c2 * xx + c3 * xxx
+        dy/dx = c1 + 2*c2 * x + 3*c3 * xx
+
+    :param x:
+    :param coeff: [c0, c1, c2, ...]
+    :return: y: float
+             dy/dx: float
+    '''
+    from numpy.polynomial.polynomial import polyval as np_polyval
+    y = np_polyval(x, coeff)
+
+    degree = len(coeff) - 1
+    dydx = 0
+    for i in range(degree):
+        dydx += (i + 1) * coeff[i + 1] * x ** i
+
+    return y, dydx
+
+
 def polyfit_2d(x: [float], y: [float], z: [float], degree: int, weight: [float] = None):
     """
     least squares polynomial fit
@@ -90,109 +120,123 @@ def polyval_derivative_2d(x: float, y: float, degree: int, coeff: [float]) -> (f
     return z, dzdx, dzdy
 
 
-def fit_tanh(x_list: [float], d_list: [float], guess: [float] = None) -> (float, float, float):
+def curve_fit_rsq(func, x_list, y_list, guess=None, bounds=None) -> ((float), float):
     import numpy as np
     from scipy.optimize import curve_fit
+
+    x_array = np.array(x_list)
+    y_array = np.array(y_list)
+
+    popt, pcov = curve_fit(func, x_array, y_array, guess, bounds=bounds)
+    ss_tot = ((y_array - y_array.mean()) ** 2).sum()
+    predict = np.array([func(x, *popt) for x in x_array])
+    ss_res = ((y_array - predict) ** 2).sum()
+    rsq = 1 - ss_res / ss_tot
+
+    return tuple(popt), rsq
+
+
+def logistic(x, A1, A2, x0, p):
+    return (A1 - A2) / (1 + (x / x0) ** p) + A2
+
+
+def logistic_derivative(x, A1, A2, x0, p):
+    y = logistic(x, A1, A2, x0, p)
+    dydx = -(A1 - A2) / (1 + (x / x0) ** p) ** 2 * p * (x / x0) ** p / x
+    return y, dydx
+
+
+def fit_logistic(x_list: [float], y_list: [float], guess: [float] = None, bounds=None) -> ((float), float):
+    import numpy as np
+
+    guess = guess or [y_list[0], 2 * y_list[-1] - y_list[0], x_list[-1], 1.0]
+    bounds = bounds or ([-np.inf, -np.inf, -np.inf, 0], np.inf)
+
+    return curve_fit_rsq(logistic, x_list, y_list, guess, bounds)
+
+
+def fit_vle_tanh(x_list: [float], d_list: [float], guess: [float] = None, bounds=None) -> ((float), float):
+    import numpy as np
 
     def func(x, c, A, r, s):
         return c + A * np.tanh((x - r) / s)
 
-    x_array = np.array(x_list)
-    y_array = np.array(d_list)
-
     guess = guess or [0, 1, 0, 1]
+    bounds = bounds or (-np.inf, np.inf)
 
-    popt, pcov = curve_fit(func, x_array, y_array, guess)
-    return tuple(popt)
+    return curve_fit_rsq(func, x_list, d_list, guess, bounds)
 
 
-def vle_d_minus(T, Tc, B):
+def vle_dminus(T, Tc, B):
     return B * (1 - T / Tc) ** 0.325
 
 
-def fit_vle_d_minus(T_list: [float], d_minus_list: [float], guess=None):
+def fit_vle_dminus(T_list: [float], dminus_list: [float], guess=None, bounds=None) -> ((float), float):
     '''
     Fit critical temperature using VLE density
-    d_liq - d_gas = B(1-T/Tc)**0.325
+    dliq - dgas = B(1-T/Tc)**0.325
 
     :param x: [float], temperatures
     :param y: [float], dliq - dgas
-    :return: float, critical temeprature
+    :return: ((Tc, B), score)
     '''
     import numpy as np
-    from scipy.optimize import curve_fit
 
-    T_array = np.array(T_list)
-    y_array = np.array(d_minus_list)
+    guess = guess or [max(T_list) / 0.8, 1.0]
+    bounds = bounds or (0, np.inf)
 
-    guess = guess or [500.0, 1.0]
-
-    popt, pcov = curve_fit(vle_d_minus, T_array, y_array, guess)
-
-    return popt
+    return curve_fit_rsq(vle_dminus, T_list, dminus_list, guess, bounds)
 
 
-def vle_d_plus(T, Dc, A, Tc):
+def vle_dplus(T, Dc, A, Tc):
     return 2 * (Dc + A * (1 - T / Tc))
 
 
-def fit_vle_d_plus(T_list: [float], d_plus_list: [float], Tc, guess=None):
+def fit_vle_dplus(T_list: [float], dplus_list: [float], Tc, guess=None, bounds=None) -> ((float), float):
     '''
     Fit critical density using VLE density and critical temperature
-    d_liq + d_gas = 2(d_critical+A(1-T/Tc))
+    dliq + dgas = 2(Dc+A(1-T/Tc))
 
     :param x:  [float], temperatures
     :param y: [float], dliq + dgas
     :param Tc: float, critical temperature
-    :return:  float, critical density
+    :return: ((Dc, A), score)
     '''
     import numpy as np
-    from scipy.optimize import curve_fit
-
-    T_array = np.array(T_list)
-    y_array = np.array(d_plus_list)
 
     guess = guess or [0.3, 1.0]
+    bounds = bounds or (0, np.inf)
 
-    popt, pcov = curve_fit(lambda T, Dc, A: vle_d_plus(T, Dc, A, Tc), T_array, y_array, guess)
-
-    return popt
+    return curve_fit_rsq(lambda T, Dc, A: vle_dplus(T, Dc, A, Tc), T_list, dplus_list, guess, bounds)
 
 
 def vle_st(T, A, n, Tc):
     return A * (1 - T / Tc) ** n
 
 
-def fit_vle_st(T_list, st_list, Tc, guess=None):
+def fit_vle_st(T_list, st_list, Tc, guess=None, bounds=None):
     import numpy as np
-    from scipy.optimize import curve_fit
-
-    T_array = np.array(T_list)
-    y_array = np.array(st_list)
 
     guess = guess or [50, 1.22]
+    bounds = bounds or (0, np.inf)
 
-    popt, pcov = curve_fit(lambda T, A, n: vle_st(T, A, n, Tc), T_array, y_array, guess)
-
-    return popt
-
+    return curve_fit_rsq(lambda T, A, n: vle_st(T, A, n, Tc), T_list, st_list, guess, bounds)
 
 
 def vle_log10pvap(T, A, B):
     return A - B / T
 
+
 def vle_pvap(T, A, B):
     return 10 ** vle_log10pvap(T, A, B)
 
-def fit_vle_pvap(T_list, pvap_list, guess=None):
-    import numpy as np
-    from scipy.optimize import curve_fit
 
-    T_array = np.array(T_list)
+def fit_vle_pvap(T_list, pvap_list, guess=None, bounds=None):
+    import numpy as np
+
     y_array = np.log10(np.array(pvap_list))
 
     guess = guess or [10, 3000]
+    bounds = bounds or (0, np.inf)
 
-    popt, pcov = curve_fit(vle_log10pvap, T_array, y_array, guess)
-
-    return popt
+    return curve_fit_rsq(vle_log10pvap, T_list, y_array, guess, bounds)

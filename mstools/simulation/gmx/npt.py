@@ -208,15 +208,15 @@ class Npt(GmxSimulation):
                                            ['Temperature', 'Pressure', 'Potential', 'Density'],
                                            begin=when)
         return {
-            'simulation_length': length,
-            'converged_from'   : when,
-            'temperature'      : temperature_and_stderr,  # K
-            'pressure'         : pressure_and_stderr,  # bar
-            'potential'        : potential_and_stderr,  # kJ/mol
-            'density'          : [i / 1000 for i in density_and_stderr],  # g/mL
-            'e_inter'          : list(block_average(einter_series.loc[when:])),  # kJ/mol
-            'expansion'        : [expansion, expan_stderr],
-            'compressibility'  : [compressi, compr_stderr],
+            'length'     : length,
+            'converge'   : when,
+            'temperature': temperature_and_stderr,  # K
+            'pressure'   : pressure_and_stderr,  # bar
+            'potential'  : potential_and_stderr,  # kJ/mol
+            'density'    : [i / 1000 for i in density_and_stderr],  # g/mL
+            'einter'     : list(block_average(einter_series.loc[when:])),  # kJ/mol
+            'expansion'  : [expansion, expan_stderr],
+            'compress'   : [compressi, compr_stderr],
         }
 
     def clean(self):
@@ -229,92 +229,132 @@ class Npt(GmxSimulation):
                     pass
 
     @staticmethod
-    def post_process(T_list, P_list, result_list, **kwargs) -> (dict, str):
-        from scipy import interpolate
-
-        if len(set(T_list)) < 5 or len(set(P_list)) < 5:
+    def post_process(T_list, P_list, result_list, n_mol_list, **kwargs) -> (dict, str):
+        t_set = set(T_list)
+        p_set = set(P_list)
+        if len(t_set) < 5 or len(p_set) < 5:
             return None, 'T or P points less than 5'
 
-        from mstools.analyzer.fitting import polyfit_2d
+        from mstools.analyzer.fitting import polyfit_2d, polyfit, polyval_derivative
 
-        density_list = []
-        e_inter_list = []
-        compres_list = []
-        for i, result in enumerate(result_list):
-            density_list.append(result['density'][0])
-            e_inter_list.append(result['e_inter'][0])
-            compres_list.append(result['compressibility'][0])
+        ### einter divided by number of molecules
+        dens_list = [float('%.3e' % result['density'][0]) for result in result_list]
+        eint_list = [float('%.3e' % (result['einter'][0] / n_mol_list[0])) for result in result_list]
+        comp_list = [float('%.3e' % result['compress'][0]) for result in result_list]
 
-        coeff_density, score_density = polyfit_2d(T_list, P_list, density_list, 4)
-        post_result = {'density-poly4-coeff': list(coeff_density),
-                       'density-poly4-score': score_density,
-                       }
-        coeff_e_inter, score_e_inter = polyfit_2d(T_list, P_list, e_inter_list, 4)
-        post_result.update({'e_inter-poly4-coeff': list(coeff_e_inter),
-                            'e_inter-poly4-score': score_e_inter,
-                            })
+        ### Fit with poly4
+        coeff_dens, score_dens = polyfit_2d(T_list, P_list, dens_list, 4)
+        coeff_eint, score_eint = polyfit_2d(T_list, P_list, eint_list, 4)
 
-        _t_list = []
-        _ei_list = []
-        for i, t in enumerate(T_list):
-            p = P_list[i]
-            result = result_list[i]
-            if p > 2:
+        ### Fit with poly3
+        t_p_dens_list = list(map(list, zip(T_list, P_list, dens_list)))
+        t_p_dens_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+        t_p_eint_list = list(map(list, zip(T_list, P_list, eint_list)))
+        t_p_eint_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+        t_p_comp_list = list(map(list, zip(T_list, P_list, comp_list)))
+        t_p_comp_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+
+        t_dens_poly3 = {}
+        t_eint_poly3 = {}
+        t_comp_poly3 = {}
+
+        for p in sorted(p_set):
+            _t____list = [element[0] for element in t_p_dens_list if element[1] == p]
+            _dens_list = [element[2] for element in t_p_dens_list if element[1] == p]
+            _eint_list = [element[2] for element in t_p_eint_list if element[1] == p]
+            _comp_list = [element[2] for element in t_p_comp_list if element[1] == p]
+
+            if len(_t____list) < 5:
                 continue
-            _t_list.append(t)
-            _ei_list.append(result['e_inter'][0])
-        if len(_t_list) < 4:
-            spl = None
-        else:
-            spl = interpolate.splrep(_t_list, _ei_list)
-            spl = [spl[0].tolist(), spl[1].tolist(), spl[2]]
-        post_result.update({'e_inter-spline': spl,
-                            })
 
-        return post_result, 'density-poly4-score %.4f e_inter-poly4-score %.4f' % (score_density, score_e_inter)
+            # density-T relation is fitted by 3-order polynomial function
+            _t_dens_coeff, _t_dens_score = polyfit(_t____list, _dens_list, 3)
+            _t_eint_coeff, _t_eint_score = polyfit(_t____list, _eint_list, 3)
+            _t_comp_coeff, _t_comp_score = polyfit(_t____list, _comp_list, 3)
+
+            t_dens_poly3[p] = [list(_t_dens_coeff), min(_t____list), max(_t____list), _t_dens_score]
+            t_eint_poly3[p] = [list(_t_eint_coeff), min(_t____list), max(_t____list), _t_eint_score]
+            t_comp_poly3[p] = [list(_t_comp_coeff), min(_t____list), max(_t____list), _t_comp_score]
+
+        post_result = {
+            'density'         : t_p_dens_list,
+            'einter'          : t_p_eint_list,
+            'compress'        : t_p_comp_list,
+            'density-poly4'   : [list(coeff_dens), score_dens],
+            'einter-poly4'    : [list(coeff_eint), score_eint],
+            'density-t-poly3' : t_dens_poly3,
+            'einter-t-poly3'  : t_eint_poly3,
+            'compress-t-poly3': t_comp_poly3,
+        }
+
+        return post_result, 'density-poly4-score %.4f einter-poly4-score %.4f' % (score_dens, score_eint)
 
     @staticmethod
-    def get_post_data(post_result, T, P, smiles_list, n_mol_list, **kwargs) -> dict:
-        from scipy import interpolate
-        from mstools.analyzer.fitting import polyval_derivative_2d
+    def get_post_data(post_result, T, P, smiles_list, **kwargs) -> dict:
+        from mstools.analyzer.fitting import polyval_derivative_2d, polyval, polyval_derivative, polyfit
 
-        coeff_density = post_result['density-poly4-coeff']
-        score_density = post_result['density-poly4-score']
+        ### Calculate with poly4. Not accurate enough, especially for expansion and compressibility
+        coeff_dens, score_dens = post_result['density-poly4']
+        coeff_eint, score_eint = post_result['einter-poly4']
+        density4, dDdT4, dDdP4 = polyval_derivative_2d(T, P, 4, coeff_dens)  # g/mL
+        expansion4 = -1 / density4 * dDdT4  # K^-1
+        compressibility4 = 1 / density4 * dDdP4  # bar^-1
 
-        density, dDdT, dDdP = polyval_derivative_2d(T, P, 4, coeff_density)  # g/mL
+        ### poly3
+        _p_dens_list = []
+        _p_eint_list = []
+        _p_comp_list = []
+        _p_dDdT_list = []
+        _p_dEdT_list = []
+        for _p in post_result['density-t-poly3']:
+            coef, tmin, tmax, score = post_result['density-t-poly3'][str(_p)]
+            dens, dDdT = polyval_derivative(T, coef)
+            _p_dens_list.append([_p, dens])
+            _p_dDdT_list.append([_p, dDdT])
+
+        for _p in post_result['einter-t-poly3']:
+            coef, tmin, tmax, score = post_result['einter-t-poly3'][str(_p)]
+            eint, dEdT = polyval_derivative(T, coef)
+            _p_eint_list.append([_p, eint])
+            _p_dEdT_list.append([_p, dEdT])
+
+        for _p in post_result['compress-t-poly3']:
+            coef, tmin, tmax, score = post_result['compress-t-poly3'][str(_p)]
+            _p_comp_list.append([_p, polyval(T, coef)])
+
+        coef, score = polyfit(*zip(*_p_dens_list), 3)
+        density = polyval(P, coef)
+
+        coef, score = polyfit(*zip(*_p_eint_list), 3)
+        einter = polyval(P, coef)
+        hvap = 8.314 * T / 1000 - einter  # kJ/mol
+
+        coef, score = polyfit(*zip(*_p_comp_list), 3)
+        compressibility = polyval(P, coef)
+
+        coef, score = polyfit(*zip(*_p_dEdT_list), 3)
+        dEdT = polyval(P, coef)
+        cp_inter = dEdT * 1000  # J/mol.K
+
+        coef, score = polyfit(*zip(*_p_dDdT_list), 3)
+        dDdT = polyval(P, coef)
         expansion = -1 / density * dDdT  # K^-1
-        compressibility = 1 / density * dDdP  # bar^-1
-
-        coeff_e_inter = post_result['e_inter-poly4-coeff']
-        score_e_inter = post_result['e_inter-poly4-score']
-
-        e_inter, dEdT, dEdP = polyval_derivative_2d(T, P, 4, coeff_e_inter)
-        e_inter /= n_mol_list[0]  # kJ/mol
-        hvap = 8.314 * T / 1000 - e_inter  # kJ/mol
-        cp_inter = dEdT * 1000 / n_mol_list[0]  # J/mol.K
 
         import pybel
         py_mol = pybel.readstring('smi', smiles_list[0])
         cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
 
-        spl = post_result['e_inter-spline']
-        if spl is None:
-            ei_spl = e_inter
-            hvap_spl = hvap
-        else:
-            ei_spl = interpolate.splev(T, spl) / n_mol_list[0]
-            hvap_spl = 8.314 * T / 1000 - ei_spl  # kJ/mol
-
         return {
-            'density'        : density,
-            'expansion'      : expansion,
-            'compressibility': compressibility,
-            'e_inter'        : e_inter,
-            'hvap'           : hvap,
-            'cp_inter'       : cp_inter,
-            'cp_pv'          : cp_pv,
-            'score-density'  : score_density,
-            'score-e_inter'  : score_e_inter,
-            'ei-spline'      : ei_spl,
-            'hvap-spline'    : hvap_spl,
+            'density'            : density,
+            'einter'             : einter,
+            'hvap'               : hvap,
+            'cp_inter'           : cp_inter,
+            'cp_pv'              : cp_pv,
+            'expansion'          : expansion,
+            'compress'           : compressibility,
+            'density-poly4-score': score_dens,
+            'einter-poly4-score' : score_eint,
+            'density-poly4'      : density4,
+            'expansion-poly4'    : expansion4,
+            'compress-poly4'     : compressibility4,
         }

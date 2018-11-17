@@ -1,6 +1,5 @@
 import os
 import shutil
-import math
 
 from .gmx import GmxSimulation
 from ...analyzer.series import block_average
@@ -75,7 +74,7 @@ class NvtSlab(GmxSimulation):
 
         gro_em = 'em.gro'
         # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
-        if TANNEAL != None:
+        if TANNEAL is not None:
             self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
                                                nsteps=int(1E5), nstxtcout=0)
             cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
@@ -239,8 +238,8 @@ class NvtSlab(GmxSimulation):
             _min = min(density_series)
             _c = (_max + _min) / 2
             _A = (_max - _min) / 2
-            _coef1 = fit_tanh(dens_series_left.index, dens_series_left, guess=[_c, -_A, nodes[0], 1])
-            _coef2 = fit_tanh(dens_series_righ.index, dens_series_righ, guess=[_c, _A, nodes[1], 1])
+            _coef1, _score1 = fit_vle_tanh(dens_series_left.index, dens_series_left, guess=[_c, -_A, nodes[0], 1])
+            _coef2, _score1 = fit_vle_tanh(dens_series_righ.index, dens_series_righ, guess=[_c, _A, nodes[1], 1])
             # if debug:
             #     print(dens_series_left)
             #     print(dens_series_righ)
@@ -338,15 +337,15 @@ class NvtSlab(GmxSimulation):
                                            ['Temperature', 'Pressure', 'Pres-ZZ', '#Surf*SurfTen', 'Potential'],
                                            begin=when)
         return {
-            'simulation_length': length,
-            'converged_from'   : when,
-            'temperature'      : temperature_and_stderr,  # K
-            'pressure'         : pressure_and_stderr,  # bar
-            'pzz'              : pzz_and_stderr,  # bar
-            'surface_tension'  : [i / 20 for i in st_and_stderr],  # mN/m
-            'potential'        : potential_and_stderr,  # kJ/mol
-            'density_liq'      : list(block_average(dliq_series.loc[when:] / 1000)),  # g/mL
-            'density_gas'      : list(block_average(dgas_series.loc[when:] / 1000)),  # g/mL
+            'length'     : length,
+            'converge'   : when,
+            'temperature': temperature_and_stderr,  # K
+            'pressure'   : pressure_and_stderr,  # bar
+            'pzz'        : pzz_and_stderr,  # bar
+            'st'         : [i / 20 for i in st_and_stderr],  # mN/m
+            'potential'  : potential_and_stderr,  # kJ/mol
+            'dliq'       : list(block_average(dliq_series.loc[when:] / 1000)),  # g/mL
+            'dgas'       : list(block_average(dgas_series.loc[when:] / 1000)),  # g/mL
         }
 
     def clean(self):
@@ -364,62 +363,63 @@ class NvtSlab(GmxSimulation):
             return None, 'T points less than 5'
 
         import numpy as np
-        dliq_list = []
-        dgas_list = []
-        st_list = []
-        for i, result in enumerate(result_list):
-            dliq_list.append(result['density_liq'][0])
-            dgas_list.append(result['density_gas'][0])
-            st_list.append(result['surface_tension'][0])
-        coeff_d_minus = fit_vle_d_minus(T_list, np.array(dliq_list) - np.array(dgas_list),
-                                        guess=[max(T_list) / 0.9, 1])  # Tc, B
-        Tc = coeff_d_minus[0]
-        if Tc < 0 or Tc > 2000:
+        dliq_list = [float('%.3e' % result['dliq'][0]) for result in result_list]
+        dgas_list = [float('%.3e' % result['dgas'][0]) for result in result_list]
+        st___list = [float('%.3e' % result['st'][0]) for result in result_list]
+        pzz__list = [float('%.3e' % result['pzz'][0]) for result in result_list]
+
+        coeff_dminus, score_dminus = fit_vle_dminus(T_list, np.array(dliq_list) - np.array(dgas_list))  # Tc, B
+        Tc = coeff_dminus[0]
+        if Tc < 0 or Tc > 1200:
             return None, 'Fit VLE density failed'
 
-        coeff_d_plus = fit_vle_d_plus(T_list, np.array(dliq_list) + np.array(dgas_list), Tc)  # Dc, A, Tc
-        Dc = coeff_d_plus[0]
-        if Dc < 0:
+        coeff_dplus, score_dplus = fit_vle_dplus(T_list, np.array(dliq_list) + np.array(dgas_list), Tc)  # Dc, A
+        Dc = coeff_dplus[0]
+        if Dc < 0 or Dc > 3.0:
             return None, 'Fit VLE density failed'
 
-        coeff_st = fit_vle_st(T_list, st_list, Tc)  # Ast, n
+        coeff_st, score_st = fit_vle_st(T_list, st___list, Tc)  # Ast, n
 
         post_result = {
-            'd_minus-coeff': list(coeff_d_minus),
-            'd_plus-coeff' : list(coeff_d_plus),
-            'st-coeff'     : list(coeff_st),
+            'dliq'      : list(map(list, zip(T_list, dliq_list))),
+            'dgas'      : list(map(list, zip(T_list, dgas_list))),
+            'st'        : list(map(list, zip(T_list, st___list))),
+            'pzz'       : list(map(list, zip(T_list, pzz__list))),
+            'dminus-fit': [list(coeff_dminus), score_dminus],
+            'dplus-fit' : [list(coeff_dplus), score_dplus],
+            'st-fit'    : [list(coeff_st), score_st]
         }
 
         return post_result, 'Tc %.1f Dc %.3f' % (Tc, Dc)
 
     @staticmethod
     def get_post_data(post_result, T, **kwargs) -> dict:
-        d_minus_coeff = post_result['d_minus-coeff']
-        d_plus_coeff = post_result['d_plus-coeff']
-        st_coeff = post_result['st-coeff']
+        coeff_dminus, score_dminus = post_result['dminus-fit']
+        coeff_dplus, score_dplus = post_result['dplus-fit']
+        coeff_st, score_st = post_result['st-fit']
 
-        Tc, _B = d_minus_coeff
-        Dc, _A = d_plus_coeff
+        Tc, _B = coeff_dminus
+        Dc, _A = coeff_dplus
 
         if T > Tc:
-            print('ERROR: T larger than Tc')
             return {
-                'tc': Tc,  # K
-                'dc': Dc,  # g/mL
+                'tc'   : Tc,  # K
+                'dc'   : Dc,  # g/mL
+                'error': 'T larger than Tc',
             }
 
-        d_minus = vle_d_minus(T, Tc, _B)
-        d_plus = vle_d_plus(T, Dc, _A, Tc)
-        d_liq = (d_plus + d_minus) / 2
-        d_gas = (d_plus - d_minus) / 2
+        dminus = vle_dminus(T, Tc, _B)
+        dplus = vle_dplus(T, Dc, _A, Tc)
+        dliq = (dplus + dminus) / 2
+        dgas = (dplus - dminus) / 2
 
-        _Ast, _n = st_coeff
+        _Ast, _n = coeff_st
         st = vle_st(T, _Ast, _n, Tc)
 
         return {
-            'tc'             : Tc,  # K
-            'dc'             : Dc,  # g/mL
-            'density_liq'    : d_liq,  # g/mL
-            'density_gas'    : d_gas,  # g/mL
-            'surface_tension': st,  # mN/m
+            'tc'  : Tc,  # K
+            'dc'  : Dc,  # g/mL
+            'dliq': dliq,  # g/mL
+            'dgas': dgas,  # g/mL
+            'st'  : st,  # mN/m
         }
