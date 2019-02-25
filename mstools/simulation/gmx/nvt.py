@@ -12,12 +12,12 @@ class Nvt(GmxSimulation):
     def build(self, ppf=None, minimize=False):
         pass
 
-    def prepare(self, prior_job_dir=None, gro='conf.gro', top='topol.top', T=298, jobname=None,
+    def prepare(self, prior_job_dir=None, gro='npt.gro', top='topol.top', T=298, jobname=None,
                 n_msd=0, nst_msd=int(1E6),
                 n_velacc=0, nst_velacc=int(1E5), nstvout_velacc=10,
                 n_vis=0, nst_vis=int(5E5), nstenergy_vis=2,
                 **kwargs) -> [str]:
-        if prior_job_dir == None:
+        if prior_job_dir is None:
             raise Exception('prior_job_dir is needed for NVT simulation')
 
         # Copy gro and topology files from prior NPT simulation

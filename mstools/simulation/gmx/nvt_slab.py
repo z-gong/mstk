@@ -363,10 +363,19 @@ class NvtSlab(GmxSimulation):
             return None, 'T points less than 5'
 
         import numpy as np
-        dliq_list = [float('%.3e' % result['dliq'][0]) for result in result_list]
-        dgas_list = [float('%.3e' % result['dgas'][0]) for result in result_list]
-        st___list = [float('%.3e' % result['st'][0]) for result in result_list]
-        pzz__list = [float('%.3e' % result['pzz'][0]) for result in result_list]
+
+        def round3(x):
+            return float('%.3e' % x)
+
+        dliq_stderr_list = [list(map(round3, result['dliq'])) for result in result_list]
+        dgas_stderr_list = [list(map(round3, result['dgas'])) for result in result_list]
+        st___stderr_list = [list(map(round3, result['st'])) for result in result_list]
+        pzz__stderr_list = [list(map(round3, result['pzz'])) for result in result_list]
+
+        dliq_list = [i[0] for i in dliq_stderr_list]
+        dgas_list = [i[0] for i in dgas_stderr_list]
+        st___list = [i[0] for i in st___stderr_list]
+        pzz__list = [i[0] for i in pzz__stderr_list]
 
         coeff_dminus, score_dminus = fit_vle_dminus(T_list, np.array(dliq_list) - np.array(dgas_list))  # Tc, B
         Tc = coeff_dminus[0]
@@ -381,13 +390,13 @@ class NvtSlab(GmxSimulation):
         coeff_st, score_st = fit_vle_st(T_list, st___list, Tc)  # Ast, n
 
         post_result = {
-            'dliq'      : list(map(list, zip(T_list, dliq_list))),
-            'dgas'      : list(map(list, zip(T_list, dgas_list))),
-            'st'        : list(map(list, zip(T_list, st___list))),
-            'pzz'       : list(map(list, zip(T_list, pzz__list))),
-            'dminus-fit': [list(coeff_dminus), score_dminus],
-            'dplus-fit' : [list(coeff_dplus), score_dplus],
-            'st-fit'    : [list(coeff_st), score_st]
+            'dliq'      : list(map(list, zip(T_list, dliq_stderr_list))),
+            'dgas'      : list(map(list, zip(T_list, dgas_stderr_list))),
+            'st'        : list(map(list, zip(T_list, st___stderr_list))),
+            'pzz'       : list(map(list, zip(T_list, pzz__stderr_list))),
+            'dminus-fit': [list(map(round3, coeff_dminus)), round3(score_dminus)],
+            'dplus-fit' : [list(map(round3, coeff_dplus)), round3(score_dplus)],
+            'st-fit'    : [list(map(round3, coeff_st)), round3(score_st)]
         }
 
         return post_result, 'Tc %.1f Dc %.3f' % (Tc, Dc)

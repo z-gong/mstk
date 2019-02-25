@@ -6,9 +6,9 @@ from ..wrapper import Packmol, DFF
 
 class Simulation():
     def __init__(self, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
-        if packmol_bin != None:
+        if packmol_bin is not None:
             self.packmol = Packmol(packmol_bin=packmol_bin)
-        if dff_root != None:
+        if dff_root is not None:
             self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
@@ -59,7 +59,7 @@ class Simulation():
         for i, smiles in enumerate(smiles_list):
             pdb = 'mol-%i.pdb' % i
             mol2 = 'mol-%i.mol2' % i
-            if name_list != None:
+            if name_list is not None:
                 resname = name_list[i]
             else:
                 resname = 'MO%i' % i
@@ -70,13 +70,13 @@ class Simulation():
             molwt_list.append(py_mol.molwt)
             density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
-        if n_mol_list != None:
+        if n_mol_list is not None:
             self.n_mol_list = n_mol_list[:]
         else:
-            if n_mol_ratio == None:
+            if n_mol_ratio is None:
                 n_mol_ratio = [1] * n_components
             n_atom_all = sum([n_atom_list[i] * n for i, n in enumerate(n_mol_ratio)])
-            if n_atoms == None:
+            if n_atoms is None:
                 n_atoms = n_atom_all * math.ceil(self.n_mol_default / sum(n_mol_ratio))
                 n_atoms = max(n_atoms, self.n_atom_default)
             self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]

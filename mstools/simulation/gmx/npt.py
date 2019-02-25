@@ -237,10 +237,17 @@ class Npt(GmxSimulation):
 
         from mstools.analyzer.fitting import polyfit_2d, polyfit, polyval_derivative
 
+        def round3(x):
+            return float('%.3e' % x)
+
         ### einter divided by number of molecules
-        dens_list = [float('%.3e' % result['density'][0]) for result in result_list]
-        eint_list = [float('%.3e' % (result['einter'][0] / n_mol_list[0])) for result in result_list]
-        comp_list = [float('%.3e' % result['compress'][0]) for result in result_list]
+        dens_stderr_list = [list(map(round3, result['density'])) for result in result_list]
+        eint_stderr_list = [list(map(lambda x: round3(x / n_mol_list[0]), result['einter'])) for result in result_list]
+        comp_stderr_list = [list(map(round3, result['compress'])) for result in result_list]
+
+        dens_list = [i[0] for i in dens_stderr_list]
+        eint_list = [i[0] for i in eint_stderr_list]
+        comp_list = [i[0] for i in comp_stderr_list]
 
         ### Fit with poly4
         coeff_dens, score_dens = polyfit_2d(T_list, P_list, dens_list, 4)
@@ -254,34 +261,41 @@ class Npt(GmxSimulation):
         t_p_comp_list = list(map(list, zip(T_list, P_list, comp_list)))
         t_p_comp_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
 
+        t_p_dens_stderr_list = list(map(list, zip(T_list, P_list, dens_stderr_list)))
+        t_p_dens_stderr_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+        t_p_eint_stderr_list = list(map(list, zip(T_list, P_list, eint_stderr_list)))
+        t_p_eint_stderr_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+        t_p_comp_stderr_list = list(map(list, zip(T_list, P_list, comp_stderr_list)))
+        t_p_comp_stderr_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
+
         t_dens_poly3 = {}
         t_eint_poly3 = {}
         t_comp_poly3 = {}
 
         for p in sorted(p_set):
-            _t____list = [element[0] for element in t_p_dens_list if element[1] == p]
+            _t_list = [element[0] for element in t_p_dens_list if element[1] == p]
             _dens_list = [element[2] for element in t_p_dens_list if element[1] == p]
             _eint_list = [element[2] for element in t_p_eint_list if element[1] == p]
             _comp_list = [element[2] for element in t_p_comp_list if element[1] == p]
 
-            if len(_t____list) < 5:
+            if len(_t_list) < 5:
                 continue
 
             # density-T relation is fitted by 3-order polynomial function
-            _t_dens_coeff, _t_dens_score = polyfit(_t____list, _dens_list, 3)
-            _t_eint_coeff, _t_eint_score = polyfit(_t____list, _eint_list, 3)
-            _t_comp_coeff, _t_comp_score = polyfit(_t____list, _comp_list, 3)
+            _t_dens_coeff, _t_dens_score = polyfit(_t_list, _dens_list, 3)
+            _t_eint_coeff, _t_eint_score = polyfit(_t_list, _eint_list, 3)
+            _t_comp_coeff, _t_comp_score = polyfit(_t_list, _comp_list, 3)
 
-            t_dens_poly3[p] = [list(_t_dens_coeff), min(_t____list), max(_t____list), _t_dens_score]
-            t_eint_poly3[p] = [list(_t_eint_coeff), min(_t____list), max(_t____list), _t_eint_score]
-            t_comp_poly3[p] = [list(_t_comp_coeff), min(_t____list), max(_t____list), _t_comp_score]
+            t_dens_poly3[p] = [list(map(round3, _t_dens_coeff)), round3(_t_dens_score), min(_t_list), max(_t_list)]
+            t_eint_poly3[p] = [list(map(round3, _t_eint_coeff)), round3(_t_eint_score), min(_t_list), max(_t_list)]
+            t_comp_poly3[p] = [list(map(round3, _t_comp_coeff)), round3(_t_comp_score), min(_t_list), max(_t_list)]
 
         post_result = {
-            'density'         : t_p_dens_list,
-            'einter'          : t_p_eint_list,
-            'compress'        : t_p_comp_list,
-            'density-poly4'   : [list(coeff_dens), score_dens],
-            'einter-poly4'    : [list(coeff_eint), score_eint],
+            'density'         : t_p_dens_stderr_list,
+            'einter'          : t_p_eint_stderr_list,
+            'compress'        : t_p_comp_stderr_list,
+            'density-poly4'   : [list(map(round3, coeff_dens)), round3(score_dens)],
+            'einter-poly4'    : [list(map(round3, coeff_eint)), round3(score_eint)],
             'density-t-poly3' : t_dens_poly3,
             'einter-t-poly3'  : t_eint_poly3,
             'compress-t-poly3': t_comp_poly3,

@@ -103,18 +103,10 @@ class NptPPM(GmxSimulation):
         for ppm in self.amplitudes_steps.keys():
             name_ppm = 'ppm-%.3f' % ppm
             df = edr_to_df('%s.edr' % name_ppm)
-            density_series = df.Density
             inv_series = df['1/Viscosity']
 
-            if check_converge:
-                converged, when = is_converged(density_series)
-            else:
-                converged = True
-                when = 0
-
-            # select last half of data if not converged
-            if not converged:
-                when = density_series.index[len(density_series) // 2]
+            # select 3/4 of data
+            when = inv_series.index[len(inv_series) // 4]
 
             # use block average to estimate stderr, because 1/viscosity fluctuate heavily
             inv_blocks = average_of_blocks(inv_series.loc[when:])
@@ -122,7 +114,7 @@ class NptPPM(GmxSimulation):
             vis_list.append(np.mean(vis_blocks))
             stderr_list.append(np.std(vis_blocks, ddof=1) / math.sqrt(len(vis_blocks)))
 
-        coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1, weight=1 / np.array(stderr_list))
+        coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1, weight=1 / np.sqrt(stderr_list))
 
         return {
             'viscosity'  : coef_[0],
