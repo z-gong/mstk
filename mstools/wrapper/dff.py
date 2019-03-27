@@ -31,8 +31,15 @@ class DFF:
         self.default_db = default_db or 'TEAMFF'
         self.default_table = default_table or 'MGI'
 
-    def convert_model_to_msd(self, model, msd_out):
-        pass
+    def convert_model_to_msd(self, model, msd_out, dfi_name='convert'):
+        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_convert.dfi')).read()
+        dfi = dfi.replace('%MODEL%', model).replace('%OUTPUTMODEL%', msd_out)
+        with open(dfi_name + '.dfi', 'w') as f:
+            f.write(dfi)
+        sp = subprocess.Popen([self.DFFJOB_BIN, dfi_name], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = sp.communicate()
+        if err.decode() != '':
+            raise DffError('Convert failed: %s' % err.decode())
 
     def checkout(self, models: [str], db=None, table=None, ppf_out=None, dfi_name='checkout'):
         if db is None:
