@@ -10,11 +10,15 @@ def polyfit(x: [float], y: [float], degree: int, weight: [float] = None):
     :return: coeff: array, np.array([c0, c1, ... , cn])
              score: int
     """
+    import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
 
     skx = list(zip(x))
     skv = list(y)
+
+    skx = np.array(skx).astype(np.float64)
+    skv = np.array(skv).astype(np.float64)
 
     poly = PolynomialFeatures(degree)
     skx_ = poly.fit_transform(skx)
@@ -67,11 +71,15 @@ def polyfit_2d(x: [float], y: [float], z: [float], degree: int, weight: [float] 
     :return: coeff: array, np.array([c0, c1, c2, ...])
              score: int
     """
+    import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
 
     skx = list(zip(x, y))
     skv = list(z)
+
+    skx = np.array(skx).astype(np.float64)
+    skv = np.array(skv).astype(np.float64)
 
     poly = PolynomialFeatures(degree)
     skx_ = poly.fit_transform(skx)

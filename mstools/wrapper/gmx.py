@@ -185,6 +185,9 @@ class GMX:
                 raise GmxError('Invalid property')
         return results
 
+    def get_property_stderr(self, edr, prop: str, begin=0, end=None) -> [[float]]:
+        return self.get_properties_stderr(edr, [prop], begin, end)[0]
+
     def get_box(self, edr, begin=0) -> [float]:
         sp = subprocess.Popen([self.GMX_BIN, 'energy', '-f', edr, '-b', str(begin)], stdout=PIPE, stdin=PIPE,
                               stderr=PIPE)

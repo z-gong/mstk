@@ -109,11 +109,12 @@ class NptPPM(GmxSimulation):
 
             # use block average to estimate stderr, because 1/viscosity fluctuate heavily
             inv_blocks = average_of_blocks(inv_series.loc[when:])
-            vis_blocks = [1000 / inv for inv in inv_blocks]  # convert Pa.s to cP
+            vis_blocks = [1000 / inv for inv in inv_blocks]  # convert Pa*s to cP
             vis_list.append(np.mean(vis_blocks))
             stderr_list.append(np.std(vis_blocks, ddof=1) / math.sqrt(len(vis_blocks)))
 
-        coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1, weight=1 / np.sqrt(stderr_list))
+        coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1)
+        # coef_, score = polyfit(self.amplitudes_steps.keys(), vis_list, 1, weight=1 / np.sqrt(stderr_list))
 
         return {
             'viscosity'  : coef_[0],
