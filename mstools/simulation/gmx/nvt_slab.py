@@ -12,12 +12,11 @@ class NvtSlab(GmxSimulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt-slab'
-        self.requirement = []
         self.logs = ['nvt.log']
         self.n_atom_default = 12000
         self.n_mol_default = 400
 
-    def build(self, export=True, ppf=None, minimize=False, length=None):
+    def build(self, export=True, ppf=None, length=None):
         if length is None:
             ### Slim box (z=2.0*x) in case of fully vaporization at high T
             length = (self.vol / 2.0) ** (1 / 3)

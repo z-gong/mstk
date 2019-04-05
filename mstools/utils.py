@@ -258,6 +258,7 @@ def n_diff_lines(f1: str, f2: str):
 
 
 def get_last_line(filename):
+    # TODO implement windows version
     cmd = 'tail -n 1 %s' % filename
     try:
         out = subprocess.check_output(cmd.split()).decode()

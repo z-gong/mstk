@@ -10,12 +10,11 @@ class Npt(GmxSimulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'npt'
-        self.requirement = []
         self.logs = ['npt.log', 'hvap.log']
         self.n_atom_default = 3000
         self.n_mol_default = 75
 
-    def build(self, export=True, ppf=None, minimize=False):
+    def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, self.pdb, size=[i - 2 for i in self.box], silent=True)
         print('Create box using DFF ...')
@@ -32,7 +31,7 @@ class Npt(GmxSimulation):
             self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None, TANNEAL=800,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
         if os.path.abspath(model_dir) != os.getcwd():
@@ -61,19 +60,22 @@ class Npt(GmxSimulation):
         cmd = self.gmx.mdrun(name='em', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
-        # NVT annealing from 0 to 1000 K to target T with Langevin thermostat
-        self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T,
-                                           nsteps=int(1E5), nstxtcout=0)
-        cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
-        commands.append(cmd)
-        cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
-        commands.append(cmd)
+        gro_em = 'em.gro'
+        # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
+        if TANNEAL is not None:
+            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
+                                               nsteps=int(1E5), nstxtcout=0)
+            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
+            commands.append(cmd)
+            cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
+            commands.append(cmd)
+
+            gro_em = 'anneal.gro'
 
         # NPT equilibrium with Langevin thermostat and Berendsen barostat
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P,
                                            nsteps=nst_eq, nstxtcout=0, restart=True, pcoupl='berendsen')
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='anneal.gro', top=top, tpr_out='eq.tpr',
-                              cpt='anneal.cpt', get_cmd=True)
+        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)

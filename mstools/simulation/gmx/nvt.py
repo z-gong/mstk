@@ -6,7 +6,6 @@ class Nvt(GmxSimulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt'
-        self.requirement = []
         self.logs = []
 
     def build(self, ppf=None, minimize=False):
@@ -15,7 +14,7 @@ class Nvt(GmxSimulation):
     def prepare(self, prior_job_dir=None, gro='npt.gro', top='topol.top', T=298, jobname=None,
                 n_msd=0, nst_msd=int(1E6),
                 n_velacc=0, nst_velacc=int(1E5), nstvout_velacc=10,
-                n_vis=0, nst_vis=int(5E5), nstenergy_vis=2,
+                n_vis=0, nst_vis=int(5E5), nstenergy_vis=5,
                 **kwargs) -> [str]:
         if prior_job_dir is None:
             raise Exception('prior_job_dir is needed for NVT simulation')
@@ -27,6 +26,7 @@ class Nvt(GmxSimulation):
             if f.endswith('.itp'):
                 shutil.copy(os.path.join(prior_job_dir, f), '.')
         # Scale gro box for NVT simulation
+        # TODO the equilibration of NPT simulation is not considered here
         box = self.gmx.get_box(os.path.join(prior_job_dir, 'npt.edr'))
         self.gmx.scale_box(gro, gro, box)
 

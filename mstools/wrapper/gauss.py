@@ -15,7 +15,7 @@ class Gauss:
     pass
 
     def __init__(self, gauss_bin, scrdir=None):
-        if scrdir == None:
+        if scrdir is None:
             scrdir = '/dev/shm'
         self.GAUSS_BIN = gauss_bin
         self.GAUSS_ROOT = os.path.dirname(gauss_bin)

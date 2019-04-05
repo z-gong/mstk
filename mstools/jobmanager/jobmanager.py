@@ -1,6 +1,5 @@
 import datetime
 import os
-import pwd
 import time
 from .pbsjob import PbsJob
 
@@ -12,7 +11,13 @@ class JobManager:
         self.ngpu = ngpu
         self.nprocs_request = nprocs_request or nprocs
         self.env_cmd = env_cmd or ''
-        self.username = pwd.getpwuid(os.getuid()).pw_name
+
+        if os.name == 'nt':
+            import win32api
+            self.username = win32api.GetUserName()
+        else:
+            import pwd
+            self.username = pwd.getpwuid(os.getuid()).pw_name
 
         self.stored_jobs_expire = 60  # seconds
         self.stored_jobs = []

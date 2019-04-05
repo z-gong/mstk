@@ -3,10 +3,10 @@ from .gmx import GmxSimulation
 from ...wrapper.ppf import delta_ppf
 
 
-class NvtGas(GmxSimulation):
+class NvtExample(GmxSimulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.procedure = 'nvt-gas'
+        self.procedure = 'nvt-example'
         self.logs = ['nvt.log']
 
     def build(self, export=True, ppf=None):
@@ -19,8 +19,8 @@ class NvtGas(GmxSimulation):
         if export:
             self.export(ppf=ppf)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, TANNEAL=None, jobname=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=100, nst_xtc=0,
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None,
+                dt=0.002, nst_run=int(1E6), nst_edr=10000, nst_trr=10000, nst_xtc=1000,
                 drde=False, **kwargs) -> [str]:
         if not drde:
             if os.path.abspath(model_dir) != os.getcwd():
@@ -39,39 +39,11 @@ class NvtGas(GmxSimulation):
         nprocs = self.jobmanager.nprocs
         commands = []
 
-        # energy minimization
-        self.gmx.prepare_mdp_from_template('t_em.mdp', mdp_out='grompp-em.mdp')
-        cmd = self.gmx.grompp(mdp='grompp-em.mdp', gro=gro, top=top, tpr_out='em.tpr', get_cmd=True)
-        commands.append(cmd)
-        cmd = self.gmx.mdrun(name='em', nprocs=nprocs, get_cmd=True)
-        commands.append(cmd)
-
-        gro_em = 'em.gro'
-        # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
-        if TANNEAL != None:
-            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
-                                               nsteps=int(1E5), nstxtcout=0)
-            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
-            commands.append(cmd)
-            cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
-            commands.append(cmd)
-
-            gro_em = 'anneal.gro'
-
-        # NVT equilibrium with Langevin thermostat
-        self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-eq.mdp', T=T,
-                                           nsteps=nst_eq, nstxtcout=0, restart=True)
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
-        commands.append(cmd)
-        cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
-        commands.append(cmd)
-
         # NVT production with Langevin thermostat
         self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-nvt.mdp', T=T,
                                            dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
-        cmd = self.gmx.grompp(mdp='grompp-nvt.mdp', gro='eq.gro', top=top, tpr_out='nvt.tpr',
-                              cpt='eq.cpt', get_cmd=True)
+        cmd = self.gmx.grompp(mdp='grompp-nvt.mdp', gro='conf.gro', top=top, tpr_out='nvt.tpr', get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='nvt', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)

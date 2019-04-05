@@ -99,7 +99,10 @@ class Packmol:
 
         # TODO subprocess PIPE not work for Packmol new version, do not know why
         if silent:
-            os.system(self.PACKMOL_BIN + ' < %s > /dev/null' % inp_file)
+            if os.name == 'nt':
+                os.system(self.PACKMOL_BIN + ' < %s > nul' % inp_file)
+            else:
+                os.system(self.PACKMOL_BIN + ' < %s > /dev/null' % inp_file)
         else:
             os.system(self.PACKMOL_BIN + ' < %s' % inp_file)
 

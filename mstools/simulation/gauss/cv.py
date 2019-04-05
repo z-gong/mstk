@@ -9,7 +9,6 @@ class Cv(GaussSimulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'cv'
-        self.requirement = []
         self.logs = ['conf-0.log']
 
     def build(self, export=True, ppf=None, minimize=False):

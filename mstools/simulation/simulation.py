@@ -46,7 +46,7 @@ class Simulation():
         pass
 
     def set_system(self, smiles_list: [str], n_mol_list: [int] = None, n_atoms: int = None, n_mol_ratio: [int] = None,
-                   density: float = None, name_list: [str] = None):
+                   length: float = None, density: float = None, name_list: [str] = None):
         if type(smiles_list) != list:
             raise Exception('smiles_list should be list')
         self.smiles_list = smiles_list[:]
@@ -82,8 +82,15 @@ class Simulation():
             self.n_mol_list = [math.ceil(n_atoms / n_atom_all) * n for n in n_mol_ratio]
 
         mass = sum([molwt_list[i] * self.n_mol_list[i] for i in range(n_components)])
-        if density is None:
-            density = sum([density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(self.n_mol_list)
-        self.vol = 10 / 6.022 * mass / density
-        self.length = self.vol ** (1 / 3)  # assume cubic box
-        self.box = [self.length, self.length, self.length]
+
+        if length is not None:
+            self.length = length
+            self.box = [length, length, length]
+            self.vol = self.length ** 3
+        else:
+            if density is None:
+                density = sum([density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(
+                    self.n_mol_list)
+            self.vol = 10 / 6.022 * mass / density
+            self.length = self.vol ** (1 / 3)  # assume cubic box
+            self.box = [self.length, self.length, self.length]

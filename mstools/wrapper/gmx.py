@@ -550,9 +550,10 @@ class GMX:
 
                 cmd = 'mpirun -np %i %s' % (n_mpi, cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx
-                if n_gpu > 0:
-                    cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
-                           + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
+                # TODO meaning of -gpu_id is changed in GROMACS 2018. Disable it here
+                # if n_gpu > 0:
+                #     cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
+                #            + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
                 if n_thread is not None:
                     cmd += ' -ntomp %i' % n_thread
 

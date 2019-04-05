@@ -1,6 +1,9 @@
+python>=3.6
 openbabel
 numpy
 pandas
 scipy
 pymbar
 scikit-learn
+physical_validation # for validate NPT ensemble
+mdtraj # for debug NVT_SLAB phase equilibration

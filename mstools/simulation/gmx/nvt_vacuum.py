@@ -11,10 +11,9 @@ class NvtVacuum(GmxSimulation):
         super().__init__(**kwargs)
         self.procedure = 'nvt-vacuum'
         self.logs = ['vacuum.log']
-        self.requirement = []
         self.n_atoms_default = 1
 
-    def build(self, export=True, ppf=None, minimize=False):
+    def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2, silent=True)
 
@@ -22,7 +21,7 @@ class NvtVacuum(GmxSimulation):
         self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
                                          length=self.length)
         if export:
-            self.export(ppf=ppf, minimize=minimize, vacuum=True)
+            self.export(ppf=ppf)
 
     def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None,
                 dt=0.002, nst_eq=int(4E5), nst_run=int(1E6), nst_edr=100, nst_trr=100, nst_xtc=0,

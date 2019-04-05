@@ -10,9 +10,7 @@ from ...analyzer import is_converged, block_average, average_of_blocks
 class NptPPM(GmxSimulation):
     def __init__(self, amplitudes_steps=None, **kwargs):
         super().__init__(**kwargs)
-        self.procedure = 'nvt-ppm'
-        self.requirement = []
-        self.logs = []
+        self.procedure = 'npt-ppm'
         self.n_atoms_default = 6000
         self.amplitudes_steps = amplitudes_steps or OrderedDict([(0.010, int(3.0e6)),
                                                                  (0.020, int(1.5e6)),
@@ -20,8 +18,9 @@ class NptPPM(GmxSimulation):
                                                                  (0.040, int(0.5e6)),
                                                                  (0.050, int(0.5e6)),
                                                                  ])
+        self.logs = ['ppm-%.3f.log' % ppm for ppm in self.amplitudes_steps.keys()]
 
-    def build(self, export=True, ppf=None, minimize=False):
+    def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2, silent=True)
 
@@ -29,7 +28,7 @@ class NptPPM(GmxSimulation):
         self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
                                          length=self.length)
         if export:
-            self.export(ppf=ppf, minimize=minimize)
+            self.export(ppf=ppf)
 
     def prepare(self, prior_job_dir=None, gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
                 dt=0.001, nst_eq=int(1E5), nst_edr=50, replicate=None,
@@ -54,7 +53,7 @@ class NptPPM(GmxSimulation):
             name_eq = 'eq-%.3f' % ppm
             name_ppm = 'ppm-%.3f' % ppm
 
-            # NPT-PPM equilibrium with Nose-Hoover thermostat and Berendsen barostat
+            # NPT-PPM equilibrium with Nose-Hoover thermostat and Parrinello-Rahman barostat
             self.gmx.prepare_mdp_from_template('t_npt_ppm.mdp', mdp_out='grompp-%s.mdp' % name_eq, T=T, P=P,
                                                nsteps=nst_eq, nstxtcout=0, restart=True,
                                                tcoupl='nose-hoover', ppm=ppm)
@@ -84,7 +83,7 @@ class NptPPM(GmxSimulation):
         nprocs = self.jobmanager.nprocs
         commands = []
         for ppm in self.amplitudes_steps.keys():
-            name_ppm = 'ppm-%.2f' % ppm
+            name_ppm = 'ppm-%.3f' % ppm
             self.gmx.extend_tpr(name_ppm, extend, silent=True)
             # Extending NPT production
             cmd = self.gmx.mdrun(name=name_ppm, nprocs=nprocs, extend=True, get_cmd=True)
@@ -105,8 +104,8 @@ class NptPPM(GmxSimulation):
             df = edr_to_df('%s.edr' % name_ppm)
             inv_series = df['1/Viscosity']
 
-            # select 3/4 of data
-            when = inv_series.index[len(inv_series) // 4]
+            # select last 4/5 of data
+            when = inv_series.index[len(inv_series) // 5]
 
             # use block average to estimate stderr, because 1/viscosity fluctuate heavily
             inv_blocks = average_of_blocks(inv_series.loc[when:])

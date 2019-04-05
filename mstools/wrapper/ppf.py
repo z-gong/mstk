@@ -272,7 +272,7 @@ class PPF():
             if key in new_paras.keys():
                 term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
                 term.e0.value *= (1 + new_paras[key]) ** 2
-                if delta_comment != None:
+                if delta_comment is not None:
                     term.comment += ', ' + delta_comment
                 _TD = True
             else:
@@ -280,7 +280,7 @@ class PPF():
                 if key in new_paras.keys():
                     term.r0.value /= (1 + new_paras[key]) ** (1 / 6)
                     term.e0.value *= (1 + new_paras[key]) ** 2
-                    if delta_comment != None:
+                    if delta_comment is not None:
                         term.comment += ', ' + delta_comment
                     _TD = True
 
@@ -299,9 +299,6 @@ class PPF():
                 key_words = [w.strip() for w in key_words]
                 term_key_words = [term.atom1, term.atom2, term.atom3, term.atom4]
                 if term_key_words == key_words or term_key_words == list(reversed(key_words)):
-                    # term.k1 = Parameter('0')
-                    # term.k2 = Parameter('0')
-                    # term.k3 = Parameter('0')
                     if term.k1 is not None:
                         term.k1.fixed = False
                     if term.k2 is not None:
@@ -358,7 +355,7 @@ class PPF():
 
 
 def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
-    if drde_dict == None:
+    if drde_dict is None:
         drde_dict = {
             'h_1_dl': 0.014,
 
@@ -378,6 +375,7 @@ def delta_ppf(ppf_file, ppf_out, T, drde_dict: Dict = None):
         }
     paras_delta = {}
     for k, v in drde_dict.items():
+        ### drde_dict can contain temperature dependent paras _dl, _dr, _de; and normal LJ parameters also _r0, _e0
         if k.endswith('dr') or k.endswith('de') or k.endswith('dl'):
             paras_delta[k] = v * (T - 298) / 100
         else:
