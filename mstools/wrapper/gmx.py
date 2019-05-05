@@ -15,6 +15,8 @@ class GMX:
         self.GMX_MDRUN = gmx_mdrun or gmx_bin + ' mdrun'
         # TODO temporary hack for dielectric constant in mdp
         self._DIELECTRIC = 1.0
+        # TODO temporary hack for LJ96 function
+        self._LJ96 = False
 
     def grompp(self, mdp='grompp.mdp', gro='conf.gro', top='topol.top', tpr_out='md.tpr',
                cpt=None, maxwarn=3, silent=False, get_cmd=False):
@@ -30,6 +32,11 @@ class GMX:
             sp.communicate()
 
     def mdrun(self, name='md', nprocs=1, n_omp=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
+        # TODO temporary hack for LJ96 function
+        if self._LJ96:
+            n_omp = 1
+        ###
+
         if n_omp is None:  # n_omp is None means auto
             for i in [6, 4, 2]:  # available OpenMP threads: 6, 4, 2
                 if nprocs % i == 0:
@@ -38,6 +45,12 @@ class GMX:
             else:
                 n_omp = nprocs
         n_mpi = nprocs // n_omp
+
+        # TODO temporary hack for LJ96 function
+        if self._LJ96:
+            if name.find('hvap') != -1:
+                n_mpi = 1
+        ###
 
         cmd = '%s -quiet -nobackup -ntomp %i -deffnm %s' % (self.GMX_MDRUN, n_omp, name)
         # always use mpirun even if only one process
@@ -346,7 +359,7 @@ class GMX:
         with open(top) as f:
             content = f.read()
 
-        LASTLINE = ''
+        LASTLINE = '\n'
         LAST = False
         for line in content.splitlines():
             if line.find('molecules') > -1 and line.find('[') > -1:
@@ -575,3 +588,94 @@ class GMX:
                 commands_multidir.append(replace_gpu_multidir_cmd(['$dir%i' % j for j in range(len(multidir))], cmd))
             commands_list.append(commands_multidir)
         return commands_list
+
+    @staticmethod
+    def modify_lj96_top(top):
+        with open(top) as f:
+            lines = f.read().splitlines()
+
+        new_lines = []
+        ATOMLINE = False
+        for line in lines:
+            if line.startswith(';') or line.strip() == '':
+                new_lines.append(line)
+                continue
+
+            if line.find('[') != -1 and line.find('atoms') != -1:
+                ATOMLINE = True
+                new_lines.append(line)
+                continue
+
+            if ATOMLINE and line.find('[') != -1:
+                ATOMLINE = False
+
+            if ATOMLINE:
+                words = line.strip().split()
+                words[5] = words[0]
+                tmp = ''
+                for word in words:
+                    tmp += ' %10s' % word
+                new_lines.append(tmp)
+            else:
+                new_lines.append(line)
+                continue
+
+        with open(top, 'w') as f:
+            f.write('\n'.join(new_lines))
+
+    @staticmethod
+    def modify_lj96_itp(itp):
+        with open(itp) as f:
+            lines = f.read().splitlines()
+        new_lines = []
+        for line in lines:
+            if line.strip().split()[:3] == ['1', '2', 'yes']:
+                new_lines.append(line + ' 9')
+            else:
+                new_lines.append(line)
+        with open(itp, 'w') as f:
+            f.write('\n'.join(new_lines))
+
+    @staticmethod
+    def modify_lj96_mdp(mdp):
+        with open(mdp) as f:
+            lines = f.read().splitlines()
+        new_lines = []
+        for line in lines:
+            if line.strip().startswith('cutoff-scheme') or \
+                    line.strip().startswith('cutoff_scheme') or \
+                    line.strip().startswith('cutoffscheme') or \
+                    line.strip().startswith('rlist'):
+                pass
+            else:
+                new_lines.append(line)
+
+            if line.strip().startswith('rvdw'):
+                rvdw = line.split('=')[-1].strip()
+
+        new_lines.append('\n; vdw table')
+        new_lines.append('cutoff-scheme = group')
+        new_lines.append('rlist = ' + rvdw)
+        new_lines.append('vdwtype = user')
+        with open(mdp, 'w') as f:
+            f.write('\n'.join(new_lines))
+
+    @staticmethod
+    def modify_lj96(itp_files: [str], top_files: [str], mdp_files: [str], xvg_files: []):
+        if itp_files is None:
+            itp_files = list(filter(lambda x: x.endswith('.itp'), os.listdir('.')))
+        for itp in itp_files:
+            GMX.modify_lj96_itp(itp)
+
+        if top_files is None:
+            top_files = list(filter(lambda x: x.endswith('.top'), os.listdir('.')))
+        for top in top_files:
+            GMX.modify_lj96_top(top)
+
+        if mdp_files is None:
+            mdp_files = list(filter(lambda x: x.endswith('.mdp'), os.listdir('.')))
+        for mdp in mdp_files:
+            GMX.modify_lj96_mdp(mdp)
+
+        for xvg in xvg_files:
+            shutil.copy(os.path.join(GMX.TEMPLATE_DIR, 'table6-9.xvg'), xvg)

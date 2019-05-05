@@ -74,7 +74,7 @@ class Npt(GmxSimulation):
 
         # NPT equilibrium with Langevin thermostat and Berendsen barostat
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P,
-                                           nsteps=nst_eq, nstxtcout=0, restart=True, pcoupl='berendsen')
+                                           nsteps=nst_eq, nstxtcout=0, pcoupl='berendsen')
         cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)

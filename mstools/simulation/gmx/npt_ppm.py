@@ -54,6 +54,7 @@ class NptPPM(GmxSimulation):
             name_ppm = 'ppm-%.3f' % ppm
 
             # NPT-PPM equilibrium with Nose-Hoover thermostat and Parrinello-Rahman barostat
+            # TODO should test the validity of V-rescale thermostat. V-rescale is preferred if it works
             self.gmx.prepare_mdp_from_template('t_npt_ppm.mdp', mdp_out='grompp-%s.mdp' % name_eq, T=T, P=P,
                                                nsteps=nst_eq, nstxtcout=0, restart=True,
                                                tcoupl='nose-hoover', ppm=ppm)
@@ -64,6 +65,7 @@ class NptPPM(GmxSimulation):
             commands.append(cmd)
 
             # NPT-PPM production with Nose-Hoover thermostat and Parrinello-Rahman barostat
+            # TODO should test the validity of V-rescale thermostat. V-rescale is preferred if it works
             self.gmx.prepare_mdp_from_template('t_npt_ppm.mdp', mdp_out='grompp-%s.mdp' % name_ppm, T=T, P=P,
                                                dt=dt, nsteps=nst_run, nstenergy=nst_edr, restart=True,
                                                tcoupl='nose-hoover', ppm=ppm)
