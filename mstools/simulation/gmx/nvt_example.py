@@ -8,14 +8,15 @@ class NvtExample(GmxSimulation):
         super().__init__(**kwargs)
         self.procedure = 'nvt-example'
         self.logs = ['nvt.log']
+        self.n_atom_default = 1
+        self.n_mol_default = 1
 
     def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
-        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2, silent=True)
+        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=28, silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
-                                         length=self.length)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', length=30)
         if export:
             self.export(ppf=ppf)
 
