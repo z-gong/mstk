@@ -13,10 +13,30 @@ class GMX:
     def __init__(self, gmx_bin, gmx_mdrun=None):
         self.GMX_BIN = gmx_bin
         self.GMX_MDRUN = gmx_mdrun or gmx_bin + ' mdrun'
+        self.check_version()
         # TODO temporary hack for dielectric constant in mdp
         self._DIELECTRIC = 1.0
         # TODO temporary hack for LJ96 function
         self._LJ96 = False
+
+    def check_version(self):
+        cmd = '%s --version' % self.GMX_BIN
+        try:
+            sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+        except:
+            raise GmxError('gmx not valid')
+        stdout = sp.communicate()[0]
+        for line in stdout.decode().splitlines():
+            if line.startswith('GROMACS version'):
+                break
+        else:
+            raise GmxError('gmx not valid')
+
+        self.version = line.strip().split()[-1]
+        if not (self.version.startswith('2016') or self.version.startswith('2018')):
+            raise GmxError('Supported GROMACS versions: 2016.x, 2018.x')
+
+        self.majorversion = self.version.split('.')[0]
 
     def grompp(self, mdp='grompp.mdp', gro='conf.gro', top='topol.top', tpr_out='md.tpr',
                cpt=None, maxwarn=3, silent=False, get_cmd=False):
@@ -521,9 +541,7 @@ class GMX:
         sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
         sp.communicate()
 
-    @staticmethod
-    def generate_gpu_multidir_cmds(dirs: [str], commands: [str], n_parallel,
-                                   n_gpu=0, n_omp=None, n_procs=None) -> [[str]]:
+    def generate_gpu_multidir_cmds(self,dirs: [str], commands: [str], n_parallel, n_gpu=0, n_omp=None, n_procs=None) -> [[str]]:
         '''
         Set n_omp in most case. If n_procs is set, n_omp has no effect.
         :param dirs:
@@ -566,10 +584,11 @@ class GMX:
 
                 cmd = 'mpirun -np %i %s' % (n_mpi, cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx
-                # TODO meaning of -gpu_id is changed in GROMACS 2018. Disable it here
-                # if n_gpu > 0:
-                #     cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
-                #            + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
+
+                ### meaning of -gpu_id is changed in GROMACS 2018. Disable gpu assignment
+                if n_gpu > 0 and self.majorversion == '2016':
+                    cmd += ' -gpu_id ' + ''.join(map(str, range(n_gpu))) * (n_mpi // n_gpu) \
+                           + ''.join(map(str, range(n_mpi % n_gpu)))  # add -gpu_id 01230123012
                 if n_thread is not None:
                     cmd += ' -ntomp %i' % n_thread
 
