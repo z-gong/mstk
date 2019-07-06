@@ -33,8 +33,8 @@ class GMX:
             raise GmxError('gmx not valid')
 
         self.version = line.strip().split()[-1]
-        if not (self.version.startswith('2016') or self.version.startswith('2018')):
-            raise GmxError('Supported GROMACS versions: 2016.x, 2018.x')
+        if not (self.version.startswith('2016') or self.version.startswith('2018') or self.version.startswith('2019')):
+            raise GmxError('Supported GROMACS versions: 2016.x, 2018.x, 2019.x')
 
         self.majorversion = self.version.split('.')[0]
 
