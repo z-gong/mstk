@@ -6,9 +6,12 @@ from ...utils import get_last_line
 
 
 class GmxSimulation(Simulation):
-    def __init__(self, packmol_bin=None, dff_root=None, gmx_bin=None, gmx_mdrun=None, jobmanager=None, **kwargs):
-        super().__init__(packmol_bin=packmol_bin, dff_root=dff_root, jobmanager=jobmanager, **kwargs)
-        self.gmx = GMX(gmx_bin=gmx_bin, gmx_mdrun=gmx_mdrun)
+    def __init__(self, packmol=None, dff=None, gmx=None, packmol_bin=None, dff_root=None, gmx_bin=None, gmx_mdrun=None, jobmanager=None, **kwargs):
+        super().__init__(packmol=packmol, dff=dff, packmol_bin=packmol_bin, dff_root=dff_root, jobmanager=jobmanager, **kwargs)
+        if gmx is not None:
+            self.gmx = gmx
+        else:
+            self.gmx = GMX(gmx_bin=gmx_bin, gmx_mdrun=gmx_mdrun)
         self.logs = []  # used for checking whether the job is successfully finished
 
     def export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp', ppf=None, ff=None):

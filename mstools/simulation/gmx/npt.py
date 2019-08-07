@@ -237,7 +237,7 @@ class Npt(GmxSimulation):
         if len(t_set) < 5 or len(p_set) < 5:
             return None, 'T or P points less than 5'
 
-        from mstools.analyzer.fitting import polyfit_2d, polyfit, polyval_derivative
+        from mstools.analyzer.fitting import polyfit_2d, polyfit
 
         def round3(x):
             return float('%.3e' % x)
@@ -251,11 +251,11 @@ class Npt(GmxSimulation):
         eint_list = [i[0] for i in eint_stderr_list]
         comp_list = [i[0] for i in comp_stderr_list]
 
-        ### Fit with poly4
+        ### Fit against T, P with poly4
         coeff_dens, score_dens = polyfit_2d(T_list, P_list, dens_list, 4)
         coeff_eint, score_eint = polyfit_2d(T_list, P_list, eint_list, 4)
 
-        ### Fit with poly3
+        ### Fit against only T with poly3
         t_p_dens_list = list(map(list, zip(T_list, P_list, dens_list)))
         t_p_dens_list.sort(key=lambda x: (x[1], x[0]))  # sorted by P, then T
         t_p_eint_list = list(map(list, zip(T_list, P_list, eint_list)))
@@ -309,56 +309,86 @@ class Npt(GmxSimulation):
     def get_post_data(post_result, T, P, smiles_list, **kwargs) -> dict:
         from mstools.analyzer.fitting import polyval_derivative_2d, polyval, polyval_derivative, polyfit
 
-        ### Calculate with poly4. Not accurate enough, especially for expansion and compressibility
+        ### Calculate with T,P-poly4. Not accurate enough, especially for expansion and compressibility
         coeff_dens, score_dens = post_result['density-poly4']
         coeff_eint, score_eint = post_result['einter-poly4']
         density4, dDdT4, dDdP4 = polyval_derivative_2d(T, P, 4, coeff_dens)  # g/mL
+        einter4, dEdT4, dEdP4 = polyval_derivative_2d(T, P, 4, coeff_eint)  # kJ/mol
         expansion4 = -1 / density4 * dDdT4  # K^-1
         compressibility4 = 1 / density4 * dDdP4  # bar^-1
 
-        ### poly3
+        import pybel
+        py_mol = pybel.readstring('smi', smiles_list[0])
+        cp_inter4 = dEdT4 * 1000  # J/mol.K
+        cp_pv4 = - py_mol.molwt * P / density4 ** 2 * dDdT4 * 0.1  # J/mol/K
+
+        ### T-poly3
         _p_dens_list = []
         _p_eint_list = []
         _p_comp_list = []
         _p_dDdT_list = []
         _p_dEdT_list = []
         for _p in post_result['density-t-poly3']:
-            coef, tmin, tmax, score = post_result['density-t-poly3'][str(_p)]
+            coef, score, tmin, tmax = post_result['density-t-poly3'][str(_p)]
+            if score < 0.999 or T < tmin - 10 or T > tmax + 10:
+                continue
+
             dens, dDdT = polyval_derivative(T, coef)
-            _p_dens_list.append([_p, dens])
-            _p_dDdT_list.append([_p, dDdT])
+            _p_dens_list.append([float(_p), dens])
+            _p_dDdT_list.append([float(_p), dDdT])
 
         for _p in post_result['einter-t-poly3']:
-            coef, tmin, tmax, score = post_result['einter-t-poly3'][str(_p)]
+            coef, score, tmin, tmax = post_result['einter-t-poly3'][str(_p)]
+            if score < 0.999 or T < tmin - 10 or T > tmax + 10:
+                continue
+
             eint, dEdT = polyval_derivative(T, coef)
-            _p_eint_list.append([_p, eint])
-            _p_dEdT_list.append([_p, dEdT])
+            _p_eint_list.append([float(_p), eint])
+            _p_dEdT_list.append([float(_p), dEdT])
 
         for _p in post_result['compress-t-poly3']:
-            coef, tmin, tmax, score = post_result['compress-t-poly3'][str(_p)]
-            _p_comp_list.append([_p, polyval(T, coef)])
+            coef, score, tmin, tmax = post_result['compress-t-poly3'][str(_p)]
+            if score < 0.95 or T < tmin - 10 or T > tmax + 10:
+                continue
 
-        coef, score = polyfit(*zip(*_p_dens_list), 3)
-        density = polyval(P, coef)
+            _p_comp_list.append([float(_p), polyval(T, coef)])
 
-        coef, score = polyfit(*zip(*_p_eint_list), 3)
-        einter = polyval(P, coef)
-        hvap = 8.314 * T / 1000 - einter  # kJ/mol
+        ### Default value
+        density = None
+        einter = None
+        hvap = None
+        cp_inter = None
+        cp_pv = None
+        expansion = None
+        compressibility = None
 
-        coef, score = polyfit(*zip(*_p_comp_list), 3)
-        compressibility = polyval(P, coef)
+        if len(_p_dens_list) >= 5:
+            coef, score = polyfit(*zip(*_p_dens_list), 3)
+            _p_list = list(zip(*_p_dens_list))[0]
+            if P > min(_p_list) - 10 and P < max(_p_list) + 10:
+                density = polyval(P, coef)
 
-        coef, score = polyfit(*zip(*_p_dEdT_list), 3)
-        dEdT = polyval(P, coef)
-        cp_inter = dEdT * 1000  # J/mol.K
+                coef, score = polyfit(*zip(*_p_dDdT_list), 3)
+                dDdT = polyval(P, coef)
+                expansion = -1 / density * dDdT  # K^-1
+                cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
 
-        coef, score = polyfit(*zip(*_p_dDdT_list), 3)
-        dDdT = polyval(P, coef)
-        expansion = -1 / density * dDdT  # K^-1
+        if len(_p_eint_list) >= 5:
+            coef, score = polyfit(*zip(*_p_eint_list), 3)
+            _p_list = list(zip(*_p_eint_list))[0]
+            if P > min(_p_list) - 10 and P < max(_p_list) + 10:
+                einter = polyval(P, coef)
+                hvap = 8.314 * T / 1000 - einter  # kJ/mol
 
-        import pybel
-        py_mol = pybel.readstring('smi', smiles_list[0])
-        cp_pv = - py_mol.molwt * P / density ** 2 * dDdT * 0.1  # J/mol/K
+                coef, score = polyfit(*zip(*_p_dEdT_list), 3)
+                dEdT = polyval(P, coef)
+                cp_inter = dEdT * 1000  # J/mol.K
+
+        if len(_p_comp_list) >= 5:
+            coef, score = polyfit(*zip(*_p_comp_list), 3)
+            _p_list = list(zip(*_p_comp_list))[0]
+            if P > min(_p_list) - 10 and P < max(_p_list) + 10:
+                compressibility = polyval(P, coef)
 
         return {
             'density'            : density,
@@ -371,6 +401,9 @@ class Npt(GmxSimulation):
             'density-poly4-score': score_dens,
             'einter-poly4-score' : score_eint,
             'density-poly4'      : density4,
+            'einter-poly4'       : einter4,
+            'cp_inter-poly4'     : cp_inter4,
+            'cp_pv-poly4'        : cp_pv4,
             'expansion-poly4'    : expansion4,
             'compress-poly4'     : compressibility4,
         }

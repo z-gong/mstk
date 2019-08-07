@@ -5,10 +5,14 @@ from ..wrapper import Packmol, DFF
 
 
 class Simulation():
-    def __init__(self, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
-        if packmol_bin is not None:
+    def __init__(self, packmol=None, dff=None, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
+        if packmol is not None:
+            self.packmol = packmol
+        elif packmol_bin is not None:
             self.packmol = Packmol(packmol_bin=packmol_bin)
-        if dff_root is not None:
+        if dff is not None:
+            self.dff = dff
+        elif dff_root is not None:
             self.dff = DFF(dff_root=dff_root, default_db=dff_db, default_table=dff_table)
         self.jobmanager = jobmanager
         self.procedure = None
