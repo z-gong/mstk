@@ -4,6 +4,7 @@ from simtk.openmm import app
 from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from ..omm import OplsPsfFile, GroReporter, GroFile
+from ..omm.drudetemperaturereporter import DrudeTemperatureReporter
 
 
 def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='CUDA'):
@@ -16,10 +17,19 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
                               constraints=app.HBonds, rigidWater=True,
                               verbose=True)
 
+    print('Initializing simulation...')
+    if not psf.is_drude:
+        print('\tLangevin thermostat: 1.0/ps')
+        integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
+    else:
+        print('\tDual Langevin thermostat: 5.0/ps, 20/ps')
+        integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
+        integrator.setMaxDrudeDistance(0.025 * nm)
+
     if pcoupl == 'iso':
         print('\tIsotropic barostat')
         system.addForce(mm.MonteCarloBarostat(P * bar, T * kelvin, 25))
-    elif pcoupl == 'xyz':
+    elif pcoupl == 'aniso':
         print('\tAnisotropic barostat')
         system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, True, 25))
     elif pcoupl == 'xy':
@@ -28,23 +38,16 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
     else:
         print('\tNo barostat')
 
-    print('Initializing simulation...')
-    if not psf.is_drude:
-        print('\tLangevin thermostat: 1.0/ps')
-        integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
-    else:
-        print('\tDual Langevin thermostat: 10/ps, 50/ps')
-        integrator = mm.DrudeLangevinIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 50 / ps, 0.001 * ps)
-        integrator.setMaxDrudeDistance(0.02 * nm)
-
     if platform == 'CUDA':
+        print('\tPlatform: CUDA')
         platform = mm.Platform.getPlatformByName('CUDA')
         properties = {'CudaPrecision': 'mixed'}
     elif platform == 'OpenCL':
+        print('\tPlatform: OpenCL')
         platform = mm.Platform.getPlatformByName('OpenCL')
         properties = {'OpenCLPrecision': 'mixed'}
     else:
-        print('Unknown platform. Use Reference')
+        print('\tPlatform: Reference')
         platform = mm.Platform.getPlatformByName('Reference')
         properties = {}
 
@@ -57,6 +60,9 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
                                                potentialEnergy=True, kineticEnergy=True,
                                                volume=True, density=True,
                                                elapsedTime=True, speed=True, separator='\t'))
+    if psf.is_drude:
+        sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 20000))
+
     state = sim.context.getState(getEnergy=True)
     print('Energy: ' + str(state.getPotentialEnergy()))
     return sim
