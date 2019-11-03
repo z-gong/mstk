@@ -6,7 +6,7 @@ from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as 
 from ..omm import OplsPsfFile, GroReporter, GroFile
 
 
-def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso'):
+def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='CUDA'):
     print('Building system...')
     gro = app.GromacsGroFile(gro_file)
     psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
@@ -15,14 +15,6 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso'):
                               nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True,
                               verbose=True)
-
-    if not psf.is_drude:
-        print('\tLangevin thermostat: 1.0/ps')
-        integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
-    else:
-        print('\tDual Langevin thermostat: 10/ps, 50/ps')
-        integrator = mm.DrudeLangevinIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 50 / ps, 0.001 * ps)
-        integrator.setMaxDrudeDistance(0.02 * nm)
 
     if pcoupl == 'iso':
         print('\tIsotropic barostat')
@@ -37,13 +29,30 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso'):
         print('\tNo barostat')
 
     print('Initializing simulation...')
-    platform = mm.Platform.getPlatformByName('CUDA')
-    properties = {'CudaPrecision': 'mixed'}
+    if not psf.is_drude:
+        print('\tLangevin thermostat: 1.0/ps')
+        integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
+    else:
+        print('\tDual Langevin thermostat: 10/ps, 50/ps')
+        integrator = mm.DrudeLangevinIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 50 / ps, 0.001 * ps)
+        integrator.setMaxDrudeDistance(0.02 * nm)
+
+    if platform == 'CUDA':
+        platform = mm.Platform.getPlatformByName('CUDA')
+        properties = {'CudaPrecision': 'mixed'}
+    elif platform == 'OpenCL':
+        platform = mm.Platform.getPlatformByName('OpenCL')
+        properties = {'OpenCLPrecision': 'mixed'}
+    else:
+        print('Unknown platform. Use Reference')
+        platform = mm.Platform.getPlatformByName('Reference')
+        properties = {}
+
     sim = app.Simulation(psf.topology, system, integrator, platform, properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin)
     sim.reporters.append(GroReporter('dump.gro', 10000))
-    sim.reporters.append(app.DCDReporter('dump.dcd', 1000))
+    sim.reporters.append(app.DCDReporter('dump.dcd', 1000, enforcePeriodicBox=False))
     sim.reporters.append(app.StateDataReporter(sys.stdout, 500, step=True, temperature=True,
                                                potentialEnergy=True, kineticEnergy=True,
                                                volume=True, density=True,
@@ -72,12 +81,14 @@ def minimize(sim, tolerance):
 
 
 def run_simulation(nstep, gro='conf.gro', psf='topol.psf', prm='ff.prm',
-                   T=300, P=1, pcoupl='iso'):
+                   T=300, P=1, pcoupl='iso', platform='OpenCL'):
     print_omm_info()
-    sim = gen_simulation(gro, psf, prm, T, P, pcoupl)
-    minimize(sim, 200)
+    sim = gen_simulation(gro, psf, prm, T, P, pcoupl, platform)
+    minimize(sim, 500)
     print('Running...')
     sim.step(nstep)
+    sim.saveCheckpoint('rst.cpt')
+    sim.saveState('rst.xml')
 
 
 if __name__ == '__main__':

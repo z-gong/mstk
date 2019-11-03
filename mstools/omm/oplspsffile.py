@@ -468,29 +468,33 @@ class OplsPsfFile(object):
             self.box_vectors = periodicBoxVectors
 
     def _build_13_14_list(self):
-        self.topo_13_list = []
-        self.topo_14_list = []
+        topo_12_set = set()
+        topo_13_set = set()
+        topo_14_set = set()
+        for bond in self.bond_list:
+            a1, a2 = bond.atom1, bond.atom2
+            pair = (min(a1.idx, a2.idx), max(a1.idx, a2.idx),)
+            topo_12_set.add(pair)
         for bond in self.bond_list:
             a2, a3 = bond.atom1, bond.atom2
             for a1 in a2.bond_partners:
-                pair = list(sorted([a1.idx, a3.idx]))
-                if a1 == a3 or a1 in a3.bond_partners: continue
-                if not pair in self.topo_13_list:
-                    self.topo_13_list.append(pair)
+                pair = (min(a1.idx, a3.idx), max(a1.idx, a3.idx),)
+                if a1 != a3:
+                    topo_13_set.add(pair)
             for a4 in a3.bond_partners:
-                pair = list(sorted([a2.idx, a4.idx]))
-                if a2 == a4 or a2 in a4.bond_partners: continue
-                if not pair in self.topo_13_list:
-                    self.topo_13_list.append(pair)
+                pair = (min(a2.idx, a4.idx), max(a2.idx, a4.idx),)
+                if a2 != a4:
+                    topo_13_set.add(pair)
         for bond in self.bond_list:
             a2, a3 = bond.atom1, bond.atom2
             for a1 in a2.bond_partners:
                 for a4 in a3.bond_partners:
-                    pair = list(sorted([a1.idx, a4.idx]))
-                    if a1 == a4 or a1 in a4.bond_partners or \
-                            pair in self.topo_13_list: continue
-                    if not pair in self.topo_14_list:
-                        self.topo_14_list.append(pair)
+                    pair = (min(a1.idx, a4.idx), max(a1.idx, a4.idx),)
+                    if a1 != a4:
+                        topo_14_set.add(pair)
+
+        self.topo_13_list = list(sorted(topo_13_set - topo_12_set))
+        self.topo_14_list = list(sorted(topo_14_set - topo_13_set.union(topo_12_set)))
 
 
     @staticmethod
