@@ -103,8 +103,7 @@ class DrudeTemperatureReporter(object):
             if any(type(system.getForce(i)) == mm.CMMotionRemover for i in range(system.getNumForces())):
                 self.dof_atom -= 3
 
-            self.drude_set = set()
-            self.core_set = set()
+            drude_set = set()
             self.pair_set = set()
             for idx in range(system.getNumForces()):
                 force: mm.DrudeForce = system.getForce(idx)
@@ -114,12 +113,11 @@ class DrudeTemperatureReporter(object):
                 self.dof_drude += 3 * force.getNumParticles()
                 for i in range(force.getNumParticles()):
                     i_drude, i_core = force.getParticleParameters(i)[:2]
-                    self.drude_set.add(i_drude)
-                    self.core_set.add(i_core)
+                    drude_set.add(i_drude)
                     self.pair_set.add((i_drude, i_core))
-            self.drude_array = np.array(list(self.drude_set))
-            self.core_array = np.array(list(self.core_set))
-            self.nopol_array = np.array([i for i in range(system.getNumParticles()) if i not in self.drude_set.union(self.core_set)])
+            self.drude_array = np.array(list(drude_set))
+            self.atom_array = np.array(list(set(range(system.getNumParticles())) - drude_set))
+
             self._hasInitialized = True
             print('#Step\tT_Atom\tT_Drude\tKE_Atom\tKE_Drude', file=self._out)
 
@@ -138,13 +136,9 @@ class DrudeTemperatureReporter(object):
             velocities[i_core] = v_com
             masses[i_drude] = m_rel
             masses[i_core] = m_com
-        vdot = np.array([np.dot(vel, vel) for vel in velocities])
-        ke_nopol = np.sum((vdot[self.nopol_array] * masses[self.nopol_array])) / 2
-        ke_com = np.sum((vdot[self.core_array] * masses[self.core_array])) / 2
-        ke_drude = np.sum((vdot[self.drude_array] * masses[self.drude_array])) / 2
-
-        ke = (ke_nopol + ke_com) * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
-        ke_drude = ke_drude * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
+        mvv = masses * np.sum(velocities ** 2, axis=1)
+        ke = mvv[self.atom_array].sum() / 2 * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
+        ke_drude = mvv[self.drude_array].sum() / 2 * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
         t = (2 * ke / (self.dof_atom * unit.MOLAR_GAS_CONSTANT_R))
         t_drude = (2 * ke_drude / (self.dof_drude * unit.MOLAR_GAS_CONSTANT_R))
         print(simulation.currentStep, t.value_in_unit(unit.kelvin), t_drude.value_in_unit(unit.kelvin),

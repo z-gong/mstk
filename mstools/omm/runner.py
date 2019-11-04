@@ -56,12 +56,12 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
     sim.context.setVelocitiesToTemperature(T * kelvin)
     sim.reporters.append(GroReporter('dump.gro', 10000))
     sim.reporters.append(app.DCDReporter('dump.dcd', 1000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 500, step=True, temperature=True,
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
                                                potentialEnergy=True, kineticEnergy=True,
                                                volume=True, density=True,
                                                elapsedTime=True, speed=True, separator='\t'))
     if psf.is_drude:
-        sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 20000))
+        sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
     state = sim.context.getState(getEnergy=True)
     print('Energy: ' + str(state.getPotentialEnergy()))
