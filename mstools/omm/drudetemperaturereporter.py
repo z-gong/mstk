@@ -34,6 +34,7 @@ __version__ = "1.0"
 
 import simtk.openmm as mm
 from simtk import unit
+import numpy as np
 
 class DrudeTemperatureReporter(object):
     """PDBReporter outputs a series of frames from a Simulation to a PDB file.
@@ -96,13 +97,14 @@ class DrudeTemperatureReporter(object):
         if not self._hasInitialized:
             self.dof_atom = self.dof_drude = 0
             for i in range(system.getNumParticles()):
-                if system.getParticleMass(i) > 0*unit.dalton:
+                if system.getParticleMass(i) > 0 * unit.dalton:
                     self.dof_atom += 3
             self.dof_atom -= system.getNumConstraints()
             if any(type(system.getForce(i)) == mm.CMMotionRemover for i in range(system.getNumForces())):
                 self.dof_atom -= 3
 
-            self.drude_core_set = set()
+            self.drude_set = set()
+            self.core_set = set()
             self.pair_set = set()
             for idx in range(system.getNumForces()):
                 force: mm.DrudeForce = system.getForce(idx)
@@ -112,37 +114,42 @@ class DrudeTemperatureReporter(object):
                 self.dof_drude += 3 * force.getNumParticles()
                 for i in range(force.getNumParticles()):
                     i_drude, i_core = force.getParticleParameters(i)[:2]
-                    self.drude_core_set.add(i_drude)
-                    self.drude_core_set.add(i_core)
+                    self.drude_set.add(i_drude)
+                    self.core_set.add(i_core)
                     self.pair_set.add((i_drude, i_core))
+            self.drude_array = np.array(list(self.drude_set))
+            self.core_array = np.array(list(self.core_set))
+            self.nopol_array = np.array([i for i in range(system.getNumParticles()) if i not in self.drude_set.union(self.core_set)])
             self._hasInitialized = True
             print('#Step\tT_Atom\tT_Drude\tKE_Atom\tKE_Drude', file=self._out)
 
-        ke_com = 0 * unit.kilojoule_per_mole
-        ke_rel = 0 * unit.kilojoule_per_mole
-        velocities = state.getVelocities()
+        velocities = state.getVelocities(asNumpy=True).value_in_unit(unit.nanometer / unit.picosecond)
+        masses = np.array([system.getParticleMass(i).value_in_unit(unit.dalton) for i in range(system.getNumParticles())])
         for i_drude, i_core in self.pair_set:
             v_drude = velocities[i_drude]
             v_core = velocities[i_core]
-            m_drude = system.getParticleMass(i_drude)
-            m_core = system.getParticleMass(i_core)
+            m_drude = masses[i_drude]
+            m_core = masses[i_core]
             m_com = m_drude + m_core
             m_rel = m_drude * m_core / m_com
             v_com = (m_drude * v_drude + m_core * v_core) / m_com
             v_rel = v_drude - v_core
-            ke_com += m_com * (v_com[0] * v_com[0] + v_com[1] * v_com[1] + v_com[2] * v_com[2]) / 2
-            ke_rel += m_rel * (v_rel[0] * v_rel[0] + v_rel[1] * v_rel[1] + v_rel[2] * v_rel[2]) / 2
-        for ia in range(system.getNumParticles()):
-            if ia in self.drude_core_set:
-                continue
-            v = velocities[ia]
-            m = system.getParticleMass(ia)
-            ke_com += m * (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) / 2
+            velocities[i_drude] = v_rel
+            velocities[i_core] = v_com
+            masses[i_drude] = m_rel
+            masses[i_core] = m_com
+        vdot = np.array([np.dot(vel, vel) for vel in velocities])
+        ke_nopol = np.sum((vdot[self.nopol_array] * masses[self.nopol_array])) / 2
+        ke_com = np.sum((vdot[self.core_array] * masses[self.core_array])) / 2
+        ke_drude = np.sum((vdot[self.drude_array] * masses[self.drude_array])) / 2
 
-        t_com = (2 * ke_com / (self.dof_atom * unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin)
-        t_rel = (2 * ke_rel / (self.dof_drude * unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin)
-        print(simulation.currentStep, t_com, t_rel, ke_com.value_in_unit(unit.kilojoule_per_mole),
-              ke_rel.value_in_unit(unit.kilojoule_per_mole), sep='\t', file=self._out)
+        ke = (ke_nopol + ke_com) * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
+        ke_drude = ke_drude * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
+        t = (2 * ke / (self.dof_atom * unit.MOLAR_GAS_CONSTANT_R))
+        t_drude = (2 * ke_drude / (self.dof_drude * unit.MOLAR_GAS_CONSTANT_R))
+        print(simulation.currentStep, t.value_in_unit(unit.kelvin), t_drude.value_in_unit(unit.kelvin),
+              ke.value_in_unit(unit.kilojoule_per_mole), ke_drude.value_in_unit(unit.kilojoule_per_mole),
+              sep='\t', file=self._out)
 
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
