@@ -3,11 +3,11 @@ import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
-from ..omm import OplsPsfFile, GroReporter, GroFile
-from ..omm.drudetemperaturereporter import DrudeTemperatureReporter
+from mstools.omm import OplsPsfFile, GroReporter, GroFile
+from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
 
 
-def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='CUDA'):
+def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl='iso', platform='CUDA'):
     print('Building system...')
     gro = app.GromacsGroFile(gro_file)
     psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
@@ -19,11 +19,21 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
 
     print('Initializing simulation...')
     if not psf.is_drude:
-        print('\tLangevin thermostat: 1.0/ps')
-        integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
+        if tcoupl == 'langevin':
+            print('\tLangevin thermostat: 1.0/ps')
+            integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
+        elif tcoupl == 'nose-hoover':
+            print('\tNose-Hoover thermostat: 10/ps')
+            integrator = mm.NoseHooverIntegrator(T * kelvin, 10 / ps, 0.001 * ps)
     else:
-        print('\tDual Langevin thermostat: 5.0/ps, 20/ps')
-        integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
+        if tcoupl == 'langevin':
+            print('\tDual Langevin thermostat: 5.0/ps, 20/ps')
+            integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
+        elif tcoupl == 'nose-hoover':
+            print('\tDual Nose-Hoover thermostat: 10/ps, 50/ps')
+            integrator = mm.DrudeNoseHooverIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
+        else:
+            raise Exception('Available thermostat: langvein, nose-hoover')
         integrator.setMaxDrudeDistance(0.025 * nm)
 
     if pcoupl == 'iso':
@@ -35,6 +45,9 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, pcoupl='iso', platform='C
     elif pcoupl == 'xy':
         print('\tAnisotropic Barostat only for X and Y')
         system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, False, 25))
+    elif pcoupl == 'z':
+        print('\tAnisotropic Barostat only for Z')
+        system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, 25))
     else:
         print('\tNo barostat')
 
@@ -87,10 +100,10 @@ def minimize(sim, tolerance):
 
 
 def run_simulation(nstep, gro='conf.gro', psf='topol.psf', prm='ff.prm',
-                   T=300, P=1, pcoupl='iso', platform='OpenCL'):
+                   T=300, P=1, tcoupl='langevin', pcoupl='iso', platform='OpenCL'):
     print_omm_info()
-    sim = gen_simulation(gro, psf, prm, T, P, pcoupl, platform)
-    minimize(sim, 500)
+    sim = gen_simulation(gro, psf, prm, T, P, tcoupl, pcoupl, platform)
+    minimize(sim, 200)
     print('Running...')
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')
