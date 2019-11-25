@@ -1,13 +1,30 @@
 import sys
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kelvin, bar
+from simtk.unit import kelvin, bar, elementary_charge as e
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroReporter, GroFile
 from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
 
 
-def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl='iso', platform='CUDA'):
+def slab_correction(system: mm.System):
+    muz = mm.CustomExternalForce('q*z')
+    muz.addPerParticleParameter('q')
+    nbforce = [system.getForce(i) for i in range(system.getNumForces())
+               if system.getForce(i).__class__ == mm.NonbondedForce][0]
+    for i in range(nbforce.getNumParticles()):
+        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
+        muz.addParticle(i, [q])
+    box = system.getDefaultPeriodicBoxVectors()
+    vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
+    cvforce = mm.CustomCVForce('k*muz*muz')
+    _conv = (1.602E-19) ** 2 / 1E-9 / (4 * 3.1415926) / 8.854E-12 * 6.022E23 / 1000  # convert from e^2/nm to kJ/mol
+    cvforce.addGlobalParameter('k', 2 * 3.1415926 / vol * _conv)
+    cvforce.addCollectiveVariable('muz', muz)
+    system.addForce(cvforce)
+
+
+def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl='iso', slab=False, platform='CUDA'):
     print('Building system...')
     gro = app.GromacsGroFile(gro_file)
     psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
@@ -16,6 +33,9 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl
                               nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True,
                               verbose=True)
+
+    if slab:
+        slab_correction(system)
 
     print('Initializing simulation...')
     if not psf.is_drude:
@@ -100,9 +120,10 @@ def minimize(sim, tolerance):
 
 
 def run_simulation(nstep, gro='conf.gro', psf='topol.psf', prm='ff.prm',
-                   T=300, P=1, tcoupl='langevin', pcoupl='iso', platform='OpenCL'):
+                   T=300, P=1, tcoupl='langevin', pcoupl='iso', slab=False,
+                   platform='OpenCL'):
     print_omm_info()
-    sim = gen_simulation(gro, psf, prm, T, P, tcoupl, pcoupl, platform)
+    sim = gen_simulation(gro, psf, prm, T, P, tcoupl, pcoupl, slab, platform)
     minimize(sim, 200)
     print('Running...')
     sim.step(nstep)
