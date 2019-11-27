@@ -45,6 +45,7 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl
         if psf.is_drude:
             print('\tDrude Langevin thermostat: 5.0/ps, 20/ps')
             integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
+            integrator.setMaxDrudeDistance(0.025 * nm)
         else:
             print('\tLangevin thermostat: 1.0/ps')
             integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
@@ -52,12 +53,12 @@ def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl
         if psf.is_drude:
             print('\tDrude Nose-Hoover thermostat: 10/ps, 40/ps')
             integrator = mm.DrudeNoseHooverIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 40 / ps, 0.001 * ps)
+            integrator.setMaxDrudeDistance(0.025 * nm)
         else:
             print('\tNose-Hoover thermostat: 10/ps')
             integrator = mm.NoseHooverIntegrator(T * kelvin, 10 / ps, 0.001 * ps)
     else:
         raise Exception('Available thermostat: langevin, nose-hoover')
-    integrator.setMaxDrudeDistance(0.025 * nm)
 
     if pcoupl == 'iso':
         print('\tIsotropic barostat')
