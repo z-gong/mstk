@@ -1,33 +1,11 @@
 import sys
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kelvin, bar, elementary_charge as e
+from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroReporter, GroFile
 from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
-
-
-def slab_correction(system: mm.System):
-    muz = mm.CustomExternalForce('q*z')
-    muz.addPerParticleParameter('q')
-    nbforce = [system.getForce(i) for i in range(system.getNumForces())
-               if system.getForce(i).__class__ == mm.NonbondedForce][0]
-    qsum = 0
-    for i in range(nbforce.getNumParticles()):
-        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
-        muz.addParticle(i, [q])
-        qsum += q
-    if abs(qsum) > 1E-4:
-        raise Exception('Slab correction is not valid for charged system')
-
-    box = system.getDefaultPeriodicBoxVectors()
-    vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
-    cvforce = mm.CustomCVForce('k*muz*muz')
-    # convert from e^2/nm to kJ/mol
-    _conv = (1.602E-19) ** 2 / 1E-9 / (4 * 3.1415926) / 8.854E-12 * 6.022E23 / 1000
-    cvforce.addGlobalParameter('k', 2 * 3.1415926 / vol * _conv)
-    cvforce.addCollectiveVariable('muz', muz)
-    system.addForce(cvforce)
+from mstools.omm.forces import slab_correction
 
 
 def gen_simulation(gro_file, psf_file, prm_file, T, P, tcoupl='langevin', pcoupl='iso', slab=False, platform='CUDA'):

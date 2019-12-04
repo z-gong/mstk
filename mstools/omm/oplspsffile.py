@@ -467,34 +467,35 @@ class OplsPsfFile(object):
         else:
             self.box_vectors = periodicBoxVectors
 
-    def _build_13_14_list(self):
-        topo_12_set = set()
-        topo_13_set = set()
-        topo_14_set = set()
+    def _build_exclusion_list(self):
+        pair_12_set = set()
+        pair_13_set = set()
+        pair_14_set = set()
         for bond in self.bond_list:
             a1, a2 = bond.atom1, bond.atom2
             pair = (min(a1.idx, a2.idx), max(a1.idx, a2.idx),)
-            topo_12_set.add(pair)
+            pair_12_set.add(pair)
         for bond in self.bond_list:
             a2, a3 = bond.atom1, bond.atom2
             for a1 in a2.bond_partners:
                 pair = (min(a1.idx, a3.idx), max(a1.idx, a3.idx),)
                 if a1 != a3:
-                    topo_13_set.add(pair)
+                    pair_13_set.add(pair)
             for a4 in a3.bond_partners:
                 pair = (min(a2.idx, a4.idx), max(a2.idx, a4.idx),)
                 if a2 != a4:
-                    topo_13_set.add(pair)
+                    pair_13_set.add(pair)
         for bond in self.bond_list:
             a2, a3 = bond.atom1, bond.atom2
             for a1 in a2.bond_partners:
                 for a4 in a3.bond_partners:
                     pair = (min(a1.idx, a4.idx), max(a1.idx, a4.idx),)
                     if a1 != a4:
-                        topo_14_set.add(pair)
+                        pair_14_set.add(pair)
 
-        self.topo_13_list = list(sorted(topo_13_set - topo_12_set))
-        self.topo_14_list = list(sorted(topo_14_set - topo_13_set.union(topo_12_set)))
+        self.pair_12_list = list(sorted(pair_12_set))
+        self.pair_13_list = list(sorted(pair_13_set - pair_12_set))
+        self.pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
 
 
     @staticmethod
@@ -938,11 +939,11 @@ class OplsPsfFile(object):
         # bulid 1-3 and 1-4 exclusion list from bond
         if verbose:
             print('Build exclusion list...')
-        self._build_13_14_list()
+        self._build_exclusion_list()
         if verbose:
-            print('\tNumber of 1-2 exclusion: %i' % len(self.bond_list))
-            print('\tNumber of 1-3 exclusion: %i' % len(self.topo_13_list))
-            print('\tNumber of 1-4 exclusion: %i' % len(self.topo_14_list))
+            print('\tNumber of 1-2 exclusion: %i' % len(self.pair_12_list))
+            print('\tNumber of 1-3 exclusion: %i' % len(self.pair_13_list))
+            print('\tNumber of 1-4 exclusion: %i' % len(self.pair_14_list))
 
         # Set up the constraints
         if verbose and (constraints is not None and not rigidWater):
@@ -979,7 +980,7 @@ class OplsPsfFile(object):
                 atom1=lpsite[1]
                 atom2=lpsite[2]
                 atom3=lpsite[3]
-                if atom3 > 0:
+                if atom3 >= 0:
                     if lpsite[4] > 0 : # relative lonepair type
                         r = lpsite[4] /10.0 # in nanometer
                         xweights = [-1.0, 0.0, 1.0]
@@ -1277,8 +1278,8 @@ class OplsPsfFile(object):
                         rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
                     except KeyError:
                         # rij = (lj_radii[i] + lj_radii[j]) * length_conv
-                        # TODO OPLS use combination rule
-                        rij = sqrt(lj_radii[i] * 2 * lj_radii[j] * 2) * length_conv
+                        # TODO OPLS use geometric combination rule
+                        rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
                         wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
                     else:
                         rij *= length_conv
@@ -1383,31 +1384,22 @@ class OplsPsfFile(object):
             system.addForce(nbtforce)
 
         # Add 1-4 interactions
-        excluded_atom_pairs = set() # save these pairs so we don't zero them out
         sigma_scale = 2**(-1/6)
         #TODO use bond instead of dihedral to determine 1-4 relations
-        for ia1, ia4 in self.topo_14_list:
-            a1 = self.atom_list[ia1]
-            a4 = self.atom_list[ia4]
-            # First check to see if atoms 1 and 4 are already excluded because
-            # they are 1-2 or 1-3 pairs (would happen in 6-member rings or
-            # fewer). Then check that they're not already added as exclusions
-            key = min((a1.idx, a4.idx), (a4.idx, a1.idx))
-            if key in excluded_atom_pairs: continue # multiterm...
+        for ia1, ia4 in self.pair_14_list:
+            atom1 = self.atom_list[ia1]
+            atom4 = self.atom_list[ia4]
             # charge_prod = (tor.atom1.charge * tor.atom4.charge)
             # epsilon = (sqrt(abs(tor.atom1.type.epsilon_14) * ene_conv *
             #                 abs(tor.atom4.type.epsilon_14) * ene_conv))
             # sigma = (tor.atom1.type.rmin_14 + tor.atom4.type.rmin_14) * (
             #          length_conv * sigma_scale)
-            # TODO 1-4 scaling for OPLS are 0.5 for both LJ and Coul.
-            # However, LJ14 has already been scaled in prm file
-            charge_prod = (a1.charge * a4.charge) / 2
-            epsilon = sqrt(a1.type.epsilon_14 * a4.type.epsilon_14) * ene_conv
-            sigma = sqrt(a1.type.rmin_14 * 2 * a4.type.rmin_14 * 2) * (
+            # TODO 1-4 scaling for OPLS are 0.5 for both LJ and Coul. However, LJ14 has already been scaled in prm file
+            charge_prod = (atom1.charge * atom4.charge) / 2
+            epsilon = sqrt(atom1.type.epsilon_14 * atom4.type.epsilon_14) * ene_conv
+            sigma = sqrt(atom1.type.rmin_14 * 2 * atom4.type.rmin_14 * 2) * (
                     length_conv * sigma_scale)
-            force.addException(a1.idx, a4.idx, charge_prod, sigma, epsilon)
-            excluded_atom_pairs.add(min((a1.idx, a4.idx), (a4.idx, a1.idx))
-            )
+            force.addException(ia1, ia4, charge_prod, sigma, epsilon)
 
         # Add excluded atoms
         # Drude and lonepairs will be excluded based on their parent atoms
@@ -1432,37 +1424,24 @@ class OplsPsfFile(object):
                         for j in range(i):
                             force.addException(excludeterm[j], excludeterm[i], 0.0, 0.1, 0.0)
         # Exclude all bonds and angles, as well as the lonepair/Drude attached onto them
-        # system.addForce(force)
         #TODO use bond instead of angle or dihedral to determine 1-3, 1-4 relations
-        for bond in self.bond_list:
-            atom, atom2 = bond.atom1, bond.atom2
-            for excludeatom in [atom.idx]+parent_exclude_list[atom.idx]:
-                for excludeatom2 in [atom2.idx]+parent_exclude_list[atom2.idx]:
+        for ia1, ia2 in self.pair_12_list:
+            for excludeatom in [ia1]+parent_exclude_list[ia1]:
+                for excludeatom2 in [ia2]+parent_exclude_list[ia2]:
                     force.addException(excludeatom, excludeatom2, 0.0, 0.1, 0.0)
-        for ia1, ia3 in self.topo_13_list:
-            atom = self.atom_list[ia1]
-            atom3 = self.atom_list[ia3]
-            for excludeatom in [atom.idx]+parent_exclude_list[atom.idx]:
-                for excludeatom3 in [atom3.idx]+parent_exclude_list[atom3.idx]:
+        for ia1, ia3 in self.pair_13_list:
+            for excludeatom in [ia1]+parent_exclude_list[ia1]:
+                for excludeatom3 in [ia3]+parent_exclude_list[ia3]:
                     force.addException(excludeatom, excludeatom3, 0.0, 0.1, 0.0)
-        # TODO 1-4 scaling for Drude
-        for ia1, ia4 in self.topo_14_list:
-            atom = self.atom_list[ia1]
-            atom4 = self.atom_list[ia4]
-            for excludeatom4 in parent_exclude_list[atom4.idx]:
-                qq_scaled = (atom.charge * self.atom_list[excludeatom4].charge) / 2
-                force.addException(atom.idx, excludeatom4, qq_scaled, 0.1, 0.0)
-            for excludeatom in parent_exclude_list[atom.idx]:
-                for excludeatom4 in [atom4.idx]+parent_exclude_list[atom4.idx]:
-                    qq_scaled = (self.atom_list[excludeatom].charge *
-                                 self.atom_list[excludeatom4].charge) / 2
+        # TODO 1-4 scaling for lonepair/Drude
+        for ia1, ia4 in self.pair_14_list:
+            for excludeatom in [ia1]+parent_exclude_list[ia1]:
+                for excludeatom4 in [ia4]+parent_exclude_list[ia4]:
+                    # real atom 1-4 pairs have already been processed before
+                    if excludeatom == ia1 and excludeatom4 == ia4:
+                        continue
+                    qq_scaled = (self.atom_list[excludeatom].charge * self.atom_list[excludeatom4].charge) / 2
                     force.addException(excludeatom, excludeatom4, qq_scaled, 0.1, 0.0)
-            # TODO why exclude 1-4 partners??
-            # for atom2 in atom.dihedral_partners:
-            #     if atom2.idx <= atom.idx: continue
-            #     if ((atom.idx, atom2.idx) in excluded_atom_pairs):
-            #         continue
-            #     force.addException(atom.idx, atom2.idx, 0.0, 0.1, 0.0)
         system.addForce(force)
 
         # Add Drude particles (Drude force)
@@ -1499,8 +1478,6 @@ class OplsPsfFile(object):
             for i in range(drudeforce.getNumParticles()):
                 particleMap[drudeforce.getParticleParameters(i)[0]] = i
 
-            # TODO in case double count thole screening pairs
-            _screenPairs = []
             for bond in self.bond_list:
                 alpha1 = self.drudeconsts_list[bond.atom1.idx][0]
                 alpha2 = self.drudeconsts_list[bond.atom2.idx][0]
@@ -1510,18 +1487,17 @@ class OplsPsfFile(object):
                     drude1 = bond.atom1.idx + 1 # CHARMM psf has hard-coded rule that the Drude is next to its parent
                     drude2 = bond.atom2.idx + 1
                     drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1+thole2)
-                    _screenPairs.append([drude1, drude2])
-            for ang in self.angle_list:
-                alpha1 = self.drudeconsts_list[ang.atom1.idx][0]
-                alpha2 = self.drudeconsts_list[ang.atom3.idx][0]
+            # TODO use pair_13_list instead of angle_list in case of miss counting or double counting screening pairs for 3-member rings
+            for a1, a3 in self.pair_13_list:
+                atom1, atom3 = self.atom_list[a1], self.atom_list[a3]
+                alpha1 = self.drudeconsts_list[atom1.idx][0]
+                alpha2 = self.drudeconsts_list[atom3.idx][0]
                 if abs(alpha1) > TINY and abs(alpha2) > TINY: # both are Drude parent atoms
-                    thole1 = self.drudeconsts_list[ang.atom1.idx][1]
-                    thole2 = self.drudeconsts_list[ang.atom3.idx][1]
-                    drude1 = ang.atom1.idx + 1 # CHARMM psf has hard-coded rule that the Drude is next to its parent
-                    drude2 = ang.atom3.idx + 1
-                    if not [drude1, drude2] in _screenPairs:
-                        drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1+thole2)
-                        _screenPairs.append([drude1, drude2])
+                    thole1 = self.drudeconsts_list[atom1.idx][1]
+                    thole2 = self.drudeconsts_list[atom3.idx][1]
+                    drude1 = atom1.idx + 1 # CHARMM psf has hard-coded rule that the Drude is next to its parent
+                    drude2 = atom3.idx + 1
+                    drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1+thole2)
 
         # If we needed a CustomNonbondedForce, map all of the exceptions from
         # the NonbondedForce to the CustomNonbondedForce
