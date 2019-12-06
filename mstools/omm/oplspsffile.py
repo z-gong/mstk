@@ -936,15 +936,6 @@ class OplsPsfFile(object):
         # TODO record drude
         self.is_drude = has_drude_particle
 
-        # bulid 1-3 and 1-4 exclusion list from bond
-        if verbose:
-            print('Build exclusion list...')
-        self._build_exclusion_list()
-        if verbose:
-            print('\tNumber of 1-2 exclusion: %i' % len(self.pair_12_list))
-            print('\tNumber of 1-3 exclusion: %i' % len(self.pair_13_list))
-            print('\tNumber of 1-4 exclusion: %i' % len(self.pair_14_list))
-
         # Set up the constraints
         if verbose and (constraints is not None and not rigidWater):
             print('Adding constraints...')
@@ -1383,6 +1374,15 @@ class OplsPsfFile(object):
             # now, add the actual force to the system
             system.addForce(nbtforce)
 
+        # build 1-2, 1-3 and 1-4 exclusion list from bond
+        if verbose:
+            print('Build exclusion list...')
+        self._build_exclusion_list()
+        if verbose:
+            print('\tNumber of 1-2 exclusion: %i' % len(self.pair_12_list))
+            print('\tNumber of 1-3 exclusion: %i' % len(self.pair_13_list))
+            print('\tNumber of 1-4 exclusion: %i' % len(self.pair_14_list))
+
         # Add 1-4 interactions
         sigma_scale = 2**(-1/6)
         #TODO use bond instead of dihedral to determine 1-4 relations
@@ -1424,15 +1424,10 @@ class OplsPsfFile(object):
                         for j in range(i):
                             force.addException(excludeterm[j], excludeterm[i], 0.0, 0.1, 0.0)
         # Exclude all bonds and angles, as well as the lonepair/Drude attached onto them
-        #TODO use bond instead of angle or dihedral to determine 1-3, 1-4 relations
-        for ia1, ia2 in self.pair_12_list:
+        for ia1, ia2 in self.pair_12_list + self.pair_13_list:
             for excludeatom in [ia1]+parent_exclude_list[ia1]:
                 for excludeatom2 in [ia2]+parent_exclude_list[ia2]:
                     force.addException(excludeatom, excludeatom2, 0.0, 0.1, 0.0)
-        for ia1, ia3 in self.pair_13_list:
-            for excludeatom in [ia1]+parent_exclude_list[ia1]:
-                for excludeatom3 in [ia3]+parent_exclude_list[ia3]:
-                    force.addException(excludeatom, excludeatom3, 0.0, 0.1, 0.0)
         # TODO 1-4 scaling for lonepair/Drude
         for ia1, ia4 in self.pair_14_list:
             for excludeatom in [ia1]+parent_exclude_list[ia1]:
@@ -1478,26 +1473,15 @@ class OplsPsfFile(object):
             for i in range(drudeforce.getNumParticles()):
                 particleMap[drudeforce.getParticleParameters(i)[0]] = i
 
-            for bond in self.bond_list:
-                alpha1 = self.drudeconsts_list[bond.atom1.idx][0]
-                alpha2 = self.drudeconsts_list[bond.atom2.idx][0]
-                if abs(alpha1) > TINY and abs(alpha2) > TINY: # both are Drude parent atoms
-                    thole1 = self.drudeconsts_list[bond.atom1.idx][1]
-                    thole2 = self.drudeconsts_list[bond.atom2.idx][1]
-                    drude1 = bond.atom1.idx + 1 # CHARMM psf has hard-coded rule that the Drude is next to its parent
-                    drude2 = bond.atom2.idx + 1
-                    drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1+thole2)
-            # TODO use pair_13_list instead of angle_list in case of miss counting or double counting screening pairs for 3-member rings
-            for a1, a3 in self.pair_13_list:
-                atom1, atom3 = self.atom_list[a1], self.atom_list[a3]
-                alpha1 = self.drudeconsts_list[atom1.idx][0]
-                alpha2 = self.drudeconsts_list[atom3.idx][0]
-                if abs(alpha1) > TINY and abs(alpha2) > TINY: # both are Drude parent atoms
-                    thole1 = self.drudeconsts_list[atom1.idx][1]
-                    thole2 = self.drudeconsts_list[atom3.idx][1]
-                    drude1 = atom1.idx + 1 # CHARMM psf has hard-coded rule that the Drude is next to its parent
-                    drude2 = atom3.idx + 1
-                    drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1+thole2)
+            for ia1, ia2 in self.pair_12_list + self.pair_13_list:
+                alpha1 = self.drudeconsts_list[ia1][0]
+                alpha2 = self.drudeconsts_list[ia2][0]
+                if abs(alpha1) > TINY and abs(alpha2) > TINY:  # both are Drude parent atoms
+                    thole1 = self.drudeconsts_list[ia1][1]
+                    thole2 = self.drudeconsts_list[ia2][1]
+                    drude1 = ia1 + 1  # CHARMM psf has hard-coded rule that the Drude is next to its parent
+                    drude2 = ia2 + 1
+                    drudeforce.addScreenedPair(particleMap[drude1], particleMap[drude2], thole1 + thole2)
 
         # If we needed a CustomNonbondedForce, map all of the exceptions from
         # the NonbondedForce to the CustomNonbondedForce
