@@ -7,12 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
-from mstools.trajectory.lammpsdump import LammpsDump
+from mstools.trajectory.lammpstrj import LammpsTrj
 from mstools.molio import Atom
 
 import MDAnalysis as mda
 
-u = mda.Universe('test-MoS2-nopol.tpr', 'test-MoS2-nopol-gmx.xtc')
+u = mda.Universe('npt.tpr', 'test.xtc')
 trj = u.trajectory
 print(trj.n_atoms, len(trj))
 
@@ -58,5 +58,5 @@ ax2.set(ylabel='voltage (V)')
 ax2.plot(bins, voltage)
 ax2.plot(bins, [0] * n_bin, '--')
 fig.tight_layout()
-fig.savefig('test-MoS2-nopol-gmx.png')
+fig.savefig('test.png')
 fig.show()

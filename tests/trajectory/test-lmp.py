@@ -7,11 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
-from mstools.trajectory.lammpsdump import LammpsDump
+from mstools.trajectory.lammpstrj import LammpsTrj
 from mstools.molio import Atom
 
-trj = LammpsDump('test-MoS2-pol-5V.lammpstrj')
-print(trj.n_atom, trj.n_frame)
+trj = LammpsTrj('dump.lammpstrj')
+print(trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 frame = trj.read_frame(0)
 area = frame.box[1] * frame.box[2]
@@ -25,7 +25,7 @@ n_frame = 0
 for i in range(0, trj.n_frame, 2):
     n_frame += 1
     frame = trj.read_frame(i)
-    print(frame.step)
+    sys.stdout.write('\r    step %i' % frame.step)
 
     atom: Atom
     for atom in frame.atoms:
@@ -56,5 +56,5 @@ ax2.set(ylabel='voltage (V)')
 ax2.plot(bins, voltage)
 ax2.plot(bins, [0] * n_bin, '--')
 fig.tight_layout()
-fig.savefig('test-MoS2-pol-5V.png')
+fig.savefig('test.png')
 fig.show()
