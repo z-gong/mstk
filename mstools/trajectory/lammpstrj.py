@@ -3,16 +3,20 @@ import numpy as np
 from io import StringIO
 import pandas as pd
 from . import Trajectory, Frame
-from ..molio import Atom, Molecule
+from .topology import Atom, Molecule
 
 
 class LammpsTrj(Trajectory):
-    def __init__(self, file, mode='r'):
+    def __init__(self, trj_file, mode='r'):
         super().__init__()
-        self._file = open(file, mode)
+        self._file = open(trj_file, mode)
         self._get_info()
 
     def _get_info(self):
+        '''
+        Read the number of atoms and record the offset of lines and frames,
+        so that we can read arbitrary frame later
+        '''
         try:
             self._file.readline()
             self._file.readline()
@@ -71,17 +75,11 @@ class LammpsTrj(Trajectory):
             df.y += df['iy'] * frame.box[1]
             df.z += df['iz'] * frame.box[2]
         for row in df.itertuples():
-            atom = frame.atoms[row.id - 1]
-            molecule = frame.molecules[row.mol - 1]
-            molecule.add_atom(atom)
-            atom.element = str(row.element)
-            atom.name = str(row.type)
-            atom.type = str(row.type)
-            atom.charge = float(row.q)
+            frame.charges[row.id-1] = float(row.q)
             if 'x' in df.columns:
-                atom.position = np.array([row.x, row.y, row.z])
+                frame.positions[row.id-1] = np.array([row.x, row.y, row.z])
             elif 'xu' in df.columns:
-                atom.position = np.array([row.xu, row.yu, row.zu])
+                frame.positions[row.id-1] = np.array([row.xu, row.yu, row.zu])
 
         return frame
 

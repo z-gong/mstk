@@ -270,3 +270,9 @@ def get_last_line(filename):
     except:
         string = ''
     return string
+
+def histogram(data, bins):
+    import numpy as np
+    y, _x = np.histogram(data, bins=bins)
+    x = (_x[1:] + _x[:-1]) / 2
+    return x, y
