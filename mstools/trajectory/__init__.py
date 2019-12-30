@@ -1,6 +1,6 @@
 import numpy as np
 
-from .topology import Atom, Molecule
+from .topology import Atom, Molecule, Topology
 
 
 class Frame():
@@ -9,6 +9,7 @@ class Frame():
         self.xlo = self.xhi = self.ylo = self.yhi = self.zlo = self.zhi = 0.0
         self.box = np.array([0., 0., 0.])
         self.positions = np.array([[0., 0., 0.]] * n_atom)
+        self.has_charge = False
         self.charges = np.array([0.] * n_atom)  # for fluctuating charge simulations
 
 

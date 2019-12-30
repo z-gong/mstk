@@ -35,7 +35,10 @@ class Molecule():
 
 class Topology():
     def __init__(self):
-        pass
+        self.n_atom = 0
+        self.atoms: [Atom] = []
+        self.n_molecule = 0
+        self.molecules: [Molecule] = []
 
     def init_from_molecules(self, molecules: [Molecule]):
         self.n_molecule = len(molecules)
@@ -49,21 +52,3 @@ class Topology():
             for j, atom in mol.atoms:
                 atom.id = idx_atom
                 idx_atom += 1
-
-atomic_nr = {'H': 1, 'Li': 3, 'B': 5, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10,
-             'Na': 11, 'Mg': 12, 'Al': 13, 'Si': 14, 'P': 15, 'S': 16,
-             'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20, 'Ti': 22, 'Fe': 26,
-             'Zn': 30, 'Se': 34, 'Br': 35, 'Kr': 36, 'Mo': 42, 'Ru': 44,
-             'Sn': 50, 'Te': 52, 'I': 53, 'Xe': 54}
-
-def atomic_symbol(name):
-    if name[:2] in atomic_nr:
-        return name[:2]
-    elif name[0] in atomic_nr:
-        return name[0]
-    else:
-        print('warning: unknown symbol for atom ' + name)
-        return name
-
-def atomic_number(name):
-    return atomic_nr.get(atomic_symbol(name), 0)
