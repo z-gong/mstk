@@ -7,9 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
-from mstools.trajectory.lammpstrj import LammpsTrj
-from mstools.molio import Atom
-
 import MDAnalysis as mda
 
 u = mda.Universe('npt.tpr', 'test.xtc')
