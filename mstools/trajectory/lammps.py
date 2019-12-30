@@ -154,18 +154,18 @@ class LammpsTrj(Trajectory):
         if 'x' in df.columns:
             wrapped = True
         elif 'xs' in df.columns:
-            df.x = df.xs * (frame.xhi - frame.xlo) + frame.xlo
-            df.y = df.ys * (frame.yhi - frame.ylo) + frame.ylo
-            df.z = df.zs * (frame.zhi - frame.zlo) + frame.zlo
+            df['x'] = df.xs * (frame.xhi - frame.xlo) + frame.xlo
+            df['y'] = df.ys * (frame.yhi - frame.ylo) + frame.ylo
+            df['z'] = df.zs * (frame.zhi - frame.zlo) + frame.zlo
             wrapped = True
         elif 'xu' in df.columns:
-            df.x = df.xu
-            df.y = df.yu
-            df.z = df.zu
+            df['x'] = df.xu
+            df['y'] = df.yu
+            df['z'] = df.zu
         elif 'xsu' in df.columns:
-            df.x = df.xsu * (frame.xhi - frame.xlo) + frame.xlo
-            df.y = df.ysu * (frame.yhi - frame.ylo) + frame.ylo
-            df.z = df.zsu * (frame.zhi - frame.zlo) + frame.zlo
+            df['x'] = df.xsu * (frame.xhi - frame.xlo) + frame.xlo
+            df['y'] = df.ysu * (frame.yhi - frame.ylo) + frame.ylo
+            df['z'] = df.zsu * (frame.zhi - frame.zlo) + frame.zlo
         if wrapped:
             if 'ix' not in df.columns:
                 print('warning: image flag not found for wrapped positions')

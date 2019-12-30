@@ -15,9 +15,9 @@ parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to out
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 args = parser.parse_args()
 
-top = LammpsData(args.DATA)
-trj = LammpsTrj(args.INPUT)
-pdb = PDB(args.OUTPUT, 'w')
+top = LammpsData(args.data)
+trj = LammpsTrj(args.input)
+pdb = PDB(args.output, 'w')
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
@@ -25,10 +25,10 @@ print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
 
-if args.end > trj.n_frame:
+if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
 
-for i in range(args.BEGIN, args.END, args.SKIP):
+for i in range(args.begin, args.end, args.skip):
     sys.stdout.write('\r    %i' % i)
     frame = trj.read_frame(i)
     pdb.write_frame(top, frame)
