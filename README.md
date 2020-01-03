@@ -44,10 +44,13 @@ Misc utils for parsing molecular formula, reading GROMACS energy files and so on
 Some example scripts for running and analyzing simulations using `mstools`
 
 #### An example of using ms-tools
-This script build NPT simulation box of hexane at 500 K and 10 bar using `Packmol` and `DFF` and prepare input files for `GROMACS` and script for `Slurm` job manager
+This script build simulation box of hexane using `Packmol`,
+assign temperature-dependent *TEAM_MGI* force field using `DFF`,
+prepare input files for running `GROMACS` NPT simulation at 500 K and 10 bar,
+and generate script for `Slurm` job manager
 ```
 import sys
-sys.path.append(/PATH/OF/ms-tools)
+sys.path.append(/PATH/OF/MS-TOOLS)
 
 from mstools.wrapper import Packmol, DFF, GMX
 from mstools.jobmanager import Slurm
@@ -60,12 +63,7 @@ slurm = Slurm(*('cpu', 16, 0, 16), env_cmd='module purge; module load gromacs/20
 
 npt = Npt(packmol=packmol, dff=dff, gmx=gmx, jobmanager=slurm)
 
-smiles = 'CCCCCC'
-T = 500
-P = 10
-jobname='%s-%i-%i' %(smiles, T, P)
-
-npt.set_system([smiles])
+npt.set_system(['CCCCCC'])
 npt.build()
-npt.prepare(drde=True, T=T, P=P, nst_eq=int(2E5), nst_run=int(3E5), nst_xtc=500, jobname=jobname)
+npt.prepare(T=500, P=10, drde=True)
 ```
