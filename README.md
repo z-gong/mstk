@@ -1,17 +1,22 @@
-# ms-tools
+# mstools
 A set of tools or wrappers for preparing, running and analyzing molecular simulations  
 
-### analyzer
-Tools for analyzing timeseries. e.g. detect equlibriation, detect vapor-liquid separation, perform 1-D or 2-D fitting
+#### analyzer
+Tools for analyzing timeseries. *e.g.* detect equlibriation, detect vapor-liquid separation, perform 1-D or 2-D fitting
 
-### jobmanager
+#### forcefield
+Library for handling force field
+
+#### jobmanager
 Wrappers for HPC job manager like `Slurm`, `Torque`
 
-### wrapper
-Wrappers for `GROMACS`, `Packmol`, `DFF`, `Gaussian`  
-A parser for manipulate `ppf` file used by DFF is also provided
+#### omm
+Toolkit for simplifying the process of running simulations with OpenMM
 
-### simulation
+#### saved_mol2
+Prebuild structures for several weired molecules (PF6 and some amides) which cannot be correcly handled by `OpenBabel`
+
+#### simulation
 Predefined simulation protocols for high throughput MD and QM computation
 * `gauss/cv.py` for calculating heat capacity using Gaussian
 * `gmx/npt.py` for running and analyzing bulk liquid simulation using GROMACS
@@ -22,32 +27,38 @@ Predefined simulation protocols for high throughput MD and QM computation
 * `gmx/nvt_vacuum.py` gas phase in vacuum
 * `gmx/nvt_example.py` basic single molecule example box
 
-### template
+#### template
 Templates for input files of `GROMACS` and `DFF`
 
-### saved_mol2
-Prebuild structures for several weired molecules (PF6 and some amides)
+#### trajectory
+Library for manipulating and analyzing simulation trajectories
 
-### errors, formula, panedr, utils
+#### wrapper
+Wrappers for `GROMACS`, `Packmol`, `DFF`, `Gaussian`  
+A parser for manipulate `ppf` file used by DFF is also provided
+
+#### errors, formula, panedr, utils
 Misc utils for parsing molecular formula, reading GROMACS energy files and so on
 
-## An example of using ms-tools
+# scripts
+Some example scripts for running and analyzing simulations using `mstools`
+
+#### An example of using ms-tools
 This script build NPT simulation box of hexane at 500 K and 10 bar using `Packmol` and `DFF` and prepare input files for `GROMACS` and script for `Slurm` job manager
 ```
 import sys
-sys.path.append(/PATH/OF/AIMS_Tools)
+sys.path.append(/PATH/OF/ms-tools)
 
-from mstools.simulation.gmx import Npt
+from mstools.wrapper import Packmol, DFF, GMX
 from mstools.jobmanager import Slurm
+from mstools.simulation.gmx import Npt
 
-slurm=Slurm(*('cpu', 16, 0, 16), env_cmd='module purge; module load gromacs/2016.6')
-npt = Npt(packmol_bin='/share/apps/tools/packmol',
-          dff_root='/home/gongzheng/apps/DFF/Developing',
-          dff_db='TEAMFF',
-          dff_table='MGI',
-          gmx_bin='gmx_serial',
-          gmx_mdrun='gmx_gpu mdrun',
-          jobmanager=slurm)
+packmol = Packmol(packmol_bin='/share/apps/tools/packmol')
+dff = DFF(dff_root='/home/gongzheng/apps/DFF/Developing', default_db='TEAMFF', default_table='MGI')
+gmx = GMX(gmx_bin='gmx_serial', gmx_mdrun='gmx_gpu mdrun')
+slurm = Slurm(*('cpu', 16, 0, 16), env_cmd='module purge; module load gromacs/2016.6')
+
+npt = Npt(packmol=packmol, dff=dff, gmx=gmx, jobmanager=slurm)
 
 smiles = 'CCCCCC'
 T = 500
