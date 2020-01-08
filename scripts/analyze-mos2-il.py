@@ -4,8 +4,10 @@ import sys
 import argparse
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram
@@ -13,6 +15,7 @@ from mstools.trajectory.topology import Atom, Molecule, Topology
 from mstools.trajectory.lammps import LammpsData, LammpsTrj
 
 parser = argparse.ArgumentParser()
+parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage'], help='The property to analyze')
 parser.add_argument('-d', '--data', required=True, type=str, help='Lammps data file for topology information')
 parser.add_argument('-i', '--input', required=True, type=str,
                     help='Lammps dump trajectory file for atomic positions and charges')
@@ -51,14 +54,16 @@ def _get_com_position(positions, atoms):
 def distribution():
     bins = np.linspace(0, 70, 701)
     dz = bins[1] - bins[0]
-    z_array = (bins[1:] + bins[-1]) / 2
+    z_array = (bins[1:] + bins[:-1]) / 2
     charge_array = np.array([0.] * len(z_array))
     z_ring_list = []
     z_ring_com_list = []
     z_tail_list = []
     z_dca_list = []
-    vec_z = [0, 0, -1]
-    theta_list = []
+    z_dca_com_list = []
+    theta_ring_list = []
+    theta_tail_list = []
+    theta_dca_list = []
 
     frame = trj.read_frame(0)
     area = frame.box[0] * frame.box[1]
@@ -77,14 +82,34 @@ def distribution():
                 z_ring_com_list.append(ring_com[2])
                 tail_atoms = _get_atoms(mol, ['C21', 'C25', 'C29', 'C33', 'C37', 'C41', 'C45'])
                 z_tail_list += [positions[atom.id][2] for atom in tail_atoms]
-                if ring_com[2] > 64:
+                if ring_com[2] > 64.5:
                     a1, a2 = _get_atoms(mol, ['C21', 'C45'])
                     vec_tail = positions[a2.id] - positions[a1.id]
-                    theta = np.arccos(vec_tail.dot(vec_z) / np.sqrt(vec_tail.dot(vec_tail))) * 180 / np.pi
-                    theta_list.append(theta)
+                    vec_proj = np.array([vec_tail[0], vec_tail[1], 0])
+                    theta = np.arccos(vec_tail.dot(vec_proj) / np.sqrt(vec_tail.dot(vec_tail)) / np.sqrt(
+                        vec_proj.dot(vec_proj))) * 180 / np.pi
+                    theta_tail_list.append(theta)
+
+                    a1, a2, a3 = _get_atoms(mol, ['C3', 'C7', 'C9'])
+                    vec_12 = positions[a2.id] - positions[a1.id]
+                    vec_13 = positions[a3.id] - positions[a1.id]
+                    vec_normal = np.cross(vec_12, vec_13)
+                    vec_proj = np.array([vec_normal[0], vec_normal[1], 0])
+                    theta = np.arccos(vec_normal.dot(vec_proj) / np.sqrt(vec_normal.dot(vec_normal)) / np.sqrt(
+                        vec_proj.dot(vec_proj))) * 180 / np.pi
+                    theta_ring_list.append(90 - theta)
             if mol.name == 'dca-':
                 dca_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'N9'])
                 z_dca_list += [positions[atom.id][2] for atom in dca_atoms]
+                dca_com = _get_com_position(positions, dca_atoms)
+                z_dca_com_list.append(dca_com[2])
+                if dca_com[2] < 5:
+                    a1, a2 = _get_atoms(mol, ['N5', 'N9'])
+                    vec_dca = positions[a2.id] - positions[a1.id]
+                    vec_proj = np.array([vec_dca[0], vec_dca[1], 0])
+                    theta = np.arccos(vec_dca.dot(vec_proj) / np.sqrt(vec_dca.dot(vec_dca)) / np.sqrt(
+                        vec_proj.dot(vec_proj))) * 180 / np.pi
+                    theta_dca_list.append(theta)
 
         for atom in top.atoms:
             if atom.molecule.name not in ['c8c1im+', 'dca-']:
@@ -97,6 +122,7 @@ def distribution():
     print('')
 
     fig, ax = plt.subplots()
+    ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='particle density (/$A^3$)')
     x, y = histogram(z_ring_list, bins=bins)
     ax.plot(x, y / area / dz / n_frame, label='c8c1im+ ring')
     x, y = histogram(z_tail_list, bins=bins)
@@ -104,25 +130,37 @@ def distribution():
     x, y = histogram(z_dca_list, bins=bins)
     ax.plot(x, y / area / dz / n_frame, label='dca-')
     ax.legend()
+    fig.tight_layout()
     fig.savefig(f'{args.output}-dist.png')
     plt.cla()
 
+    ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='particle density (/$A^3$)')
     x, y = histogram(z_ring_com_list, bins=bins)
     ax.plot(x, y / area / dz / n_frame, label='c8c1im+ ring COM')
+    x, y = histogram(z_dca_com_list, bins=bins)
+    ax.plot(x, y / area / dz / n_frame, label='dca- COM')
     ax.legend()
+    fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
     plt.cla()
 
-    ax.plot(z_array, charge_array / area / dz / n_frame, label='c8c1im+ ring COM')
+    ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='charge density (e/$A^3$)')
+    ax.plot(z_array, charge_array / area / dz / n_frame, label='c8c1im+ dca-')
     ax.legend()
+    fig.tight_layout()
     fig.savefig(f'{args.output}-charge.png')
     plt.cla()
 
-    ax.set(xlim=[0, 90])
-    x, y = histogram(theta_list, bins=np.linspace(0, 90, 91))
+    ax.set(xlim=[0, 90], xlabel='theta (A)', ylabel='probability')
+    x, y = histogram(theta_ring_list, bins=np.linspace(0, 90, 91))
+    ax.plot(x, y, label='c8c1im+ ring direction')
+    x, y = histogram(theta_tail_list, bins=np.linspace(0, 90, 91))
     ax.plot(x, y, label='c8c1im+ tail direction')
+    x, y = histogram(theta_dca_list, bins=np.linspace(0, 90, 91))
+    ax.plot(x, y, label='dca- end-end direction')
     ax.legend()
-    fig.savefig(f'{args.output}-tail-angle.png')
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-angle.png')
     plt.cla()
 
 
@@ -136,13 +174,13 @@ def diffusion():
         if mol.name == 'c8c1im+':
             ring_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'C9', 'C11', 'C14'])
             ring_com = _get_com_position(positions, ring_atoms)
-            if ring_com[2] > 64:
+            if ring_com[2] > 54.5:
                 ring_atoms_list.append(ring_atoms)
 
         if mol.name == 'dca-':
             dca_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'N9'])
             dca_com = _get_com_position(positions, dca_atoms)
-            if dca_com[2] < 5:
+            if dca_com[2] < 15:
                 dca_atoms_list.append(dca_atoms)
 
     t_list = []
@@ -164,13 +202,17 @@ def diffusion():
     print('')
 
     fig, ax = plt.subplots()
+    ax.set(ylim=[54.5, 69.5], xlabel='time (ps)', ylabel='z (A)')
     for z_list in ring_com_z_list:
         ax.plot(t_list, z_list)
+    fig.tight_layout()
     fig.savefig(f'{args.output}-diffusion-ring.png')
     plt.cla()
 
+    ax.set(ylim=[0, 15], xlabel='time (ps)', ylabel='z (A)')
     for z_list in dca_com_z_list:
         ax.plot(t_list, z_list)
+    fig.tight_layout()
     fig.savefig(f'{args.output}-diffusion-dca.png')
     plt.cla()
 
@@ -221,7 +263,11 @@ def voltage():
     fig.savefig(f'{args.output}-voltage.png')
     fig.show()
 
+
 if __name__ == '__main__':
-    distribution()
-    # diffusion()
-    # voltage()
+    if args.cmd == 'dist':
+        distribution()
+    elif args.cmd == 'diffuse':
+        diffusion()
+    elif args.cmd == 'voltage':
+        voltage()
