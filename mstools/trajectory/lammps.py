@@ -42,7 +42,10 @@ class LammpsData(Topology):
             type_id = int(words[0])
             self._type_masses[type_id] = float(words[1])
             if words[2] == '#':
-                self._type_names[type_id] = '_'.join(words[3:])
+                if words[-1] == 'DP':
+                    self._type_names[type_id] = 'DP' # Drude particles
+                else:
+                    self._type_names[type_id] = words[3]
             else:
                 self._type_names[type_id] = str(type_id)
 

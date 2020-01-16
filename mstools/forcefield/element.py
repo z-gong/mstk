@@ -4,7 +4,7 @@ atomic_number = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5,
                  'S': 16, 'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20,
                  'Ti': 22, 'Fe': 26, 'Zn': 30, 'Se': 34, 'Br': 35,
                  'Kr': 36, 'Mo': 42, 'Ru': 44, 'Sn': 50, 'Te': 52,
-                 'I': 53, 'Xe': 54, 'UNK': -1}
+                 'I': 53, 'Xe': 54, 'UNK': -1, 'DP': -2}
 
 atomic_symbol = dict([(v, k) for k, v in atomic_number.items()])
 
