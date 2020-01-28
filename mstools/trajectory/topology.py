@@ -7,7 +7,7 @@ class Atom():
         self.molecule: Molecule = None
         self.name = name
         self.type = ''
-        self.element = ''
+        self.symbol = ''
         self.charge = 0.
         self.mass = 0.
         self.position = np.array([0, 0, 0], dtype=float)
@@ -33,6 +33,7 @@ class Molecule():
     def __repr__(self):
         return f'<Molecule: {self.name} {self.id}>'
 
+
 class Topology():
     def __init__(self):
         self.n_atom = 0
@@ -42,7 +43,7 @@ class Topology():
 
     def init_from_molecules(self, molecules: [Molecule]):
         self.n_molecule = len(molecules)
-        self.molecules:[Molecule] = molecules[:]
+        self.molecules: [Molecule] = molecules[:]
         self.assign_id()
 
     def assign_id(self):

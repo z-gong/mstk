@@ -151,7 +151,7 @@ def distribution():
     fig.savefig(f'{args.output}-charge.png')
     plt.cla()
 
-    ax.set(xlim=[0, 90], xlabel='theta (A)', ylabel='probability')
+    ax.set(xlim=[0, 90], ylim=[0, 500], xlabel='theta (A)', ylabel='probability')
     x, y = histogram(theta_ring_list, bins=np.linspace(0, 90, 91))
     ax.plot(x, y, label='c8c1im+ ring direction')
     x, y = histogram(theta_tail_list, bins=np.linspace(0, 90, 91))
@@ -232,12 +232,14 @@ def voltage():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    step %i' % frame.step)
 
-        for k in range(frame.n_atom):
-            z = frame.position[k][2]
+        for k, atom in enumerate(top.atoms):
+            z = frame.positions[k][2]
             i_bin = math.floor((z - frame.zlo) / dz)
             i_bin = min(i_bin, n_bin - 1)
-            charges[i_bin] += frame.charges[k]
+            charge = frame.charges[k] if frame.has_charge else atom.charge
+            charges[i_bin] += charge
 
+    charges_cumulative = np.cumsum(charges) / n_frame
     charges /= area * dz * n_frame  # e/A^3
 
     eps0 = 8.854E-12
@@ -250,18 +252,23 @@ def voltage():
             s += dz * (dz * (i - j)) * charges[j]
         voltage[i] = -s / eps0 * q0 / Ang
 
-    fig = plt.figure(figsize=[6.4, 8.0])
-    ax1 = fig.add_subplot('211')
+    fig = plt.figure(figsize=[6.4, 12.0])
+    ax1 = fig.add_subplot('311')
     ax1.set(ylabel='charge density (e/A$^3$)')
     ax1.plot(bins, charges)
     ax1.plot(bins, [0] * n_bin, '--')
-    ax2 = fig.add_subplot('212')
-    ax2.set(ylabel='voltage (V)')
-    ax2.plot(bins, voltage)
+
+    ax2 = fig.add_subplot('312')
+    ax2.set(ylabel='cumulative charges (e)')
+    ax2.plot(bins, charges_cumulative)
     ax2.plot(bins, [0] * n_bin, '--')
+
+    ax3 = fig.add_subplot('313')
+    ax3.set(ylabel='voltage (V)')
+    ax3.plot(bins, voltage)
+    ax3.plot(bins, [0] * n_bin, '--')
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
-    fig.show()
 
 
 if __name__ == '__main__':

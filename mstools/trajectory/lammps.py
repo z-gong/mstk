@@ -73,12 +73,12 @@ class LammpsData(Topology):
             atom.charge = charge
             atom.mass = self._type_masses[type_id]
             atom.type = self._type_names[type_id]
-            atom.element = Element.guess_from_atom_type(atom.type).symbol
+            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
 
         self.molecules = [self._molecule_dict[i + 1] for i in range(self.n_molecule)]
         for mol in self.molecules:
             for i, atom in enumerate(mol.atoms):
-                atom.name = atom.element + str(i + 1)  # atomic symbol + index inside mol starting from 1
+                atom.name = atom.symbol + str(i + 1)  # atomic symbol + index inside mol starting from 1
 
     def parse_bonds(self):
         pass
