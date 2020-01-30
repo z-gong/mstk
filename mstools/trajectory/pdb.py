@@ -25,8 +25,8 @@ class PDB(Trajectory):
             atom = topology.atoms[id]
             position = frame.positions[id]
             line = 'ATOM  %5d %4s %4s %4d    %8.3f%8.3f%8.3f  1.00  0.00          %2s\n' %(
-                ii + 1, atom.element, atom.molecule.name[:4], atom.molecule.id + 1,
-                position[0], position[1], position[2], atom.element)
+                ii + 1, atom.symbol, atom.molecule.name[:4], atom.molecule.id + 1,
+                position[0], position[1], position[2], atom.symbol)
             self._file.write(line)
         self._file.write('ENDMDL\n')
 

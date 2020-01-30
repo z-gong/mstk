@@ -134,15 +134,22 @@ def distribution():
     fig.savefig(f'{args.output}-dist.png')
     plt.cla()
 
-    ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='particle density (/$A^3$)')
-    x, y = histogram(z_ring_com_list, bins=bins)
-    ax.plot(x, y / area / dz / n_frame, label='c8c1im+ ring COM')
-    x, y = histogram(z_dca_com_list, bins=bins)
-    ax.plot(x, y / area / dz / n_frame, label='dca- COM')
+    ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='molecule density (/$A^3$)')
+    x, y_ring = histogram(z_ring_com_list, bins=bins)
+    ax.plot(x, y_ring / area / dz / n_frame, label='c8c1im+ ring COM')
+    x, y_dca = histogram(z_dca_com_list, bins=bins)
+    ax.plot(x, y_dca / area / dz / n_frame, label='dca- COM')
     ax.legend()
+
+    ax2 = ax.twinx()
+    ax2.set_ylabel('cumulative molecule number')
+    ax2.plot(x, np.cumsum(y_ring) / n_frame, '--', label='c8c1im+ ring COM')
+    ax2.plot(x, np.cumsum(y_dca) / n_frame, '--', label='dca- COM')
+
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
-    plt.cla()
+    ax.clear()
+    ax2.clear()
 
     ax.set(xlim=[0, 70], xlabel='z (A)', ylabel='charge density (e/$A^3$)')
     ax.plot(z_array, charge_array / area / dz / n_frame, label='c8c1im+ dca-')
@@ -173,15 +180,11 @@ def diffusion():
     for mol in top.molecules:
         if mol.name == 'c8c1im+':
             ring_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'C9', 'C11', 'C14'])
-            ring_com = _get_com_position(positions, ring_atoms)
-            if ring_com[2] > 54.5:
-                ring_atoms_list.append(ring_atoms)
+            ring_atoms_list.append(ring_atoms)
 
         if mol.name == 'dca-':
             dca_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'N9'])
-            dca_com = _get_com_position(positions, dca_atoms)
-            if dca_com[2] < 15:
-                dca_atoms_list.append(dca_atoms)
+            dca_atoms_list.append(dca_atoms)
 
     t_list = []
     ring_com_z_list = [[] for i in ring_atoms_list]
@@ -191,7 +194,7 @@ def diffusion():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    step %i' % frame.step)
 
-        t_list.append(frame.step / 1000)  # ps
+        t_list.append(frame.step / 1e6)  # ns
         for i, ring_atoms in enumerate(ring_atoms_list):
             ring_com = _get_com_position(frame.positions, ring_atoms)
             ring_com_z_list[i].append(ring_com[2])
@@ -202,14 +205,14 @@ def diffusion():
     print('')
 
     fig, ax = plt.subplots()
-    ax.set(ylim=[54.5, 69.5], xlabel='time (ps)', ylabel='z (A)')
+    ax.set(ylim=[54.5, 69.5], xlabel='time (ns)', ylabel='z (A)')
     for z_list in ring_com_z_list:
         ax.plot(t_list, z_list)
     fig.tight_layout()
     fig.savefig(f'{args.output}-diffusion-ring.png')
     plt.cla()
 
-    ax.set(ylim=[0, 15], xlabel='time (ps)', ylabel='z (A)')
+    ax.set(ylim=[0, 15], xlabel='time (ns)', ylabel='z (A)')
     for z_list in dca_com_z_list:
         ax.plot(t_list, z_list)
     fig.tight_layout()
@@ -254,17 +257,17 @@ def voltage():
 
     fig = plt.figure(figsize=[6.4, 12.0])
     ax1 = fig.add_subplot('311')
-    ax1.set(ylabel='charge density (e/A$^3$)')
+    ax1.set(xlabel='z (A)', ylabel='charge density (e/A$^3$)')
     ax1.plot(bins, charges)
     ax1.plot(bins, [0] * n_bin, '--')
 
     ax2 = fig.add_subplot('312')
-    ax2.set(ylabel='cumulative charges (e)')
+    ax2.set(xlabel='z (A)', ylabel='cumulative charges (e)')
     ax2.plot(bins, charges_cumulative)
     ax2.plot(bins, [0] * n_bin, '--')
 
     ax3 = fig.add_subplot('313')
-    ax3.set(ylabel='voltage (V)')
+    ax3.set(xlabel='z (A)', ylabel='voltage (V)')
     ax3.plot(bins, voltage)
     ax3.plot(bins, [0] * n_bin, '--')
     fig.tight_layout()
