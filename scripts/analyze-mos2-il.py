@@ -23,10 +23,13 @@ parser.add_argument('-o', '--output', required=True, type=str, help='Output pref
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
+parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 args = parser.parse_args()
 
 top = LammpsData(args.data)
 trj = LammpsTrj(args.input)
+
+ignore_list = args.ignore.split(',')
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
@@ -175,8 +178,6 @@ def diffusion():
     ring_atoms_list = []
     dca_atoms_list = []
 
-    frame = trj.read_frame(args.begin)
-    positions = frame.positions
     for mol in top.molecules:
         if mol.name == 'c8c1im+':
             ring_atoms = _get_atoms(mol, ['N1', 'C3', 'N5', 'C7', 'C9', 'C11', 'C14'])
@@ -236,6 +237,9 @@ def voltage():
         sys.stdout.write('\r    step %i' % frame.step)
 
         for k, atom in enumerate(top.atoms):
+            if atom.type in ignore_list:
+                continue
+
             z = frame.positions[k][2]
             i_bin = math.floor((z - frame.zlo) / dz)
             i_bin = min(i_bin, n_bin - 1)
@@ -246,7 +250,7 @@ def voltage():
     charges /= area * dz * n_frame  # e/A^3
 
     eps0 = 8.854E-12
-    q0 = 1.6E-19
+    q0 = 1.602E-19
     Ang = 1E-10
 
     for i in range(1, n_bin):
@@ -262,7 +266,7 @@ def voltage():
     ax1.plot(bins, [0] * n_bin, '--')
 
     ax2 = fig.add_subplot('312')
-    ax2.set(xlabel='z (A)', ylabel='cumulative charges (e)')
+    ax2.set(ylim=[-5, 5], xlabel='z (A)', ylabel='cumulative charges (e)')
     ax2.plot(bins, charges_cumulative)
     ax2.plot(bins, [0] * n_bin, '--')
 

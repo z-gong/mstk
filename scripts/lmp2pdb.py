@@ -13,14 +13,15 @@ parser.add_argument('-o', '--output', required=True, type=str, help='output PDB 
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
-parser.add_argument('--nodrude', action='store_true', help='do not output drude particles')
+parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 args = parser.parse_args()
 
 top = LammpsData(args.data)
 trj = LammpsTrj(args.input)
 pdb = PDB(args.output, 'w')
 
-id_real_atoms = [atom.id for atom in top.atoms if atom.type != 'DP'] if args.nodrude else None
+ignore_list = args.ignore.split(',')
+id_atoms = [atom.id for atom in top.atoms if atom.type not in ignore_list]
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
@@ -34,5 +35,5 @@ if args.end > trj.n_frame or args.end == -1:
 for i in range(args.begin, args.end, args.skip):
     sys.stdout.write('\r    %i' % i)
     frame = trj.read_frame(i)
-    pdb.write_frame(top, frame, subset=id_real_atoms)
+    pdb.write_frame(top, frame, subset=id_atoms)
 pdb.close()

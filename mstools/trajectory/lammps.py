@@ -12,11 +12,20 @@ class LammpsData(Topology):
         self._file = open(file)
         self._file.readline()
         self._file.readline()
-        self.n_atom = int(self._file.readline().split()[0])
-        self.n_bond = int(self._file.readline().split()[0])
-        self.n_angle = int(self._file.readline().split()[0])
-        self.n_dihedral = int(self._file.readline().split()[0])
-        self.n_atom_type = int(self._file.readline().split()[0])
+        while True:
+            line = self._file.readline().strip()
+            if line == '':
+                break
+            elif line.endswith('atoms'):
+                self.n_atom = int(line.split()[0])
+            elif line.endswith('bonds'):
+                self.n_bond = int(line.split()[0])
+            elif line.endswith('angles'):
+                self.n_angle = int(line.split()[0])
+            elif line.endswith('dihedrals'):
+                self.n_dihedral = int(line.split()[0])
+            elif line.endswith('atom types'):
+                self.n_atom_type = int(line.split()[0])
 
         self.atoms = [Atom() for i in range(self.n_atom)]
         self._type_masses = [0.] * (self.n_atom_type + 1)
