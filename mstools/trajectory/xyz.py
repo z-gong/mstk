@@ -6,12 +6,12 @@ class XYZTopology(Topology):
     def __init__(self, file):
         super(XYZTopology, self).__init__()
         self._file = open(file)
-        n_atom = int(self._file.readline().strip())
+        self.n_atom = int(self._file.readline().strip())
         self.remark = self._file.readline().strip()
 
         mol = Molecule()
         self.molecules.append(mol)
-        for i in range(n_atom):
+        for i in range(self.n_atom):
             words = self._file.readline().split()
             atom = Atom()
             atom.id = i
