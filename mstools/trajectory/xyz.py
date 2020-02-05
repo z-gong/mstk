@@ -74,7 +74,7 @@ class XYZ(Trajectory):
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
             position = frame.positions[id]
-            line = '%8s %10.5f %10.5f %10.5f\n' % (atom.type, position[0], position[1], position[2])
+            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.type, position[0], position[1], position[2])
             self._file.write(line)
 
     def close(self):
