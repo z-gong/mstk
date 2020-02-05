@@ -223,7 +223,7 @@ def diffusion():
 
 def voltage():
     frame = trj.read_frame(0)
-    area = frame.box[1] * frame.box[2]
+    area = frame.box[0] * frame.box[1]
     dz = 0.1
     n_bin = math.ceil(frame.box[2] / dz)
     bins = np.array([frame.zlo + dz * (i + 0.5) for i in range(n_bin)])
