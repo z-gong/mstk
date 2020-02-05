@@ -16,43 +16,39 @@ parser.add_argument('-o', '--output', required=True, type=str, help='output xyz 
 parser.add_argument('--cathode', required=True, type=float, help='z coordinate of cathode (left electrode)')
 parser.add_argument('--anode', type=float, help='z coordinate of anode (right electrode)')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
+parser.add_argument('--drude', type=bool, action='store_true', help='generate image for drude particles for heavy atoms')
 args = parser.parse_args()
 
 top = XYZTopology(args.input)
 trj = XYZ(args.input)
-trj_out = XYZ(args.output, 'w')
+frame = trj.read_frame(0)
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 ignore_list = args.ignore.split(',')
-id_atoms = [atom.id for atom in top.atoms if atom.type not in ignore_list]
+gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
+hvy_atoms = [atom for atom in gen_atoms if not atom.type.starswith('H')] if args.drude else []
 
 n_atom = top.n_atom
-n_image = len(id_atoms) if args.anode is None else len(id_atoms) * 2
-
-frame = trj.read_frame(0)
-frame_out = Frame(n_atom + n_image)
-
-for ii in range(n_atom):
-    frame_out.positions[ii] = frame.positions[ii]
-
-for ii, id in enumerate(id_atoms):
-    img = Atom()
-    img.type = 'IMG'
-    top.atoms.append(img)
-    top.n_atom += 1
-    frame_out.positions[ii + n_atom] = frame.positions[id]
-    frame_out.positions[ii + n_atom][2] = 2 * args.cathode - frame.positions[id][2]
-
+n_image = len(gen_atoms) + len(hvy_atoms)
 if args.anode is not None:
-    for ii, id in enumerate(id_atoms):
-        img = Atom()
-        img.type = 'IMG'
-        top.atoms.append(img)
-        top.n_atom += 1
-        frame_out.positions[ii + n_atom + len(id_atoms)] = frame.positions[id]
-        frame_out.positions[ii + n_atom + len(id_atoms)][2] = 2 * args.anode - frame.positions[id][2]
+    n_image *= 2
 
-trj_out.write_frame(top, frame_out)
-trj_out.close()
+with open(args.output, 'w') as f_out:
+    f_out.write('%i\n' % (n_atom + n_image))
+    f_out.write('simbox with image charges\n')
+    for ii, atom in enumerate(top.atoms):
+        pos = frame.positions
+        f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
+        if atom in gen_atoms:
+            f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], args.cathode - pos[2]))
+        if atom in hvy_atoms:
+            f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], args.cathode - pos[2]))
+    if args.anode is not None:
+        for ii, atom in enumerate(top.atoms):
+            pos = frame.positions
+            if atom in gen_atoms:
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], 2 * args.anode - pos[2]))
+            if atom in hvy_atoms:
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], 2 * args.anode - pos[2]))
