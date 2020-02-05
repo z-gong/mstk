@@ -13,7 +13,7 @@ from mstools.trajectory import Frame
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', required=True, type=str, help='input xyz file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output xyz file')
-parser.add_argument('--cathode', required=True, type=float,help='z coordinate of cathode (left electrode)')
+parser.add_argument('--cathode', required=True, type=float, help='z coordinate of cathode (left electrode)')
 parser.add_argument('--anode', type=float, help='z coordinate of anode (right electrode)')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 args = parser.parse_args()
@@ -37,7 +37,7 @@ frame_out = Frame(n_atom + n_image)
 for ii in range(n_atom):
     frame_out.positions[ii] = frame.positions[ii]
 
-for ii in range(n_atom):
+for ii, id in enumerate(id_atoms):
     img = Atom()
     img.type = 'IMG'
     top.atoms.append(img)
@@ -46,7 +46,7 @@ for ii in range(n_atom):
     frame_out.positions[ii + n_atom][2] = 2 * args.cathode - frame.positions[id][2]
 
 if args.anode is not None:
-    for ii in range(n_atom):
+    for ii, id in enumerate(id_atoms):
         img = Atom()
         img.type = 'IMG'
         top.atoms.append(img)
