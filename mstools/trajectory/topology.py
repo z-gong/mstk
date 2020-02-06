@@ -40,6 +40,7 @@ class Topology():
         self.atoms: [Atom] = []
         self.n_molecule = 0
         self.molecules: [Molecule] = []
+        self.remark = ''
 
     def init_from_molecules(self, molecules: [Molecule]):
         self.n_molecule = len(molecules)

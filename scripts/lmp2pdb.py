@@ -14,6 +14,7 @@ parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to o
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
+parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float, help='overwrite the box dimensions')
 args = parser.parse_args()
 
 top = LammpsData(args.data)
@@ -35,5 +36,7 @@ if args.end > trj.n_frame or args.end == -1:
 for i in range(args.begin, args.end, args.skip):
     sys.stdout.write('\r    %i' % i)
     frame = trj.read_frame(i)
+    box = [args.box[k] if args.box[k] != -1 else frame.box[k] for k in range(3)]
+    frame.box = box
     pdb.write_frame(top, frame, subset=id_atoms)
 pdb.close()
