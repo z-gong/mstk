@@ -27,15 +27,14 @@ parser.add_argument('--ignore', default='', type=str, help='ignore these atom ty
 args = parser.parse_args()
 
 top = LammpsData(args.data)
-trj = LammpsTrj(args.input)
-
-ignore_list = args.ignore.split(',')
-
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
+trj = LammpsTrj(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
+
+ignore_list = args.ignore.split(',')
 
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame

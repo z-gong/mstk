@@ -24,8 +24,9 @@ class LammpsData(Topology):
         # record the line number (starts from 0) of section headers
         _iline_section = []
         for i, line in enumerate(lines):
-            if line.strip() in _sections:
-                _iline_section.append((i, line.strip()))
+            line_clean = line.split('#')[0].strip()
+            if line_clean in _sections:
+                _iline_section.append((i, line_clean))
 
         self.parse_header(lines[:_iline_section[0][0]])
 
@@ -76,13 +77,13 @@ class LammpsData(Topology):
             words = lines[i].strip().split()
             type_id = int(words[0])
             self._type_masses[type_id] = float(words[1])
-            if words[2] == '#':
+            if len(words) > 2 and words[2] == '#':
                 if words[-1] == 'DP':
                     self._type_names[type_id] = 'DP'  # Drude particles
                 else:
                     self._type_names[type_id] = words[3]
             else:
-                self._type_names[type_id] = str(type_id)
+                self._type_names[type_id] = 'AT' + str(type_id)
 
     def parse_atoms(self, lines):
         for i in range(self.n_atom):
@@ -94,7 +95,7 @@ class LammpsData(Topology):
 
             self.n_molecule = max(self.n_molecule, mol_id)
             if mol_id not in self._molecule_dict.keys():
-                mol_name = words[9] if words[7] == '#' else 'UNK'
+                mol_name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
                 mol = Molecule(mol_name)
                 mol.id = mol_id - 1  # mol.id starts from 0
                 self._molecule_dict[mol_id] = mol

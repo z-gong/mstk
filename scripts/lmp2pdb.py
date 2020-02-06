@@ -18,14 +18,13 @@ parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float, help='ov
 args = parser.parse_args()
 
 top = LammpsData(args.data)
+print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = LammpsTrj(args.input)
+print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 pdb = PDB(args.output, 'w')
 
 ignore_list = args.ignore.split(',')
 id_atoms = [atom.id for atom in top.atoms if atom.type not in ignore_list]
-
-print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
-print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
