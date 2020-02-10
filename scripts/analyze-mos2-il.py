@@ -15,7 +15,8 @@ from mstools.trajectory.topology import Atom, Molecule, Topology
 from mstools.trajectory.lammps import LammpsData, LammpsTrj
 
 parser = argparse.ArgumentParser()
-parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage'], help='The property to analyze')
+parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge'],
+                    help='The property to analyze')
 parser.add_argument('-d', '--data', required=True, type=str, help='Lammps data file for topology information')
 parser.add_argument('-i', '--input', required=True, type=str,
                     help='Lammps dump trajectory file for atomic positions and charges')
@@ -25,6 +26,11 @@ parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to out
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 args = parser.parse_args()
+
+
+eps0 = 8.854188E-12
+q0 = 1.602176E-19
+Ang = 1E-10
 
 top = LammpsData(args.data)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
@@ -248,10 +254,6 @@ def voltage():
     charges_cumulative = np.cumsum(charges) / n_frame
     charges /= area * dz * n_frame  # e/A^3
 
-    eps0 = 8.854E-12
-    q0 = 1.602E-19
-    Ang = 1E-10
-
     for i in range(1, n_bin):
         s = 0
         for j in range(0, i + 1):
@@ -276,6 +278,15 @@ def voltage():
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
 
+def charge():
+    frame = trj.read_frame(0)
+    conv = q0 / frame.box[0] / frame.box[1] / Ang**2 * 1000
+    ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id==1]
+    for i in range(args.begin, args.end, args.skip):
+        frame = trj.read_frame(i)
+        qtot = sum(frame.charges[ids_cathode])
+        print('%-6i %10.6f %10.6f' %(i, qtot*conv, qtot/len(ids_cathode)*3))
+
 
 if __name__ == '__main__':
     if args.cmd == 'dist':
@@ -284,3 +295,5 @@ if __name__ == '__main__':
         diffusion()
     elif args.cmd == 'voltage':
         voltage()
+    elif args.cmd == 'charge':
+        charge()
