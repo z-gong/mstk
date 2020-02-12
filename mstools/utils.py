@@ -271,8 +271,8 @@ def get_last_line(filename):
         string = ''
     return string
 
-def histogram(data, bins):
+def histogram(data, bins, normed=False):
     import numpy as np
-    y, _x = np.histogram(data, bins=bins)
+    y, _x = np.histogram(data, bins=bins, density=normed)
     x = (_x[1:] + _x[:-1]) / 2
     return x, y
