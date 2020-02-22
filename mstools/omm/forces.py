@@ -27,7 +27,7 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], kx, k
     if system.getNumParticles() != len(positions):
         raise Exception('Length of positions does not equal to number of particles in system')
 
-    force = mm.CustomExternalForce('kx*(x-x0)^2+ky*(y-y0)^2+kz*(z-z0)^2)')
+    force = mm.CustomExternalForce('kx*(x-x0)^2+ky*(y-y0)^2+kz*(z-z0)^2')
     force.addGlobalParameter('kx', kx) # kJ/mol.nm^2
     force.addGlobalParameter('ky', ky)
     force.addGlobalParameter('kz', kz)
