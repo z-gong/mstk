@@ -22,3 +22,24 @@ def slab_correction(system: mm.System):
     cvforce.addGlobalParameter('k', 2 * 3.1415926 / vol * _conv)
     cvforce.addCollectiveVariable('muz', muz)
     system.addForce(cvforce)
+
+def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], kx, ky, kz):
+    if system.getNumParticles() != len(positions):
+        raise Exception('Length of positions does not equal to number of particles in system')
+
+    force = mm.CustomExternalForce('kx*(x-x0)^2+ky*(y-y0)^2+kz*(z-z0)^2)')
+    force.addGlobalParameter('kx', kx) # kJ/mol.nm^2
+    force.addGlobalParameter('ky', ky)
+    force.addGlobalParameter('kz', kz)
+    force.addPerParticleParameter('x0')
+    force.addPerParticleParameter('y0')
+    force.addPerParticleParameter('z0')
+
+    for i in particles:
+        force.addParticle(i, list(positions[i]))
+
+    system.addForce(force)
+
+def electric_field(system: mm.System):
+    # TODO
+    pass
