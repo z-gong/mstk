@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
 '''
-Generate image charge from xyz file
-Used for constant voltage simulation
+Generate image charges for xyz file used for constant voltage simulation.
+The z position of cathode and/or anode should be set.
+The positions of images will be determined by treating electrodes as mirrors
 '''
 
+import sys
 import argparse
-from mstools.trajectory.topology import Atom, Molecule
 from mstools.trajectory.xyz import XYZTopology, XYZ
-from mstools.trajectory import Frame
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input', required=True, type=str, help='input xyz file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output xyz file')
-parser.add_argument('--cathode', required=True, type=float, help='z coordinate of cathode (left electrode)')
+parser.add_argument('--cathode', type=float, help='z coordinate of cathode (left electrode)')
 parser.add_argument('--anode', type=float, help='z coordinate of anode (right electrode)')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 parser.add_argument('--drude', action='store_true', help='generate image for drude particles for heavy atoms')
@@ -30,23 +30,24 @@ ignore_list = args.ignore.split(',')
 gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
 hvy_atoms = [atom for atom in gen_atoms if not atom.type.startswith('H')] if args.drude else []
 
-n_atom = top.n_atom
-n_image = len(gen_atoms) + len(hvy_atoms)
-if args.anode is not None:
-    n_image *= 2
+n_image = (len(gen_atoms) + len(hvy_atoms)) * (args.cathode is not None + args.anode is not None)
+if n_image == 0:
+    print('ERROR: at least one of cathode and anode is required')
+    sys.exit()
 
 with open(args.output, 'w') as f_out:
-    f_out.write('%i\n' % (n_atom + n_image))
-    f_out.write('simbox with image charges\n')
+    f_out.write('%i\n' % (top.n_atom + n_image))
+    f_out.write('simulation box with image charges\n')
     for ii, atom in enumerate(top.atoms):
         pos = frame.positions[ii]
         f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
-    for ii, atom in enumerate(top.atoms):
-        pos = frame.positions[ii]
-        if atom in gen_atoms:
-            f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
-        if atom in hvy_atoms:
-            f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
+    if args.cathode is not None:
+        for ii, atom in enumerate(top.atoms):
+            pos = frame.positions[ii]
+            if atom in gen_atoms:
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
+            if atom in hvy_atoms:
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
             pos = frame.positions[ii]
