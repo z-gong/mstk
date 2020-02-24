@@ -16,7 +16,7 @@ from mstools.trajectory.topology import Atom, Molecule, Topology
 from mstools.trajectory.lammps import LammpsData, LammpsTrj
 
 parser = argparse.ArgumentParser()
-parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge', 'charge3d'],
+parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],
                     help='The property to analyze')
 parser.add_argument('-d', '--data', required=True, type=str, help='Lammps data file for topology information')
 parser.add_argument('-i', '--input', required=True, type=str,
@@ -322,14 +322,21 @@ def voltage():
     fig.savefig(f'{args.output}-voltage.png')
 
 
-def charge():
+def charge_2d():
     frame = trj.read_frame(0)
-    conv = q0 / frame.box[0] / frame.box[1] / Ang ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    z_span = frame.box[2] / 3
+    _conv = q0 / frame.box[0] / frame.box[1] / Ang ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
+    qtot_list = []
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         qtot = sum(frame.charges[ids_cathode])
-        print('%-6i %10.6f %10.6f' % (i, qtot * conv, qtot / len(ids_cathode) * 3))
+        qtot_list.append(qtot)
+        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
+
+    print('\n%-6i %10.6f %10.6f %10.6f' % (
+        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode) * 3,
+        np.mean(qtot_list) * _conv / 1000 * z_span * Ang / eps0))
 
 
 def charge_3d():
@@ -349,7 +356,6 @@ def charge_3d():
             q = frame.charges[ii]
             qtot += q * z / z_span
         qtot_list.append(qtot)
-
         print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
 
     print('\n%-6i %10.6f %10.6f %10.6f' % (
@@ -364,7 +370,7 @@ if __name__ == '__main__':
         diffusion()
     elif args.cmd == 'voltage':
         voltage()
-    elif args.cmd == 'charge':
-        charge()
+    elif args.cmd == 'charge2d':
+        charge_2d()
     elif args.cmd == 'charge3d':
         charge_3d()

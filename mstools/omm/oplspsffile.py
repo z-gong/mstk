@@ -1379,9 +1379,9 @@ class OplsPsfFile(object):
             print('Build exclusion list...')
         self._build_exclusion_list()
         if verbose:
-            print('\tNumber of 1-2 exclusion: %i' % len(self.pair_12_list))
-            print('\tNumber of 1-3 exclusion: %i' % len(self.pair_13_list))
-            print('\tNumber of 1-4 exclusion: %i' % len(self.pair_14_list))
+            print('    Number of 1-2 exclusion: %i' % len(self.pair_12_list))
+            print('    Number of 1-3 exclusion: %i' % len(self.pair_13_list))
+            print('    Number of 1-4 exclusion: %i' % len(self.pair_14_list))
 
         # Add 1-4 interactions
         sigma_scale = 2**(-1/6)
