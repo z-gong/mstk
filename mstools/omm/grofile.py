@@ -87,5 +87,5 @@ class GroFile(GromacsGroFile):
         xx, xy, xz = vectors[0]
         yx, yy, yz = vectors[1]
         zx, zy, zz = vectors[2]
-        print("%9.3f%9.3f%9.3f%9.3f%9.3f%9.3f%9.3f%9.3f%9.3f" % (
+        print(' %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f' %(
             xx, yy, zz, xy, xz, yx, yz, zx, zy), file=file)

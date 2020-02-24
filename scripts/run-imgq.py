@@ -8,14 +8,14 @@ from simtk.unit import kelvin, bar, volt
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroReporter, GroFile
 from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
-from mstools.omm.forces import spring_self
+from mstools.omm.forces import spring_self, wall_power, wall_lj126
 from mstools.omm.utils import print_omm_info, minimize
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm', T=333, voltage=0):
     print('Building system...')
     gro = app.GromacsGroFile(gro_file)
-    box_z = gro.getUnitCellDimensions()[2]
+    box_z = gro.getUnitCellDimensions()[2].value_in_unit(nm)
     psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, ewaldErrorTolerance=1E-5,
@@ -26,21 +26,26 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     ### assign groups
     atoms = list(psf.topology.atoms())
     group_mos2 = [atom.index for atom in atoms if atom.residue.name == 'MoS2']
-    group_mos2core = [atom.index for atom in atoms if atom.residue.name == 'MoS2' and not atom.name.startswith('D')]
+    group_mos2_core = [atom.index for atom in atoms if
+                       atom.residue.name == 'MoS2' and not atom.name.startswith('D')]
     group_img = [atom.index for atom in atoms if atom.residue.name == 'IMG']
     group_ils = [atom.index for atom in atoms if atom.residue.name not in ['MoS2', 'IMG']]
+    group_ils_drude = [atom.index for atom in atoms if
+                       atom.residue.name not in ['MoS2', 'IMG'] and atom.name.startswith('D')]
     print('Assigning groups...')
     print('    Number of atoms in group %10s: %i' % ('mos2', len(group_mos2)))
-    print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
     print('    Number of atoms in group %10s: %i' % ('ils', len(group_ils)))
-    print('    Number of atoms in group %10s: %i' % ('mos2core', len(group_mos2core)))
+    print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
+    print('    Number of atoms in group %10s: %i' % ('mos2_core', len(group_mos2_core)))
 
     ### move most of the atoms into first periodic box
     for i in range(system.getNumParticles()):
         gro.positions[i] += (0, 0, box_z / 2) * nm
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
-    spring_self(system, gro.positions.value_in_unit(nm), group_mos2core, 0.001 * 418.4, 0.001 * 418.4, 5.000 * 418.4)
+    spring_self(system, gro.positions.value_in_unit(nm), group_mos2_core, 0.001 * 418.4, 0.001 * 418.4, 5.000 * 418.4)
+    wall_power(system, group_ils_drude, 'z', [box_z/2+0.2, box_z-0.2], k=0.5*4.184, offset=0.0245, power=10)
+    # wall_lj126(system, group_ils_drude, 'z', [box_z/2, box_z], epsilon=0.5*4.184, sigma=0.2)
 
     ### randomlize particle positions to get ride of overlap
     for i in range(system.getNumParticles()):
@@ -63,7 +68,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     for i in group_img:
         integrator.addImagePair(i, i - group_img[0] + group_ils[0])
         # add fake bond between image and parent so that they are always in the same periodic cell
-        forces['HarmonicBondForce'].addBond(i,  i - group_img[0] + group_ils[0], 0, 0)
+        # forces['HarmonicBondForce'].addBond(i,  i - group_img[0] + group_ils[0], 0, 0)
     ### assign image charges
     nbforce = forces['NonbondedForce']
     for i in group_img:
@@ -74,8 +79,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     for i in group_ils:
         integrator.addParticleElectrolyte(i)
     print('Image charge constant voltage simulation:')
-    print('    Z Length: %s, Mirror: %s, Electric field: %s' % (
-        box_z, integrator.getMirrorLocation(), integrator.getElectricField()))
+    print('    lz : %s, mirror: %s, electric field: %s' % (
+        box_z * nm, integrator.getMirrorLocation(), integrator.getElectricField()))
 
     print('Initializing simulation...')
     platform = mm.Platform.getPlatformByName('CUDA')
@@ -91,7 +96,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
                                                elapsedTime=False, speed=True, separator='\t'))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
-    minimize(sim, 500)
+    # minimize(sim, 500, gro_out='em.gro')
     print('Running...')
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')

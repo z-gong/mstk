@@ -41,3 +41,45 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], kx, k
         force.addParticle(i, list(positions[i]))
 
     system.addForce(force)
+
+def wall_power(system: mm.System, particles: [int], direction: str, bound: [float], k, offset, power=2):
+    # TODO checkout the validity
+
+    if direction not in ['x', 'y', 'z']:
+        raise Exception('direction can only be x, y or z')
+    _min, _max = bound
+    _min_0 = _min + offset
+    _max_0 = _max - offset
+    force = mm.CustomExternalForce(f'k*step({_min_0}-{direction})*rmin^{power}+'
+                                   f'k*step({direction}-{_max_0})*rmax^{power};'
+                                   f'rmin=({_min_0}-{direction})/{offset};'
+                                   f'rmax=({direction}-{_max_0})/{offset};')
+    force.addGlobalParameter('k', k) # kJ/mol.nm^power
+
+    print(force.getEnergyFunction())
+
+    for i in particles:
+        force.addParticle(i, [])
+
+    system.addForce(force)
+
+def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [float], epsilon, sigma):
+    # TODO checkout the validity
+
+    if direction not in ['x', 'y', 'z']:
+        raise Exception('direction can only be x, y or z')
+    _min, _max = bound
+    _min_0 = _min + sigma * 2 ** (1 / 6)
+    _max_0 = _max - sigma * 2 ** (1 / 6)
+    force = mm.CustomExternalForce(f'4*eps*step({_min_0}-{direction})*(rmin^12-rmin^6+0.25)+'
+                                   f'4*eps*step({direction}-{_max_0})*(rmax^12-rmax^6+0.25);'
+                                   f'rmin={sigma}/({direction}-{_min});'
+                                   f'rmax={sigma}/({_max}-{direction});')
+    force.addGlobalParameter('eps', epsilon) # kJ/mol
+
+    print(force.getEnergyFunction())
+
+    for i in particles:
+        force.addParticle(i, [])
+
+    system.addForce(force)
