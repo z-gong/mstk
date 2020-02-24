@@ -62,6 +62,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     integrator.setMirrorLocation(box_z / 2 * nm)
     for i in group_img:
         integrator.addImagePair(i, i - group_img[0] + group_ils[0])
+        # add fake bond between image and parent so that they are always in the same periodic cell
+        forces['HarmonicBondForce'].addBond(i,  i - group_img[0] + group_ils[0], 0, 0)
     ### assign image charges
     nbforce = forces['NonbondedForce']
     for i in group_img:

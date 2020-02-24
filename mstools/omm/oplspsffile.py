@@ -902,8 +902,12 @@ class OplsPsfFile(object):
         for atom in self.atom_list:
             typenames.add(atom.type.name)
             system.addParticle(atom.mass)
-        # has_nbfix_terms = False
-        # TODO OPLS use geometric combination rule. Should always use CustomNonbondedForce with NBFIX
+
+        ############################################################
+        # OPLS use geometric combination rule
+        # LJ force will be handled by CustomNonbondedForce
+        # Coulomb and 1-4 LJ will be handled by NonbondedForce
+        ############################################################
         has_nbfix_terms = True
         typenames = list(typenames)
         try:
@@ -933,7 +937,9 @@ class OplsPsfFile(object):
         except AttributeError:
             pass
 
-        # TODO record drude
+        ############################################################
+        # We know that this psf is for Drude model
+        ############################################################
         self.is_drude = has_drude_particle
 
         # Set up the constraints
@@ -995,7 +1001,9 @@ class OplsPsfFile(object):
         # Add Bond forces
         if verbose: print('Adding bonds...')
         force = mm.HarmonicBondForce()
-        # TODO periodic
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.BOND_FORCE_GROUP)
         # See which, if any, energy terms we omit
@@ -1014,7 +1022,9 @@ class OplsPsfFile(object):
         # Add Angle forces
         if verbose: print('Adding angles...')
         force = mm.HarmonicAngleForce()
-        # TODO periodic
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.ANGLE_FORCE_GROUP)
         if constraints is ff.HAngles:
@@ -1068,7 +1078,9 @@ class OplsPsfFile(object):
         # Add the urey-bradley terms
         if verbose: print('Adding Urey-Bradley terms')
         force = mm.HarmonicBondForce()
-        # TODO periodic
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.UREY_BRADLEY_FORCE_GROUP)
         for ub in self.urey_bradley_list:
@@ -1080,7 +1092,9 @@ class OplsPsfFile(object):
         # Add dihedral forces
         if verbose: print('Adding torsions...')
         force = mm.PeriodicTorsionForce()
-        # TODO periodic
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.DIHEDRAL_FORCE_GROUP)
         for tor in self.dihedral_parameter_list:
@@ -1096,7 +1110,9 @@ class OplsPsfFile(object):
         energy_function = 'k*min(dtheta, 2*pi-dtheta)^2; dtheta = abs(theta-theta0);'
         energy_function += 'pi = %f;' % pi
         force = mm.CustomTorsionForce(energy_function)
-        # TODO periodic
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
         force.setUsesPeriodicBoundaryConditions(True)
         force.addPerTorsionParameter('k')
         force.addPerTorsionParameter('theta0')
@@ -1112,7 +1128,9 @@ class OplsPsfFile(object):
         if hasattr(self, 'cmap_list'):
             if verbose: print('Adding CMAP coupled torsions...')
             force = mm.CMAPTorsionForce()
-            # TODO periodic
+            #####################################################################
+            # Should always use periodic boundary conditions for all forces
+            #####################################################################
             force.setUsesPeriodicBoundaryConditions(True)
             force.setForceGroup(self.CMAP_FORCE_GROUP)
             # First get the list of cmap maps we're going to use. Just store the
@@ -1146,8 +1164,20 @@ class OplsPsfFile(object):
         # Add nonbonded terms now
         if verbose: print('Adding nonbonded interactions...')
         force = mm.NonbondedForce()
-        # TODO dispersion is handled by CustomNonbondedForce. Do not need dispersion correction here
+        ############################################################
+        # Dispersion is handled by CustomNonbondedForce
+        # Do not need dispersion correction here
+        ############################################################
         force.setUseDispersionCorrection(False)
+
+        #####################################################################
+        # Should always use periodic boundary conditions for all forces
+        #####################################################################
+        try:
+            force.setExceptionsUsePeriodicBoundaryConditions(True)
+        except:
+            print('WARNING: Cannot apply PBC for LJ exceptions')
+
         force.setForceGroup(self.NONBONDED_FORCE_GROUP)
         if not hasbox: # non-periodic
             if nonbondedMethod is ff.NoCutoff:
@@ -1269,7 +1299,9 @@ class OplsPsfFile(object):
                         rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
                     except KeyError:
                         # rij = (lj_radii[i] + lj_radii[j]) * length_conv
-                        # TODO OPLS use geometric combination rule
+                        ##################################################################
+                        # OPLS use geometric combination rule for both epsilon and sigma
+                        ##################################################################
                         rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
                         wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
                     else:
@@ -1280,7 +1312,9 @@ class OplsPsfFile(object):
             cforce = mm.CustomNonbondedForce('(a/r6)^2-b/r6; r6=r^6;'
                                              'a=acoef(type1, type2);'
                                              'b=bcoef(type1, type2)')
-            # TODO dispersion correction
+            ##################################################################
+            # Dispersion correction for LJ force
+            ##################################################################
             cforce.setUseLongRangeCorrection(True)
             cforce.addTabulatedFunction('acoef',
                     mm.Discrete2DFunction(num_lj_types, num_lj_types, acoef))
@@ -1385,16 +1419,13 @@ class OplsPsfFile(object):
 
         # Add 1-4 interactions
         sigma_scale = 2**(-1/6)
-        #TODO use bond instead of dihedral to determine 1-4 relations
         for ia1, ia4 in self.pair_14_list:
             atom1 = self.atom_list[ia1]
             atom4 = self.atom_list[ia4]
-            # charge_prod = (tor.atom1.charge * tor.atom4.charge)
-            # epsilon = (sqrt(abs(tor.atom1.type.epsilon_14) * ene_conv *
-            #                 abs(tor.atom4.type.epsilon_14) * ene_conv))
-            # sigma = (tor.atom1.type.rmin_14 + tor.atom4.type.rmin_14) * (
-            #          length_conv * sigma_scale)
-            # TODO 1-4 scaling for OPLS are 0.5 for both LJ and Coul. However, LJ14 has already been scaled in prm file
+            ####################################################################
+            # OPLS scale 1-4 interactions by 0.5 for both LJ and Coulomb
+            # But 1-4 LJ has already been scaled in prm file
+            ####################################################################
             charge_prod = (atom1.charge * atom4.charge) / 2
             epsilon = sqrt(atom1.type.epsilon_14 * atom4.type.epsilon_14) * ene_conv
             sigma = sqrt(atom1.type.rmin_14 * 2 * atom4.type.rmin_14 * 2) * (
@@ -1428,7 +1459,9 @@ class OplsPsfFile(object):
             for excludeatom in [ia1]+parent_exclude_list[ia1]:
                 for excludeatom2 in [ia2]+parent_exclude_list[ia2]:
                     force.addException(excludeatom, excludeatom2, 0.0, 0.1, 0.0)
-        # TODO 1-4 scaling for lonepair/Drude
+        #############################################################################
+        # 1-4 scaling for lonepair/Drude
+        #############################################################################
         for ia1, ia4 in self.pair_14_list:
             for excludeatom in [ia1]+parent_exclude_list[ia1]:
                 for excludeatom4 in [ia4]+parent_exclude_list[ia4]:
