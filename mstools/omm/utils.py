@@ -13,13 +13,9 @@ def print_omm_info():
 
 
 def minimize(sim, tolerance, gro_out=None):
-    print('Minimizing...')
-    state = sim.context.getState(getEnergy=True)
-    print('    Initial Energy: ' + str(state.getPotentialEnergy()))
-
     sim.minimizeEnergy(tolerance=tolerance * kj_mol)
     state = sim.context.getState(getPositions=True, getEnergy=True)
-    print('    Final   Energy: ' + str(state.getPotentialEnergy()))
+    print('Minimized Energy: ' + str(state.getPotentialEnergy()))
 
     if gro_out is not None:
         with open(gro_out, 'w') as f:

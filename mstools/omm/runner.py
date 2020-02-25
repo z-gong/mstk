@@ -59,7 +59,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     if psf.is_drude:
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
-    minimize(sim, 200, gro_out='em.gro')
+    state = sim.context.getState(getEnergy=True)
+    print('Initial Energy: ' + str(state.getPotentialEnergy()))
+    print('Minimizing...')
+    minimize(sim, 500, gro_out='em.gro')
     print('Running...')
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')
