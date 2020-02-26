@@ -53,7 +53,7 @@ class GroFile(GromacsGroFile):
             residue = atom.residue
             coords = positions[i]
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                int(residue.id), residue.name, atom.name, atom.id,
+                int(residue.id), residue.name, atom.name, int(atom.id),
                 coords[0], coords[1], coords[2])
             print(line, file=file)
 
