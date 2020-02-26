@@ -3,8 +3,8 @@ import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
-from mstools.omm import OplsPsfFile, GroReporter, GroFile
-from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
+from mstools.omm import OplsPsfFile, GroFile
+from mstools.omm import GroReporter, XMLStateReporter, DrudeTemperatureReporter
 from mstools.omm.forces import slab_correction
 from mstools.omm.utils import print_omm_info, minimize, apply_mc_barostat
 
@@ -50,9 +50,9 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin)
-    sim.reporters.append(GroReporter('dump.gro', 10000, enforcePeriodicBox=False))
+    sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False))
+    sim.reporters.append(XMLStateReporter('state.xml', 100000))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.CheckpointReporter('cpt.cpt', 10000))
     sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
                                                potentialEnergy=True, kineticEnergy=True, volume=True, density=True,
                                                elapsedTime=False, speed=True, separator='\t'))
@@ -63,10 +63,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('Initial Energy: ' + str(state.getPotentialEnergy()))
     print('Minimizing...')
     minimize(sim, 500, gro_out='em.gro')
+
     print('Running...')
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')
-    sim.saveState('rst.xml')
 
 
 if __name__ == '__main__':

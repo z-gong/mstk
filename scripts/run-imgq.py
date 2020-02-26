@@ -6,8 +6,8 @@ import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar, volt
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
-from mstools.omm import OplsPsfFile, GroReporter, GroFile
-from mstools.omm.drudetemperaturereporter import DrudeTemperatureReporter
+from mstools.omm import OplsPsfFile, GroFile
+from mstools.omm import GroReporter, XMLStateReporter, DrudeTemperatureReporter
 from mstools.omm.forces import spring_self, wall_power, wall_lj126
 from mstools.omm.utils import print_omm_info, minimize
 
@@ -37,10 +37,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('    Number of atoms in group %10s: %i' % ('ils', len(group_ils)))
     print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
-
-    ### move most of the atoms into first periodic box
-    for i in range(system.getNumParticles()):
-        gro.positions[i] += (0, 0, box_z / 2) * nm
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     spring_self(system, gro.positions.value_in_unit(nm), group_mos_core, 0.001 * 418.4, 0.001 * 418.4, 5.000 * 418.4)
@@ -77,9 +73,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         charge, sig, eps = nbforce.getParticleParameters(i - group_img[0] + group_ils[0])
         nbforce.setParticleParameters(i, -charge, 1 * nm, 0 * kJ_mol)
     ### apply electric field
-    integrator.setElectricField(voltage / box_z * 2 * volt / nm)
-    for i in group_ils:
-        integrator.addParticleElectrolyte(i)
+    if voltage != 0:
+        integrator.setElectricField(voltage / box_z * 2 * volt / nm)
+        for i in group_ils:
+            integrator.addParticleElectrolyte(i)
     print('Image charge constant voltage simulation:')
     print('    lz : %s, mirror: %s, electric field: %s' % (
         box_z * nm, integrator.getMirrorLocation(), integrator.getElectricField()))
@@ -90,22 +87,22 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin, 12345)
-    sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False))
+    sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False, subset=group_mos+group_ils))
+    sim.reporters.append(XMLStateReporter('state.xml', 100000))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.CheckpointReporter('cpt.cpt', 10000))
     sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
                                                potentialEnergy=True, kineticEnergy=True, volume=True, density=True,
                                                elapsedTime=False, speed=True, separator='\t'))
-    sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
+    sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000))
 
     state = sim.context.getState(getEnergy=True)
     print('Initial Energy: ' + str(state.getPotentialEnergy()))
     # print('Minimizing...')
     # minimize(sim, 500, gro_out='em.gro')
+
     print('Running...')
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')
-    sim.saveState('rst.xml')
 
 
 if __name__ == '__main__':

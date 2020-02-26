@@ -74,7 +74,7 @@ def wall_power(system: mm.System, particles: [int], direction: str, bound: [floa
     force = mm.CustomExternalForce(f'k*step({_min_0}-{direction})*rmin^{power}+'
                                    f'k*step({direction}-{_max_0})*rmax^{power};'
                                    f'rmin=({_min_0}-{direction})/{cutoff};'
-                                   f'rmax=({direction}-{_max_0})/{cutoff};')
+                                   f'rmax=({direction}-{_max_0})/{cutoff}')
     force.addGlobalParameter('k', k) # kJ/mol
     for i in particles:
         force.addParticle(i, [])
@@ -100,7 +100,7 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
     force = mm.CustomExternalForce(f'4*eps*step({_min_0}-{direction})*(rmin^12-rmin^6+0.25)+'
                                    f'4*eps*step({direction}-{_max_0})*(rmax^12-rmax^6+0.25);'
                                    f'rmin={sigma}/({direction}-{_min});'
-                                   f'rmax={sigma}/({_max}-{direction});')
+                                   f'rmax={sigma}/({_max}-{direction})')
     force.addGlobalParameter('eps', epsilon) # kJ/mol
     for i in particles:
         force.addParticle(i, [])

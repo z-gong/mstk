@@ -30,7 +30,7 @@ ignore_list = args.ignore.split(',')
 gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
 hvy_atoms = [atom for atom in gen_atoms if not atom.type.startswith('H')] if args.drude else []
 
-n_image = (len(gen_atoms) + len(hvy_atoms)) * (args.cathode is not None + args.anode is not None)
+n_image = (len(gen_atoms) + len(hvy_atoms)) * ((args.cathode is not None) + (args.anode is not None))
 if n_image == 0:
     print('ERROR: at least one of cathode and anode is required')
     sys.exit()

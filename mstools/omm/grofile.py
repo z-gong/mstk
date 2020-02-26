@@ -1,13 +1,12 @@
 import sys
-import math
 from simtk.openmm.app.gromacsgrofile import GromacsGroFile
 from simtk.unit import nanometer, picosecond, norm, is_quantity
 
 class GroFile(GromacsGroFile):
     @staticmethod
-    def writeFile(topology, time, positions, vectors, file):
+    def writeFile(topology, time, positions, vectors, file, subset):
         GroFile.writeHeader(time, file)
-        GroFile.writeModel(topology, positions, file)
+        GroFile.writeModel(topology, positions, file, subset)
         GroFile.writeFooter(vectors, file)
 
     @staticmethod
@@ -24,7 +23,7 @@ class GroFile(GromacsGroFile):
         print("written by openmm t = %.3f ps" % time.value_in_unit(picosecond), file=file)
 
     @staticmethod
-    def writeModel(topology, positions, file=sys.stdout):
+    def writeModel(topology, positions, file=sys.stdout, subset=None):
         """Write out a model to a PDB file.
 
         Parameters
@@ -35,42 +34,29 @@ class GroFile(GromacsGroFile):
             The list of atomic positions to write
         file : file=stdout
             A file to write the model to
-        modelIndex : int=None
-            If not None, the model will be surrounded by MODEL/ENDMDL records
-            with this index
-        keepIds : bool=False
-            If True, keep the residue and chain IDs specified in the Topology
-            rather than generating new ones.  Warning: It is up to the caller to
-            make sure these are valid IDs that satisfy the requirements of the
-            PDB format.  No guarantees are made about what will happen if they
-            are not, and the output file could be invalid.
-        extraParticleIdentifier : string=' '
-            String to write in the element column of the ATOM records for atoms whose element is None (extra particles)
+        subset : list(int)=None
+            If not None, only the selected atoms will be written
         """
 
-        if len(list(topology.atoms())) != len(positions):
+        atoms = list(topology.atoms())
+        if len(atoms) != len(positions):
             raise ValueError('The number of positions must match the number of atoms')
         if is_quantity(positions):
             positions = positions.value_in_unit(nanometer)
-        if any(math.isnan(norm(pos)) for pos in positions):
-            raise ValueError('Particle position is NaN')
-        if any(math.isinf(norm(pos)) for pos in positions):
-            raise ValueError('Particle position is infinite')
-        print('%i' % len(positions), file=file)
-        atomIndex = 1
-        for (chainIndex, chain) in enumerate(topology.chains()):
-            residues = list(chain.residues())
-            for (resIndex, res) in enumerate(residues):
-                resName = res.name[:4]
-                resId = res.id
-                for atom in res.atoms():
-                    atomName = atom.name[:5]
-                    coords = positions[atomIndex-1]
-                    line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' %(
-                        int(resId), resName, atomName, atomIndex,
-                        coords[0], coords[1], coords[2])
-                    print(line, file=file)
-                    atomIndex += 1
+
+        if subset is None:
+            subset = list(range(len(atoms)))
+
+        print('%i' % len(subset), file=file)
+        for ii, i in enumerate(subset):
+            atom = atoms[i]
+            residue = atom.residue
+            coords = positions[i]
+            line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
+                int(residue.id), residue.name, atom.name, atom.id,
+                coords[0], coords[1], coords[2])
+            print(line, file=file)
+
 
     @staticmethod
     def writeFooter(periodicBoxVectors, file=sys.stdout):
