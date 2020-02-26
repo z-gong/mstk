@@ -4,7 +4,7 @@ from simtk.unit import nanometer, picosecond, norm, is_quantity
 
 class GroFile(GromacsGroFile):
     @staticmethod
-    def writeFile(topology, time, positions, vectors, file, subset):
+    def writeFile(topology, time, positions, vectors, file, subset=None):
         GroFile.writeHeader(time, file)
         GroFile.writeModel(topology, positions, file, subset)
         GroFile.writeFooter(vectors, file)
