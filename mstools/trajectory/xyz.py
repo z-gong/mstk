@@ -3,13 +3,26 @@ from . import Atom, Molecule, Topology, Trajectory, Frame
 
 
 class XYZTopology(Topology):
-    def __init__(self, file):
+    '''
+    xyz format only records the type and position of atoms
+    there is no real topology
+    we treat the first column as type instead of name
+    '''
+
+    def __init__(self, file, mode='r'):
         super(XYZTopology, self).__init__()
-        self._file = open(file)
+        self._file = open(file, mode)
+        if mode == 'r':
+            self.parse()
+        elif mode == 'w':
+            raise Exception('Writing is not supported for XYZTopology')
+
+    def parse(self):
         self.n_atom = int(self._file.readline().strip())
         self.remark = self._file.readline().strip()
 
         mol = Molecule()
+        mol.id = 0
         self.molecules.append(mol)
         for i in range(self.n_atom):
             words = self._file.readline().split()
@@ -23,11 +36,17 @@ class XYZTopology(Topology):
 
 
 class XYZ(Trajectory):
+    '''
+    Since xyz format is not very useful, I only parse the first frame
+    '''
+
     def __init__(self, file, mode='r'):
         super().__init__()
         self._file = open(file, mode)
         if mode == 'r':
             self._get_info()
+        elif mode == 'w':
+            pass
 
     def _get_info(self):
         '''
@@ -52,16 +71,10 @@ class XYZ(Trajectory):
     def read_frame_from_string(self, string: str):
         frame = Frame(self.n_atom)
         lines = string.splitlines()
-        frame.xlo, frame.xhi = 0, 0
-        frame.ylo, frame.yhi = 0, 0
-        frame.zlo, frame.zhi = 0, 0
-        frame.box = np.array([frame.xhi - frame.xlo, frame.yhi - frame.ylo, frame.zhi - frame.zlo])
-
-        frame.has_charge = False
 
         for i in range(self.n_atom):
             words = lines[i + 2].split()
-            frame.positions[i] = np.array(list(map(float, words[1:4])))
+            frame.positions[i] = np.array(list(map(float, words[1:4]))) / 10  # convert from A to nm
 
         return frame
 
@@ -73,7 +86,7 @@ class XYZ(Trajectory):
             subset = list(range(topology.n_atom))
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
-            position = frame.positions[id]
+            position = frame.positions[id] * 10  # convert from nm to A
             line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.type, position[0], position[1], position[2])
             self._file.write(line)
 

@@ -11,6 +11,8 @@ class Frame():
         self.positions = np.array([[0., 0., 0.]] * n_atom)
         self.has_charge = False
         self.charges = np.array([0.] * n_atom)  # for fluctuating charge simulations
+        self.has_velocity = False
+        self.velocities = np.array([[0., 0., 0.]] * n_atom)
 
 
 class Trajectory():

@@ -41,6 +41,7 @@ class Topology():
         self.n_molecule = 0
         self.molecules: [Molecule] = []
         self.remark = ''
+        self.is_drude = False
 
     def init_from_molecules(self, molecules: [Molecule]):
         self.n_molecule = len(molecules)

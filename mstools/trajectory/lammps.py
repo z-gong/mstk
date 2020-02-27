@@ -7,9 +7,20 @@ from ..forcefield import Element
 
 
 class LammpsData(Topology):
-    def __init__(self, file):
+    '''
+    Parse the topology information from Lammps data file
+    Currently only atom type, charge and molecule are parsed
+    The positions and connectivity haven't been implemented
+    '''
+    def __init__(self, file, mode='r'):
         super(LammpsData, self).__init__()
         self._file = open(file)
+        if mode == 'r':
+            self.parse()
+        if mode == 'w':
+            raise Exception('Writing support for LammpsData haven\'t been implemented')
+
+    def parse(self):
         lines = self._file.read().splitlines()
         self.remark = lines[0].strip()
 
@@ -79,7 +90,7 @@ class LammpsData(Topology):
             self._type_masses[type_id] = float(words[1])
             if len(words) > 2 and words[2] == '#':
                 if words[-1] == 'DP':
-                    self._type_names[type_id] = 'DP'  # Drude particles
+                    self._type_names[type_id] = 'D'  # Drude particles
                 else:
                     self._type_names[type_id] = words[3]
             else:
@@ -132,12 +143,16 @@ class LammpsTrj(Trajectory):
     '''
     Read step, box and atomic positions (and charges optionally) from dump file of LAMMPS
     Because the topology information are detailed in data file, the mol, type, element in dump file will be ignored
+    The length unit will be converted from A to nm
     '''
 
     def __init__(self, trj_file, mode='r'):
         super().__init__()
         self._file = open(trj_file, mode)
-        self._get_info()
+        if mode == 'r':
+            self._get_info()
+        elif mode == 'w':
+            raise Exception('Writing support for LammpsTrj haven\'t been implemented')
 
     def _get_info(self):
         '''
@@ -188,9 +203,9 @@ class LammpsTrj(Trajectory):
         frame = Frame(self.n_atom)
         lines = string.splitlines()
         frame.step = int(lines[1])
-        frame.xlo, frame.xhi = tuple(map(float, lines[5].split()))
-        frame.ylo, frame.yhi = tuple(map(float, lines[6].split()))
-        frame.zlo, frame.zhi = tuple(map(float, lines[7].split()))
+        frame.xlo, frame.xhi = tuple(map(lambda x: float(x) / 10, lines[5].split()))  # convert from A to nm
+        frame.ylo, frame.yhi = tuple(map(lambda x: float(x) / 10, lines[6].split()))
+        frame.zlo, frame.zhi = tuple(map(lambda x: float(x) / 10, lines[7].split()))
         frame.box = np.array([frame.xhi - frame.xlo, frame.yhi - frame.ylo, frame.zhi - frame.zlo])
         tokens = lines[8].split()
         title = tokens[2:]
@@ -199,20 +214,23 @@ class LammpsTrj(Trajectory):
         df = pd.read_csv(StringIO(data), header=None, index_col=None, names=title, sep='\s+')
         wrapped = False
         if 'x' in df.columns:
+            df['x'] /= 10  # convert from A to nm
+            df['y'] /= 10
+            df['z'] /= 10
             wrapped = True
         elif 'xs' in df.columns:
-            df['x'] = df.xs * (frame.xhi - frame.xlo) + frame.xlo
-            df['y'] = df.ys * (frame.yhi - frame.ylo) + frame.ylo
-            df['z'] = df.zs * (frame.zhi - frame.zlo) + frame.zlo
+            df['x'] = df.xs * frame.box[0] + frame.xlo
+            df['y'] = df.ys * frame.box[1] + frame.ylo
+            df['z'] = df.zs * frame.box[2] + frame.zlo
             wrapped = True
         elif 'xu' in df.columns:
-            df['x'] = df.xu
-            df['y'] = df.yu
-            df['z'] = df.zu
+            df['x'] = df.xu / 10  # convert from A to nm
+            df['y'] = df.yu / 10
+            df['z'] = df.zu / 10
         elif 'xsu' in df.columns:
-            df['x'] = df.xsu * (frame.xhi - frame.xlo) + frame.xlo
-            df['y'] = df.ysu * (frame.yhi - frame.ylo) + frame.ylo
-            df['z'] = df.zsu * (frame.zhi - frame.zlo) + frame.zlo
+            df['x'] = df.xsu * frame.box[0] + frame.xlo
+            df['y'] = df.ysu * frame.box[1] + frame.ylo
+            df['z'] = df.zsu * frame.box[2] + frame.zlo
         if wrapped:
             if 'ix' not in df.columns:
                 print('warning: image flag not found for wrapped positions')
