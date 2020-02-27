@@ -7,20 +7,23 @@ import numpy as np
 import configparser
 
 import matplotlib as mpl
+
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram
-from mstools.trajectory.topology import Atom, Molecule, Topology
-from mstools.trajectory.lammps import LammpsData, LammpsTrj
+from mstools.trajectory.topology import Atom, Molecule
+from mstools.trajectory import Topology, Trajectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],
                     help='The property to analyze')
-parser.add_argument('-d', '--data', required=True, type=str, help='Lammps data file for topology information')
+parser.add_argument('-t', '--topology', required=True, type=str,
+                    help='psf or lammps data file for topology information')
 parser.add_argument('-i', '--input', required=True, type=str,
-                    help='Lammps dump trajectory file for atomic positions and charges')
+                    help='gro or lammpstrj file for atomic positions and charges')
 parser.add_argument('-c', '--config', required=True, type=str, help='Config file for analysis')
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
@@ -35,9 +38,9 @@ eps0 = 8.854188E-12
 q0 = 1.602176E-19
 Ang = 1E-10
 
-top = LammpsData(args.data)
+top = Topology.open(args.topology)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
-trj = LammpsTrj(args.input)
+trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 if (top.n_atom != trj.n_atom):
@@ -57,7 +60,7 @@ def _get_atoms(mol: Molecule, names: [str]):
     return [list(filter(lambda x: x.name == name, mol.atoms))[0] for name in names]
 
 
-def _get_com_position(positions, atoms):
+def _get_com_position(positions, atoms: [Atom]):
     atom_masses = np.array([atom.mass for atom in atoms])
     com_mass = sum(atom_masses)
     atom_ids = [atom.id for atom in atoms]
@@ -81,7 +84,7 @@ def _calc_acf(series):
     acf(t) = <h(0)h(t)>
     '''
     acf = []
-    for delta in (range(int(len(series) * 0.75))):
+    for delta in (range(int(len(series) * 0.5))):
         _tmp = []
         for t0 in range(len(series) - delta):
             v0 = series[t0]
@@ -116,7 +119,7 @@ def distribution():
 
             for atom in mol.atoms:
                 z = frame.positions[atom.id][2]
-                q = frame.charges[atom.id]
+                q = frame.charges[atom.id] if frame.has_charge else atom.charge
                 z_idx = math.floor((z - bins[0]) / dz)
                 charge_array[z_idx] += q
 
@@ -291,8 +294,8 @@ def voltage():
             z = frame.positions[k][2]
             i_bin = math.floor((z - frame.zlo) / dz)
             i_bin = min(i_bin, n_bin - 1)
-            charge = frame.charges[k] if frame.has_charge else atom.charge
-            charges[i_bin] += charge
+            q = frame.charges[k] if frame.has_charge else atom.charge
+            charges[i_bin] += q
 
     charges_cumulative = np.cumsum(charges) / n_frame
     charges /= area * dz * n_frame  # e/A^3
@@ -324,6 +327,9 @@ def voltage():
 
 def charge_2d():
     frame = trj.read_frame(0)
+    if not frame.has_charge:
+        raise Exception('charge_2d function requires charge information in trajectory')
+
     z_span = frame.box[2] / 3
     _conv = q0 / frame.box[0] / frame.box[1] / Ang ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
@@ -353,7 +359,7 @@ def charge_3d():
             if atom.molecule.name == 'MoS2' or atom.type == 'IMG':
                 continue
             z = frame.positions[ii][2]
-            q = frame.charges[ii]
+            q = frame.charges[ii] if frame.has_charge else atom.charge
             qtot += q * z / z_span
         qtot_list.append(qtot)
         print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
