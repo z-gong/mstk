@@ -38,6 +38,11 @@ eps0 = 8.854188E-12
 q0 = 1.602176E-19
 nm = 1E-9
 
+config = configparser.ConfigParser()
+if config.read(args.config) == []:
+    raise Exception('config file not exist')
+mol_names = config['molecules']['name'].split()
+
 top = Topology.open(args.topology)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = Trajectory.open(args.input)
@@ -50,11 +55,6 @@ ignore_list = args.ignore.split(',')
 
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
-
-config = configparser.ConfigParser()
-if config.read(args.config) == []:
-    raise Exception('config file not exist')
-molecules = config['molecules']['name'].split()
 
 
 def _get_atoms(mol: Molecule, names: [str]):
@@ -115,7 +115,7 @@ def distribution():
         sys.stdout.write('\r    frame %i' % i)
         positions = frame.positions
         for mol in top.molecules:
-            if mol.name not in molecules:
+            if mol.name not in mol_names:
                 continue
 
             for atom in mol.atoms:
@@ -192,7 +192,7 @@ def distribution():
 
     fig, ax = plt.subplots()
     ax.set(xlim=[0, 7], xlabel='z (nm)', ylabel='charge density (e/$nm^3$)')
-    ax.plot(z_array, charge_array / area / dz / n_frame, label=' '.join(molecules))
+    ax.plot(z_array, charge_array / area / dz / n_frame, label=' '.join(mol_names))
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-charge.png')
@@ -216,7 +216,7 @@ def diffusion():
     acf_dict = {}  # {'ring': []}
 
     for mol in top.molecules:
-        if mol.name not in molecules:
+        if mol.name not in mol_names:
             continue
 
         diffusions = config['molecule.%s' % (mol.name)]['diffusions'].split(';')
