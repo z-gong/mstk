@@ -55,3 +55,18 @@ class Topology():
             for j, atom in mol.atoms:
                 atom.id = idx_atom
                 idx_atom += 1
+
+    @staticmethod
+    def open(file, mode='r'):
+        from .psf import PSF
+        from .lammps import LammpsData
+        from .xyz import XYZTopology
+
+        if file.endswith('.psf'):
+            return PSF(file, mode)
+        elif file.endswith('.lmp'):
+            return LammpsData(file, mode)
+        elif file.endswith('.xyz'):
+            return XYZTopology(file, mode)
+        else:
+            raise Exception('filename for topology not understand')
