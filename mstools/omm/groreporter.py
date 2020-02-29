@@ -9,7 +9,7 @@ class GroReporter(object):
     To use it, create a PDBReporter, then add it to the Simulation's list of reporters.
     """
 
-    def __init__(self, file, reportInterval, enforcePeriodicBox=None, subset=None):
+    def __init__(self, file, reportInterval, enforcePeriodicBox=None, subset=None, reportVelocity=False):
         """Create a GroReporter.
 
         Parameters
@@ -29,6 +29,7 @@ class GroReporter(object):
         self._reportInterval = reportInterval
         self._enforcePeriodicBox = enforcePeriodicBox
         self._out = open(file, 'w')
+        self._reportVelocity = reportVelocity
 
         if subset is None:
             self._subset = None
@@ -53,7 +54,7 @@ class GroReporter(object):
             positions should be wrapped to lie in a single periodic box.
         """
         steps = self._reportInterval - simulation.currentStep%self._reportInterval
-        return (steps, True, False, False, False, self._enforcePeriodicBox)
+        return (steps, True, self._reportVelocity, False, False, self._enforcePeriodicBox)
 
     def report(self, simulation, state):
         """Generate a report.
@@ -67,8 +68,9 @@ class GroReporter(object):
         """
         time = state.getTime()
         positions = state.getPositions(asNumpy=True)
+        velocities = state.getVelocities(asNumpy=True) if self._reportVelocity else None
         vectors = state.getPeriodicBoxVectors()
-        GroFile.writeFile(simulation.topology, time, positions, vectors, self._out, self._subset)
+        GroFile.writeFile(simulation.topology, time, positions, vectors, self._out, self._subset, velocities)
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()
 

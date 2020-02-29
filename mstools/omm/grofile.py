@@ -4,9 +4,9 @@ from simtk.unit import nanometer, picosecond, norm, is_quantity
 
 class GroFile(GromacsGroFile):
     @staticmethod
-    def writeFile(topology, time, positions, vectors, file, subset=None):
+    def writeFile(topology, time, positions, vectors, file, subset=None, velocities=None):
         GroFile.writeHeader(time, file)
-        GroFile.writeModel(topology, positions, file, subset)
+        GroFile.writeModel(topology, positions, file, subset, velocities)
         GroFile.writeFooter(vectors, file)
 
     @staticmethod
@@ -23,7 +23,7 @@ class GroFile(GromacsGroFile):
         print("written by openmm t = %.3f ps" % time.value_in_unit(picosecond), file=file)
 
     @staticmethod
-    def writeModel(topology, positions, file=sys.stdout, subset=None):
+    def writeModel(topology, positions, file=sys.stdout, subset=None, velocities=None):
         """Write out a model to a PDB file.
 
         Parameters
@@ -43,6 +43,11 @@ class GroFile(GromacsGroFile):
             raise ValueError('The number of positions must match the number of atoms')
         if is_quantity(positions):
             positions = positions.value_in_unit(nanometer)
+        if velocities is not None:
+            if len(atoms) != len(velocities):
+                raise ValueError('The number of velocities must match the number of atoms')
+            if is_quantity(velocities):
+                velocities = velocities.value_in_unit(nanometer / picosecond)
 
         if subset is None:
             subset = list(range(len(atoms)))
@@ -55,6 +60,9 @@ class GroFile(GromacsGroFile):
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
                 int(residue.id), residue.name, atom.name, int(atom.id),
                 coords[0], coords[1], coords[2])
+            if velocities is not None:
+                vel = velocities[i]
+                line += '%8.3f%8.3f%8.3f' %(vel[0], vel[1], vel[2])
             print(line, file=file)
 
 
