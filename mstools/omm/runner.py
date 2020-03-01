@@ -50,8 +50,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin)
+    sim.reporters.append(XMLStateReporter('state.xml', max(nstep // 10, 100000)))
     sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False))
-    sim.reporters.append(XMLStateReporter('state.xml', 100000))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
     sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
                                                potentialEnergy=True, kineticEnergy=True, volume=True, density=True,

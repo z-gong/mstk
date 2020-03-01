@@ -22,6 +22,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
                               nonbondedCutoff=1.2 * nm, constraints=app.HBonds, rigidWater=True,
                               verbose=True)
     forces = {system.getForce(i).__class__.__name__: system.getForce(i) for i in range(system.getNumForces())}
+    nbforce = forces['NonbondedForce']
+    cforce = forces['CustomNonbondedForce']
 
     ### assign groups
     atoms = list(psf.topology.atoms())
@@ -50,7 +52,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         gro.positions[i] += (random.random(), random.random(), random.random()) * nm / 1000
 
     ### eliminate the interactions between images and MoS2
-    cforce = forces['CustomNonbondedForce']
     cforce.addInteractionGroup(group_img, group_ils)
     cforce.addInteractionGroup(group_mos + group_ils, group_mos + group_ils)
 
@@ -68,7 +69,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         # add fake bond between image and parent so that they are always in the same periodic cell
         forces['HarmonicBondForce'].addBond(i, i - group_img[0] + group_ils[0], 1 * nm, 0 * kJ_mol / nm ** 2)
     ### assign image charges
-    nbforce = forces['NonbondedForce']
     for i in group_img:
         charge, sig, eps = nbforce.getParticleParameters(i - group_img[0] + group_ils[0])
         nbforce.setParticleParameters(i, -charge, 1 * nm, 0 * kJ_mol)
@@ -87,11 +87,11 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin, 12345)
+    sim.reporters.append(XMLStateReporter('state.xml', max(nstep // 10, 100000)))
     sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False, subset=group_mos+group_ils))
-    sim.reporters.append(XMLStateReporter('state.xml', 100000))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
-                                               potentialEnergy=True, kineticEnergy=True, volume=True, density=True,
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True, temperature=True,
+                                               potentialEnergy=True, kineticEnergy=False, volume=True, density=True,
                                                elapsedTime=False, speed=True, separator='\t'))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000))
 

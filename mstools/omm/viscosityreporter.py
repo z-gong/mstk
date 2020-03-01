@@ -54,14 +54,12 @@ class ViscosityReporter(object):
         state : State
             The current state of the simulation
         """
-        system: mm.System = simulation.system
         if not self._hasInitialized:
             self._hasInitialized = True
-            print('#Step\t1/Viscosity (1/Pa.s)\tViscosity (mPa*s)', file=self._out)
+            print('#Step\t1/Viscosity (1/Pa.s)', file=self._out)
 
         invVis = simulation.integrator.getInvViscosity().value_in_unit((unit.pascal*unit.second)**-1)
-        vis = 1000 / invVis
-        print(simulation.currentStep, invVis, vis, sep='\t', file=self._out)
+        print(simulation.currentStep, invVis, sep='\t', file=self._out)
 
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
