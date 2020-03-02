@@ -56,7 +56,7 @@ class ViscosityReporter(object):
         """
         if not self._hasInitialized:
             self._hasInitialized = True
-            print('#Step\tAcceleration (nm/ps^2)\tVelocity at z=0 (nm/ps)\t1/Viscosity (1/Pa.s)', file=self._out)
+            print('#"Step"\t"Acceleration (nm/ps^2)"\t"Velocity at z=0 (nm/ps)"\t"1/Viscosity (1/Pa.s)"', file=self._out)
 
         acceleration = simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
         vMax, invVis = simulation.integrator.getViscosity()
