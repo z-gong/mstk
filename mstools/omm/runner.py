@@ -29,8 +29,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     elif tcoupl == 'nose-hoover':
         if psf.is_drude:
             print('    Drude Temperature-Grouped Nose-Hoover thermostat: 0.1 ps, 0.025 ps')
-            from drudenoseplugin import DrudeNoseHooverIntegrator
-            integrator = DrudeNoseHooverIntegrator(T * kelvin, 0.1 * ps, 1 * kelvin, 0.025 * ps, 0.001 * ps, 1, 3, True, True)
+            from velocityverletplugin import VVIntegrator
+            integrator = VVIntegrator(T * kelvin, 0.1 * ps, 1 * kelvin, 0.025 * ps, 0.001 * ps, 1, 3, True, True)
             integrator.setMaxDrudeDistance(0.02 * nm)
         else:
             print('    Nose-Hoover thermostat: 10 /ps')

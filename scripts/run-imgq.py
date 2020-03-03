@@ -44,7 +44,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     spring_self(system, gro.positions.value_in_unit(nm), group_mos_core, 0.001 * 418.4, 0.001 * 418.4, 5.000 * 418.4)
     wall = wall_lj126(system, group_ils_drude, 'z', [box_z / 2, box_z], epsilon=0.5 * 4.184, sigma=0.2)
     # wall = wall_power(system, group_ils_drude, 'z', [box_z / 2 + 0.2, box_z - 0.2], k=0.5 * 4.184, cutoff=0.0245)
-    print(wall.getEnergyFunction())
+    # print(wall.getEnergyFunction())
 
     ### randomlize particle positions to get ride of overlap
     random.seed(0)
@@ -56,8 +56,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     cforce.addInteractionGroup(group_mos + group_ils, group_mos + group_ils)
 
     ### TGNH thermostat for ils
-    from drudenoseplugin import DrudeNoseHooverIntegrator
-    integrator = DrudeNoseHooverIntegrator(T * kelvin, 0.1 * ps, 1 * kelvin, 0.025 * ps, 0.001 * ps, 1, 3, True, True)
+    from velocityverletplugin import VVIntegrator
+    integrator = VVIntegrator(T * kelvin, 0.1 * ps, 1 * kelvin, 0.025 * ps, 0.001 * ps, 1, 3, True, True)
     integrator.setMaxDrudeDistance(0.02 * nm)
     ### thermostat MoS2 by Langevin dynamics
     for i in group_mos:
@@ -77,9 +77,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         integrator.setElectricField(voltage / box_z * 2 * volt / nm)
         for i in group_ils:
             integrator.addParticleElectrolyte(i)
-    print('Image charge constant voltage simulation:')
-    print('    lz : %s, mirror: %s, electric field: %s' % (
-        box_z * nm, integrator.getMirrorLocation(), integrator.getElectricField()))
 
     print('Initializing simulation...')
     _platform = mm.Platform.getPlatformByName('CUDA')
