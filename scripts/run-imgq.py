@@ -5,7 +5,8 @@ import random
 import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar, volt
-from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
+from simtk.unit import picosecond as ps, nanometer as nm, angstrom as A
+from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kCal_mol
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import GroReporter, XMLStateReporter, DrudeTemperatureReporter
 from mstools.omm.forces import spring_self, wall_power, wall_lj126
@@ -41,10 +42,9 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
-    spring_self(system, gro.positions.value_in_unit(nm), group_mos_core, 0.001 * 418.4, 0.001 * 418.4, 5.000 * 418.4)
-    wall = wall_lj126(system, group_ils_drude, 'z', [box_z / 2, box_z], epsilon=0.5 * 4.184, sigma=0.2)
-    # wall = wall_power(system, group_ils_drude, 'z', [box_z / 2 + 0.2, box_z - 0.2], k=0.5 * 4.184, cutoff=0.0245)
-    # print(wall.getEnergyFunction())
+    spring_self(system, gro.positions.value_in_unit(nm), group_mos_core, [0.001, 0.001, 5.0] * kCal_mol / A ** 2)
+    wall = wall_lj126(system, group_ils_drude, 'z', [0, box_z / 2], epsilon=0.5 * kCal_mol, sigma=0.2 * nm)
+    print(wall.getEnergyFunction())
 
     ### randomlize particle positions to get ride of overlap
     random.seed(0)

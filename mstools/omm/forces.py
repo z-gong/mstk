@@ -38,7 +38,7 @@ def slab_correction(system: mm.System):
     return cvforce
 
 
-def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], kx, ky, kz):
+def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], strength):
     '''
     Restrain the particles at its original positions
     Note that the original positions will NOT change with box size if there is barostat
@@ -46,12 +46,10 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], kx, k
     if system.getNumParticles() != len(positions):
         raise Exception('Length of positions does not equal to number of particles in system')
 
-    if unit.is_quantity(kx):
-        kx = kx.value_in_unit(kJ_mol / nm**2)
-    if unit.is_quantity(ky):
-        ky = ky.value_in_unit(kJ_mol / nm**2)
-    if unit.is_quantity(kz):
-        kz = kz.value_in_unit(kJ_mol / nm**2)
+    if unit.is_quantity(strength):
+        kx, ky, kz = strength.value_in_unit(kJ_mol / nm**2)
+    else:
+        kx, ky, kz = strength
 
     force = mm.CustomExternalForce('kx*periodicdistance(x,0,0,x0,0,0)^2+'
                                    'ky*periodicdistance(0,y,0,0,y0,0)^2+'
@@ -138,17 +136,15 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
 
     return force
 
-def electric_field(system: mm.System, particles: [int], efx, efy, efz):
+def electric_field(system: mm.System, particles: [int], strength):
     '''
     Apply external electric field to particles
     The unit of electric field strength is V/nm
     '''
-    if unit.is_quantity(efx):
-        efx = efx.value_in_unit(unit.volt / unit.nanometer)
-    if unit.is_quantity(efy):
-        efy = efy.value_in_unit(unit.volt / unit.nanometer)
-    if unit.is_quantity(efz):
-        efz = efz.value_in_unit(unit.volt / unit.nanometer)
+    if unit.is_quantity(strength):
+        efx, efy, efz = strength.value_in_unit(unit.volt / unit.nanometer)
+    else:
+        efx, efy, efz = strength
 
     # convert from eV/nm to kJ/(mol*nm)  # 96.4853400990037
     _conv = (1 * e * unit.volt / unit.item).value_in_unit(kJ_mol)
