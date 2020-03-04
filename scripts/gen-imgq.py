@@ -34,23 +34,24 @@ n_image = (len(gen_atoms) + len(hvy_atoms)) * ((args.cathode is not None) + (arg
 if n_image == 0:
     print('ERROR: at least one of cathode and anode is required')
     sys.exit()
+print('Generate %i image atoms' % n_image)
 
 with open(args.output, 'w') as f_out:
     f_out.write('%i\n' % (top.n_atom + n_image))
     f_out.write('simulation box with image charges\n')
     for ii, atom in enumerate(top.atoms):
-        pos = frame.positions[ii]
+        pos = frame.positions[ii] * 10  # convert from nm to A
         f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
     if args.cathode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = frame.positions[ii]
+            pos = frame.positions[ii] * 10  # convert from nm to A
             if atom in gen_atoms:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
             if atom in hvy_atoms:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = frame.positions[ii]
+            pos = frame.positions[ii] * 10  # convert from nm to A
             if atom in gen_atoms:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode - pos[2]))
             if atom in hvy_atoms:
