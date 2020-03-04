@@ -13,8 +13,8 @@ from mstools.trajectory.xyz import XYZTopology, XYZ
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input', required=True, type=str, help='input xyz file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output xyz file')
-parser.add_argument('--cathode', type=float, help='z coordinate of cathode (left electrode)')
-parser.add_argument('--anode', type=float, help='z coordinate of anode (right electrode)')
+parser.add_argument('--cathode', type=float, help='z coordinate (in nm) of cathode (left electrode)')
+parser.add_argument('--anode', type=float, help='z coordinate (in nm) of anode (right electrode)')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 parser.add_argument('--drude', action='store_true', help='generate image for drude particles for heavy atoms')
 args = parser.parse_args()
@@ -46,13 +46,13 @@ with open(args.output, 'w') as f_out:
         for ii, atom in enumerate(top.atoms):
             pos = frame.positions[ii] * 10  # convert from nm to A
             if atom in gen_atoms:
-                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
             if atom in hvy_atoms:
-                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode - pos[2]))
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
             pos = frame.positions[ii] * 10  # convert from nm to A
             if atom in gen_atoms:
-                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode - pos[2]))
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))
             if atom in hvy_atoms:
-                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode - pos[2]))
+                f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))
