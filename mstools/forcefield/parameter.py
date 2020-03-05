@@ -11,7 +11,7 @@ class ParameterSet():
         self.nonbonded_terms = {}
 
 
-class FFToolParameters(ParameterSet):
+class FFToolParameterSet(ParameterSet):
     def __init__(self, file, mode='r'):
         super().__init__()
         self._file = open(file, mode)
@@ -114,8 +114,7 @@ class FFToolParameters(ParameterSet):
         '''
         if words[4] not in ['opls']:
             raise Exception('Unsupported improper function: %s' % (words[4]))
-        improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3],
-                                        multiplicity=2, phi=180, k=float(words[6]))
+        improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3], k=float(words[6]))
         if improper.key in self.improper_terms.keys():
             raise Exception('Duplicated improper term: %s' % self)
         self.improper_terms[improper.key] = improper

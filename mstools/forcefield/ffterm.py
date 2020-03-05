@@ -122,6 +122,9 @@ class DihedralTerm(FFTerm):
 
 
 class ImproperTerm(FFTerm):
+    '''
+    center atom is the first, following the convention of GROMACS
+    '''
     def __init__(self, atom1, atom2, atom3, atom4):
         super().__init__()
         at2, at3, at4 = sorted([atom2, atom3, atom4])
@@ -162,7 +165,7 @@ class ChargeIncrementTerm(FFTerm):
 
 class HarmonicBondTerm(BondTerm):
     '''
-    U = k*(b-b0)^2
+    U = 0.5 * k * (b-b0)^2
     '''
 
     def __init__(self, atom1, atom2, length, k):
@@ -173,7 +176,7 @@ class HarmonicBondTerm(BondTerm):
 
 class HarmonicAngleTerm(AngleTerm):
     '''
-    U = k*(theta-theta0)^2
+    U = 0.5 * k * (theta-theta0)^2
     '''
 
     def __init__(self, atom1, atom2, atom3, theta, k):
@@ -184,7 +187,7 @@ class HarmonicAngleTerm(AngleTerm):
 
 class PeriodicDihedralTerm(DihedralTerm):
     '''
-    U = k*(1-(-1)^n*cos(n*(phi-phi0)))
+    U = k*(1+cos(n*phi-phi0))
     '''
     Parameter = namedtuple('Parameter', ['multiplicity', 'phi', 'k'])
 
@@ -201,7 +204,7 @@ class PeriodicDihedralTerm(DihedralTerm):
 
 class FourierDihedralTerm(DihedralTerm):
     '''
-    U = k0+k1*cos(phi)+k2*cos(2*phi)+k3*cos(3*phi)+k4*cos(4*phi)
+    U = 0.5 * (k1*(1+cos(phi)) + k2*(1-cos(2*phi)) + k3*(1+cos(3*phi)) + k4*(1-cos(4*phi)))
     '''
 
     def __init__(self, atom1, atom2, atom3, atom4, k1, k2, k3, k4):
@@ -213,17 +216,22 @@ class FourierDihedralTerm(DihedralTerm):
 
 
 class PeriodicImproperTerm(ImproperTerm):
-    def __init__(self, atom1, atom2, atom3, atom4, multiplicity, phi, k):
+    '''
+    U = k * (1-cos(2*phi))
+    '''
+
+    def __init__(self, atom1, atom2, atom3, atom4, k):
         super().__init__(atom1, atom2, atom3, atom4)
-        self.multiplicity = multiplicity
-        self.phi = phi
         self.k = k
 
 
 class HarmonicImproperTerm(ImproperTerm):
-    def __init__(self, atom1, atom2, atom3, atom4, phi, k):
+    '''
+    U = 0.5 * k * phi^2
+    '''
+
+    def __init__(self, atom1, atom2, atom3, atom4, k):
         super().__init__(atom1, atom2, atom3, atom4)
-        self.phi = phi
         self.k = k
 
 
