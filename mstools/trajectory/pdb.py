@@ -1,8 +1,5 @@
-import traceback
-import numpy as np
-from io import StringIO
-import pandas as pd
-from . import Atom, Topology, Trajectory, Frame
+from ..forcefield import Topology
+from . import Trajectory, Frame
 
 
 class PDB(Trajectory):

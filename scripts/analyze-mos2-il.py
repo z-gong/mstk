@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram
-from mstools.trajectory.topology import Atom, Molecule
-from mstools.trajectory import Topology, Trajectory
+from mstools.forcefield import Atom, Molecule, Topology
+from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],

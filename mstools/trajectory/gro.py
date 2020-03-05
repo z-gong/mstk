@@ -1,8 +1,6 @@
 import numpy as np
-from io import StringIO
+from ..forcefield.topology import Topology
 from . import Trajectory, Frame
-from .topology import Atom, Molecule, Topology
-from ..forcefield import Element
 
 
 class GRO(Trajectory):

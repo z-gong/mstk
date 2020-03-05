@@ -1,7 +1,4 @@
-from io import StringIO
-from . import Trajectory, Frame
-from .topology import Atom, Molecule, Topology
-from ..forcefield import Element
+from mstools.forcefield.topology import Atom, Molecule, Topology
 
 
 class PSF(Topology):

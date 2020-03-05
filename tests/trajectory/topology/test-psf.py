@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from mstools.trajectory.psf import PSF
+from mstools.forcefield.psf import PSF
 
 psf = PSF('test-psf.psf')
 assert psf.n_atom == 27492

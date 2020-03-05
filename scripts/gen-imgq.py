@@ -8,7 +8,8 @@ The positions of images will be determined by treating electrodes as mirrors
 
 import sys
 import argparse
-from mstools.trajectory.xyz import XYZTopology, XYZ
+from mstools.forcefield import XYZTopology
+from mstools.trajectory import XYZ
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input', required=True, type=str, help='input xyz file')

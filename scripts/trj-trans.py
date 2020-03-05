@@ -4,7 +4,8 @@ import sys
 import argparse
 import numpy as np
 
-from mstools.trajectory import Topology, Trajectory
+from mstools.forcefield import Topology
+from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--topology', required=True, type=str,
