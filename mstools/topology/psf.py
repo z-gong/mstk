@@ -1,9 +1,9 @@
-from mstools.forcefield.topology import Atom, Molecule, Topology
+from ..topology import Atom, Molecule, Topology
 
 
-class PSF(Topology):
+class Psf(Topology):
     def __init__(self, file, mode='r'):
-        super(PSF, self).__init__()
+        super(Psf, self).__init__()
         self._file = open(file, mode)
         if mode == 'r':
             self.parse()
@@ -56,13 +56,13 @@ class PSF(Topology):
         '''
         in psf file, drude particles always appear after attached atoms
         '''
-        self.n_atom = int(lines[0].strip().split()[0])
-        self.atoms = [Atom() for i in range(self.n_atom)]
+        n_atom = int(lines[0].strip().split()[0])
+        atoms = [Atom() for i in range(n_atom)]
         # i don't know how many molecules there will be
         # but it can not be larger than n_atom
         # i'll kick out the redundant molecules later
-        self.molecules = [Molecule() for i in range(self.n_atom)]
-        for i in range(self.n_atom):
+        molecules = [Molecule() for i in range(n_atom)]
+        for i in range(n_atom):
             words = lines[1+i].strip().split()
             atom_id = int(words[0])
             mol_id = int(words[2])
@@ -74,13 +74,13 @@ class PSF(Topology):
                 # ignore for now
                 alpha, thole = list(map(float, words[9:11]))
 
-            mol = self.molecules[mol_id - 1] # mol.id starts from 0
-            if mol.id == -1:
+            mol = molecules[mol_id - 1] # mol.id starts from 0
+            if not mol.initiated:
                 # set the information of this molecule
                 mol.id = mol_id - 1
                 mol.name = mol_name
 
-            atom = self.atoms[atom_id - 1] # atom.id starts from 0
+            atom = atoms[atom_id - 1] # atom.id starts from 0
             atom.id = atom_id - 1
             mol.add_atom(atom)
             atom.charge = charge
@@ -89,11 +89,12 @@ class PSF(Topology):
             atom.symbol = atom_symbol
 
         # kick out redundant molecules
-        self.molecules = [mol for mol in self.molecules if mol.id != -1]
-        self.n_molecule = len(self.molecules)
-        for mol in self.molecules:
+        molecules = [mol for mol in molecules if mol.initiated]
+        for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 atom.name = atom.symbol + str(i + 1)  # atomic symbol + index inside mol starting from 1
+
+        self.init_from_molecules(molecules)
 
     def parse_bonds(self, lines):
         pass

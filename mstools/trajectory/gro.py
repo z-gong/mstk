@@ -1,9 +1,9 @@
 import numpy as np
-from ..forcefield.topology import Topology
+from ..topology import Topology
 from . import Trajectory, Frame
 
 
-class GRO(Trajectory):
+class Gro(Trajectory):
     '''
     Read and write box, atomic positions and optionally velocities from/to gro file
     Since gro is using fixed width format, the residue id and atom id are ignored

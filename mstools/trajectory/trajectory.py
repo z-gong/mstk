@@ -20,18 +20,18 @@ class Trajectory():
 
     @staticmethod
     def open(file, mode='r'):
-        from .gro import GRO
-        from .pdb import PDB
-        from .xyz import XYZ
+        from .gro import Gro
+        from .pdb import Pdb
+        from .xyz import Xyz
         from .lammps import LammpsTrj
 
         if file.endswith('.lammpstrj') or file.endswith('.ltrj'):
             return LammpsTrj(file, mode)
         elif file.endswith('.gro'):
-            return GRO(file, mode)
+            return Gro(file, mode)
         elif file.endswith('.pdb'):
-            return PDB(file, mode)
+            return Pdb(file, mode)
         elif file.endswith('.xyz'):
-            return XYZ(file, mode)
+            return Xyz(file, mode)
         else:
             raise Exception('filename for trajectory not understand')

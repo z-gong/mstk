@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield.psf import PSF
+from mstools.topology import Psf
 
-psf = PSF('test-psf.psf')
+psf = Psf('test-psf.psf')
 assert psf.n_atom == 27492
 assert psf.n_molecule == 1004
 assert psf.is_drude

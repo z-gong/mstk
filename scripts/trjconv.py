@@ -4,7 +4,7 @@ import sys
 import argparse
 import numpy as np
 
-from mstools.forcefield import Topology
+from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram
-from mstools.forcefield import Atom, Molecule, Topology
+from mstools.topology import Atom, Molecule, Topology
 from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
@@ -333,6 +333,7 @@ def charge_2d():
 
     z_span = frame.box[2] / 3
     _conv = q0 / frame.box[0] / frame.box[1] / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    # TODO need to think about how to identify cathode
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
     for i in range(args.begin, args.end, args.skip):
@@ -351,6 +352,7 @@ def charge_3d():
     area = frame.box[0] * frame.box[1]
     z_span = frame.box[2] / 2
     _conv = q0 / area / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    # TODO need to think about how to identify cathode
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
     for i in range(args.begin, args.end, args.skip):

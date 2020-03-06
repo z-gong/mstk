@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from mstools.trajectory.gro import GRO
+from mstools.trajectory import Gro
 
-gro = GRO('test-gro.gro')
+gro = Gro('test-gro.gro')
 assert gro.n_atom == 20680
 assert gro.n_frame == 2
 

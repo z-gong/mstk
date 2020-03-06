@@ -1,9 +1,9 @@
 import numpy as np
-from ..forcefield import Topology
+from ..topology import Topology
 from . import Trajectory, Frame
 
 
-class XYZ(Trajectory):
+class Xyz(Trajectory):
     '''
     Since xyz format is not very useful, I only parse the first frame
     '''

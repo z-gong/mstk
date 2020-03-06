@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield import FFToolParameters
+from mstools.forcefield import FFToolParameterSet
 
-params = FFToolParameters('oplsaa.ff')
+params = FFToolParameterSet('oplsaa.ff')
 print(params.atom_types)
 print(params.bond_terms)
 print(params.angle_terms)
@@ -36,6 +36,4 @@ assert dihedral.k3 == 0.8368
 assert dihedral.k4 == 0
 
 improper = params.improper_terms['N,C,CT,CT']
-assert improper.multiplicity == 2
-assert improper.phi == 180
 assert improper.k == 8.368

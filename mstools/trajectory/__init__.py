@@ -1,5 +1,5 @@
-from .trajectory import *
-from .gro import GRO
+from .trajectory import Frame, Trajectory
+from .gro import Gro
 from .lammps import LammpsTrj
-from .pdb import PDB
-from .xyz import XYZ
+from .pdb import Pdb
+from .xyz import Xyz

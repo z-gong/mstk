@@ -4,13 +4,14 @@ import numpy as np
 class Atom():
     def __init__(self, name='UNK'):
         self.id = -1
-        self.molecule: Molecule = None
         self.name = name
         self.type = ''
         self.symbol = ''
         self.charge = 0.
         self.mass = 0.
         self.position = np.array([0, 0, 0], dtype=float)
+        self._molecule: Molecule = None
+        self._bonds: [Bond] = []
 
     def __repr__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -21,23 +22,17 @@ class Atom():
     def __gt__(self, other):
         return self.name > other.name
 
+    @property
+    def molecule(self):
+        return self._molecule
 
-class Molecule():
-    def __init__(self, name='UNK'):
-        self.id = -1
-        self.name = name
-        self.atoms: [Atom] = []
+    @property
+    def bonds(self):
+        return self._bonds
 
-    def add_atom(self, atom: Atom):
-        self.atoms.append(atom)
-        atom.molecule = self
-
-    def remove_atom(self, atom: Atom):
-        self.atoms.remove(atom)
-        atom.molecule = None
-
-    def __repr__(self):
-        return f'<Molecule: {self.name} {self.id}>'
+    @property
+    def bond_partners(self):
+        return [bond.atom2 if bond.atom1 == self else bond.atom1 for bond in self._bonds]
 
 
 class Bond():
@@ -98,39 +93,107 @@ class Improper():
         return at12 == at22 and at13 == at23 and at14 == at24
 
 
+class Molecule():
+    def __init__(self, name='UNK'):
+        self.id = -1
+        self.name = name
+        self._atoms = []
+        self._bonds = []
+
+    def add_atom(self, atom: Atom):
+        self.atoms.append(atom)
+        atom._molecule = self
+
+    def remove_atom(self, atom: Atom):
+        self.atoms.remove(atom)
+        atom._molecule = None
+
+    def add_bond(self, atom1: Atom, atom2: Atom):
+        bond = Bond(atom1, atom2)
+        self._bonds.append(bond)
+        atom1._bonds.append(bond)
+        atom2._bonds.append(bond)
+
+    def remove_bond(self, bond: Bond):
+        self._bonds.remove(bond)
+        bond.atom1._bonds.remove(bond)
+        bond.atom2._bonds.remove(bond)
+
+    @property
+    def atoms(self):
+        return self._atoms
+
+    @property
+    def bonds(self):
+        return self._bonds
+
+    @property
+    def initiated(self):
+        return self.id != -1
+
+    def __repr__(self):
+        return f'<Molecule: {self.name} {self.id}>'
+
+
 class Topology():
     def __init__(self):
-        self.n_atom = 0
-        self.atoms: [Atom] = []
-        self.n_molecule = 0
-        self.molecules: [Molecule] = []
         self.remark = ''
         self.is_drude = False
+        self._atoms: [Atom] = []
+        self._molecules: [Molecule] = []
 
     def init_from_molecules(self, molecules: [Molecule]):
-        self.n_molecule = len(molecules)
-        self.molecules: [Molecule] = molecules[:]
+        '''
+        initialize a topology from a bunch of molecules
+        note that there's no deepcopy
+        the molecule and atoms are passed as reference
+        '''
+        self._molecules = molecules[:]
+        self._atoms = [atom for mol in molecules for atom in mol.atoms]
         self.assign_id()
 
     def assign_id(self):
         idx_atom = 0
-        for i, mol in enumerate(self.molecules):
+        for i, mol in enumerate(self._molecules):
             mol.id = i
-            for j, atom in mol.atoms:
+            for j, atom in enumerate(mol.atoms):
                 atom.id = idx_atom
                 idx_atom += 1
 
+    def add_molecule(self, molecule: Molecule):
+        molecule.id = self.n_molecule
+        self._molecules.append(molecule)
+        for atom in molecule.atoms:
+            atom.id = self.n_atom
+            self._atoms.append(atom)
+
+    @property
+    def n_molecule(self):
+        return len(self._molecules)
+
+    @property
+    def n_atom(self):
+        return len(self._atoms)
+
+    @property
+    def molecules(self):
+        return self._molecules
+
+    @property
+    def atoms(self):
+        return self._atoms
+
     @staticmethod
     def open(file, mode='r'):
-        from .psf import PSF
+        from .psf import Psf
         from .lammps import LammpsData
-        from .xyz import XYZTopology
+        from .xyz import XyzTopology
 
         if file.endswith('.psf'):
-            return PSF(file, mode)
+            return Psf(file, mode)
         elif file.endswith('.lmp'):
             return LammpsData(file, mode)
         elif file.endswith('.xyz'):
-            return XYZTopology(file, mode)
+            return XyzTopology(file, mode)
         else:
             raise Exception('filename for topology not understand')

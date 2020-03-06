@@ -1,6 +1,6 @@
-from . import Topology, Atom, Molecule
+from ..topology import Topology, Atom, Molecule
 
-class XYZTopology(Topology):
+class XyzTopology(Topology):
     '''
     xyz format only records the type and position of atoms
     there is no real topology
@@ -8,7 +8,7 @@ class XYZTopology(Topology):
     '''
 
     def __init__(self, file, mode='r'):
-        super(XYZTopology, self).__init__()
+        super(XyzTopology, self).__init__()
         self._file = open(file, mode)
         if mode == 'r':
             self.parse()
@@ -16,18 +16,16 @@ class XYZTopology(Topology):
             raise Exception('Writing is not supported for XYZTopology')
 
     def parse(self):
-        self.n_atom = int(self._file.readline().strip())
+        n_atom = int(self._file.readline().strip())
         self.remark = self._file.readline().strip()
 
         mol = Molecule()
-        mol.id = 0
-        self.molecules.append(mol)
-        for i in range(self.n_atom):
+        for i in range(n_atom):
             words = self._file.readline().split()
             atom = Atom()
-            atom.id = i
             atom.type = words[0]
             mol.add_atom(atom)
-            self.atoms.append(atom)
+
+        self.init_from_molecules([mol])
 
         self._file.close()

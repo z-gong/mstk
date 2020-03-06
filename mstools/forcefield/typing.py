@@ -1,4 +1,4 @@
-from .topology import Topology, Atom, Molecule
+from ..topology import Topology, Molecule
 
 
 class TypingEngine():

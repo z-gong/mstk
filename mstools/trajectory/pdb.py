@@ -1,8 +1,8 @@
-from ..forcefield import Topology
+from ..topology import Topology
 from . import Trajectory, Frame
 
 
-class PDB(Trajectory):
+class Pdb(Trajectory):
     '''
     Write frames into pdb file
     The reading haven't been implemented yet

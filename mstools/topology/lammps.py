@@ -1,4 +1,5 @@
-from . import Element, Atom, Molecule, Topology
+from ..forcefield import Element
+from ..topology import Atom, Molecule, Topology
 
 class LammpsData(Topology):
     '''
@@ -33,12 +34,10 @@ class LammpsData(Topology):
             if line_clean in _sections:
                 _iline_section.append((i, line_clean))
 
-        self.parse_header(lines[:_iline_section[0][0]])
+        n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type = self.parse_header(lines[:_iline_section[0][0]])
 
-        self.atoms = [Atom() for i in range(self.n_atom)]
-        self._type_masses = [0.] * (self.n_atom_type + 1)
-        self._type_names = [''] * (self.n_atom_type + 1)
-        self._molecule_dict = {}  # because the length of molecules is unknown. So use dict instead of list
+        self._type_masses = [0.] * (n_atom_type + 1)
+        self._type_names = [''] * (n_atom_type + 1)
 
         for i, (iline, section) in enumerate(_iline_section):
             if i != len(_iline_section) - 1:
@@ -46,39 +45,42 @@ class LammpsData(Topology):
             else:
                 iline_next = len(lines)
             if section == 'Masses':
-                self.parse_masses(lines[iline + 2: iline_next])  # there is a blank line after each section header
+                self.parse_masses(lines[iline + 2: iline_next], n_atom_type)  # there is a blank line after each section header
             if section == 'Atoms':
-                self.parse_atoms(lines[iline + 2: iline_next])
+                self.parse_atoms(lines[iline + 2: iline_next], n_atom)
             if section == 'Bonds':
-                self.parse_bonds(lines[iline + 2: iline_next])
+                self.parse_bonds(lines[iline + 2: iline_next], n_bond)
 
     def parse_header(self, lines):
+        n_atom = n_bond = n_angle = n_dihedral = n_improper = n_atom_type = 0
         for line in lines:
             if line.endswith(' atoms'):
-                self.n_atom = int(line.split()[0])
+                n_atom = int(line.split()[0])
             elif line.endswith(' bonds'):
-                self.n_bond = int(line.split()[0])
+                n_bond = int(line.split()[0])
             elif line.endswith(' angles'):
-                self.n_angle = int(line.split()[0])
+                n_angle = int(line.split()[0])
             elif line.endswith(' dihedrals'):
-                self.n_dihedral = int(line.split()[0])
+                n_dihedral = int(line.split()[0])
             elif line.endswith(' impropers'):
-                self.n_improper = int(line.split()[0])
+                n_improper = int(line.split()[0])
             elif line.endswith(' atom types'):
-                self.n_atom_type = int(line.split()[0])
-            elif line.endswith(' bond types'):
-                self.n_bond_type = int(line.split()[0])
-            elif line.endswith(' angle types'):
-                self.n_angle_type = int(line.split()[0])
-            elif line.endswith(' dihedral types'):
-                self.n_dihedral_type = int(line.split()[0])
-            elif line.endswith(' improper types'):
-                self.n_improper_type = int(line.split()[0])
+                n_atom_type = int(line.split()[0])
+            # elif line.endswith(' bond types'):
+            #     n_bond_type = int(line.split()[0])
+            # elif line.endswith(' angle types'):
+            #     n_angle_type = int(line.split()[0])
+            # elif line.endswith(' dihedral types'):
+            #     n_dihedral_type = int(line.split()[0])
+            # elif line.endswith(' improper types'):
+            #     n_improper_type = int(line.split()[0])
             else:
                 continue
 
-    def parse_masses(self, lines):
-        for i in range(self.n_atom_type):
+        return n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type
+
+    def parse_masses(self, lines, n_atom_type):
+        for i in range(n_atom_type):
             words = lines[i].strip().split()
             type_id = int(words[0])
             self._type_masses[type_id] = float(words[1])
@@ -90,24 +92,25 @@ class LammpsData(Topology):
             else:
                 self._type_names[type_id] = 'AT' + str(type_id)
 
-    def parse_atoms(self, lines):
-        for i in range(self.n_atom):
+    def parse_atoms(self, lines, n_atom):
+        atoms = [Atom() for i in range(n_atom)]
+        # i don't know how many molecules there will be
+        # but it can not be larger than n_atom
+        # i'll kick out the redundant molecules later
+        molecules = [Molecule() for i in range(n_atom)]
+        for i in range(n_atom):
             words = lines[i].strip().split()
             atom_id = int(words[0])
             mol_id = int(words[1])
             type_id = int(words[2])
             charge = float(words[3])
 
-            self.n_molecule = max(self.n_molecule, mol_id)
-            if mol_id not in self._molecule_dict.keys():
-                mol_name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
-                mol = Molecule(mol_name)
+            mol = molecules[mol_id-1]
+            if not mol.initiated:
                 mol.id = mol_id - 1  # mol.id starts from 0
-                self._molecule_dict[mol_id] = mol
-            else:
-                mol = self._molecule_dict[mol_id]
+                mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
 
-            atom = self.atoms[atom_id - 1]
+            atom = atoms[atom_id - 1]
             atom.id = atom_id - 1  # atom.id starts from 0
             mol.add_atom(atom)
             atom.charge = charge
@@ -115,21 +118,25 @@ class LammpsData(Topology):
             atom.type = self._type_names[type_id]
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
 
-        self.molecules = [self._molecule_dict[i + 1] for i in range(self.n_molecule)]
-        for mol in self.molecules:
+
+        # kick out redundant molecules
+        molecules = [mol for mol in molecules if mol.initiated]
+        for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 atom.name = atom.symbol + str(i + 1)  # atomic symbol + index inside mol starting from 1
 
-    def parse_bonds(self, lines):
+        self.init_from_molecules(molecules)
+
+    def parse_bonds(self, lines, n_bond):
         pass
 
-    def parse_angles(self, lines):
+    def parse_angles(self, lines, n_angle):
         pass
 
-    def parse_dihedrals(self, lines):
+    def parse_dihedrals(self, lines, n_dihedral):
         pass
 
-    def parse_impropers(self, lines):
+    def parse_impropers(self, lines, n_improper):
         pass
 
 

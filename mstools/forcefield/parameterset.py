@@ -18,7 +18,7 @@ class FFToolParameterSet(ParameterSet):
         if mode == 'r':
             self.parse()
         elif mode == 'w':
-            raise Exception('Writing is not supported for XYZTopology')
+            raise Exception('Writing is not supported for FFToolParameterSet')
 
     def __del__(self):
         self.close()
@@ -121,3 +121,22 @@ class FFToolParameterSet(ParameterSet):
 
     def close(self):
         self._file.close()
+
+
+class PpfParameterSet(ParameterSet):
+    def __init__(self, file, mode='r'):
+        super().__init__()
+        self._file = open(file, mode)
+        if mode == 'r':
+            self.parse()
+        elif mode == 'w':
+            raise Exception('Writing is not supported for PpfParameterSet')
+
+    def __del__(self):
+        self.close()
+
+    def parse(self):
+        '''
+        TODO to be implemented
+        '''
+        pass

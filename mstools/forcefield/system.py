@@ -1,12 +1,12 @@
-from .topology import Topology
-from .parameter import ParameterSet
+from mstools.topology.topology import Topology
+from .parameterset import ParameterSet
 from ..trajectory import Frame
 
 
 class System():
-    def __init__(self, topology: Topology, parameter: ParameterSet, frame: Frame):
+    def __init__(self, topology: Topology, params: ParameterSet, frame: Frame):
         self._topology = topology
-        self._parameter = parameter
+        self._params = params
         self._frame = frame
 
     def write_lmp(self):
