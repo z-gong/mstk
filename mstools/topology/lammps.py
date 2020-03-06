@@ -1,5 +1,7 @@
+import numpy as np
 from ..forcefield import Element
 from ..topology import Atom, Molecule, Topology
+
 
 class LammpsData(Topology):
     '''
@@ -7,6 +9,7 @@ class LammpsData(Topology):
     Currently only atom type, charge and molecule are parsed
     The positions and connectivity haven't been implemented
     '''
+
     def __init__(self, file, mode='r'):
         super(LammpsData, self).__init__()
         self._file = open(file)
@@ -45,37 +48,47 @@ class LammpsData(Topology):
             else:
                 iline_next = len(lines)
             if section == 'Masses':
-                self.parse_masses(lines[iline + 2: iline_next], n_atom_type)  # there is a blank line after each section header
+                # there is a blank line after each section header
+                self.parse_masses(lines[iline + 2: iline_next], n_atom_type)
             if section == 'Atoms':
                 self.parse_atoms(lines[iline + 2: iline_next], n_atom)
             if section == 'Bonds':
                 self.parse_bonds(lines[iline + 2: iline_next], n_bond)
+            if section == 'Angles':
+                self.parse_angles(lines[iline + 2: iline_next], n_angle)
+            if section == 'Dihedrals':
+                self.parse_dihedrals(lines[iline + 2: iline_next], n_dihedral)
+            if section == 'Impropers':
+                self.parse_impropers(lines[iline + 2: iline_next], n_improper)
 
     def parse_header(self, lines):
         n_atom = n_bond = n_angle = n_dihedral = n_improper = n_atom_type = 0
+        box = [0., 0., 0.]
         for line in lines:
+            line = line.strip()
+            words = line.split()
             if line.endswith(' atoms'):
-                n_atom = int(line.split()[0])
+                n_atom = int(words[0])
             elif line.endswith(' bonds'):
-                n_bond = int(line.split()[0])
+                n_bond = int(words[0])
             elif line.endswith(' angles'):
-                n_angle = int(line.split()[0])
+                n_angle = int(words[0])
             elif line.endswith(' dihedrals'):
-                n_dihedral = int(line.split()[0])
+                n_dihedral = int(words[0])
             elif line.endswith(' impropers'):
-                n_improper = int(line.split()[0])
+                n_improper = int(words[0])
             elif line.endswith(' atom types'):
-                n_atom_type = int(line.split()[0])
-            # elif line.endswith(' bond types'):
-            #     n_bond_type = int(line.split()[0])
-            # elif line.endswith(' angle types'):
-            #     n_angle_type = int(line.split()[0])
-            # elif line.endswith(' dihedral types'):
-            #     n_dihedral_type = int(line.split()[0])
-            # elif line.endswith(' improper types'):
-            #     n_improper_type = int(line.split()[0])
+                n_atom_type = int(words[0])
+            elif line.endswith(' xlo xhi'):
+                box[0] = float(words[1]) - float(words[0])
+            elif line.endswith(' ylo yhi'):
+                box[1] = float(words[1]) - float(words[0])
+            elif line.endswith(' xlo xhi'):
+                box[2] = float(words[1]) - float(words[0])
             else:
                 continue
+
+        self.box = box
 
         return n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type
 
@@ -104,8 +117,17 @@ class LammpsData(Topology):
             mol_id = int(words[1])
             type_id = int(words[2])
             charge = float(words[3])
+            x = float(words[4]) / 10  # convert from A to nm
+            y = float(words[5]) / 10
+            z = float(words[6]) / 10
+            try:
+                ix = int(words[7])
+                iy = int(words[8])
+                iz = int(words[9])
+            except:
+                ix = iy = iz = 0
 
-            mol = molecules[mol_id-1]
+            mol = molecules[mol_id - 1]
             if not mol.initiated:
                 mol.id = mol_id - 1  # mol.id starts from 0
                 mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
@@ -117,7 +139,8 @@ class LammpsData(Topology):
             atom.mass = self._type_masses[type_id]
             atom.type = self._type_names[type_id]
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-
+            atom.has_position = True
+            atom.position = np.array([x + ix * self.box[0], y + iy * self.box[1], z + iz * self.box[2]])
 
         # kick out redundant molecules
         molecules = [mol for mol in molecules if mol.initiated]
@@ -128,15 +151,38 @@ class LammpsData(Topology):
         self.init_from_molecules(molecules)
 
     def parse_bonds(self, lines, n_bond):
-        pass
+        atoms = self.atoms
+        for i in range(n_bond):
+            words = lines[i].strip().split()
+            atom1 = atoms[int(words[2]) - 1]
+            atom2 = atoms[int(words[3]) - 1]
+            atom1.molecule.add_bond(atom1, atom2)
 
     def parse_angles(self, lines, n_angle):
-        pass
+        atoms = self.atoms
+        for i in range(n_angle):
+            words = lines[i].strip().split()
+            atom1 = atoms[int(words[2]) - 1]
+            atom2 = atoms[int(words[3]) - 1]
+            atom3 = atoms[int(words[4]) - 1]
+            atom1.molecule.add_angle(atom1, atom2, atom3)
 
     def parse_dihedrals(self, lines, n_dihedral):
-        pass
+        atoms = self.atoms
+        for i in range(n_dihedral):
+            words = lines[i].strip().split()
+            atom1 = atoms[int(words[2]) - 1]
+            atom2 = atoms[int(words[3]) - 1]
+            atom3 = atoms[int(words[4]) - 1]
+            atom4 = atoms[int(words[5]) - 1]
+            atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
     def parse_impropers(self, lines, n_improper):
-        pass
-
-
+        atoms = self.atoms
+        for i in range(n_improper):
+            words = lines[i].strip().split()
+            atom1 = atoms[int(words[2]) - 1]
+            atom2 = atoms[int(words[3]) - 1]
+            atom3 = atoms[int(words[4]) - 1]
+            atom4 = atoms[int(words[5]) - 1]
+            atom1.molecule.add_improper(atom1, atom2, atom3, atom4)

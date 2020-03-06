@@ -32,3 +32,10 @@ assert mol.name == 'MoS2'
 mol = lmp.molecules[-1]
 assert mol.id == 9894
 assert mol.name == 'IMG'
+
+from mstools.topology import Psf
+pout = Psf('out.psf', 'w')
+pout.is_drude = lmp.is_drude
+pout.init_from_molecules(lmp.molecules)
+pout.write()
+pout.close()

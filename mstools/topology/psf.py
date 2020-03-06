@@ -1,3 +1,4 @@
+import math
 from ..topology import Atom, Molecule, Topology
 
 
@@ -8,7 +9,10 @@ class Psf(Topology):
         if mode == 'r':
             self.parse()
         elif mode == 'w':
-            raise Exception('Writing support for PSF haven\'t been implemented')
+            pass
+
+    def __del__(self):
+        self.close()
 
     def parse(self):
         lines = self._file.read().splitlines()
@@ -36,7 +40,8 @@ class Psf(Topology):
             else:
                 iline_next = len(lines)
             if section == '!NTITLE':
-                self.parse_title(lines[iline: iline_next])  # the number at section line indicates the line counts of the section
+                self.parse_title(
+                    lines[iline: iline_next])  # the number at section line indicates the line counts of the section
             if section == '!NATOM':
                 self.parse_atoms(lines[iline: iline_next])
             if section == '!NBOND':
@@ -63,7 +68,7 @@ class Psf(Topology):
         # i'll kick out the redundant molecules later
         molecules = [Molecule() for i in range(n_atom)]
         for i in range(n_atom):
-            words = lines[1+i].strip().split()
+            words = lines[1 + i].strip().split()
             atom_id = int(words[0])
             mol_id = int(words[2])
             mol_name = words[3]
@@ -71,22 +76,25 @@ class Psf(Topology):
             atom_type = words[5]
             charge, mass = list(map(float, words[6:8]))
             if self.is_drude:
-                # ignore for now
                 alpha, thole = list(map(float, words[9:11]))
+            else:
+                alpha = thole = 0.0
 
-            mol = molecules[mol_id - 1] # mol.id starts from 0
+            mol = molecules[mol_id - 1]  # mol.id starts from 0
             if not mol.initiated:
                 # set the information of this molecule
                 mol.id = mol_id - 1
                 mol.name = mol_name
 
-            atom = atoms[atom_id - 1] # atom.id starts from 0
+            atom = atoms[atom_id - 1]  # atom.id starts from 0
             atom.id = atom_id - 1
             mol.add_atom(atom)
             atom.charge = charge
             atom.mass = mass
             atom.type = atom_type
             atom.symbol = atom_symbol
+            atom.alpha = -alpha
+            atom.thole = thole * 2
 
         # kick out redundant molecules
         molecules = [mol for mol in molecules if mol.initiated]
@@ -97,13 +105,115 @@ class Psf(Topology):
         self.init_from_molecules(molecules)
 
     def parse_bonds(self, lines):
-        pass
+        n_bond = int(lines[0].strip().split()[0])
+        atoms = self.atoms
+        for i in range(math.ceil(n_bond / 4)):
+            words = lines[i + 1].strip().split()
+            for j in range(4):
+                if i * 4 + j + 1 > n_bond:
+                    break
+                atom1, atom2 = atoms[int(words[j * 2]) - 1], atoms[int(words[j * 2 + 1]) - 1]
+                atom1.molecule.add_bond(atom1, atom2)
 
     def parse_angles(self, lines):
-        pass
+        n_angle = int(lines[0].strip().split()[0])
+        atoms = self.atoms
+        for i in range(math.ceil(n_angle / 3)):
+            words = lines[i + 1].strip().split()
+            for j in range(3):
+                if i * 3 + j + 1 > n_angle:
+                    break
+                atom1, atom2, atom3 = atoms[int(words[j * 3]) - 1], atoms[int(words[j * 3 + 1]) - 1], \
+                                      atoms[int(words[j * 3 + 2]) - 1]
+                atom1.molecule.add_angle(atom1, atom2, atom3)
 
     def parse_dihedrals(self, lines):
-        pass
+        n_dihedral = int(lines[0].strip().split()[0])
+        atoms = self.atoms
+        for i in range(math.ceil(n_dihedral / 2)):
+            words = lines[i + 1].strip().split()
+            for j in range(2):
+                if i * 2 + j + 1 > n_dihedral:
+                    break
+                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4]) - 1], atoms[int(words[j * 4 + 1]) - 1], \
+                                             atoms[int(words[j * 4 + 2]) - 1], atoms[int(words[j * 4 + 3]) - 1]
+                atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
     def parse_impropers(self, lines):
-        pass
+        n_improper = int(lines[0].strip().split()[0])
+        atoms = self.atoms
+        for i in range(math.ceil(n_improper / 2)):
+            words = lines[i + 1].strip().split()
+            for j in range(2):
+                if i * 2 + j + 1 > n_improper:
+                    break
+                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4]) - 1], atoms[int(words[j * 4 + 1]) - 1], \
+                                             atoms[int(words[j * 4 + 2]) - 1], atoms[int(words[j * 4 + 3]) - 1]
+                atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
+
+    def write(self):
+        if self.is_drude:
+            self._file.write('PSF DRUDE\n\n')
+        else:
+            self._file.write('PSF\n\n')
+
+        self._file.write('%8i !NTITLE\n' % 1)
+        self._file.write(' REMARKS Created by mstools\n\n')
+
+        self._file.write('%8i !NATOM\n' % self.n_atom)
+        for i, atom in enumerate(self.atoms):
+            line = '%8i S    %-4i %4s %-4s %-4s %10.6f %13.4f %11i %13.4f %13.4f\n' % (
+                atom.id + 1, atom.molecule.id + 1, atom.molecule.name[:4], atom.symbol, atom.type,
+                atom.charge, atom.mass, 0, -atom.alpha, atom.thole / 2
+            )
+            self._file.write(line)
+        self._file.write('\n')
+
+        self._file.write('%8i !NBOND: bonds\n' % self.n_bond)
+        for i, bond in enumerate(self.bonds):
+            self._file.write('%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1))
+            if (i + 1) % 4 == 0:
+                self._file.write('\n')
+        if (i + 1) % 4 != 0:
+            self._file.write('\n')
+        self._file.write('\n')
+
+        self._file.write('%8i !NTHETA: angles\n' % self.n_angle)
+        for i, angle in enumerate(self.angles):
+            self._file.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1, angle.atom3.id + 1))
+            if (i + 1) % 3 == 0:
+                self._file.write('\n')
+        if (i + 1) % 3 != 0:
+            self._file.write('\n')
+        self._file.write('\n')
+
+        self._file.write('%8i !NPHI: dihedrals\n' % self.n_dihedral)
+        for i, dihedral in enumerate(self.dihedrals):
+            self._file.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
+                                               dihedral.atom3.id + 1, dihedral.atom4.id + 1))
+            if (i + 1) % 2 == 0:
+                self._file.write('\n')
+        if (i + 1) % 2 != 0:
+            self._file.write('\n')
+        self._file.write('\n')
+
+        self._file.write('%8i !NIMPHI: impropers\n' % self.n_improper)
+        for i, improper in enumerate(self.impropers):
+            self._file.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
+                                               improper.atom3.id + 1, improper.atom4.id + 1))
+            if (i + 1) % 2 == 0:
+                self._file.write('\n')
+        if (i + 1) % 2 != 0:
+            self._file.write('\n')
+        self._file.write('\n')
+
+        self._file.write('%8i !NDON: donors\n\n' % 0)
+
+        self._file.write('%8i !NACC: acceptors\n\n' % 0)
+
+        self._file.write('%8i !NNB\n\n\n' % 0)
+
+        self._file.write('%8i !NUMANISO\n\n' % 0)
+
+    def close(self):
+        self._file.close()

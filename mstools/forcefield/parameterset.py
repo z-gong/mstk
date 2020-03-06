@@ -140,3 +140,6 @@ class PpfParameterSet(ParameterSet):
         TODO to be implemented
         '''
         pass
+
+    def close(self):
+        self._file.close()

@@ -1,6 +1,6 @@
-from mstools.topology.topology import Topology
+from ..topology import Topology
+from ..trajectory import Frame, Trajectory
 from .parameterset import ParameterSet
-from ..trajectory import Frame
 
 
 class System():
@@ -17,3 +17,16 @@ class System():
 
     def write_omm(self):
         pass
+
+    def write_gro(self, file):
+        from ..trajectory import Gro
+        gro = Gro(file, 'w')
+        gro.write_frame(self._topology, self._frame)
+        gro.close()
+
+    def write_psf(self, file):
+        from ..topology import Psf
+        psf = Psf(file, 'w')
+        psf.is_drude = self._topology.is_drude
+        psf.init_from_molecules(self._topology.molecules)
+        psf.write()
