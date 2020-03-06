@@ -83,11 +83,12 @@ class AtomType(FFTerm):
 
 
 class BondTerm(FFTerm):
-    def __init__(self, atom1, atom2):
+    def __init__(self, atom1: AtomType, atom2: AtomType, length: float):
         super().__init__()
         at1, at2 = sorted([atom1, atom2])
         self.atom1 = at1
         self.atom2 = at2
+        self.length = length
 
     @property
     def key(self):
@@ -95,12 +96,13 @@ class BondTerm(FFTerm):
 
 
 class AngleTerm(FFTerm):
-    def __init__(self, atom1, atom2, atom3):
+    def __init__(self, atom1: AtomType, atom2: AtomType, atom3: AtomType, theta: float):
         super().__init__()
         at1, at3 = sorted([atom1, atom3])
         self.atom1 = at1
         self.atom2 = atom2
         self.atom3 = at3
+        self.theta = theta
 
     @property
     def key(self):
@@ -108,7 +110,7 @@ class AngleTerm(FFTerm):
 
 
 class DihedralTerm(FFTerm):
-    def __init__(self, atom1, atom2, atom3, atom4):
+    def __init__(self, atom1: AtomType, atom2: AtomType, atom3: AtomType, atom4: AtomType):
         super().__init__()
         at1, at2, at3, at4 = min([(atom1, atom2, atom3, atom4), (atom4, atom3, atom2, atom1)])
         self.atom1 = at1
@@ -125,7 +127,8 @@ class ImproperTerm(FFTerm):
     '''
     center atom is the first, following the convention of GROMACS
     '''
-    def __init__(self, atom1, atom2, atom3, atom4):
+
+    def __init__(self, atom1: AtomType, atom2: AtomType, atom3: AtomType, atom4: AtomType):
         super().__init__()
         at2, at3, at4 = sorted([atom2, atom3, atom4])
         self.atom1 = atom1
@@ -139,7 +142,7 @@ class ImproperTerm(FFTerm):
 
 
 class NonbondedTerm(FFTerm):
-    def __init__(self, atom1, atom2):
+    def __init__(self, atom1: AtomType, atom2: AtomType):
         super().__init__()
         at1, at2 = sorted([atom1, atom2])
         self.atom1 = at1
@@ -151,7 +154,7 @@ class NonbondedTerm(FFTerm):
 
 
 class ChargeIncrementTerm(FFTerm):
-    def __init__(self, atom1, atom2, increment):
+    def __init__(self, atom1: AtomType, atom2: AtomType, increment: float):
         super().__init__()
         at1, at2 = sorted([atom1, atom2])
         self.atom1 = at1
@@ -169,8 +172,7 @@ class HarmonicBondTerm(BondTerm):
     '''
 
     def __init__(self, atom1, atom2, length, k):
-        super().__init__(atom1, atom2)
-        self.length = length
+        super().__init__(atom1, atom2, length)
         self.k = k
 
 
@@ -180,8 +182,7 @@ class HarmonicAngleTerm(AngleTerm):
     '''
 
     def __init__(self, atom1, atom2, atom3, theta, k):
-        super().__init__(atom1, atom2, atom3)
-        self.theta = theta
+        super().__init__(atom1, atom2, atom3, theta)
         self.k = k
 
 

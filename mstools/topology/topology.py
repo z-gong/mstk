@@ -1,4 +1,5 @@
 import numpy as np
+from ..forcefield import ParameterSet
 
 
 class Atom():
@@ -214,6 +215,23 @@ class Molecule():
         return f'<Molecule: {self.name} {self.id}>'
 
     def generate_angle_dihedral_improper(self):
+        '''
+        generate angle, dihedral and improper from bonds
+        '''
+        pass
+
+    def guess_connectivity_from_forcefield(self, parameters: ParameterSet, bond_tolerance=0.025, angle_tolerance=15,
+                                           pbc='xyz', box=None):
+        '''
+        guess the connectivity from force field parameter set
+        it requires that atoms types are defined and positions are provided
+        the distance between nearby atoms will be calculated and compared with length in force field
+        if the deviation is smaller than bond tolerance, the bond will be added
+        then the angles, dihedrals and impropers will be constructed from bonds
+        If the deviation between angle and force field value is smaller than angle tolerance, the angle will be added
+        As long as parameters for dihedrals and impropers present in force field, the dihedrals and impropers will be added
+        TODO to be implemented
+        '''
         pass
 
 
