@@ -429,7 +429,8 @@ class Molecule():
             if 'z' in pbc:
                 delta21[2] -= math.ceil(delta21[2] / box[2] - 0.5) * box[2]
                 delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
-            theta = np.arccos(delta21.dot(delta23) / delta21.dot(delta21) / delta23.dot(delta23))
+            cos = delta21.dot(delta23) / delta21.dot(delta21) / delta23.dot(delta23)
+            theta = np.arccos(np.clip(cos, -1, 1))
             if abs(theta * 180 / np.pi - angle_term.theta < angle_tolerance):
                 self.add_angle(atom1, atom2, atom3)
             else:

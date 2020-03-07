@@ -75,7 +75,8 @@ def _calc_angle_xy(vec):
     Calculate the angle between a vector and xy plane
     '''
     vec_proj = np.array([vec[0], vec[1], 0])
-    theta = np.arccos(vec.dot(vec_proj) / np.sqrt(vec.dot(vec)) / np.sqrt(vec_proj.dot(vec_proj))) * 180 / np.pi
+    cos = vec.dot(vec_proj) / np.sqrt(vec.dot(vec)) / np.sqrt(vec_proj.dot(vec_proj))
+    theta = np.arccos(np.clip(cos, -1, 1)) * 180 / np.pi
     return theta
 
 
