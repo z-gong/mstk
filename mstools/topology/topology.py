@@ -199,6 +199,7 @@ class Molecule():
     def __init__(self, name: str = 'UNK'):
         self.id: int = -1
         self.name: str = name
+        self.topology: Topology = None
         self._atoms: [Atom] = []
         self._bonds: [Bond] = []
         self._angles: [Angle] = []
@@ -245,11 +246,15 @@ class Molecule():
         self._atoms.append(atom)
         atom._molecule = self
         atom._index_in_molecule = len(self._atoms) - 1
+        if self.topology is not None:
+            self.topology.init_from_molecules(self.topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom: Atom):
         self._atoms.remove(atom)
         atom._molecule = None
         atom._index_in_molecule = -1
+        if self.topology is not None:
+            self.topology.init_from_molecules(self.topology.molecules, deepcopy=False)
 
     def add_bond(self, atom1: Atom, atom2: Atom, check_existence=False):
         # if atom1 not in self._atoms or atom2 not in self._atoms:
@@ -510,23 +515,29 @@ class Topology():
         self.remark = ''
         self.is_drude = False
         self._molecules: [Molecule] = []
+        self._atoms: [Atom] = []
         self._box = np.array([0, 0, 0], dtype=float)
 
-    def init_from_molecules(self, molecules: [Molecule], numbers=None):
+    def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
         initialize a topology from a bunch of molecules
-        the molecules and atoms are deepcopied
+        the molecules and atoms are deepcopied if numbers is not None or deepcopy is True
         '''
         if len(set(molecules)) < len(molecules):
             raise Exception('There are duplicated molecules, consider set the number of molecule')
-        if numbers is None:
-            numbers = [1] * len(molecules)
-        if (len(molecules) != len(numbers)):
-            raise Exception('Elements in molecules and numbers do not match')
-        self._molecules = []
-        for mol, number in zip(molecules, numbers):
-            for i in range(number):
-                self._molecules.append(copy.deepcopy(mol))
+        if numbers is None and not deepcopy:
+            self._molecules = molecules[:]
+        else:
+            if (len(molecules) != len(numbers)):
+                raise Exception('Elements in molecules and numbers do not match')
+            self._molecules = []
+            for mol, number in zip(molecules, numbers):
+                for i in range(number):
+                    self._molecules.append(copy.deepcopy(mol))
+
+        for mol in self._molecules:
+            mol._topology = self
+        self._atoms = [atom for mol in self._molecules for atom in mol.atoms]
 
         self.assign_id()
 
@@ -544,9 +555,11 @@ class Topology():
         Note that the molecule and atoms are not copied, the reference are passed
         '''
         molecule.id = self.n_molecule
+        molecule.topology = self
         self._molecules.append(molecule)
         for atom in molecule.atoms:
             atom.id = self.n_atom
+            self._atoms.append(atom)
 
     def set_positions(self, positions):
         if self.n_atom != len(positions):
@@ -568,7 +581,15 @@ class Topology():
 
     @property
     def n_atom(self):
-        return sum([mol.n_atom for mol in self._molecules])
+        return len(self._atoms)
+
+    @property
+    def molecules(self):
+        return self._molecules
+
+    @property
+    def atoms(self):
+        return self._atoms
 
     @property
     def n_bond(self):
@@ -585,14 +606,6 @@ class Topology():
     @property
     def n_improper(self):
         return sum([mol.n_improper for mol in self._molecules])
-
-    @property
-    def molecules(self):
-        return self._molecules
-
-    @property
-    def atoms(self):
-        return [atom for mol in self._molecules for atom in mol.atoms]
 
     @property
     def bonds(self):
