@@ -278,7 +278,7 @@ def voltage():
     area = frame.box[0] * frame.box[1]
     dz = 0.01
     n_bin = math.ceil(frame.box[2] / dz)
-    bins = np.array([frame.zlo + dz * (i + 0.5) for i in range(n_bin)])
+    bins = np.array([dz * (i + 0.5) for i in range(n_bin)])
     charges = np.array([0.] * n_bin)
     voltage = np.array([0.] * n_bin)
 
@@ -293,7 +293,7 @@ def voltage():
                 continue
 
             z = frame.positions[k][2]
-            i_bin = math.floor((z - frame.zlo) / dz)
+            i_bin = math.floor(z / dz)
             i_bin = min(i_bin, n_bin - 1)
             q = frame.charges[k] if frame.has_charge else atom.charge
             charges[i_bin] += q

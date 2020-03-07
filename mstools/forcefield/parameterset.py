@@ -4,11 +4,12 @@ from .ffterm import *
 class ParameterSet():
     def __init__(self):
         self.atom_types = {}
+        self.charge_increment_terms = {}
         self.bond_terms = {}
         self.angle_terms = {}
         self.dihedral_terms = {}
         self.improper_terms = {}
-        self.nonbonded_terms = {}
+        self.vdw_terms = {}
 
 
 class FFToolParameterSet(ParameterSet):
@@ -24,6 +25,7 @@ class FFToolParameterSet(ParameterSet):
         self.close()
 
     def parse(self):
+        self._eq_atom_types = {} # add a temporary attribute to match equivalent type later
         for line in self._file:
             if line.startswith('#') or line.strip() == '':
                 continue
@@ -56,46 +58,70 @@ class FFToolParameterSet(ParameterSet):
             elif section == 'impropers':
                 self.parse_improper(words)
 
+        self.setup_equivalent_types()
+
     def parse_atom(self, words):
         atype_eq = AtomType(words[1])
-        if atype_eq.key not in self.atom_types.keys():
-            self.atom_types[atype_eq.key] = atype_eq
+        # add a temporary attribute to match equivalent type later
+        atype_eq._eq_type_name = atype_eq.name
+        if atype_eq.name not in self._eq_atom_types.keys():
+            # add it to the temporary dict, and unique ones will be moved to self.atom_types later
+            self._eq_atom_types[atype_eq.name] = atype_eq
 
         atype = AtomType(words[0], mass=float(words[2]))
+        # add a temporary attribute to match equivalent type later
+        atype._eq_type_name = words[1]
         atype.charge = float(words[3])
         if words[4] == 'lj':
             atype.sigma = float(words[5]) / 10  # convert from A to nm
             atype.epsilon = float(words[6])
+        elif words[4] == 'lj96':
+            sigma = float(words[5]) / 10  # convert from A to nm
+            epsilon = float(words[6])
+            lj = LJTerm(atype.name, atype.name, epsilon, sigma, 9, 6)
+            self.vdw_terms[lj.name] = lj
+        elif words[4] == 'lj124':
+            sigma = float(words[5]) / 10  # convert from A to nm
+            epsilon = float(words[6])
+            lj = LJTerm(atype.name, atype.name, epsilon, sigma, 12, 4)
+            self.vdw_terms[lj.name] = lj
         else:
-            raise Exception('Unsupported nonbonded function: %s' % (words[4]))
+            raise Exception('Unsupported vdw potential form: %s' % (words[4]))
 
-        if atype.key in self.atom_types.keys() and atype.key != atype_eq.key:
+        if atype.name not in self.atom_types.keys():
+            self.atom_types[atype.name] = atype
+        else:
             raise Exception('Duplicated atom type: %s' % atype)
-        self.atom_types[atype.key] = atype
 
-        atype.equivalent_type_bond = self.atom_types[atype_eq.key]
-        atype.equivalent_type_angle_center = self.atom_types[atype_eq.key]
-        atype.equivalent_type_angle_side = self.atom_types[atype_eq.key]
-        atype.equivalent_type_dihedral_center = self.atom_types[atype_eq.key]
-        atype.equivalent_type_dihedral_side = self.atom_types[atype_eq.key]
-        atype.equivalent_type_improper_center = self.atom_types[atype_eq.key]
-        atype.equivalent_type_improper_side = self.atom_types[atype_eq.key]
+    def setup_equivalent_types(self):
+        for name, atype in self._eq_atom_types.items():
+            if name not in self.atom_types:
+                self.atom_types[name] = atype
+
+        for atype in self.atom_types.values():
+            atype.equivalent_type_bond = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_angle_center = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_angle_side = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_dihedral_center = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_dihedral_side = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_improper_center = self.atom_types[atype._eq_type_name]
+            atype.equivalent_type_improper_side = self.atom_types[atype._eq_type_name]
 
     def parse_bond(self, words):
         if words[2] not in ['harm', 'cons']:
             raise Exception('Unsupported bond function: %s' % (words[2]))
         bond = HarmonicBondTerm(words[0], words[1], length=float(words[3]) / 10, k=float(words[4]))
-        if bond.key in self.bond_terms.keys():
+        if bond.name in self.bond_terms.keys():
             raise Exception('Duplicated bond term: %s' % self)
-        self.bond_terms[bond.key] = bond
+        self.bond_terms[bond.name] = bond
 
     def parse_angle(self, words):
         if words[3] not in ['harm']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
         angle = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]), k=float(words[5]))
-        if angle.key in self.angle_terms.keys():
+        if angle.name in self.angle_terms.keys():
             raise Exception('Duplicated angle term: %s' % self)
-        self.angle_terms[angle.key] = angle
+        self.angle_terms[angle.name] = angle
 
     def parse_dihedral(self, words):
         if words[4] not in ['opls']:
@@ -104,9 +130,9 @@ class FFToolParameterSet(ParameterSet):
                                        k1=float(words[5]), k2=float(words[6]),
                                        k3=float(words[7]), k4=float(words[8])
                                        )
-        if dihedral.key in self.dihedral_terms.keys():
+        if dihedral.name in self.dihedral_terms.keys():
             raise Exception('Duplicated dihedral term: %s' % self)
-        self.dihedral_terms[dihedral.key] = dihedral
+        self.dihedral_terms[dihedral.name] = dihedral
 
     def parse_improper(self, words):
         '''
@@ -115,9 +141,9 @@ class FFToolParameterSet(ParameterSet):
         if words[4] not in ['opls']:
             raise Exception('Unsupported improper function: %s' % (words[4]))
         improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3], k=float(words[6]))
-        if improper.key in self.improper_terms.keys():
+        if improper.name in self.improper_terms.keys():
             raise Exception('Duplicated improper term: %s' % self)
-        self.improper_terms[improper.key] = improper
+        self.improper_terms[improper.name] = improper
 
     def close(self):
         self._file.close()

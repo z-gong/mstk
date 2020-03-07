@@ -83,9 +83,7 @@ class Gro(Trajectory):
                 else:
                     frame.velocities[i] = np.array([vx, vy, vz])
 
-        frame.xlo, frame.ylo, frame.zlo = (0, 0, 0)
-        frame.xhi, frame.yhi, frame.zhi = tuple(map(float, lines[self.n_atom + 2].split()))[0:3]
-        frame.box = np.array([frame.xhi - frame.xlo, frame.yhi - frame.ylo, frame.zhi - frame.zlo])
+        frame.box = tuple(map(float, lines[self.n_atom + 2].split()))[:3]
 
         return frame
 

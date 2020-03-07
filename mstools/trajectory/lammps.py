@@ -68,10 +68,10 @@ class LammpsTrj(Trajectory):
         frame = Frame(self.n_atom)
         lines = string.splitlines()
         frame.step = int(lines[1])
-        frame.xlo, frame.xhi = tuple(map(lambda x: float(x) / 10, lines[5].split()))  # convert from A to nm
-        frame.ylo, frame.yhi = tuple(map(lambda x: float(x) / 10, lines[6].split()))
-        frame.zlo, frame.zhi = tuple(map(lambda x: float(x) / 10, lines[7].split()))
-        frame.box = np.array([frame.xhi - frame.xlo, frame.yhi - frame.ylo, frame.zhi - frame.zlo])
+        xlo, xhi = tuple(map(lambda x: float(x) / 10, lines[5].split()))  # convert from A to nm
+        ylo, yhi = tuple(map(lambda x: float(x) / 10, lines[6].split()))
+        zlo, zhi = tuple(map(lambda x: float(x) / 10, lines[7].split()))
+        frame.box = np.array([xhi - xlo, yhi - ylo, zhi - zlo])
         tokens = lines[8].split()
         title = tokens[2:]
 
@@ -79,28 +79,29 @@ class LammpsTrj(Trajectory):
         df = pd.read_csv(StringIO(data), header=None, index_col=None, names=title, sep='\s+')
         wrapped = False
         if 'x' in df.columns:
-            df['x'] /= 10  # convert from A to nm
-            df['y'] /= 10
-            df['z'] /= 10
+            df['x'] = df['x'] / 10 - xlo  # convert from A to nm
+            df['y'] = df['y'] / 10 - ylo
+            df['z'] = df['z'] / 10 - zlo
             wrapped = True
         elif 'xs' in df.columns:
-            df['x'] = df.xs * frame.box[0] + frame.xlo
-            df['y'] = df.ys * frame.box[1] + frame.ylo
-            df['z'] = df.zs * frame.box[2] + frame.zlo
+            df['x'] = df.xs * frame.box[0]
+            df['y'] = df.ys * frame.box[1]
+            df['z'] = df.zs * frame.box[2]
             wrapped = True
         elif 'xu' in df.columns:
-            df['x'] = df.xu / 10  # convert from A to nm
-            df['y'] = df.yu / 10
-            df['z'] = df.zu / 10
+            df['x'] = df.xu / 10 - xlo  # convert from A to nm
+            df['y'] = df.yu / 10 - ylo
+            df['z'] = df.zu / 10 - zlo
         elif 'xsu' in df.columns:
-            df['x'] = df.xsu * frame.box[0] + frame.xlo
-            df['y'] = df.ysu * frame.box[1] + frame.ylo
-            df['z'] = df.zsu * frame.box[2] + frame.zlo
+            df['x'] = df.xsu * frame.box[0]
+            df['y'] = df.ysu * frame.box[1]
+            df['z'] = df.zsu * frame.box[2]
         if wrapped:
             if 'ix' not in df.columns:
                 print('warning: image flag not found for wrapped positions')
             else:
-                df.x += df['ix'] * frame.box[0]  # ix is revered words for pandas, so use df['ix'] instead of df.ix
+                # ix is revered words for pandas, so use df['ix'] instead of df.ix
+                df.x += df['ix'] * frame.box[0]
                 df.y += df['iy'] * frame.box[1]
                 df.z += df['iz'] * frame.box[2]
 

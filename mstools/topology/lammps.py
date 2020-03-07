@@ -37,7 +37,8 @@ class LammpsData(Topology):
             if line_clean in _sections:
                 _iline_section.append((i, line_clean))
 
-        n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type = self.parse_header(lines[:_iline_section[0][0]])
+        n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type = self.parse_header(
+            lines[:_iline_section[0][0]])
 
         self._type_masses = [0.] * (n_atom_type + 1)
         self._type_names = [''] * (n_atom_type + 1)
@@ -80,11 +81,14 @@ class LammpsData(Topology):
             elif line.endswith(' atom types'):
                 n_atom_type = int(words[0])
             elif line.endswith(' xlo xhi'):
-                box[0] = float(words[1]) - float(words[0])
+                box[0] = (float(words[1]) - float(words[0])) / 10
+                self._xlo = float(words[0]) / 10
             elif line.endswith(' ylo yhi'):
-                box[1] = float(words[1]) - float(words[0])
-            elif line.endswith(' xlo xhi'):
-                box[2] = float(words[1]) - float(words[0])
+                box[1] = (float(words[1]) - float(words[0])) / 10
+                self._ylo = float(words[0]) / 10
+            elif line.endswith(' zlo zhi'):
+                box[2] = (float(words[1]) - float(words[0])) / 10
+                self._zlo = float(words[0]) / 10
             else:
                 continue
 
@@ -140,13 +144,16 @@ class LammpsData(Topology):
             atom.type = self._type_names[type_id]
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
             atom.has_position = True
-            atom.position = np.array([x + ix * self.box[0], y + iy * self.box[1], z + iz * self.box[2]])
+            atom.position = np.array([x - self._xlo + ix * self.box[0],
+                                      y - self._ylo + iy * self.box[1],
+                                      z - self._zlo + iz * self.box[2]])
 
         # kick out redundant molecules
         molecules = [mol for mol in molecules if mol.initiated]
         for mol in molecules:
             for i, atom in enumerate(mol.atoms):
-                atom.name = atom.symbol + str(i + 1)  # atomic symbol + index inside mol starting from 1
+                # atomic symbol + index inside mol starting from 1
+                atom.name = atom.symbol + str(i + 1)
 
         self.init_from_molecules(molecules)
 
