@@ -1,5 +1,6 @@
 from ..topology import Topology, Atom, Molecule
 
+
 class XyzTopology(Topology):
     '''
     xyz format only records the type and position of atoms

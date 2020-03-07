@@ -54,9 +54,6 @@ class Xyz(Trajectory):
             subset = list(range(topology.n_atom))
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
-            position = frame.positions[id] * 10  # convert from nm to A
-            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.type, position[0], position[1], position[2])
+            pos = frame.positions[id] * 10  # convert from nm to A
+            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2])
             self._file.write(line)
-
-    def close(self):
-        self._file.close()

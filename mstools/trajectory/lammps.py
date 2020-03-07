@@ -112,6 +112,3 @@ class LammpsTrj(Trajectory):
                 frame.charges[row.id - 1] = float(row.q)
 
         return frame
-
-    def close(self):
-        self._file.close()

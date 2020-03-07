@@ -1,3 +1,4 @@
+from io import IOBase
 import numpy as np
 
 
@@ -26,6 +27,13 @@ class Trajectory():
     def __init__(self):
         self.n_atom = 0
         self.n_frame = 0
+        self._file = IOBase()
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        self._file.close()
 
     @staticmethod
     def open(file, mode='r'):

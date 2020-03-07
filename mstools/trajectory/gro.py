@@ -101,7 +101,8 @@ class Gro(Trajectory):
             mol = atom.molecule
             pos = frame.positions[id]
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                (mol.id + 1) % 100000, mol.name[:4], atom.symbol, (atom.id + 1) % 100000, pos[0], pos[1], pos[2])
+                (mol.id + 1) % 100000, mol.name[:4], atom.symbol, (atom.id + 1) % 100000,
+                pos[0], pos[1], pos[2])
             if write_velocity:
                 vel = frame.velocities[id]
                 line += '%8.3f%8.3f%8.3f' % (vel[0], vel[1], vel[2])
@@ -109,5 +110,4 @@ class Gro(Trajectory):
 
         self._file.write(' %.3f %.3f %.3f\n' % (frame.box[0], frame.box[1], frame.box[2]))
 
-    def close(self):
-        self._file.close()
+        self._file.flush()

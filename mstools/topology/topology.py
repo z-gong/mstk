@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import copy
+from io import IOBase
 from ..forcefield import ParameterSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm
 
 
@@ -517,6 +518,13 @@ class Topology():
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         self._box = np.array([0, 0, 0], dtype=float)
+        self._file = IOBase()
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        self._file.close()
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
@@ -528,7 +536,9 @@ class Topology():
         if numbers is None and not deepcopy:
             self._molecules = molecules[:]
         else:
-            if (len(molecules) != len(numbers)):
+            if numbers is None:
+                numbers = [1] * len(molecules)
+            elif len(molecules) != len(numbers):
                 raise Exception('Elements in molecules and numbers do not match')
             self._molecules = []
             for mol, number in zip(molecules, numbers):

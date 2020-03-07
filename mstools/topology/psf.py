@@ -11,9 +11,6 @@ class Psf(Topology):
         elif mode == 'w':
             pass
 
-    def __del__(self):
-        self.close()
-
     def parse(self):
         lines = self._file.read().splitlines()
         words = lines[0].strip().split()
@@ -40,8 +37,8 @@ class Psf(Topology):
             else:
                 iline_next = len(lines)
             if section == '!NTITLE':
-                self.parse_title(
-                    lines[iline: iline_next])  # the number at section line indicates the line counts of the section
+                # the number at section line indicates the line counts of the section
+                self.parse_title(lines[iline: iline_next])
             if section == '!NATOM':
                 self.parse_atoms(lines[iline: iline_next])
             if section == '!NBOND':
@@ -100,7 +97,8 @@ class Psf(Topology):
         molecules = [mol for mol in molecules if mol.initiated]
         for mol in molecules:
             for i, atom in enumerate(mol.atoms):
-                atom.name = atom.symbol + str(i + 1)  # atomic symbol + index inside mol starting from 1
+                # atomic symbol + index inside mol starting from 1
+                atom.name = atom.symbol + str(i + 1)
 
         self.init_from_molecules(molecules)
 
@@ -123,7 +121,8 @@ class Psf(Topology):
             for j in range(3):
                 if i * 3 + j + 1 > n_angle:
                     break
-                atom1, atom2, atom3 = atoms[int(words[j * 3]) - 1], atoms[int(words[j * 3 + 1]) - 1], \
+                atom1, atom2, atom3 = atoms[int(words[j * 3 + 0]) - 1], \
+                                      atoms[int(words[j * 3 + 1]) - 1], \
                                       atoms[int(words[j * 3 + 2]) - 1]
                 atom1.molecule.add_angle(atom1, atom2, atom3)
 
@@ -135,8 +134,10 @@ class Psf(Topology):
             for j in range(2):
                 if i * 2 + j + 1 > n_dihedral:
                     break
-                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4]) - 1], atoms[int(words[j * 4 + 1]) - 1], \
-                                             atoms[int(words[j * 4 + 2]) - 1], atoms[int(words[j * 4 + 3]) - 1]
+                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4 + 0]) - 1], \
+                                             atoms[int(words[j * 4 + 1]) - 1], \
+                                             atoms[int(words[j * 4 + 2]) - 1], \
+                                             atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
     def parse_impropers(self, lines):
@@ -147,8 +148,10 @@ class Psf(Topology):
             for j in range(2):
                 if i * 2 + j + 1 > n_improper:
                     break
-                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4]) - 1], atoms[int(words[j * 4 + 1]) - 1], \
-                                             atoms[int(words[j * 4 + 2]) - 1], atoms[int(words[j * 4 + 3]) - 1]
+                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4 + 0]) - 1], \
+                                             atoms[int(words[j * 4 + 1]) - 1], \
+                                             atoms[int(words[j * 4 + 2]) - 1], \
+                                             atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
 
     def write(self):
@@ -215,5 +218,4 @@ class Psf(Topology):
 
         self._file.write('%8i !NUMANISO\n\n' % 0)
 
-    def close(self):
-        self._file.close()
+        self._file.flush()
