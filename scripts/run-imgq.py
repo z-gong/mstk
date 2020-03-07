@@ -8,7 +8,7 @@ from simtk.unit import kelvin, bar, volt
 from simtk.unit import picosecond as ps, nanometer as nm, angstrom as A
 from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kCal_mol
 from mstools.omm import OplsPsfFile, GroFile
-from mstools.omm import GroReporter, XMLStateReporter, DrudeTemperatureReporter
+from mstools.omm import GroReporter, XmlStateReporter, DrudeTemperatureReporter
 from mstools.omm.forces import spring_self, wall_power, wall_lj126
 from mstools.omm.utils import print_omm_info, minimize
 
@@ -84,7 +84,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin, 12345)
-    sim.reporters.append(XMLStateReporter('state.xml', max(nstep // 10, 100000)))
+    sim.reporters.append(XmlStateReporter('state.xml', max(nstep // 10, 100000)))
     sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False, subset=group_mos+group_ils))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
     sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True, temperature=True,

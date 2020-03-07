@@ -11,7 +11,7 @@ class DrudeTemperatureReporter(object):
     DrudeTemperatureReporter reports the temperature of Drude simulation
     The temperatures for three degrees of freedom are reported
     -- molecular center of mass, internal atomic and Drude temperature
-    It's better to set the reportInterval larger than 100000 to avoid significant performance penalty
+    It's better to set the reportInterval larger than 10000 to avoid significant performance penalty
     """
 
     def __init__(self, file, reportInterval):

@@ -58,12 +58,15 @@ class ViscosityReporter(object):
             self._hasInitialized = True
             print('#"Step"\t"Acceleration (nm/ps^2)"\t"Velocity at z=0 (nm/ps)"\t"1/Viscosity (1/Pa.s)"', file=self._out)
 
-        acceleration = simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
-        vMax, invVis = simulation.integrator.getViscosity()
-        vMax = vMax.value_in_unit(unit.nanometer / unit.picosecond)
-        invVis = invVis.value_in_unit((unit.pascal*unit.second)**-1)
-        print(simulation.currentStep, acceleration, vMax, invVis, sep='\t', file=self._out)
-
+        try:
+            acceleration = simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
+        except:
+            print('This integrator does not support periodic perturbation', file=self._out)
+        else:
+            vMax, invVis = simulation.integrator.getViscosity()
+            vMax = vMax.value_in_unit(unit.nanometer / unit.picosecond)
+            invVis = invVis.value_in_unit((unit.pascal*unit.second)**-1)
+            print(simulation.currentStep, acceleration, vMax, invVis, sep='\t', file=self._out)
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()

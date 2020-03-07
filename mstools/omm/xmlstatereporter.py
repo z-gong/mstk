@@ -4,7 +4,7 @@ import simtk.openmm as mm
 import os
 import os.path
 
-class XMLStateReporter(object):
+class XmlStateReporter(object):
     """XMLStateReporter saves periodic checkpoints of a simulation.
     The checkpoints will overwrite one another -- only the last checkpoint
     will be saved in the file.
@@ -46,13 +46,13 @@ class XMLStateReporter(object):
         Returns
         -------
         tuple
-            A five element tuple. The first element is the number of steps
+            A six element tuple. The first element is the number of steps
             until the next report. The remaining elements specify whether
-            that report will require positions, velocities, forces, and
-            energies respectively.
+            that report will require positions, velocities, forces, energies,
+            and whether wrap positions back to first cell respectively.
         """
         steps = self._reportInterval - simulation.currentStep%self._reportInterval
-        return (steps, False, False, False, False)
+        return (steps, True, True, False, False, False)
 
     def report(self, simulation, state):
         """Generate a report.
@@ -64,7 +64,6 @@ class XMLStateReporter(object):
         state : State
             The current state of the simulation
         """
-        state = simulation.context.getState(getPositions=True, getVelocities=True, getParameters=True)
         xml = mm.XmlSerializer.serialize(state)
 
         filename = '%s-%i' %(self._file, simulation.currentStep)
