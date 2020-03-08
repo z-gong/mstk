@@ -9,7 +9,7 @@ class FFTerm():
         return '<%s: %s>' % (self.__class__.__name__, self.name)
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
 
 class AtomType(FFTerm):

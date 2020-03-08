@@ -27,7 +27,7 @@ class Atom():
         return f'<Atom: {self.name} {self.id} {self.type}>'
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __lt__(self, other):
         return self.id < other.id
@@ -71,7 +71,7 @@ class Atom():
     def position(self, value):
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('position should has three elements')
-        self._position = value
+        self._position = np.array(value)
 
     @property
     def velocity(self):
@@ -81,7 +81,7 @@ class Atom():
     def velocity(self, value):
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('velocity should has three elements')
-        self._velocity = value
+        self._velocity = np.array(value)
 
 
 class Bond():
@@ -93,7 +93,7 @@ class Bond():
         return '<Bond: %s-%s>' % (self.atom1.name, self.atom2.name)
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         return (self.atom1 == other.atom1 and self.atom2 == other.atom2) \
@@ -116,7 +116,7 @@ class Angle():
         return '<Angle: %s-%s-%s>' % (self.atom1.name, self.atom2.name, self.atom3.name)
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         if self.atom2 != other.atom2:
@@ -144,7 +144,7 @@ class Dihedral():
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         return (self.atom1 == other.atom1 and self.atom2 == other.atom2 and
@@ -177,7 +177,7 @@ class Improper():
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         if self.atom1 != other.atom1:
@@ -211,7 +211,7 @@ class Molecule():
         return f'<Molecule: {self.name} {self.id}>'
 
     def __repr__(self):
-        return str(self) + ' instance at 0x' + str(hex(id(self))[2:].upper())
+        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __deepcopy__(self, memodict={}):
         mol = Molecule()
@@ -382,13 +382,15 @@ class Molecule():
             atom2 = bond.atom1
             atom3 = bond.atom2
             for atom1 in atom2.bond_partners:
-                self.add_angle(atom1, atom2, atom3, check_existence=True)
+                if atom1 != atom3:
+                    self.add_angle(atom1, atom2, atom3, check_existence=True)
             for atom4 in atom3.bond_partners:
-                self.add_angle(atom2, atom3, atom4, check_existence=True)
+                if atom2 != atom4:
+                    self.add_angle(atom2, atom3, atom4, check_existence=True)
 
             for atom1 in atom2.bond_partners:
                 for atom4 in atom3.bond_partners:
-                    if atom1 != atom4:
+                    if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
                         self.add_dihedral(atom1, atom2, atom3, atom4, check_existence=True)
 
         for atom in self._atoms:
@@ -437,7 +439,7 @@ class Molecule():
                 delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
             cos = delta21.dot(delta23) / delta21.dot(delta21) / delta23.dot(delta23)
             theta = np.arccos(np.clip(cos, -1, 1))
-            if abs(theta * 180 / np.pi - angle_term.theta < angle_tolerance):
+            if abs(theta * 180 / np.pi - angle_term.theta <= angle_tolerance):
                 self.add_angle(atom1, atom2, atom3)
             else:
                 print(f'warning: {str(Angle(atom1, atom2, atom3))} not added '
@@ -467,7 +469,10 @@ class Molecule():
                     delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
                 if 'z' in pbc:
                     delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
-                if abs(np.sqrt(delta.dot(delta)) - bond_term.length) < bond_tolerance:
+                if any(delta - bond_term.length > bond_tolerance):
+                    continue
+
+                if abs(np.sqrt(delta.dot(delta)) - bond_term.length) <= bond_tolerance:
                     self.add_bond(atom1, atom2)
 
         for bond in self._bonds:
@@ -664,6 +669,7 @@ class Topology():
         from .psf import Psf
         from .lammps import LammpsData
         from .xyz import XyzTopology
+        from .zmat import Zmat
 
         if file.endswith('.psf'):
             return Psf(file, mode)
@@ -671,5 +677,7 @@ class Topology():
             return LammpsData(file, mode)
         elif file.endswith('.xyz'):
             return XyzTopology(file, mode)
+        elif file.endswith('.zmat'):
+            return Zmat(file, mode)
         else:
             raise Exception('filename for topology not understand')
