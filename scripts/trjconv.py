@@ -17,6 +17,7 @@ parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to out
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
 parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float, help='overwrite the box dimensions')
+parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float, help='shift the positions of all atoms')
 args = parser.parse_args()
 
 top = Topology.open(args.topology)
@@ -40,5 +41,7 @@ for i in range(args.begin, args.end, args.skip):
     frame = trj.read_frame(i)
     box = np.array([args.box[k] if args.box[k] != -1 else frame.box[k] for k in range(3)])
     frame.box = box
+    if args.shift[0] != 0 or args.shift[1] != 0 or args.shift[2] != 0:
+        frame.positions += np.array([args.shift] * top.n_atom)
     trj_out.write_frame(top, frame, subset=id_atoms)
 trj_out.close()

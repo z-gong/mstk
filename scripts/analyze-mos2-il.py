@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.size': 15})
 
-from mstools.utils import histogram
+from mstools.utils import histogram, print_data_to_file
 from mstools.topology import Atom, Molecule, Topology
 from mstools.trajectory import Trajectory
 
@@ -47,6 +47,13 @@ top = Topology.open(args.topology)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
+_frame = trj.read_frame(0)
+area = _frame.box[0] * _frame.box[1]
+box_z = _frame.box[2]
+dz = 0.01
+n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
+edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)])
+z_array = (edges[1:] + edges[:-1]) / 2
 
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
@@ -98,16 +105,10 @@ def _calc_acf(series):
 
 
 def distribution():
-    bins = np.linspace(0, 7, 701)  # nm
-    dz = bins[1] - bins[0]
-    z_array = (bins[1:] + bins[:-1]) / 2
     charge_array = np.array([0.] * len(z_array))
     z_atom_dict = {}
     z_com_dict = {}
     theta_dict = {}
-
-    frame = trj.read_frame(0)
-    area = frame.box[0] * frame.box[1]
 
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
@@ -122,7 +123,7 @@ def distribution():
             for atom in mol.atoms:
                 z = frame.positions[atom.id][2]
                 q = frame.charges[atom.id] if frame.has_charge else atom.charge
-                z_idx = math.floor((z - bins[0]) / dz)
+                z_idx = math.floor((z - edges[0]) / dz)
                 charge_array[z_idx] += q
 
             section = config['molecule.%s' % (mol.name)]
@@ -170,33 +171,41 @@ def distribution():
 
     print('')
 
+    name_column_dict = {'z': z_array}
+
     fig, ax = plt.subplots()
-    ax.set(xlim=[0, 7], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
+    ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
     for name, z_list in z_atom_dict.items():
-        x, y = histogram(z_list, bins=bins)
+        x, y = histogram(z_list, bins=edges)
         ax.plot(x, y / area / dz / n_frame, label=name)
+        name_column_dict['particle density - ' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist.png')
 
     fig, ax = plt.subplots()
-    ax.set(xlim=[0, 7], xlabel='z (nm)', ylabel='molecule density (/$nm^3$)')
+    ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='molecule density (/$nm^3$)')
     ax2 = ax.twinx()
     ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
-        x, y_com = histogram(z_list, bins=bins)
+        x, y_com = histogram(z_list, bins=edges)
         ax.plot(x, y_com / area / dz / n_frame, label=name)
         ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name)
+        name_column_dict['molecule density - ' + name] = y_com / area / dz / n_frame
+        name_column_dict['cumulative molecule number - ' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
 
     fig, ax = plt.subplots()
-    ax.set(xlim=[0, 7], xlabel='z (nm)', ylabel='charge density (e/$nm^3$)')
-    ax.plot(z_array, charge_array / area / dz / n_frame, label=' '.join(mol_names))
+    ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='charge density (e/$nm^3$)')
+    ax.plot(z_array, charge_array / area / dz / n_frame, label=','.join(mol_names))
+    name_column_dict['charge density - ' + ','.join(mol_names)] = charge_array / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-charge.png')
+
+    print_data_to_file(name_column_dict, f'{args.output}-dist.txt')
 
     fig, ax = plt.subplots()
     ax.set(xlim=[0, 90], ylim=[0, 0.1], xlabel='theta', ylabel='probability')
@@ -255,9 +264,10 @@ def diffusion():
     print('')
 
     t_array = np.array(t_list) - t_list[0]
+    name_cloumn_dict = {'time': t_array}
     for name, z_series_list in z_dict.items():
         fig, ax = plt.subplots(figsize=(6.4, 12.8))
-        ax.set(ylim=[0, 6.95], xlabel='time (ns)', ylabel='z (nm)')
+        ax.set(ylim=[0, box_z], xlabel='time (ns)', ylabel='z (nm)')
         for z_series in z_series_list:
             ax.plot(t_array, z_series)
         fig.tight_layout()
@@ -268,18 +278,16 @@ def diffusion():
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
         ax.plot(t_array[:_len], acf_dict[name], label=name)
+        name_cloumn_dict['acf - ' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.5], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-residence.png')
 
+    print_data_to_file(name_cloumn_dict, f'{args.output}-residence.txt')
+
 
 def voltage():
-    frame = trj.read_frame(0)
-    area = frame.box[0] * frame.box[1]
-    dz = 0.01
-    n_bin = math.ceil(frame.box[2] / dz)
-    bins = np.array([dz * (i + 0.5) for i in range(n_bin)])
     charges = np.array([0.] * n_bin)
     voltage = np.array([0.] * n_bin)
 
@@ -294,7 +302,7 @@ def voltage():
                 continue
 
             z = frame.positions[k][2]
-            i_bin = math.floor(z / dz)
+            i_bin = math.floor((z-edges[0]) / dz)
             i_bin = min(i_bin, n_bin - 1)
             q = frame.charges[k] if frame.has_charge else atom.charge
             charges[i_bin] += q
@@ -308,23 +316,28 @@ def voltage():
             s += dz * (dz * (i - j)) * charges[j]
         voltage[i] = -s / eps0 * q0 / nm
 
+    name_cloumn_dict = {'z': z_array}
+
     fig = plt.figure(figsize=[6.4, 12.8])
     ax1 = fig.add_subplot('311')
     ax1.set(xlabel='z (nm)', ylabel='charge density (e/nm$^3$)')
-    ax1.plot(bins, charges)
-    ax1.plot(bins, [0] * n_bin, '--')
+    ax1.plot(z_array, charges)
+    ax1.plot(z_array, [0] * n_bin, '--')
+    name_cloumn_dict['charge density'] = charges
 
     ax2 = fig.add_subplot('312')
     ax2.set(ylim=[-5, 5], xlabel='z (nm)', ylabel='cumulative charges (e)')
-    ax2.plot(bins, charges_cumulative)
-    ax2.plot(bins, [0] * n_bin, '--')
+    ax2.plot(z_array, charges_cumulative)
+    ax2.plot(z_array, [0] * n_bin, '--')
+    name_cloumn_dict['cumulative charge'] = charges_cumulative
 
     ax3 = fig.add_subplot('313')
     ax3.set(xlabel='z (nm)', ylabel='voltage (V)')
-    ax3.plot(bins, voltage)
-    ax3.plot(bins, [0] * n_bin, '--')
+    ax3.plot(z_array, voltage)
+    ax3.plot(z_array, [0] * n_bin, '--')
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
+    name_cloumn_dict['voltage'] = voltage
 
 
 def charge_2d():

@@ -271,8 +271,24 @@ def get_last_line(filename):
         string = ''
     return string
 
+
 def histogram(data, bins, normed=False):
     import numpy as np
     y, _x = np.histogram(data, bins=bins, density=normed)
     x = (_x[1:] + _x[:-1]) / 2
     return x, y
+
+
+def print_data_to_file(name_column_dict, file):
+    if len(name_column_dict) == 0:
+        raise Exception('Columns are empty')
+
+    with open(file, 'w') as f:
+        f.write('#')
+        for name in name_column_dict.keys():
+            f.write('"%s"\t' % name)
+        f.write('\n')
+        for i in range(len(list(name_column_dict.values())[0])):
+            for column in name_column_dict.values():
+                f.write('%f\t' % column[i])
+            f.write('\n')
