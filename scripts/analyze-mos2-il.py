@@ -3,14 +3,12 @@
 import sys
 import argparse
 import math
-import numpy as np
 import configparser
-
-import matplotlib as mpl
-
-mpl.use('Agg')
+import numpy as np
+np.seterr(all='raise')
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram, print_data_to_file
@@ -278,6 +276,7 @@ def diffusion():
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
         ax.plot(t_array[:_len], acf_dict[name], label=name)
+        name_cloumn_dict['time'] = t_array[:_len]
         name_cloumn_dict['acf - ' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.5], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
@@ -302,7 +301,7 @@ def voltage():
                 continue
 
             z = frame.positions[k][2]
-            i_bin = math.floor((z-edges[0]) / dz)
+            i_bin = math.floor((z - edges[0]) / dz)
             i_bin = min(i_bin, n_bin - 1)
             q = frame.charges[k] if frame.has_charge else atom.charge
             charges[i_bin] += q
@@ -341,49 +340,43 @@ def voltage():
 
 
 def charge_2d():
-    frame = trj.read_frame(0)
-    if not frame.has_charge:
-        raise Exception('charge_2d function requires charge information in trajectory')
-
-    z_span = frame.box[2] / 3
-    _conv = q0 / frame.box[0] / frame.box[1] / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
-    # TODO need to think about how to identify cathode
-    ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
-    qtot_list = []
-    for i in range(args.begin, args.end, args.skip):
-        frame = trj.read_frame(i)
-        qtot = sum(frame.charges[ids_cathode])
-        qtot_list.append(qtot)
-        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
-
-    print('\n%-6i %10.6f %10.6f %10.6f' % (
-        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode) * 3,
-        np.mean(qtot_list) * _conv / 1000 * z_span * nm / eps0))
-
-
-def charge_3d():
-    frame = trj.read_frame(0)
-    area = frame.box[0] * frame.box[1]
-    z_span = frame.box[2] / 2
     _conv = q0 / area / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     # TODO need to think about how to identify cathode
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
-        qtot = args.voltage * area / z_span * eps0 / q0 * nm
+        if not frame.has_charge:
+            raise Exception('charge_2d function requires charge information in trajectory')
+        qtot = sum(frame.charges[ids_cathode])
+        qtot_list.append(qtot)
+        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
+
+    print('\n%-6i %10.6f %10.6f %10.6f' % (
+        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode) * 3,
+        np.mean(qtot_list) * _conv / 1000 * box_z * nm / eps0))
+
+
+def charge_3d():
+    _conv = q0 / area / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    # TODO need to think about how to identify cathode
+    ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
+    qtot_list = []
+    for i in range(args.begin, args.end, args.skip):
+        frame = trj.read_frame(i)
+        qtot = args.voltage * area / box_z * eps0 / q0 * nm
         for ii, atom in enumerate(top.atoms):
             if atom.molecule.name == 'MoS2' or atom.type == 'IMG':
                 continue
             z = frame.positions[ii][2]
             q = frame.charges[ii] if frame.has_charge else atom.charge
-            qtot += q * z / z_span
+            qtot += q * z / box_z
         qtot_list.append(qtot)
         print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
 
     print('\n%-6i %10.6f %10.6f %10.6f' % (
         len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) * _conv / len(ids_cathode) * 3,
-        np.mean(qtot_list) * _conv / 1000 * z_span * nm / eps0))
+        np.mean(qtot_list) * _conv / 1000 * box_z * nm / eps0))
 
 
 if __name__ == '__main__':
