@@ -79,9 +79,13 @@ def _calc_angle_xy(vec):
     '''
     Calculate the angle between a vector and xy plane
     '''
-    vec_proj = np.array([vec[0], vec[1], 0])
-    cos = vec.dot(vec_proj) / np.sqrt(vec.dot(vec)) / np.sqrt(vec_proj.dot(vec_proj))
-    theta = np.arccos(np.clip(cos, -1, 1)) * 180 / np.pi
+    if vec[0] == 0 and vec[1] == 0:
+        theta = 90
+    else:
+        vec_prj = np.array([vec[0], vec[1], 0])
+        cos = vec.dot(vec_prj) / np.sqrt(vec.dot(vec)) / np.sqrt(vec_prj.dot(vec_prj))
+        theta = np.arccos(np.clip(cos, -1, 1)) * 180 / np.pi
+
     return theta
 
 
@@ -337,6 +341,8 @@ def voltage():
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
     name_cloumn_dict['voltage'] = voltage
+
+    print_data_to_file(name_cloumn_dict, f'{args.output}-voltage.txt')
 
 
 def charge_2d():
