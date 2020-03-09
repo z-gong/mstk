@@ -3,6 +3,14 @@ from ..topology import Atom, Molecule, Topology
 
 
 class Psf(Topology):
+    '''
+    It parses psf file to generate Topology
+    Atoms, bonds, angles, dihedrals and impropers are parsed,
+    all others like hydrogen bonds are ignored
+    Polarizability and thole parameters for Drude model are parsed,
+    but anisotroic polarizability are ignored
+    '''
+
     def __init__(self, file, mode='r'):
         super(Psf, self).__init__()
         self._file = open(file, mode)
@@ -172,42 +180,38 @@ class Psf(Topology):
             self._file.write(line)
         self._file.write('\n')
 
-        self._file.write('%8i !NBOND: bonds\n' % self.n_bond)
+        n_bond = self.n_bond
+        self._file.write('%8i !NBOND: bonds\n' % n_bond)
         for i, bond in enumerate(self.bonds):
             self._file.write('%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1))
-            if (i + 1) % 4 == 0:
+            if (i + 1) % 4 == 0 or i + 1 == n_bond:
                 self._file.write('\n')
-        if (i + 1) % 4 != 0:
-            self._file.write('\n')
         self._file.write('\n')
 
-        self._file.write('%8i !NTHETA: angles\n' % self.n_angle)
+        n_angle = self.n_angle
+        self._file.write('%8i !NTHETA: angles\n' % n_angle)
         for i, angle in enumerate(self.angles):
             self._file.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1, angle.atom3.id + 1))
-            if (i + 1) % 3 == 0:
+            if (i + 1) % 3 == 0 or i + 1 == n_angle:
                 self._file.write('\n')
-        if (i + 1) % 3 != 0:
-            self._file.write('\n')
         self._file.write('\n')
 
-        self._file.write('%8i !NPHI: dihedrals\n' % self.n_dihedral)
+        n_dihedral = self.n_dihedral
+        self._file.write('%8i !NPHI: dihedrals\n' % n_dihedral)
         for i, dihedral in enumerate(self.dihedrals):
             self._file.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
                                                dihedral.atom3.id + 1, dihedral.atom4.id + 1))
-            if (i + 1) % 2 == 0:
+            if (i + 1) % 2 == 0 or i + 1 == n_dihedral:
                 self._file.write('\n')
-        if (i + 1) % 2 != 0:
-            self._file.write('\n')
         self._file.write('\n')
 
-        self._file.write('%8i !NIMPHI: impropers\n' % self.n_improper)
+        n_improper = self.n_improper
+        self._file.write('%8i !NIMPHI: impropers\n' % n_improper)
         for i, improper in enumerate(self.impropers):
             self._file.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
                                                improper.atom3.id + 1, improper.atom4.id + 1))
-            if (i + 1) % 2 == 0:
+            if (i + 1) % 2 == 0 or i + 1 == n_improper:
                 self._file.write('\n')
-        if (i + 1) % 2 != 0:
-            self._file.write('\n')
         self._file.write('\n')
 
         self._file.write('%8i !NDON: donors\n\n' % 0)

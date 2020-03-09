@@ -6,8 +6,8 @@ from ..topology import Atom, Molecule, Topology
 class LammpsData(Topology):
     '''
     Parse the topology information from Lammps data file
-    Currently only atom type, charge and molecule are parsed
-    The positions and connectivity haven't been implemented
+    The box and atom positions are also parsed,
+    the velocities and force field parameters are ignored
     '''
 
     def __init__(self, file, mode='r'):
