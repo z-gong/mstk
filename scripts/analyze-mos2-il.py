@@ -26,8 +26,10 @@ parser.add_argument('-c', '--config', required=True, type=str, help='Config file
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
+parser.add_argument('--dt', default=0.1, type=float,
+                    help='time interval (ps) between frames if not present in trajectory')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
-parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
+parser.add_argument('--ignore', default='', type=str, help='ignore these atom types when calculate voltage')
 parser.add_argument('--voltage', default=0, type=float,
                     help='voltage drop in 3d image charge simulation.' 'Required for charge3d analysis')
 args = parser.parse_args()
@@ -45,6 +47,9 @@ top = Topology.open(args.topology)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
+if (top.n_atom != trj.n_atom):
+    raise Exception('Number of atoms in topology and trajectory files do not match')
+
 _frame = trj.read_frame(0)
 area = _frame.box[0] * _frame.box[1]
 box_z = _frame.box[2]
@@ -52,9 +57,6 @@ dz = 0.01
 n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
 edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)])
 z_array = (edges[1:] + edges[:-1]) / 2
-
-if (top.n_atom != trj.n_atom):
-    raise Exception('Number of atoms in topology and trajectory files do not match')
 
 ignore_list = args.ignore.split(',')
 
@@ -248,7 +250,11 @@ def diffusion():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        t_list.append(frame.step / 1e6)  # ns
+        if frame.step != 0:
+            t_list.append(frame.step / 1e6)  # ns
+        else:
+            t_list.append(i * args.dt)
+
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):
                 com_position = _get_com_position(frame.positions, atoms)
