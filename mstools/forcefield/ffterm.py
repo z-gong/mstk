@@ -118,12 +118,13 @@ class ChargeIncrementTerm(FFTerm):
 
 
 class BondTerm(FFTerm):
-    def __init__(self, type1: str, type2: str, length: float):
+    def __init__(self, type1: str, type2: str, length: float, fixed=False):
         super().__init__()
         at1, at2 = sorted([type1, type2])
         self.type1 = at1
         self.type2 = at2
         self.length = length
+        self.fixed = fixed
         self.name = '%s,%s' % (self.type1, self.type2)
 
     def __lt__(self, other):
@@ -134,13 +135,14 @@ class BondTerm(FFTerm):
 
 
 class AngleTerm(FFTerm):
-    def __init__(self, type1: str, type2: str, type3: str, theta: float):
+    def __init__(self, type1: str, type2: str, type3: str, theta: float, fixed=False):
         super().__init__()
         at1, at3 = sorted([type1, type3])
         self.type1 = at1
         self.type2 = type2
         self.type3 = at3
         self.theta = theta
+        self.fixed = fixed
         self.name = '%s,%s,%s' % (self.type1, self.type2, self.type3)
 
     def __lt__(self, other):
@@ -192,7 +194,20 @@ class ImproperTerm(FFTerm):
                > [other.type1, other.type2, other.type3, other.type4]
 
 
+class LJ126Term(VdwTerm):
+    '''
+    LJ126 is commonly used, so don't generalize it with LJTerm
+    '''
+    def __init__(self, type1, type2, epsilon, sigma):
+        super().__init__(type1, type2)
+        self.epsilon = epsilon
+        self.sigma = sigma
+
+
 class LJTerm(VdwTerm):
+    '''
+    Mainly used for SDK and SAFT-gamma coarse-grained force field
+    '''
     def __init__(self, type1, type2, epsilon, sigma, repulsion, attraction):
         super().__init__(type1, type2)
         self.epsilon = epsilon
@@ -206,8 +221,8 @@ class HarmonicBondTerm(BondTerm):
     U = 0.5 * k * (b-b0)^2
     '''
 
-    def __init__(self, type1, type2, length, k):
-        super().__init__(type1, type2, length)
+    def __init__(self, type1, type2, length, k, fixed=False):
+        super().__init__(type1, type2, length, fixed=fixed)
         self.k = k
 
 
@@ -216,8 +231,8 @@ class HarmonicAngleTerm(AngleTerm):
     U = 0.5 * k * (theta-theta0)^2
     '''
 
-    def __init__(self, type1, type2, type3, theta, k):
-        super().__init__(type1, type2, type3, theta)
+    def __init__(self, type1, type2, type3, theta, k, fixed=False):
+        super().__init__(type1, type2, type3, theta, fixed=fixed)
         self.k = k
 
 

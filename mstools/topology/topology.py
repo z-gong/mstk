@@ -3,6 +3,7 @@ import copy
 from io import IOBase
 from .molecule import Atom, Bond, Angle, Dihedral, Improper, Molecule
 
+
 class Topology():
     def __init__(self):
         self.remark = ''
@@ -183,3 +184,57 @@ class Topology():
             return Zmat(file, mode)
         else:
             raise Exception('filename for topology not understand')
+
+    def to_omm_topology(self):
+        try:
+            from simtk.openmm import app as omm_app
+            from simtk.openmm.app.element import Element as omm_Element
+        except ImportError:
+            raise Exception('cannot import openmm')
+
+        omm_top = omm_app.Topology()
+        omm_chain = omm_top.addChain()
+        for mol in self._molecules:
+            omm_residue = omm_top.addResidue(mol.name, omm_chain)
+            for atom in mol.atoms:
+                try:
+                    omm_element = omm_Element.getBySymbol(atom.symbol)
+                except:
+                    omm_element = None
+                omm_top.addAtom(atom.name, omm_element, omm_residue)
+
+        omm_top.setUnitCellDimensions(self._box)
+        omm_atoms = list(omm_top.atoms())
+        for bond in self.bonds:
+            omm_top.addBond(omm_atoms[bond.atom1.id], omm_atoms[bond.atom2.id])
+
+        return omm_top
+
+    def get_12_13_14_exclusions(self) -> ([Atom], [Atom], [Atom]):
+        pair_12_set = set()
+        pair_13_set = set()
+        pair_14_set = set()
+        for bond in self.bonds:
+            a2, a3 = bond.atom1, bond.atom2
+            pair = tuple(sorted([a2, a3]))
+            pair_12_set.add(pair)
+
+            for a1 in a2.bond_partners:
+                if a1 != a3:
+                    pair = tuple(sorted([a1, a3]))
+                    pair_13_set.add(pair)
+            for a4 in a3.bond_partners:
+                if a2 != a4:
+                    pair = tuple(sorted([a2, a4]))
+                    pair_13_set.add(pair)
+
+            for a1 in a2.bond_partners:
+                for a4 in a3.bond_partners:
+                    if a1 != a3 and a2 != a4 and a1 != a4:
+                        pair = tuple(sorted([a1, a4]))
+                        pair_14_set.add(pair)
+
+        pair_12_list = list(sorted(pair_12_set))
+        pair_13_list = list(sorted(pair_13_set - pair_12_set))
+        pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
+        return pair_12_list, pair_13_list, pair_14_list
