@@ -1,7 +1,8 @@
 import math
 import numpy as np
 import copy
-from ..forcefield import ParameterSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm
+from ..forcefield import ParameterSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm, \
+    ChargeIncrementTerm
 
 
 class Atom():
@@ -522,3 +523,25 @@ class Molecule():
                       f'not added because not exist in force field parameter set')
             else:
                 self.add_improper(atom1, atom2, atom3, atom4)
+
+    def assign_charge_from_forcefield(self, params: ParameterSet):
+        for atom in self._atoms:
+            try:
+                atom.charge = params.atom_types[atom.type].equivalent_type_charge.charge
+            except:
+                raise Exception(f'Atom type {atom.type} not exist in parameter set')
+
+        for bond in self._bonds:
+            atom1, atom2 = bond.atom1, bond.atom2
+            try:
+                atype1: AtomType = params.atom_types[atom1.type].equivalent_type_charge_increment
+                atype2: AtomType = params.atom_types[atom2.type].equivalent_type_charge_increment
+            except:
+                raise Exception(f'Atom type {bond.atom1.type} or {bond.atom2.type}'
+                                f'not exist in parameter set')
+            binc: ChargeIncrementTerm = params.charge_increment_terms.get(
+                ChargeIncrementTerm(atype1.name, atype2.name, 0).name)
+            if binc is not None:
+                direction = 1 if atype1.name == binc.type1 else -1
+                atom1.charge += binc.increment * direction
+                atom2.charge -= binc.increment * direction

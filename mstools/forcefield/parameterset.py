@@ -34,30 +34,34 @@ class ParameterSet():
         Generate pairwise i-j LJ126 terms using combination rule
         The ones already exist will not be touched
         '''
-        if self.lj_mixing_rule == self.LJ_MIXING_NONE:
-            raise Exception('Mixing rule for LJ126 parameters has been set to LJ_MIXING_NONE')
+        atom_types = list(self.atom_types.values())
+        for i in range(len(atom_types)):
+            for j in range(i, len(atom_types)):
+                vdw = self.get_vdw_term(atom_types[i], atom_types[j])
+                self.vdw_terms[vdw.name] = vdw
 
-        n_atom_types = len(self.atom_types)
-        for i in range(n_atom_types):
-            for j in range(i, n_atom_types):
-                atype1 = list(self.atom_types.values())[i].equivalent_type_vdw
-                atype2 = list(self.atom_types.values())[j].equivalent_type_vdw
-                lj = LJ126Term(atype1.name, atype2.name, 0.0, 1.0)
-                if lj.name in self.vdw_terms:
-                    continue
-                if self.lj_mixing_rule == self.LJ_MIXING_LB:
-                    lj.epsilon = math.sqrt(atype1.epsilon * atype2.epsilon)
-                    lj.sigma = (atype1.sigma + atype2.sigma) / 2
-                elif self.lj_mixing_rule == self.LJ_MIXING_GEOMETRIC:
-                    lj.epsilon = math.sqrt(atype1.epsilon * atype2.epsilon)
-                    lj.sigma = math.sqrt(atype1.sigma * atype2.sigma)
-                else:
-                    raise Exception('Unknown mixing rule for LJ126 parameters')
-                self.vdw_terms[lj.name] = lj
+    def get_vdw_term(self, type1: AtomType, type2: AtomType):
+        '''
+        get vdW term between two atom types
+        if not exist, assuming it's LJ126 and generate it using combination rule
+        '''
+        atype1 = type1.equivalent_type_vdw
+        atype2 = type2.equivalent_type_vdw
+        vdw = self.vdw_terms.get(VdwTerm(atype1.name, atype2.name).name)
+        if vdw is not None:
+            return vdw
 
-    def get_vdw_term(self, type1, type2):
-        # TODO
-        return VdwTerm(type1, type2)
+        lj = LJ126Term(atype1.name, atype2.name, 0.0, 1.0)
+        if self.lj_mixing_rule == self.LJ_MIXING_LB:
+            lj.epsilon = math.sqrt(atype1.epsilon * atype2.epsilon)
+            lj.sigma = (atype1.sigma + atype2.sigma) / 2
+        elif self.lj_mixing_rule == self.LJ_MIXING_GEOMETRIC:
+            lj.epsilon = math.sqrt(atype1.epsilon * atype2.epsilon)
+            lj.sigma = math.sqrt(atype1.sigma * atype2.sigma)
+        else:
+            raise Exception('Unknown mixing rule for LJ126 parameters')
+
+        return lj
 
 
 class FFToolParameterSet(ParameterSet):
@@ -171,7 +175,8 @@ class FFToolParameterSet(ParameterSet):
     def parse_angle(self, words):
         if words[3] not in ['harm']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
-        angle = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]), k=float(words[5]))
+        angle = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
+                                  k=float(words[5]))
         if angle.name in self.angle_terms.keys():
             raise Exception('Duplicated angle term: %s' % self)
         self.angle_terms[angle.name] = angle
