@@ -6,6 +6,7 @@ from . import Trajectory, Frame
 class Dcd(Trajectory):
     '''
     Currently mstools use mdtraj to parse DCD format
+    Only box and positions are parsed
     '''
 
     def __init__(self, file, mode='r'):

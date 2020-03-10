@@ -7,6 +7,7 @@ from . import Trajectory, Frame
 class LammpsTrj(Trajectory):
     '''
     Read step, box and atomic positions (and charges optionally) from dump file of LAMMPS
+    velocities will be ignored
     Because the topology information are detailed in data file, the mol, type, element in dump file will be ignored
     The length unit will be converted from A to nm
     '''
@@ -60,11 +61,11 @@ class LammpsTrj(Trajectory):
             # skip to frame i and read only this frame
             self._file.seek(self._frame_offset[i])
             string = self._file.read(self._frame_offset[i + 1] - self._frame_offset[i])
-            frames.append(self.read_frame_from_string(string))
+            frames.append(self._read_frame_from_string(string))
 
         return frames
 
-    def read_frame_from_string(self, string: str):
+    def _read_frame_from_string(self, string: str):
         frame = Frame(self.n_atom)
         lines = string.splitlines()
         frame.step = int(lines[1])

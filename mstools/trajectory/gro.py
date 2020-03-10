@@ -57,11 +57,11 @@ class Gro(Trajectory):
             # skip to frame i and read only this frame
             self._file.seek(self._frame_offset[i])
             string = self._file.read(self._frame_offset[i + 1] - self._frame_offset[i])
-            frames.append(self.read_frame_from_string(string))
+            frames.append(self._read_frame_from_string(string))
 
         return frames
 
-    def read_frame_from_string(self, string: str):
+    def _read_frame_from_string(self, string: str):
         lines = string.splitlines()
         frame = Frame(self.n_atom)
         # assume there are velocities. we'll see later

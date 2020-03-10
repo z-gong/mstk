@@ -34,9 +34,12 @@ class Xyz(Trajectory):
         if i_frame != 0:
             raise Exception('Can only read the first frame')
 
-        return self.read_frame_from_string(self._file.read())
+        return self._read_frame_from_string(self._file.read())
 
-    def read_frame_from_string(self, string: str):
+    def read_frames(self, i_frames: [int]):
+        raise Exception('Can only read the first frame, use read_frame(0)')
+
+    def _read_frame_from_string(self, string: str):
         frame = Frame(self.n_atom)
         lines = string.splitlines()
 
