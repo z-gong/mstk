@@ -26,27 +26,35 @@ parser.add_argument('-c', '--config', required=True, type=str, help='Config file
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
+parser.add_argument('--topignore', default='', type=str,
+                    help='ignore these molecule types in topology in case topology and trajectory do not match')
 parser.add_argument('--dt', default=0.1, type=float,
-                    help='time interval (ps) between frames if not present in trajectory')
+                    help='time interval (ps) between frames if not present in trajectory. Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
-parser.add_argument('--ignore', default='', type=str, help='ignore these atom types when calculate voltage')
 parser.add_argument('--voltage', default=0, type=float,
-                    help='voltage drop in 3d image charge simulation.' 'Required for charge3d analysis')
+                    help='voltage drop in 3d image charge simulation. Required for charge3d analysis')
 args = parser.parse_args()
 
 eps0 = 8.854188E-12
 q0 = 1.602176E-19
 nm = 1E-9
 
-config = configparser.ConfigParser()
-if config.read(args.config) == []:
-    raise Exception('config file not exist')
-mol_names = config['molecules']['name'].split()
-
-top = Topology.open(args.topology)
+_top = Topology.open(args.topology)
+top_ignore_list = args.topignore.split(',')
+top = Topology()
+top.init_from_molecules([mol for mol in _top.molecules if mol.name not in top_ignore_list])
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
+
+ini = configparser.ConfigParser()
+if ini.read(args.config) == []:
+    raise Exception('config file not exist')
+mol_names = ini['molecules']['name'].split()
+if set(mol_names) - set((mol.name for mol in top.molecules)) != set():
+    raise Exception('Some molecules listed in config file not exist in topology')
+
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
+
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
 
@@ -57,8 +65,6 @@ dz = 0.01
 n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
 edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)])
 z_array = (edges[1:] + edges[:-1]) / 2
-
-ignore_list = args.ignore.split(',')
 
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
@@ -130,7 +136,7 @@ def distribution():
                 z_idx = math.floor((z - edges[0]) / dz)
                 charge_array[z_idx] += q
 
-            section = config['molecule.%s' % (mol.name)]
+            section = ini['molecule.%s' % (mol.name)]
             dists = section['distributions'].split(';')
             for dist in dists:
                 name, atoms = [x.strip() for x in dist.split(':')]
@@ -233,14 +239,14 @@ def diffusion():
         if mol.name not in mol_names:
             continue
 
-        diffusions = config['molecule.%s' % (mol.name)]['diffusions'].split(';')
+        diffusions = ini['molecule.%s' % (mol.name)]['diffusions'].split(';')
         for diffusion in diffusions:
             name, atoms = [x.strip() for x in diffusion.split(':')]
             if name not in name_atoms_dict:
                 name_atoms_dict[name] = []
                 z_dict[name] = []
                 residence_dict[name] = []
-                residence_zrange_dict[name] = [float(x) for x in config['molecule.%s' % (mol.name)][
+                residence_zrange_dict[name] = [float(x) for x in ini['molecule.%s' % (mol.name)][
                     'diffusion.%s.residence_zrange' % name].split()]
             name_atoms_dict[name].append(_get_atoms(mol, atoms.split()))
             z_dict[name].append([])
@@ -307,9 +313,6 @@ def voltage():
         sys.stdout.write('\r    frame %i' % i)
 
         for k, atom in enumerate(top.atoms):
-            if atom.type in ignore_list:
-                continue
-
             z = frame.positions[k][2]
             i_bin = math.floor((z - edges[0]) / dz)
             i_bin = min(i_bin, n_bin - 1)
