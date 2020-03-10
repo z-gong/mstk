@@ -16,7 +16,7 @@ class Dcd(Trajectory):
         except:
             raise ImportError('Currently mstools use mdtraj to parse DCD format. Cannot import mdtraj')
 
-        self._dcd = DCDTrajectoryFile(file)
+        self._dcd = DCDTrajectoryFile(file, mode=mode)
 
         if mode == 'r':
             self._get_info()
