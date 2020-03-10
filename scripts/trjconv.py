@@ -36,7 +36,7 @@ if (top.n_atom != trj.n_atom):
 trj_out = Trajectory.open(args.output, 'w')
 
 ignore_list = args.ignore.split(',')
-id_atoms = [atom.id for atom in top.atoms if atom.molecule.type not in ignore_list]
+id_atoms = [atom.id for atom in top.atoms if atom.molecule.name not in ignore_list]
 
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
