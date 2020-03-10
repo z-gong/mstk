@@ -1,11 +1,12 @@
 from io import IOBase
 import numpy as np
+from ..topology import Topology
 
 
 class Frame():
     def __init__(self, n_atom):
         self.step = 0
-        self._box = np.array([0., 0., 0.])
+        self._box = np.array([0., 0., 0.]) # current only support rectangular box
         self.positions = np.array([[0., 0., 0.]] * n_atom)
         self.has_velocity = False
         self.velocities = np.array([[0., 0., 0.]] * n_atom)
@@ -35,12 +36,32 @@ class Trajectory():
     def close(self):
         self._file.close()
 
+    def read_frame(self, i_frame: int):
+        '''
+        Read a single frame
+        @param i_frame:
+        @return:
+        '''
+        pass
+
+    def read_frames(self, i_frames: [int]):
+        '''
+        Read a bunch of frames for multiprocessing
+        @param i_frames:
+        @return:
+        '''
+        pass
+
+    def write_frame(self, topology: Topology, frame: Frame, subset: [int]):
+        pass
+
     @staticmethod
     def open(file, mode='r'):
         from .gro import Gro
         from .pdb import Pdb
         from .xyz import Xyz
         from .lammps import LammpsTrj
+        from .dcd import Dcd
 
         if file.endswith('.lammpstrj') or file.endswith('.ltrj'):
             return LammpsTrj(file, mode)
@@ -50,5 +71,7 @@ class Trajectory():
             return Pdb(file, mode)
         elif file.endswith('.xyz'):
             return Xyz(file, mode)
+        elif file.endswith('.dcd'):
+            return Dcd(file, mode)
         else:
             raise Exception('filename for trajectory not understand')
