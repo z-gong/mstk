@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import simtk.openmm as mm
 from simtk.openmm.app import Simulation, Topology
 from simtk import unit
@@ -133,7 +131,6 @@ class DrudeTemperatureReporter(object):
               t_com.value_in_unit(kelvin), t.value_in_unit(kelvin), t_drude.value_in_unit(kelvin),
               ke_com.value_in_unit(kJ_mol), ke.value_in_unit(kJ_mol), ke_drude.value_in_unit(kJ_mol),
               sep='\t', file=self._out)
-
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()

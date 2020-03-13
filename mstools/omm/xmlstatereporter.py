@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import simtk.openmm as mm
-import os
-import os.path
+
 
 class XmlStateReporter(object):
     """XMLStateReporter saves periodic checkpoints of a simulation.

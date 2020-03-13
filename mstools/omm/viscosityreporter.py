@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
-import simtk.openmm as mm
 from simtk.openmm import app
 from simtk import unit
-import numpy as np
 
 
 class ViscosityReporter(object):
