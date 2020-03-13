@@ -83,13 +83,13 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     _properties = {'CudaPrecision': 'mixed'}
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     sim.context.setPositions(gro.positions)
-    sim.context.setVelocitiesToTemperature(T * kelvin, 12345)
+    sim.context.setVelocitiesToTemperature(T * kelvin)
     sim.reporters.append(XmlStateReporter('state.xml', max(nstep // 10, 100000)))
-    sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False, subset=group_mos+group_ils))
+    sim.reporters.append(GroReporter('dump.gro', 'logfreq', enforcePeriodicBox=False, subset=group_mos+group_ils))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True, temperature=True,
-                                               potentialEnergy=True, kineticEnergy=False, volume=True, density=True,
-                                               elapsedTime=False, speed=True, separator='\t'))
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True,potentialEnergy=True,
+                                               temperature=True, volume=True, density=True,
+                                               speed=True, elapsedTime=True, separator='\t'))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000))
 
     state = sim.context.getState(getEnergy=True)

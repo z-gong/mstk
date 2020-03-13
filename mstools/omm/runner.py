@@ -51,11 +51,11 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.context.setPositions(gro.positions)
     sim.context.setVelocitiesToTemperature(T * kelvin)
     sim.reporters.append(XmlStateReporter('state.xml', max(nstep // 10, 100000)))
-    sim.reporters.append(GroReporter('dump.gro', 100000, enforcePeriodicBox=False))
+    sim.reporters.append(GroReporter('dump.gro', 'logfreq', enforcePeriodicBox=False))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, temperature=True,
-                                               potentialEnergy=True, kineticEnergy=True, volume=True, density=True,
-                                               elapsedTime=False, speed=True, separator='\t'))
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, potentialEnergy=True,
+                                               temperature=True, volume=True, density=True,
+                                               speed=True, elapsedTime=True, separator='\t'))
     if psf.is_drude:
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 

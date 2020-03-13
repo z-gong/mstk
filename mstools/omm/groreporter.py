@@ -14,7 +14,7 @@ class GroReporter(object):
         ----------
         file : string
             The file to write to
-        reportInterval : int
+        reportInterval : int, str
             The interval (in time steps) at which to write frames
             if set to "logfreq", then write trajectory at [10, 20, 30, ..., 90, 100, 200, ..., 900, 1000, 2000, ...]
         enforcePeriodicBox: bool
@@ -57,8 +57,8 @@ class GroReporter(object):
         if type(self._reportInterval) is int:
             steps = self._reportInterval - simulation.currentStep % self._reportInterval
         else:
-            if simulation.currentStep < 10:
-                _base = 10
+            if simulation.currentStep < 1:
+                _base = 1
             else:
                 _base = 10 ** math.floor(math.log10(simulation.currentStep))
             steps = _base - simulation.currentStep % _base
