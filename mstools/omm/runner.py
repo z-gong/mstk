@@ -5,11 +5,10 @@ from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import GroReporter, XmlStateReporter, DrudeTemperatureReporter
-from mstools.omm.forces import slab_correction
 from mstools.omm.utils import print_omm_info, minimize, apply_mc_barostat
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
-                   T=300, P=1, tcoupl='langevin', pcoupl='iso', slab=False):
+                   T=300, P=1, tcoupl='langevin', pcoupl='iso'):
     print('Building system...')
     gro = app.GromacsGroFile(gro_file)
     psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
@@ -41,10 +40,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     if pcoupl is not None:
         apply_mc_barostat(system, pcoupl, P, T)
 
-    if slab:
-        print('    Slab correction applied')
-        slab_correction(system)
-
     _platform = mm.Platform.getPlatformByName('CUDA')
     _properties = {'CudaPrecision': 'mixed'}
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
@@ -53,9 +48,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.reporters.append(XmlStateReporter('state.xml', max(nstep // 10, 100000)))
     sim.reporters.append(GroReporter('dump.gro', 'logfreq', enforcePeriodicBox=False))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, potentialEnergy=True,
-                                               temperature=True, volume=True, density=True,
-                                               speed=True, elapsedTime=True, separator='\t'))
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 1000, step=True, potentialEnergy=True, temperature=True,
+                                               volume=True, density=True, speed=True, separator='\t'))
     if psf.is_drude:
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
@@ -71,4 +65,4 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 if __name__ == '__main__':
     print_omm_info()
-    run_simulation(nstep=100000, T=300, P=1, tcoupl='langevin', pcoupl='iso', slab=False)
+    run_simulation(nstep=100000, T=300, P=1, tcoupl='langevin', pcoupl='iso')

@@ -87,9 +87,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.reporters.append(XmlStateReporter('state.xml', max(nstep // 10, 100000)))
     sim.reporters.append(GroReporter('dump.gro', 'logfreq', enforcePeriodicBox=False, subset=group_mos+group_ils))
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True,potentialEnergy=True,
-                                               temperature=True, volume=True, density=True,
-                                               speed=True, elapsedTime=True, separator='\t'))
+    sim.reporters.append(app.StateDataReporter(sys.stdout, 10000, step=True,potentialEnergy=True, temperature=True,
+                                               volume=True, density=True, speed=True, separator='\t'))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000))
 
     state = sim.context.getState(getEnergy=True)

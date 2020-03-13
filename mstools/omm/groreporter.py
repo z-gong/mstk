@@ -57,8 +57,8 @@ class GroReporter(object):
         if type(self._reportInterval) is int:
             steps = self._reportInterval - simulation.currentStep % self._reportInterval
         else:
-            if simulation.currentStep < 1:
-                _base = 1
+            if simulation.currentStep < 10:
+                _base = 10
             else:
                 _base = 10 ** math.floor(math.log10(simulation.currentStep))
             steps = _base - simulation.currentStep % _base

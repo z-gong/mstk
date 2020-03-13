@@ -11,9 +11,10 @@ def slab_correction(system: mm.System):
     This applies Yeh's long range coulomb correction for slab geometry in z direction
     to eliminate the undesired interactions between periodic slabs
     It's useful for 2-D systems simulated under 3-D periodic condition
-    Note that a vacuum space two times larger than slab thickness is required
-    for this correction to work correctly
-    The box size should not change during the simulation
+    For this correction to work correctly:
+    * A vacuum space two times larger than slab thickness is required
+    * All particles should never diffuse across the z boundaries
+    * The box size should not change during the simulation
     '''
     muz = mm.CustomExternalForce('q*z')
     muz.addPerParticleParameter('q')
