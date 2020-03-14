@@ -11,7 +11,7 @@ the ParmEd program and was ported for use with OpenMM.
 Copyright (c) 2014-2016 the Authors
 
 Author: Jason M. Swails
-Contributors: Jing Huang
+Contributors: Jing Huang, Zheng Gong
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -849,7 +849,7 @@ class OplsPsfFile(object):
         ewaldErrorTolerance : float=0.0005
             The error tolerance to use if the nonbonded method is Ewald, PME, or LJPME.
         flexibleConstraints : bool=True
-            Are our constraints flexible or not?
+            If True, parameters for constrained degrees of freedom will be added to the System
         verbose : bool=False
             Optionally prints out a running progress report
         gbsaModel : str=None
@@ -943,29 +943,24 @@ class OplsPsfFile(object):
         self.is_drude = has_drude_particle
 
         # Set up the constraints
-        if verbose and (constraints is not None and not rigidWater):
+        def _is_bond_in_water(bond):
+            return bond.atom1.residue.resname in WATNAMES and \
+                   tuple(sorted([bond.atom1.type.atomic_number, bond.atom2.type.atomic_number])) == (1, 8)
+
+        if verbose and (constraints is not None or rigidWater):
             print('Adding constraints...')
-        if constraints in (ff.HBonds, ff.AllBonds, ff.HAngles):
+        if constraints is ff.HBonds:
             for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number != 1 and
-                    bond.atom2.type.atomic_number != 1):
-                    continue
-                system.addConstraint(bond.atom1.idx, bond.atom2.idx,
-                                     bond.bond_type.req*length_conv)
+                if bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1:
+                    system.addConstraint(bond.atom1.idx, bond.atom2.idx,
+                                         bond.bond_type.req*length_conv)
         if constraints in (ff.AllBonds, ff.HAngles):
             for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number == 1 or
-                    bond.atom2.type.atomic_number == 1):
-                    continue
                 system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                      bond.bond_type.req*length_conv)
         if rigidWater and constraints is None:
             for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number != 1 and
-                    bond.atom2.type.atomic_number != 1):
-                    continue
-                if (bond.atom1.residue.resname in WATNAMES and
-                    bond.atom2.residue.resname in WATNAMES):
+                if _is_bond_in_water(bond):
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
 
@@ -1007,14 +1002,13 @@ class OplsPsfFile(object):
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.BOND_FORCE_GROUP)
         # See which, if any, energy terms we omit
-        omitall = not flexibleConstraints and constraints is ff.AllBonds
-        omith = omitall or (flexibleConstraints and constraints in
-                            (ff.HBonds, ff.AllBonds, ff.HAngles))
+        omit_all = not flexibleConstraints and constraints in (ff.AllBonds, ff.HAngles)
+        omit_h = not flexibleConstraints and constraints is not None
+        omit_h_in_water = not flexibleConstraints and (constraints is not None or rigidWater)
         for bond in self.bond_list:
-            if omitall: continue
-            if omith and (bond.atom1.type.atomic_number == 1 or
-                          bond.atom2.type.atomic_number == 1):
-                continue
+            if omit_all: continue
+            if omit_h and (bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1): continue
+            if omit_h_in_water and _is_bond_in_water(bond): continue
             force.addBond(bond.atom1.idx, bond.atom2.idx,
                           bond.bond_type.req*length_conv,
                           2*bond.bond_type.k*bond_frc_conv)
@@ -1037,16 +1031,16 @@ class OplsPsfFile(object):
                 atom_constraints[c[1]].append((c[0], dist))
         for angle in self.angle_list:
             # Only constrain angles including hydrogen here
-            if (angle.atom1.type.atomic_number != 1 and
-                angle.atom2.type.atomic_number != 1 and
-                angle.atom3.type.atomic_number != 1):
+            if (angle.atom1.type.atomic_number != 1 and angle.atom3.type.atomic_number != 1):
                 continue
-            if constraints is ff.HAngles:
-                a1 = angle.atom1.atomic_number
-                a2 = angle.atom2.atomic_number
-                a3 = angle.atom3.atomic_number
-                nh = int(a1==1) + int(a2==1) + int(a3==1)
-                constrained = (nh >= 2 or (nh == 1 and a2 == 8))
+            a1 = angle.atom1.type.atomic_number
+            a2 = angle.atom2.type.atomic_number
+            a3 = angle.atom3.type.atomic_number
+            nh = int(a1==1) + int(a3==1)
+            if rigidWater:
+                constrained = (nh == 2 and a2 == 8 and angle.atom1.residue.resname in WATNAMES)
+            elif constraints is ff.HAngles:
+                constrained = (nh == 2 or (nh == 1 and a2 == 8))
             else:
                 constrained = False # no constraints
             if constrained:
@@ -1058,17 +1052,15 @@ class OplsPsfFile(object):
                         l2 = bond.bond_type.req * length_conv
                 # Compute the distance between the atoms and add a constraint
                 length = sqrt(l1*l1 + l2*l2 - 2*l1*l2*
-                              cos(angle.angle_type.theteq))
-                system.addConstraint(bond.atom1.idx, bond.atom2.idx, length)
+                              cos(angle.angle_type.theteq*pi/180))
+                system.addConstraint(angle.atom1.idx, angle.atom3.idx, length)
             if flexibleConstraints or not constrained:
                 force.addAngle(angle.atom1.idx, angle.atom2.idx,
                                angle.atom3.idx, angle.angle_type.theteq*pi/180,
                                2*angle.angle_type.k*angle_frc_conv)
         for angle in self.angle_list:
             # Already did the angles with hydrogen above. So skip those here
-            if (angle.atom1.type.atomic_number == 1 or
-                angle.atom2.type.atomic_number == 1 or
-                angle.atom3.type.atomic_number == 1):
+            if (angle.atom1.type.atomic_number == 1 or angle.atom3.type.atomic_number == 1):
                 continue
             force.addAngle(angle.atom1.idx, angle.atom2.idx,
                            angle.atom3.idx, angle.angle_type.theteq*pi/180,
