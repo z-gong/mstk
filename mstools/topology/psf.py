@@ -1,4 +1,5 @@
 import math
+from ..forcefield import Element
 from ..topology import Atom, Molecule, Topology
 
 
@@ -77,7 +78,6 @@ class Psf(Topology):
             atom_id = int(words[0])
             mol_id = int(words[2])
             mol_name = words[3]
-            atom_symbol = words[4]
             atom_type = words[5]
             charge, mass = list(map(float, words[6:8]))
             if self.is_drude:
@@ -97,7 +97,7 @@ class Psf(Topology):
             atom.charge = charge
             atom.mass = mass
             atom.type = atom_type
-            atom.symbol = atom_symbol
+            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
             atom.alpha = -alpha
             atom.thole = thole * 2
 

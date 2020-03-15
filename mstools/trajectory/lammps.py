@@ -77,7 +77,7 @@ class LammpsTrj(Trajectory):
         title = tokens[2:]
 
         data = '\n'.join(lines[9:])
-        df = pd.read_csv(StringIO(data), header=None, index_col=None, names=title, sep='\s+')
+        df = pd.read_csv(StringIO(data), header=None, index_col=None, names=title, sep=r'\s+')
         wrapped = False
         if 'x' in df.columns:
             df['x'] = df['x'] / 10 - xlo  # convert from A to nm
