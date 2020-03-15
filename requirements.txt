@@ -7,3 +7,4 @@ pymbar
 scikit-learn
 physical_validation # for validate NPT ensemble
 mdtraj # for debug NVT_SLAB phase equilibration
+pytest # for unit test
