@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import numpy as np
+import pytest
 from mstools.topology import Topology
 
 import os
@@ -14,5 +14,5 @@ def test_xyz():
     assert atom.name == 'H8'
     assert atom.type == 'HU'
     assert atom.symbol == 'H'
-    assert all(atom.position - np.array([-0.194866, -0.115100, -0.158144]) < 1E-5)
+    assert pytest.approx(atom.position, abs=1E-6) == [-0.194866, -0.115100, -0.158814]
     assert atom.has_position

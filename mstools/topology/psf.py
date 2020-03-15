@@ -86,7 +86,7 @@ class Psf(Topology):
                 alpha = thole = 0.0
 
             mol = molecules[mol_id - 1]  # mol.id starts from 0
-            if not mol.initiated:
+            if not mol.initialized:
                 # set the information of this molecule
                 mol.id = mol_id - 1
                 mol.name = mol_name
@@ -102,7 +102,7 @@ class Psf(Topology):
             atom.thole = thole * 2
 
         # kick out redundant molecules
-        molecules = [mol for mol in molecules if mol.initiated]
+        molecules = [mol for mol in molecules if mol.initialized]
         for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 # atomic symbol + index inside mol starting from 1

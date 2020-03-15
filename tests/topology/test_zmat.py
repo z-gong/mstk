@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import numpy as np
+import pytest
 from mstools.topology import Topology
 
 import os
 cwd = os.path.dirname(os.path.abspath(__file__))
 zmat = Topology.open(cwd + '/files/im11.zmat')
-print(zmat)
 
 def test_zmat():
     assert zmat.n_atom == 16
@@ -16,10 +15,10 @@ def test_zmat():
     assert zmat.n_improper == 5
 
     atom = zmat.atoms[0]
-    assert all(atom.position - np.array([0., 0., 0.]) < 1E-5)
+    assert all(atom.position == [0., 0., 0.])
     assert atom.name == 'N1'
     assert atom.type == 'NA'
     atom = zmat.atoms[-1]
-    assert all(atom.position - np.array([0.33690, 0.22495, -0.08898]) < 1E-5)
+    assert pytest.approx(atom.position, abs=1E-6) == [0.336903, 0.224955, -0.088982]
     assert atom.name == 'H16'
     assert atom.type == 'H1'

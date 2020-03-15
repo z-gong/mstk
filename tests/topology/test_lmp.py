@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-from mstools.topology import LammpsData
+import pytest
+from mstools.topology import Topology
 
 import os
 cwd = os.path.dirname(os.path.abspath(__file__))
-lmp = LammpsData(cwd + '/files/data.lmp')
-print(lmp.box)
+lmp = Topology.open(cwd + '/files/data.lmp')
 
-def test_lmp():
+def test_topology():
     assert lmp.n_atom == 75
     assert lmp.n_molecule == 15
     assert lmp.is_drude == False
@@ -38,9 +38,8 @@ def test_lmp():
     assert mol.id == 14
     assert mol.name == 'C3H6'
 
-    from mstools.topology import Psf
-    pout = Psf(cwd + '/files/lmp-out.psf', 'w')
-    pout.is_drude = lmp.is_drude
-    pout.init_from_molecules(lmp.molecules)
-    pout.write()
-    pout.close()
+def test_position():
+    atom = lmp.atoms[0]
+    assert pytest.approx(atom.position, abs=1E-6) == [2.4257, 0.3594, 0.3218]
+    atom = lmp.atoms[-1]
+    assert pytest.approx(atom.position, abs=1E-6) == [1.6725, 2.1756, 0.5918]

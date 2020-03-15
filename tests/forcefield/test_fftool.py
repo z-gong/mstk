@@ -5,11 +5,6 @@ from mstools.forcefield import FFToolParameterSet
 import os
 cwd = os.path.dirname(os.path.abspath(__file__))
 params = FFToolParameterSet(cwd + '/files/oplsaa.ff')
-print(params.atom_types)
-print(params.bond_terms)
-print(params.angle_terms)
-print(params.dihedral_terms)
-print(params.improper_terms)
 
 def test_fftool():
     br = params.atom_types['Br']

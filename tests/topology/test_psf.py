@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from mstools.topology import Psf
+from mstools.topology import Topology
 
 import os
 cwd = os.path.dirname(os.path.abspath(__file__))
-psf = Psf(cwd + '/files/topol.psf')
+psf = Topology.open(cwd + '/files/topol.psf')
 
 def test_psf():
     assert psf.is_drude == False
@@ -42,8 +42,3 @@ def test_psf():
     mol = psf.molecules[-1]
     assert mol.id == 14
     assert mol.name == 'C3H'
-
-    pout = Psf(cwd + '/files/psf-out.psf', 'w')
-    pout.init_from_topology(psf)
-    pout.write()
-    pout.close()

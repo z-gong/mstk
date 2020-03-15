@@ -86,13 +86,6 @@ class Topology():
             atom.position = np.array(positions[i])
             atom.has_position = True
 
-    def set_velocities(self, velocities):
-        if self.n_atom != len(velocities):
-            raise Exception('Length of velocities should equal to the number of atoms')
-        for i, atom in enumerate(self.atoms):
-            atom.velocity = np.array(velocities[i])
-            atom.has_velocity = True
-
     @property
     def n_molecule(self):
         return len(self._molecules)
@@ -146,16 +139,8 @@ class Topology():
         return all(atom.has_position for atom in self.atoms)
 
     @property
-    def has_velocity(self):
-        return all(atom.has_velocity for atom in self.atoms)
-
-    @property
     def positions(self):
         return [atom.position for atom in self.atoms]
-
-    @property
-    def velocities(self):
-        return [atom.velocity for atom in self.atoms]
 
     @property
     def box(self):

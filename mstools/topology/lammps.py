@@ -132,7 +132,7 @@ class LammpsData(Topology):
                 ix = iy = iz = 0
 
             mol = molecules[mol_id - 1]
-            if not mol.initiated:
+            if not mol.initialized:
                 mol.id = mol_id - 1  # mol.id starts from 0
                 mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
 
@@ -149,7 +149,7 @@ class LammpsData(Topology):
                                       z - self._zlo + iz * self.box[2]])
 
         # kick out redundant molecules
-        molecules = [mol for mol in molecules if mol.initiated]
+        molecules = [mol for mol in molecules if mol.initialized]
         for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 # atomic symbol + index inside mol starting from 1

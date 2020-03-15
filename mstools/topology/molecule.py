@@ -7,7 +7,7 @@ from ..forcefield import ParameterSet, AtomType, BondTerm, AngleTerm, DihedralTe
 
 class Atom():
     def __init__(self, name='UNK'):
-        self.id = -1
+        self.id = -1  # id in topology
         self.name = name
         self.type = ''
         self.symbol = ''
@@ -17,11 +17,9 @@ class Atom():
         self.thole = 0.  # for polarizable model
         self.has_position = False
         self._position = np.array([0, 0, 0], dtype=float)
-        self.has_velocity = False
-        self._velocity = np.array([0, 0, 0], dtype=float)
         self._molecule: Molecule = None
         self._bonds: [Bond] = []
-        self._index_in_molecule = -1
+        self._id_in_molecule = -1
 
     def __str__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -47,8 +45,6 @@ class Atom():
         atom.thole = self.thole
         atom.has_position = self.has_position
         atom._position = self._position[:]
-        atom.has_velocity = self.has_velocity
-        atom._velocity = self._velocity[:]
         return atom
 
     @property
@@ -72,16 +68,6 @@ class Atom():
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('position should has three elements')
         self._position = np.array(value)
-
-    @property
-    def velocity(self):
-        return self._position
-
-    @velocity.setter
-    def velocity(self, value):
-        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
-            raise ValueError('velocity should has three elements')
-        self._velocity = np.array(value)
 
 
 class Bond():
@@ -203,7 +189,7 @@ class Improper():
 
 class Molecule():
     def __init__(self, name: str = 'UNK'):
-        self.id: int = -1
+        self.id: int = -1  # id in topology
         self.name: str = name
         self._topology = None
         self._atoms: [Atom] = []
@@ -226,25 +212,25 @@ class Molecule():
             atom_new = copy.deepcopy(atom)
             mol.add_atom(atom_new)
         for bond in self._bonds:
-            idx1 = bond.atom1._index_in_molecule
-            idx2 = bond.atom2._index_in_molecule
+            idx1 = bond.atom1._id_in_molecule
+            idx2 = bond.atom2._id_in_molecule
             mol.add_bond(mol._atoms[idx1], mol._atoms[idx2])
         for angle in self._angles:
-            idx1 = angle.atom1._index_in_molecule
-            idx2 = angle.atom2._index_in_molecule
-            idx3 = angle.atom3._index_in_molecule
+            idx1 = angle.atom1._id_in_molecule
+            idx2 = angle.atom2._id_in_molecule
+            idx3 = angle.atom3._id_in_molecule
             mol.add_angle(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3])
         for dihedral in self._dihedrals:
-            idx1 = dihedral.atom1._index_in_molecule
-            idx2 = dihedral.atom2._index_in_molecule
-            idx3 = dihedral.atom3._index_in_molecule
-            idx4 = dihedral.atom4._index_in_molecule
+            idx1 = dihedral.atom1._id_in_molecule
+            idx2 = dihedral.atom2._id_in_molecule
+            idx3 = dihedral.atom3._id_in_molecule
+            idx4 = dihedral.atom4._id_in_molecule
             mol.add_dihedral(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
         for improper in self._impropers:
-            idx1 = improper.atom1._index_in_molecule
-            idx2 = improper.atom2._index_in_molecule
-            idx3 = improper.atom3._index_in_molecule
-            idx4 = improper.atom4._index_in_molecule
+            idx1 = improper.atom1._id_in_molecule
+            idx2 = improper.atom2._id_in_molecule
+            idx3 = improper.atom3._id_in_molecule
+            idx4 = improper.atom4._id_in_molecule
             mol.add_improper(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
         return mol
 
@@ -255,14 +241,14 @@ class Molecule():
     def add_atom(self, atom: Atom):
         self._atoms.append(atom)
         atom._molecule = self
-        atom._index_in_molecule = len(self._atoms) - 1
+        atom._id_in_molecule = len(self._atoms) - 1
         if self._topology is not None:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom: Atom):
         self._atoms.remove(atom)
         atom._molecule = None
-        atom._index_in_molecule = -1
+        atom._id_in_molecule = -1
         if self._topology is not None:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
@@ -371,7 +357,7 @@ class Molecule():
         return self._impropers
 
     @property
-    def initiated(self):
+    def initialized(self):
         return self.id != -1
 
     @property
