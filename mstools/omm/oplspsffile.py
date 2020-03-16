@@ -949,17 +949,16 @@ class OplsPsfFile(object):
 
         if verbose and (constraints is not None or rigidWater):
             print('Adding constraints...')
-        if constraints is ff.HBonds:
-            for bond in self.bond_list:
+
+        for bond in self.bond_list:
+            if constraints in (ff.AllBonds, ff.HAngles):
+                system.addConstraint(bond.atom1.idx, bond.atom2.idx,
+                                     bond.bond_type.req*length_conv)
+            elif constraints is ff.HBonds:
                 if bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1:
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
-        if constraints in (ff.AllBonds, ff.HAngles):
-            for bond in self.bond_list:
-                system.addConstraint(bond.atom1.idx, bond.atom2.idx,
-                                     bond.bond_type.req*length_conv)
-        if rigidWater and constraints is None:
-            for bond in self.bond_list:
+            elif rigidWater:
                 if _is_bond_in_water(bond):
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
@@ -1037,10 +1036,10 @@ class OplsPsfFile(object):
             a2 = angle.atom2.type.atomic_number
             a3 = angle.atom3.type.atomic_number
             nh = int(a1==1) + int(a3==1)
-            if rigidWater:
-                constrained = (nh == 2 and a2 == 8 and angle.atom1.residue.resname in WATNAMES)
-            elif constraints is ff.HAngles:
+            if constraints is ff.HAngles:
                 constrained = (nh == 2 or (nh == 1 and a2 == 8))
+            elif rigidWater:
+                constrained = (nh == 2 and a2 == 8 and angle.atom1.residue.resname in WATNAMES)
             else:
                 constrained = False # no constraints
             if constrained:
