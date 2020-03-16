@@ -937,16 +937,12 @@ class OplsPsfFile(object):
         except AttributeError:
             pass
 
-        ############################################################
-        # We know that this psf is for Drude model
-        ############################################################
-        self.is_drude = has_drude_particle
-
         # Set up the constraints
         def _is_bond_in_water(bond):
             return bond.atom1.residue.resname in WATNAMES and \
                    tuple(sorted([bond.atom1.type.atomic_number, bond.atom2.type.atomic_number])) == (1, 8)
 
+        n_cons_bond = n_cons_angle = 0
         if verbose and (constraints is not None or rigidWater):
             print('Adding constraints...')
 
@@ -954,14 +950,17 @@ class OplsPsfFile(object):
             if constraints in (ff.AllBonds, ff.HAngles):
                 system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                      bond.bond_type.req*length_conv)
+                n_cons_bond += 1
             elif constraints is ff.HBonds:
                 if bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1:
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
+                    n_cons_bond += 1
             elif rigidWater:
                 if _is_bond_in_water(bond):
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
+                    n_cons_bond += 1
 
         # Add virtual sites
         if hasattr(self, 'lonepair_list'):
@@ -1053,10 +1052,14 @@ class OplsPsfFile(object):
                 length = sqrt(l1*l1 + l2*l2 - 2*l1*l2*
                               cos(angle.angle_type.theteq*pi/180))
                 system.addConstraint(angle.atom1.idx, angle.atom3.idx, length)
+                n_cons_angle += 1
             if flexibleConstraints or not constrained:
                 force.addAngle(angle.atom1.idx, angle.atom2.idx,
                                angle.atom3.idx, angle.angle_type.theteq*pi/180,
                                2*angle.angle_type.k*angle_frc_conv)
+        if verbose and (constraints is not None or rigidWater):
+            print('    Number of bond constraints:', n_cons_bond)
+            print('    Number of angle constraints:', n_cons_angle)
         for angle in self.angle_list:
             # Already did the angles with hydrogen above. So skip those here
             if (angle.atom1.type.atomic_number == 1 or angle.atom3.type.atomic_number == 1):
