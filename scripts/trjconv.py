@@ -47,12 +47,17 @@ else:
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
 
+if args.shift[0] != 0 or args.shift[1] != 0 or args.shift[2] != 0:
+    pos_shift = np.array([args.shift] * top.n_atom)
+else:
+    pos_shift = None
+
 for i in range(args.begin, args.end, args.skip):
     sys.stdout.write('\r    %i' % i)
     frame = trj.read_frame(i)
     box = np.array([args.box[k] if args.box[k] != -1 else frame.box[k] for k in range(3)])
     frame.box = box
-    if args.shift[0] != 0 or args.shift[1] != 0 or args.shift[2] != 0:
-        frame.positions += np.array([args.shift] * top.n_atom)
+    if pos_shift is not None:
+        frame.positions += pos_shift
     trj_out.write_frame(top, frame, subset=subset)
 trj_out.close()
