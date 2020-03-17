@@ -2,15 +2,15 @@ import numpy as np
 import copy
 from io import IOBase
 from .molecule import Atom, Bond, Angle, Dihedral, Improper, Molecule
+from .unitcell import UnitCell
 
 
 class Topology():
     def __init__(self):
         self.remark = ''
-        self.is_drude = False
+        self.unitcell: UnitCell = None
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
-        self._box = np.array([0, 0, 0], dtype=float)
         self._file = IOBase()
 
     def __del__(self):
@@ -30,8 +30,7 @@ class Topology():
         @param deepcopy: bool
         """
         self.remark = topology.remark
-        self.is_drude = topology.is_drude
-        self._box = topology._box
+        self.unitcell = UnitCell(topology.unitcell.vectors)
         self.init_from_molecules(self._molecules, deepcopy=deepcopy)
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
@@ -144,13 +143,22 @@ class Topology():
 
     @property
     def box(self):
-        return self._box
+        if self.unitcell is None:
+            return None
+        return self.unitcell.box
 
     @box.setter
     def box(self, value):
+        if self.unitcell is not None and not self.unitcell.is_rectangular:
+            raise Exception('unitcell is not rectangular, set unitcell instead of box')
+
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('box should has three elements')
-        self._box = np.array(value)
+        self.unitcell = UnitCell(value)
+
+    @property
+    def is_drude(self):
+        return any(atom.is_drude for atom in self._atoms)
 
     @staticmethod
     def open(file, mode='r'):
@@ -188,7 +196,7 @@ class Topology():
                     omm_element = None
                 omm_top.addAtom(atom.name, omm_element, omm_residue)
 
-        omm_top.setUnitCellDimensions(self._box)
+        omm_top.setPeriodicBoxVectors(self.unitcell.vectors)
         omm_atoms = list(omm_top.atoms())
         for bond in self.bonds:
             omm_top.addBond(omm_atoms[bond.atom1.id], omm_atoms[bond.atom2.id])

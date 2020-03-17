@@ -4,3 +4,4 @@ from .lammps import LammpsData
 from .psf import Psf
 from .xyz import XyzTopology
 from .zmat import Zmat
+from .unitcell import UnitCell

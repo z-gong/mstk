@@ -13,6 +13,7 @@ class Atom():
         self.symbol = ''
         self.charge = 0.
         self.mass = 0.
+        self.is_drude = False  # for polarizable model
         self.alpha = 0.  # for polarizable model
         self.thole = 0.  # for polarizable model
         self.has_position = False
@@ -41,6 +42,7 @@ class Atom():
         atom.symbol = self.symbol
         atom.charge = self.charge
         atom.mass = self.mass
+        atom.is_drude = self.is_drude
         atom.alpha = self.alpha
         atom.thole = self.thole
         atom.has_position = self.has_position

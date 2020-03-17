@@ -25,7 +25,7 @@ class Psf(Topology):
         words = lines[0].strip().split()
         if 'PSF' not in words:
             raise Exception('Invalid psf file, PSF not found in first line')
-        self.is_drude = 'DRUDE' in words
+        is_drude = 'DRUDE' in words
 
         # there are other sections, but i don't care
         _sections = ['!NTITLE', '!NATOM', '!NBOND', '!NTHETA', '!NPHI', '!NIMPHI']
@@ -49,7 +49,7 @@ class Psf(Topology):
                 # the number at section line indicates the line counts of the section
                 self.parse_title(lines[iline: iline_next])
             if section == '!NATOM':
-                self.parse_atoms(lines[iline: iline_next])
+                self.parse_atoms(lines[iline: iline_next], is_drude)
             if section == '!NBOND':
                 self.parse_bonds(lines[iline: iline_next])
             if section == '!NTHETA':
@@ -63,7 +63,7 @@ class Psf(Topology):
         nline = int(lines[0].strip().split()[0])
         self.remark = '\n'.join(lines[1:1 + nline]).strip()
 
-    def parse_atoms(self, lines):
+    def parse_atoms(self, lines, parse_drude):
         '''
         in psf file, drude particles always appear after attached atoms
         '''
@@ -80,7 +80,7 @@ class Psf(Topology):
             mol_name = words[3]
             atom_type = words[5]
             charge, mass = list(map(float, words[6:8]))
-            if self.is_drude:
+            if parse_drude:
                 alpha, thole = list(map(float, words[9:11]))
             else:
                 alpha = thole = 0.0
@@ -100,6 +100,8 @@ class Psf(Topology):
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
             atom.alpha = -alpha
             atom.thole = thole * 2
+            if parse_drude and atom.type.startswith('D'):
+                atom.is_drude = True
 
         # kick out redundant molecules
         molecules = [mol for mol in molecules if mol.initialized]
@@ -191,7 +193,8 @@ class Psf(Topology):
         n_angle = self.n_angle
         self._file.write('%8i !NTHETA: angles\n' % n_angle)
         for i, angle in enumerate(self.angles):
-            self._file.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1, angle.atom3.id + 1))
+            self._file.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
+                                            angle.atom3.id + 1))
             if (i + 1) % 3 == 0 or i + 1 == n_angle:
                 self._file.write('\n')
         self._file.write('\n')

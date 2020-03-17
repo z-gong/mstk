@@ -1,12 +1,12 @@
 from io import IOBase
 import numpy as np
-from ..topology import Topology
+from ..topology import Topology, UnitCell
 
 
 class Frame():
     def __init__(self, n_atom):
         self.step = 0
-        self._box = np.array([0., 0., 0.]) # current only support rectangular box
+        self.unitcell: UnitCell = None
         self.positions = np.array([[0., 0., 0.]] * n_atom)
         self.has_velocity = False
         self.velocities = np.array([[0., 0., 0.]] * n_atom)
@@ -15,13 +15,18 @@ class Frame():
 
     @property
     def box(self):
-        return self._box
+        if self.unitcell is None:
+            return None
+        return self.unitcell.box
 
     @box.setter
     def box(self, value):
+        if self.unitcell is not None and not self.unitcell.is_rectangular:
+            raise Exception('unitcell is not rectangular, set unitcell instead of box')
+
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('box should has three elements')
-        self._box = np.array(value)
+        self.unitcell = UnitCell(value)
 
 
 class Trajectory():
