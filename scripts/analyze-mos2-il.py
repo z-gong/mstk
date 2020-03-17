@@ -109,7 +109,7 @@ def _calc_acf(series):
     acf(t) = <h(0)h(t)>
     '''
     acf = []
-    for delta in (range(int(len(series) * 0.5))):
+    for delta in (range(int(len(series) * 0.75))):
         _tmp = []
         for t0 in range(len(series) - delta):
             v0 = series[t0]
