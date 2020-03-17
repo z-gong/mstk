@@ -63,6 +63,10 @@ class Trajectory():
         pass
 
     def write_frame(self, topology: Topology, frame: Frame, subset: [int]):
+        '''
+        Write one frame to trajectory file
+        # TODO fix the performance of subset
+        '''
         pass
 
     @staticmethod

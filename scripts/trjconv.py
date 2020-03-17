@@ -36,7 +36,10 @@ if (top.n_atom != trj.n_atom):
 trj_out = Trajectory.open(args.output, 'w')
 
 ignore_list = args.ignore.split(',')
-id_atoms = [atom.id for atom in top.atoms if atom.molecule.name not in ignore_list]
+if ignore_list != []:
+    subset = [atom.id for atom in top.atoms if atom.molecule.name not in ignore_list]
+else:
+    subset = None
 
 if args.end > trj.n_frame or args.end == -1:
     args.end = trj.n_frame
@@ -48,5 +51,5 @@ for i in range(args.begin, args.end, args.skip):
     frame.box = box
     if args.shift[0] != 0 or args.shift[1] != 0 or args.shift[2] != 0:
         frame.positions += np.array([args.shift] * top.n_atom)
-    trj_out.write_frame(top, frame, subset=id_atoms)
+    trj_out.write_frame(top, frame, subset=subset)
 trj_out.close()
