@@ -10,16 +10,20 @@ from mstools.trajectory import Trajectory
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
-parser.add_argument('-i', '--input', required=True, type=str, help='gro or lammpstrj file for atomic positions')
-parser.add_argument('-o', '--output', required=True, type=str, help='output gro or pdb file')
+parser.add_argument('-i', '--input', required=True, type=str,
+                    help='trajectory file for atomic positions')
+parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
-parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
+parser.add_argument('-e', '--end', default=-1, type=int,
+                    help='last frame (not included unless set to -1) to output')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
-parser.add_argument('--topignore', nargs='+', type=str,
+parser.add_argument('--topignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types in topology in case topology and trajectory do not match')
-parser.add_argument('--ignore', nargs='+', type=str, help='ignore these molecule types')
-parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float, help='overwrite the box dimensions')
-parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float, help='shift the positions of all atoms')
+parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
+parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
+                    help='overwrite the box dimensions')
+parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
+                    help='shift the positions of all atoms')
 args = parser.parse_args()
 
 _top = Topology.open(args.topology)
