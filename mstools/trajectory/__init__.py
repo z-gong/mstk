@@ -4,3 +4,4 @@ from .lammps import LammpsTrj
 from .pdb import Pdb
 from .xyz import Xyz
 from .dcd import Dcd
+from .combined_trajectory import CombinedTrajectory

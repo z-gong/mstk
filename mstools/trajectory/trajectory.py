@@ -76,8 +76,11 @@ class Trajectory():
         from .xyz import Xyz
         from .lammps import LammpsTrj
         from .dcd import Dcd
+        from .combined_trajectory import CombinedTrajectory
 
-        if file.endswith('.lammpstrj') or file.endswith('.ltrj'):
+        if isinstance(file, list):
+            return CombinedTrajectory(file, mode)
+        elif file.endswith('.lammpstrj') or file.endswith('.ltrj'):
             return LammpsTrj(file, mode)
         elif file.endswith('.gro'):
             return Gro(file, mode)

@@ -10,7 +10,7 @@ from mstools.trajectory import Trajectory
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
-parser.add_argument('-i', '--input', required=True, type=str,
+parser.add_argument('-i', '--input', nargs='+', required=True, type=str,
                     help='trajectory file for atomic positions')
 parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
@@ -26,9 +26,10 @@ parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
                     help='shift the positions of all atoms')
 args = parser.parse_args()
 
-_top = Topology.open(args.topology)
-top = Topology()
-top.init_from_molecules([mol for mol in _top.molecules if mol.name not in args.topignore])
+top = Topology.open(args.topology)
+if args.topignore != []:
+    top = Topology().init_from_molecules(
+        [mol for mol in top.molecules if mol.name not in args.topignore])
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
