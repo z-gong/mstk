@@ -31,8 +31,8 @@ parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to o
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
 parser.add_argument('--topignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types in topology in case topology and trajectory do not match')
-parser.add_argument('--dt', default=0.1, type=float,
-                    help='time interval (ps) between frames if not present in trajectory.'
+parser.add_argument('--dt', default=10, type=float,
+                    help='time interval (ps) between frames if not present in trajectory. '
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--voltage', default=0, type=float,
@@ -266,7 +266,7 @@ def diffusion():
         if frame.step != 0:
             t_list.append(frame.step / 1e6)  # ns
         else:
-            t_list.append(i * args.dt)
+            t_list.append(i * args.dt / 1e3) # ns
 
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):
