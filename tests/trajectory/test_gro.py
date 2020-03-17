@@ -13,7 +13,7 @@ def test_gro():
 
     frame = gro.read_frame(0)
     assert frame.has_velocity == True
-    assert all(frame.positions[0] == [1.971, 3.328, 4.796])
+    assert pytest.approx(frame.positions[0], abs=1E-6) == [1.971, 3.328, 4.796]
 
     frame = gro.read_frame(2)
     assert pytest.approx(frame.box, abs=1E-6) == [4.91065, 4.91067, 4.91066]

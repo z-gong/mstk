@@ -15,7 +15,8 @@ class Dcd(Trajectory):
         try:
             from mdtraj.formats import DCDTrajectoryFile
         except:
-            raise ImportError('Currently mstools use mdtraj to parse DCD format. Cannot import mdtraj')
+            raise ImportError(
+                'Currently mstools use mdtraj to parse DCD format. Cannot import mdtraj')
 
         self._dcd = DCDTrajectoryFile(file, mode=mode)
 
@@ -37,8 +38,14 @@ class Dcd(Trajectory):
         if np.any(self._mdtraj_cell_angles != 90):
             raise Exception('Currently non-rectangular box is not supported')
 
+        self._frame = Frame(self.n_atom)
+
     def read_frame(self, i_frame):
-        return self.read_frames([i_frame])[0]
+        frame = self._frame
+        frame.positions = self._mdtraj_positions[i_frame] / 10  # convert A to nm
+        frame.box = self._mdtraj_cell_lengths[i_frame] / 10  # convert A to nm
+
+        return frame
 
     def read_frames(self, i_frames: [int]) -> [Frame]:
         frames = []
@@ -47,9 +54,12 @@ class Dcd(Trajectory):
             frame.positions = self._mdtraj_positions[i] / 10  # convert A to nm
             frame.box = self._mdtraj_cell_lengths[i] / 10  # convert A to nm
             frames.append(frame)
+
         return frames
 
     def write_frame(self, topology, frame, subset=None):
         if subset is None:
-            subset = list(range(topology.n_atom))
-        self._dcd.write(frame.positions[subset] * 10, frame.box * 10, np.array([90, 90, 90]))  # convert nm to A
+            positions = frame.positions
+        else:
+            positions = frame.positions[subset]
+        self._dcd.write(positions * 10, frame.box * 10, np.array([90, 90, 90]))  # convert nm to A

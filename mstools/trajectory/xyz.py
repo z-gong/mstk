@@ -29,6 +29,7 @@ class Xyz(Trajectory):
         self._file.seek(0)
 
         self.n_frame = 1
+        self._frame = Frame(self.n_atom)
 
     def read_frame(self, i_frame):
         if i_frame != 0:
@@ -40,7 +41,7 @@ class Xyz(Trajectory):
         raise Exception('Can only read the first frame, use read_frame(0)')
 
     def _read_frame_from_string(self, string: str):
-        frame = Frame(self.n_atom)
+        frame = self._frame
         lines = string.splitlines()
 
         for i in range(self.n_atom):

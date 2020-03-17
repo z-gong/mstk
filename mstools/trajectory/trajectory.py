@@ -7,11 +7,11 @@ class Frame():
     def __init__(self, n_atom):
         self.step = 0
         self.unitcell: UnitCell = None
-        self.positions = np.array([[0., 0., 0.]] * n_atom)
+        self.positions = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_velocity = False
-        self.velocities = np.array([[0., 0., 0.]] * n_atom)
+        self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_charge = False
-        self.charges = np.array([0.] * n_atom)  # for fluctuating charge simulations
+        self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
 
     @property
     def box(self):
@@ -38,6 +38,7 @@ class Trajectory():
         self.n_atom = 0
         self.n_frame = 0
         self._file = IOBase()
+        self._frame: Frame = None
 
     def __del__(self):
         self.close()
