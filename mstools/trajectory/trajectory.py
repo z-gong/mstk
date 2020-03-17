@@ -22,11 +22,15 @@ class Frame():
     @box.setter
     def box(self, value):
         if self.unitcell is not None and not self.unitcell.is_rectangular:
-            raise Exception('unitcell is not rectangular, set unitcell instead of box')
+            raise Exception('unitcell is not rectangular, set unitcell vectors instead of box')
 
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('box should has three elements')
-        self.unitcell = UnitCell(value)
+
+        if self.unitcell is None:
+            self.unitcell = UnitCell(value)
+        else:
+            self.unitcell.vectors = value
 
 
 class Trajectory():

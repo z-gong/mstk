@@ -35,10 +35,6 @@ class UnitCell():
     def box(self):
         return np.array([self.vectors[0][0], self.vectors[1][1], self.vectors[2][2]])
 
-    @box.setter
-    def box(self, value):
-        self.init_vectors(value)
-
     @property
     def volume(self):
         return self.vectors[0][0] * self.vectors[1][1] * self.vectors[2][2]
