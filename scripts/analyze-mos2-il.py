@@ -304,9 +304,9 @@ def diffusion():
     ax.plot([0, t_array[-1] * 0.5], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(f'{args.output}-residence.png')
+    fig.savefig(f'{args.output}-diff_acf.png')
 
-    print_data_to_file(name_cloumn_dict, f'{args.output}-residence.txt')
+    print_data_to_file(name_cloumn_dict, f'{args.output}-diff_acf.txt')
 
 
 def voltage():
