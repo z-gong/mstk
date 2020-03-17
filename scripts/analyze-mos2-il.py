@@ -5,10 +5,13 @@ import argparse
 import math
 import configparser
 import numpy as np
+
 np.seterr(all='raise')
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 plt.rcParams.update({'font.size': 15})
 
 from mstools.utils import histogram, print_data_to_file
@@ -20,16 +23,17 @@ parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'c
                     help='The property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
-parser.add_argument('-i', '--input', required=True, type=str,
-                    help='gro or lammpstrj file for atomic positions and charges')
+parser.add_argument('-i', '--input', nargs='+', required=True, type=str,
+                    help='trajectory files for atomic positions and charges')
 parser.add_argument('-c', '--config', required=True, type=str, help='Config file for analysis')
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
 parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
-parser.add_argument('--topignore', default='', type=str,
+parser.add_argument('--topignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types in topology in case topology and trajectory do not match')
 parser.add_argument('--dt', default=0.1, type=float,
-                    help='time interval (ps) between frames if not present in trajectory. Required for diffusion analysis')
+                    help='time interval (ps) between frames if not present in trajectory.'
+                         'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--voltage', default=0, type=float,
                     help='voltage drop in 3d image charge simulation. Required for charge3d analysis')
@@ -39,10 +43,9 @@ eps0 = 8.854188E-12
 q0 = 1.602176E-19
 nm = 1E-9
 
-_top = Topology.open(args.topology)
-top_ignore_list = args.topignore.split(',')
-top = Topology()
-top.init_from_molecules([mol for mol in _top.molecules if mol.name not in top_ignore_list])
+top = Topology.open(args.topology)
+top = Topology().init_from_molecules(
+    [mol for mol in top.molecules if mol.name not in args.topignore])
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 ini = configparser.ConfigParser()
@@ -79,7 +82,8 @@ def _get_com_position(positions, atoms: [Atom]):
     com_mass = sum(atom_masses)
     atom_ids = [atom.id for atom in atoms]
     atom_positions = positions[atom_ids]
-    com_position = np.sum(atom_positions * np.transpose(np.array([atom_masses] * 3)), axis=0) / com_mass
+    com_position = np.sum(atom_positions * np.transpose(np.array([atom_masses] * 3)),
+                          axis=0) / com_mass
     return com_position
 
 
@@ -159,7 +163,8 @@ def distribution():
                 name, theta_atoms = [x.strip() for x in angle.split(':')]
                 if name not in theta_dict:
                     theta_dict[name] = []
-                com_atoms, z_range = [x.strip() for x in section['angle.%s.com_zrange' % name].split(':')]
+                com_atoms, z_range = [x.strip() for x in
+                                      section['angle.%s.com_zrange' % name].split(':')]
                 com_atoms = _get_atoms(mol, com_atoms.split())
                 z_range = list(map(float, z_range.split()))
                 com_pos = _get_com_position(positions, com_atoms)
@@ -390,7 +395,8 @@ def charge_3d():
         print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
 
     print('\n%-6i %10.6f %10.6f %10.6f' % (
-        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) * _conv / len(ids_cathode) * 3,
+        len(qtot_list), np.mean(qtot_list) * _conv,
+        np.mean(qtot_list) * _conv / len(ids_cathode) * 3,
         np.mean(qtot_list) * _conv / 1000 * box_z * nm / eps0))
 
 
