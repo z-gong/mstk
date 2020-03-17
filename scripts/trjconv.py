@@ -28,8 +28,9 @@ args = parser.parse_args()
 
 top = Topology.open(args.topology)
 if args.topignore != []:
-    top = Topology().init_from_molecules(
-        [mol for mol in top.molecules if mol.name not in args.topignore])
+    molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
+    top = Topology()
+    top.init_from_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')

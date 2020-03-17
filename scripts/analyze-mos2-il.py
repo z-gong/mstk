@@ -44,8 +44,10 @@ q0 = 1.602176E-19
 nm = 1E-9
 
 top = Topology.open(args.topology)
-top = Topology().init_from_molecules(
-    [mol for mol in top.molecules if mol.name not in args.topignore])
+if args.topignore != []:
+    molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
+    top = Topology()
+    top.init_from_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 ini = configparser.ConfigParser()
