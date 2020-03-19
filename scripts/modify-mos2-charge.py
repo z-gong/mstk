@@ -38,9 +38,11 @@ atoms_anode = [atom for atom in top_out.atoms if atom.type == args.atom
                and abs(atom.position[2] - args.anode) <= args.tolerance]
 
 area = top.cell.size[0] * top.cell.size[1]
-q_catho = args.charge / 1000 * area * NANO ** 2 / len(atoms_catho) / ELEMENTARY_CHARGE
-q_anode = -args.charge / 1000 * area * NANO ** 2 / len(atoms_anode) / ELEMENTARY_CHARGE
+q_total = args.charge / 1000 * area * NANO ** 2 / ELEMENTARY_CHARGE
+q_catho = q_total / len(atoms_catho)
+q_anode = -q_total / len(atoms_anode)
 
+print('totally %.6f charges spread on each electrode' % q_total)
 print('%i atoms with extra charge %10.6f on cathode' % (len(atoms_catho), q_catho))
 print('%i atoms with extra charge %10.6f on anode' % (len(atoms_anode), q_anode))
 

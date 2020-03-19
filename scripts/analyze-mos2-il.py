@@ -39,6 +39,8 @@ parser.add_argument('--dt', default=10, type=float,
                     help='time interval (ps) between frames if not presented in trajectory. '
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
+parser.add_argument('--ignore', nargs='+', default=[], type=str,
+                    help='ignore these molecule types for voltage analysis')
 parser.add_argument('--voltage', default=0, type=float,
                     help='voltage drop in 3d image charge simulation. '
                          'Required for charge3d analysis')
@@ -321,6 +323,8 @@ def voltage():
         sys.stdout.write('\r    frame %i' % i)
 
         for k, atom in enumerate(top.atoms):
+            if atom.molecule.name in args.ignore:
+                continue
             z = frame.positions[k][2]
             i_bin = math.floor((z - edges[0]) / dz)
             i_bin = min(i_bin, n_bin - 1)
@@ -363,7 +367,7 @@ def voltage():
 
 
 def charge_2d():
-    _conv = q0 / area / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     # TODO need to think about how to identify cathode
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
@@ -381,7 +385,7 @@ def charge_2d():
 
 
 def charge_3d():
-    _conv = q0 / area / nm ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     # TODO need to think about how to identify cathode
     ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
