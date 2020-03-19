@@ -5,7 +5,8 @@ from ..topology import Topology, UnitCell
 
 class Frame():
     def __init__(self, n_atom):
-        self.step = 0
+        self.step = -1  # -1 means step information not found
+        self.time = -1  # in ps. -1 means time information not found
         self.cell = UnitCell([0., 0., 0.])
         self.positions = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_velocity = False

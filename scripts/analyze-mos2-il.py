@@ -20,23 +20,27 @@ from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],
-                    help='The property to analyze')
+                    help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
 parser.add_argument('-i', '--input', nargs='+', required=True, type=str,
                     help='trajectory files for atomic positions and charges')
 parser.add_argument('-c', '--config', required=True, type=str, help='Config file for analysis')
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
-parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
-parser.add_argument('-e', '--end', default=-1, type=int, help='last frame to output')
+parser.add_argument('-b', '--begin', default=0, type=int,
+                    help='first frame to analyze. Index starts from 0')
+parser.add_argument('-e', '--end', default=-1, type=int,
+                    help='last frame (not included) to analyze. Index starts from 0. '
+                         '-1 means until last frames (included)')
 parser.add_argument('--topignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types in topology in case topology and trajectory do not match')
 parser.add_argument('--dt', default=10, type=float,
-                    help='time interval (ps) between frames if not present in trajectory. '
+                    help='time interval (ps) between frames if not presented in trajectory. '
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--voltage', default=0, type=float,
-                    help='voltage drop in 3d image charge simulation. Required for charge3d analysis')
+                    help='voltage drop in 3d image charge simulation. '
+                         'Required for charge3d analysis')
 args = parser.parse_args()
 
 eps0 = 8.854188E-12
@@ -263,10 +267,10 @@ def diffusion():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        if frame.step != 0:
-            t_list.append(frame.step / 1e6)  # ns
+        if frame.time != -1:
+            t_list.append(frame.time / 1e3)  # convert ps to ns
         else:
-            t_list.append(i * args.dt / 1e3) # ns
+            t_list.append(i * args.dt / 1e3)
 
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):

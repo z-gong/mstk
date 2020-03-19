@@ -31,7 +31,7 @@ class Topology():
         """
         self.remark = topology.remark
         self.cell = UnitCell(topology.cell.vectors)
-        self.init_from_molecules(self._molecules, deepcopy=deepcopy)
+        self.init_from_molecules(topology._molecules, deepcopy=deepcopy)
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''

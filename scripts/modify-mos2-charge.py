@@ -4,7 +4,7 @@ import argparse
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-i', '--input', required=True, type=str, help='input topology file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output topology file')
 parser.add_argument('-q', '--charge', required=True, type=float, help='charge density (in mC/m^2)')
@@ -27,30 +27,28 @@ if not top.has_position or top.cell.volume == 0:
     trj = Trajectory.open(args.trj)
     frame = trj.read_frame(0)
     top.set_positions(frame.positions)
-    top.cell = frame.cell
+    top.cell.set_box(frame.cell.vectors)
 
 top_out = Topology.open(args.output, 'w')
 top_out.init_from_topology(top)
-atoms_cat = [atom for atom in top_out.atoms if atom.type == args.atom
-             and abs(atom.position[2] - args.cathode) <= args.tolerance]
-atoms_ano = [atom for atom in top_out.atoms if atom.type == args.atom
-             and abs(atom.position[2] - args.anode) <= args.tolerance]
+atoms_catho = [atom for atom in top_out.atoms if atom.type == args.atom
+               and abs(atom.position[2] - args.cathode) <= args.tolerance]
+atoms_anode = [atom for atom in top_out.atoms if atom.type == args.atom
+               and abs(atom.position[2] - args.anode) <= args.tolerance]
 
 e0 = 1.60217662E-19
 nm = 1E-9
 area = top.cell.size[0] * top.cell.size[1]
-q_cat = args.charge / 1000 * area * nm ** 2 / len(atoms_cat) / e0
-q_ano = args.charge / 1000 * area * nm ** 2 / len(atoms_ano) / e0
+q_catho = args.charge / 1000 * area * nm ** 2 / len(atoms_catho) / e0
+q_anode = -args.charge / 1000 * area * nm ** 2 / len(atoms_anode) / e0
 
-print('%i atoms with extra charge %.6f on cathode')
-print('%i atoms with extra charge %.6f on anode')
+print('%i atoms with extra charge %10.6f on cathode' % (len(atoms_catho), q_catho))
+print('%i atoms with extra charge %10.6f on anode' % (len(atoms_anode), q_anode))
 
-for atom in atoms_cat:
-    print(atom, atom.position, atom.charge)
-    atom.charge += q_cat
-for atom in atoms_ano:
-    print(atom, atom.position, atom.charge)
-    atom.charge -= q_ano
+for atom in atoms_catho:
+    atom.charge += q_catho
+for atom in atoms_anode:
+    atom.charge += q_anode
 
 top_out.write()
 top_out.close()
