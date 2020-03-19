@@ -123,7 +123,7 @@ class Gro(Trajectory):
             self._file.write(line + '\n')
 
         a, b, c = frame.cell.vectors
-        self._file.write(' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f' %
+        self._file.write(' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n' %
                          (a[0], b[1], c[2], a[1], a[2], b[0], b[2], c[0], c[1]))
 
         self._file.flush()
