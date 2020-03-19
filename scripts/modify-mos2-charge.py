@@ -3,6 +3,7 @@
 import argparse
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
+from mstools.constant import ELEMENTARY_CHARGE, NANO
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-i', '--input', required=True, type=str, help='input topology file')
@@ -36,11 +37,9 @@ atoms_catho = [atom for atom in top_out.atoms if atom.type == args.atom
 atoms_anode = [atom for atom in top_out.atoms if atom.type == args.atom
                and abs(atom.position[2] - args.anode) <= args.tolerance]
 
-e0 = 1.60217662E-19
-nm = 1E-9
 area = top.cell.size[0] * top.cell.size[1]
-q_catho = args.charge / 1000 * area * nm ** 2 / len(atoms_catho) / e0
-q_anode = -args.charge / 1000 * area * nm ** 2 / len(atoms_anode) / e0
+q_catho = args.charge / 1000 * area * NANO ** 2 / len(atoms_catho) / ELEMENTARY_CHARGE
+q_anode = -args.charge / 1000 * area * NANO ** 2 / len(atoms_anode) / ELEMENTARY_CHARGE
 
 print('%i atoms with extra charge %10.6f on cathode' % (len(atoms_catho), q_catho))
 print('%i atoms with extra charge %10.6f on anode' % (len(atoms_anode), q_anode))

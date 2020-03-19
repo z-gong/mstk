@@ -17,6 +17,7 @@ plt.rcParams.update({'font.size': 15})
 from mstools.utils import histogram, print_data_to_file
 from mstools.topology import Atom, Molecule, Topology
 from mstools.trajectory import Trajectory
+from mstools.constant import VACUUM_PERMITTIVITY, ELEMENTARY_CHARGE, NANO
 
 parser = argparse.ArgumentParser()
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],
@@ -42,10 +43,6 @@ parser.add_argument('--voltage', default=0, type=float,
                     help='voltage drop in 3d image charge simulation. '
                          'Required for charge3d analysis')
 args = parser.parse_args()
-
-eps0 = 8.854188E-12
-q0 = 1.602176E-19
-nm = 1E-9
 
 top = Topology.open(args.topology)
 if args.topignore != []:
@@ -337,7 +334,7 @@ def voltage():
         s = 0
         for j in range(0, i + 1):
             s += dz * (dz * (i - j)) * charges[j]
-        voltage[i] = -s / eps0 * q0 / nm
+        voltage[i] = -s / VACUUM_PERMITTIVITY * ELEMENTARY_CHARGE / NANO
 
     name_cloumn_dict = {'z': z_array}
 
@@ -380,7 +377,7 @@ def charge_2d():
 
     print('\n%-6i %10.6f %10.6f %10.6f' % (
         len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode) * 3,
-        np.mean(qtot_list) * _conv / 1000 * box_z * nm / eps0))
+        np.mean(qtot_list) * _conv / 1000 * box_z * NANO / VACUUM_PERMITTIVITY))
 
 
 def charge_3d():
@@ -390,7 +387,7 @@ def charge_3d():
     qtot_list = []
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
-        qtot = args.voltage * area / box_z * eps0 / q0 * nm
+        qtot = args.voltage * area / box_z * VACUUM_PERMITTIVITY / ELEMENTARY_CHARGE * NANO
         for ii, atom in enumerate(top.atoms):
             if atom.molecule.name == 'MoS2' or atom.type == 'IMG':
                 continue
@@ -403,7 +400,7 @@ def charge_3d():
     print('\n%-6i %10.6f %10.6f %10.6f' % (
         len(qtot_list), np.mean(qtot_list) * _conv,
         np.mean(qtot_list) * _conv / len(ids_cathode) * 3,
-        np.mean(qtot_list) * _conv / 1000 * box_z * nm / eps0))
+        np.mean(qtot_list) * _conv / 1000 * box_z * NANO / VACUUM_PERMITTIVITY))
 
 
 if __name__ == '__main__':
