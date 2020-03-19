@@ -64,8 +64,8 @@ if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
 
 _frame = trj.read_frame(0)
-area = _frame.box[0] * _frame.box[1]
-box_z = _frame.box[2]
+area = _frame.cell.size[0] * _frame.cell.size[1]
+box_z = _frame.cell.size[2]
 dz = 0.01 if args.cmd != 'voltage' else 0.002
 n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
 edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)])

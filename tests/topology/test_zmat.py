@@ -13,6 +13,7 @@ def test_zmat():
     assert zmat.n_angle == 27
     assert zmat.n_dihedral == 32
     assert zmat.n_improper == 5
+    assert zmat.cell.volume == 0
 
     atom = zmat.atoms[0]
     assert all(atom.position == [0., 0., 0.])

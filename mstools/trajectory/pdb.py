@@ -18,10 +18,12 @@ class Pdb(Trajectory):
             self._n_model = 0
 
     def write_frame(self, topology: Topology, frame: Frame, subset=None):
+        lengths = frame.cell.lengths * 10
+        angles = frame.cell.angles
         self._file.write('TITLE    simulation box\n')
         self._file.write('REMARK   created by mstools\n')
         self._file.write('CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1 \n' % (
-            frame.box[0] * 10, frame.box[1] * 10, frame.box[2] * 10, 90, 90, 90))
+            lengths[0], lengths[1], lengths[2], angles[0], angles[1], angles[2]))
         self._n_model += 1
         self._file.write('MODEL    %i\n' % self._n_model)
 

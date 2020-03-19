@@ -77,10 +77,18 @@ class LammpsTrj(Trajectory):
     def _read_frame_from_string(self, string: str, frame: Frame):
         lines = string.splitlines()
         frame.step = int(lines[1])
-        xlo, xhi = tuple(map(lambda x: float(x) / 10, lines[5].split()))  # convert from A to nm
-        ylo, yhi = tuple(map(lambda x: float(x) / 10, lines[6].split()))
-        zlo, zhi = tuple(map(lambda x: float(x) / 10, lines[7].split()))
-        frame.box = np.array([xhi - xlo, yhi - ylo, zhi - zlo])
+        try:
+            xlo, xhi = tuple(map(lambda x: float(x) / 10, lines[5].split()))  # convert from A to nm
+            ylo, yhi = tuple(map(lambda x: float(x) / 10, lines[6].split()))
+            zlo, zhi = tuple(map(lambda x: float(x) / 10, lines[7].split()))
+            frame.cell.set_box([xhi - xlo, yhi - ylo, zhi - zlo])
+        except:
+            # read triclinic box, convert from A to nm
+            xlo, xhi, bx = tuple(map(lambda x: float(x) / 10, lines[5].split()))
+            ylo, yhi, cx = tuple(map(lambda x: float(x) / 10, lines[6].split()))
+            zlo, zhi, cy = tuple(map(lambda x: float(x) / 10, lines[7].split()))
+            frame.cell.set_box([[xhi - xlo, 0, 0],[bx,  yhi - ylo, 0],[cx, cy ,zhi - zlo]])
+
         tokens = lines[8].split()
         title = tokens[2:]
 
@@ -93,26 +101,26 @@ class LammpsTrj(Trajectory):
             df['z'] = df['z'] / 10 - zlo
             wrapped = True
         elif 'xs' in df.columns:
-            df['x'] = df.xs * frame.box[0]
-            df['y'] = df.ys * frame.box[1]
-            df['z'] = df.zs * frame.box[2]
+            df['x'] = df.xs * frame.cell.size[0]
+            df['y'] = df.ys * frame.cell.size[1]
+            df['z'] = df.zs * frame.cell.size[2]
             wrapped = True
         elif 'xu' in df.columns:
             df['x'] = df.xu / 10 - xlo  # convert from A to nm
             df['y'] = df.yu / 10 - ylo
             df['z'] = df.zu / 10 - zlo
         elif 'xsu' in df.columns:
-            df['x'] = df.xsu * frame.box[0]
-            df['y'] = df.ysu * frame.box[1]
-            df['z'] = df.zsu * frame.box[2]
+            df['x'] = df.xsu * frame.cell.size[0]
+            df['y'] = df.ysu * frame.cell.size[1]
+            df['z'] = df.zsu * frame.cell.size[2]
         if wrapped:
             if 'ix' not in df.columns:
                 print('warning: image flag not found for wrapped positions')
             else:
                 # ix is revered words for pandas, so use df['ix'] instead of df.ix
-                df.x += df['ix'] * frame.box[0]
-                df.y += df['iy'] * frame.box[1]
-                df.z += df['iz'] * frame.box[2]
+                df.x += df['ix'] * frame.cell.size[0]
+                df.y += df['iy'] * frame.cell.size[1]
+                df.z += df['iz'] * frame.cell.size[2]
 
         frame.has_charge = 'q' in df.columns
         for row in df.itertuples():

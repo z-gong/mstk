@@ -56,8 +56,8 @@ else:
 for i in range(args.begin, args.end, args.skip):
     sys.stdout.write('\r    %i' % i)
     frame = trj.read_frame(i)
-    box = np.array([args.box[k] if args.box[k] != -1 else frame.box[k] for k in range(3)])
-    frame.box = box
+    box = np.array([args.box[k] if args.box[k] != -1 else frame.cell.size[k] for k in range(3)])
+    frame.set_box(box)
     if pos_shift is not None:
         frame.positions += pos_shift
     trj_out.write_frame(top, frame, subset=subset)

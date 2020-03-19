@@ -14,6 +14,8 @@ def test_psf():
     assert psf.n_angle == 70
     assert psf.n_dihedral == 50
     assert psf.n_improper == 10
+    assert psf.cell.volume == 0
+
     assert psf.bonds[-1].atom1.name == 'C3'
     assert psf.angles[-1].atom2.name == 'C3'
     assert psf.dihedrals[-1].atom4.name == 'H9'

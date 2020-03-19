@@ -64,7 +64,7 @@ class LammpsData(Topology):
 
     def parse_header(self, lines):
         n_atom = n_bond = n_angle = n_dihedral = n_improper = n_atom_type = 0
-        box = [0., 0., 0.]
+        la = lb = lc = bx = cx = cy = 0
         for line in lines:
             line = line.strip()
             words = line.split()
@@ -81,18 +81,20 @@ class LammpsData(Topology):
             elif line.endswith(' atom types'):
                 n_atom_type = int(words[0])
             elif line.endswith(' xlo xhi'):
-                box[0] = (float(words[1]) - float(words[0])) / 10
+                la = (float(words[1]) - float(words[0])) / 10
                 self._xlo = float(words[0]) / 10
             elif line.endswith(' ylo yhi'):
-                box[1] = (float(words[1]) - float(words[0])) / 10
+                lb = (float(words[1]) - float(words[0])) / 10
                 self._ylo = float(words[0]) / 10
             elif line.endswith(' zlo zhi'):
-                box[2] = (float(words[1]) - float(words[0])) / 10
+                lc = (float(words[1]) - float(words[0])) / 10
                 self._zlo = float(words[0]) / 10
+            elif line.endswith(' xy xz yz'):
+                bx, cx, cy = tuple(map(lambda x: float(x) / 10, words[:3]))
             else:
                 continue
 
-        self.box = box
+        self.cell.set_box([[la, 0, 0], [bx, lb, 0], [cx, cy, lc]])
 
         return n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type
 
@@ -144,9 +146,9 @@ class LammpsData(Topology):
             atom.type = self._type_names[type_id]
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
             atom.has_position = True
-            atom.position = np.array([x - self._xlo + ix * self.box[0],
-                                      y - self._ylo + iy * self.box[1],
-                                      z - self._zlo + iz * self.box[2]])
+            atom.position = np.array([x - self._xlo + ix * self.cell.size[0],
+                                      y - self._ylo + iy * self.cell.size[1],
+                                      z - self._zlo + iz * self.cell.size[2]])
 
         # kick out redundant molecules
         molecules = [mol for mol in molecules if mol.initialized]

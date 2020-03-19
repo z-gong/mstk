@@ -11,6 +11,8 @@ def test_topology():
     assert lmp.n_atom == 75
     assert lmp.n_molecule == 15
     assert lmp.is_drude == False
+    assert lmp.cell.is_rectangular
+    assert pytest.approx(lmp.cell.lengths, abs=1E-6) == [3.18888, 3.18888, 3.18888]
 
     atom = lmp.atoms[0]
     assert atom.id == 0

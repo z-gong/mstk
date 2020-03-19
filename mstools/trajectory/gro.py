@@ -90,8 +90,14 @@ class Gro(Trajectory):
                     frame.has_velocity = False
                 else:
                     frame.velocities[i] = np.array([vx, vy, vz])
-
-        frame.box = tuple(map(float, lines[self.n_atom + 2].split()))[:3]
+        _box = tuple(map(float, lines[self.n_atom + 2].split()))
+        if len(_box) == 3:
+            frame.cell.set_box(_box)
+        elif len(_box) == 9:
+            ax, by, cz, ay, az, bx, bz, cx, cy = _box
+            frame.cell.set_box([[ax, ay, az], [bx, by, bz], [cx, cy, cz]])
+        else:
+            raise ValueError('Invalid box')
 
         return frame
 
@@ -116,6 +122,8 @@ class Gro(Trajectory):
                 line += '%8.3f%8.3f%8.3f' % (vel[0], vel[1], vel[2])
             self._file.write(line + '\n')
 
-        self._file.write(' %.3f %.3f %.3f\n' % (frame.box[0], frame.box[1], frame.box[2]))
+        a, b, c = frame.cell.vectors
+        self._file.write(' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f' %
+                         (a[0], b[1], c[2], a[1], a[2], b[0], b[2], c[0], c[1]))
 
         self._file.flush()

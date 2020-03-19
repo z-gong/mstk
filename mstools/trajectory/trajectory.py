@@ -6,31 +6,12 @@ from ..topology import Topology, UnitCell
 class Frame():
     def __init__(self, n_atom):
         self.step = 0
-        self.unitcell: UnitCell = None
+        self.cell = UnitCell([0., 0., 0.])
         self.positions = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_velocity = False
         self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_charge = False
         self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
-
-    @property
-    def box(self):
-        if self.unitcell is None:
-            return None
-        return self.unitcell.box
-
-    @box.setter
-    def box(self, value):
-        if self.unitcell is not None and not self.unitcell.is_rectangular:
-            raise Exception('unitcell is not rectangular, set unitcell vectors instead of box')
-
-        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
-            raise ValueError('box should has three elements')
-
-        if self.unitcell is None:
-            self.unitcell = UnitCell(value)
-        else:
-            self.unitcell.vectors = value
 
 
 class Trajectory():

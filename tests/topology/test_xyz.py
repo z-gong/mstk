@@ -10,6 +10,8 @@ xyz = Topology.open(cwd + '/files/urea.xyz')
 def test_xyz():
     assert xyz.n_atom == 8
     assert xyz.remark == 'urea'
+    assert xyz.cell.volume == 0
+
     atom = xyz.atoms[-1]
     assert atom.name == 'H8'
     assert atom.type == 'HU'

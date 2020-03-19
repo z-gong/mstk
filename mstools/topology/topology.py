@@ -8,7 +8,7 @@ from .unitcell import UnitCell
 class Topology():
     def __init__(self):
         self.remark = ''
-        self.unitcell: UnitCell = None
+        self.cell = UnitCell([0, 0, 0])
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         self._file = IOBase()
@@ -30,7 +30,7 @@ class Topology():
         @param deepcopy: bool
         """
         self.remark = topology.remark
-        self.unitcell = UnitCell(topology.unitcell.vectors)
+        self.cell = UnitCell(topology.cell.vectors)
         self.init_from_molecules(self._molecules, deepcopy=deepcopy)
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
@@ -142,25 +142,6 @@ class Topology():
         return [atom.position for atom in self.atoms]
 
     @property
-    def box(self):
-        if self.unitcell is None:
-            return None
-        return self.unitcell.box
-
-    @box.setter
-    def box(self, value):
-        if self.unitcell is not None and not self.unitcell.is_rectangular:
-            raise Exception('unitcell is not rectangular, set unitcell vectors instead of box')
-
-        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
-            raise ValueError('box should has three elements')
-
-        if self.unitcell is None:
-            self.unitcell = UnitCell(value)
-        else:
-            self.unitcell.vectors = value
-
-    @property
     def is_drude(self):
         return any(atom.is_drude for atom in self._atoms)
 
@@ -200,7 +181,7 @@ class Topology():
                     omm_element = None
                 omm_top.addAtom(atom.name, omm_element, omm_residue)
 
-        omm_top.setPeriodicBoxVectors(self.unitcell.vectors)
+        omm_top.setPeriodicBoxVectors(self.cell.vectors)
         omm_atoms = list(omm_top.atoms())
         for bond in self.bonds:
             omm_top.addBond(omm_atoms[bond.atom1.id], omm_atoms[bond.atom2.id])
