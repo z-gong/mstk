@@ -26,7 +26,10 @@ class Dcd(Trajectory):
             pass
 
     def close(self):
-        self._dcd.close()
+        try:
+            self._dcd.close()
+        except:
+            pass
 
     def _get_info(self):
         '''

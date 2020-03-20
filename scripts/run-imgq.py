@@ -97,6 +97,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     # minimize(sim, 500, gro_out='em.gro')
 
     print('Running...')
+    # sim.runForClockTime(99, 'rst.cpt', 'rst.xml', 1)
     sim.step(nstep)
     sim.saveCheckpoint('rst.cpt')
 
