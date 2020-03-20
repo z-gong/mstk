@@ -43,8 +43,8 @@ voltage = args.charge / 1000 * (args.anode - args.cathode) * NANO / VACUUM_PERMI
 q_catho = q_total / len(atoms_catho)
 q_anode = -q_total / len(atoms_anode)
 
-print('totally %.6f charges spread on each electrode' % q_total)
-print('generated voltage %.3f' % voltage)
+print('%.6f charges spread on each electrode' % q_total)
+print('%.3f V voltage drop generated' % voltage)
 print('%i atoms with extra charge %10.6f on cathode' % (len(atoms_catho), q_catho))
 print('%i atoms with extra charge %10.6f on anode' % (len(atoms_anode), q_anode))
 

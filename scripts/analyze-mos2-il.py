@@ -19,7 +19,7 @@ from mstools.topology import Atom, Molecule, Topology
 from mstools.trajectory import Trajectory
 from mstools.constant import VACUUM_PERMITTIVITY, ELEMENTARY_CHARGE, NANO
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'charge2d', 'charge3d'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
@@ -42,8 +42,11 @@ parser.add_argument('--skip', default=1, type=int, help='skip frames between out
 parser.add_argument('--ignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types for voltage analysis')
 parser.add_argument('--voltage', default=0, type=float,
-                    help='voltage drop in 3d image charge simulation. '
-                         'Required for charge3d analysis')
+                    help='pre-assigned voltage drop in 3d image charge simulation. '
+                         'Required for voltage analysis and charge3d analysis. ')
+parser.add_argument('--cathode', default=0, type=float, help='z coordinate (in nm) of cathode')
+parser.add_argument('--anode', default=6.5, type=float, help='z coordinate (in nm) of anode')
+
 args = parser.parse_args()
 
 top = Topology.open(args.topology)
@@ -339,6 +342,11 @@ def voltage():
         for j in range(0, i + 1):
             s += dz * (dz * (i - j)) * charges[j]
         voltage[i] = -s / VACUUM_PERMITTIVITY * ELEMENTARY_CHARGE / NANO
+        if args.voltage != 0:
+            if args.cathode < z_array[i] < args.anode:
+                voltage[i] -= args.voltage * (z_array[i] - args.cathode) / (args.anode - args.cathode)
+            elif z_array[i] > args.anode:
+                voltage[i] -= args.voltage
 
     name_cloumn_dict = {'z': z_array}
 
