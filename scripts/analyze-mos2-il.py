@@ -5,6 +5,7 @@ import argparse
 import math
 import configparser
 import numpy as np
+import scipy.integrate as itg
 
 np.seterr(all='raise')
 import matplotlib
@@ -33,6 +34,8 @@ parser.add_argument('-b', '--begin', default=0, type=int,
 parser.add_argument('-e', '--end', default=-1, type=int,
                     help='last frame (not included) to analyze. Index starts from 0. '
                          '-1 means until last frames (included)')
+parser.add_argument('--dz', default=0.01, type=float,
+                    help='bin size (nm) for numerical calculation of distribution and voltage')
 parser.add_argument('--topignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types in topology in case topology and trajectory do not match')
 parser.add_argument('--dt', default=10, type=float,
@@ -40,7 +43,7 @@ parser.add_argument('--dt', default=10, type=float,
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--ignore', nargs='+', default=[], type=str,
-                    help='ignore these molecule types for voltage analysis')
+                    help='ignore these molecule types for analysis')
 parser.add_argument('--voltage', default=0, type=float,
                     help='pre-assigned voltage drop in 3d image charge simulation. '
                          'Required for voltage analysis and charge3d analysis. ')
@@ -55,6 +58,8 @@ if args.topignore != []:
     top = Topology()
     top.init_from_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
+
+id_atoms = [atom.id for atom in top.atoms if atom.molecule.name not in args.ignore]
 
 ini = configparser.ConfigParser()
 if ini.read(args.config) == []:
@@ -72,9 +77,9 @@ if (top.n_atom != trj.n_atom):
 _frame = trj.read_frame(0)
 area = _frame.cell.size[0] * _frame.cell.size[1]
 box_z = _frame.cell.size[2]
-dz = 0.01 if args.cmd != 'voltage' else 0.002
+dz = args.dz
 n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
-edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)])
+edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)], dtype=np.float32)
 z_array = (edges[1:] + edges[:-1]) / 2
 
 if args.end > trj.n_frame or args.end == -1:
@@ -112,22 +117,17 @@ def _calc_angle_xy(vec):
 def _calc_acf(series):
     '''
     Calculate the auto correlation function of a series
-    acf(t) = <h(0)h(t)>
+    acf(t) = <(h(0)(h(t))>
     '''
-    acf = []
-    for delta in (range(int(len(series) * 0.75))):
-        _tmp = []
-        for t0 in range(len(series) - delta):
-            v0 = series[t0]
-            vt = series[t0 + delta]
-            _tmp.append(v0 * vt)
-        acf.append(np.mean(_tmp))
+    n = len(series)
+    r = np.correlate(series, series, mode='full')[-n:]
+    # assert np.allclose(r, np.array([(x[:n - k] * x[-(n - k):]).sum() for k in range(n)]))
+    acf = r / (np.arange(n, 0, -1))
 
     return acf
 
 
 def distribution():
-    charge_array = np.array([0.] * len(z_array))
     z_atom_dict = {}
     z_com_dict = {}
     theta_dict = {}
@@ -141,12 +141,6 @@ def distribution():
         for mol in top.molecules:
             if mol.name not in mol_names:
                 continue
-
-            for atom in mol.atoms:
-                z = frame.positions[atom.id][2]
-                q = frame.charges[atom.id] if frame.has_charge else atom.charge
-                z_idx = math.floor((z - edges[0]) / dz)
-                charge_array[z_idx] += q
 
             section = ini['molecule.%s' % (mol.name)]
             dists = section['distributions'].split(';')
@@ -163,8 +157,7 @@ def distribution():
                 if name not in z_com_dict:
                     z_com_dict[name] = []
                 atoms = _get_atoms(mol, atoms.split())
-                com_pos = _get_com_position(positions, atoms)
-                z_com_dict[name].append(com_pos[2])
+                z_com_dict[name].append(_get_com_position(positions, atoms)[2])
 
             angles = section['angles'].split(';')
             for angle in angles:
@@ -220,14 +213,6 @@ def distribution():
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
 
-    fig, ax = plt.subplots()
-    ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='charge density (e/$nm^3$)')
-    ax.plot(z_array, charge_array / area / dz / n_frame, label=','.join(mol_names))
-    name_column_dict['charge density - ' + ','.join(mol_names)] = charge_array / area / dz / n_frame
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(f'{args.output}-charge.png')
-
     print_data_to_file(name_column_dict, f'{args.output}-dist.txt')
 
     fig, ax = plt.subplots()
@@ -235,9 +220,12 @@ def distribution():
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
         ax.plot(x, y, label=name)
+        name_column_dict = {'theta': x, 'probability': y}
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-angle.png')
+
+    print_data_to_file(name_column_dict, f'{args.output}-angle.txt')
 
 
 def diffusion():
@@ -270,9 +258,9 @@ def diffusion():
         sys.stdout.write('\r    frame %i' % i)
 
         if frame.time != -1:
-            t_list.append(frame.time / 1e3)  # convert ps to ns
+            t_list.append(frame.time / 1E3)  # convert ps to ns
         else:
-            t_list.append(i * args.dt / 1e3)
+            t_list.append(i * args.dt / 1E3)
 
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):
@@ -282,42 +270,52 @@ def diffusion():
                                 and com_position[2] <= residence_zrange_dict[name][1])
                 residence_dict[name][k].append(residence)
 
+    # TODO optimize the performance with multiprocessing
     for name, residence_series_list in residence_dict.items():
+        series_array = np.array(residence_series_list)
         acf_series_list = []
-        for residence_series in residence_series_list:
-            acf_series_list.append(_calc_acf(residence_series))
-        acf_dict[name] = np.mean(acf_series_list, axis=0) / np.mean(residence_series_list)
+        for array in series_array:
+            acf_series_list.append(_calc_acf(array - series_array.mean()))
+        acf_dict[name] = np.mean(acf_series_list, axis=0) / series_array.var()
 
     print('')
 
     t_array = np.array(t_list) - t_list[0]
     name_cloumn_dict = {'time': t_array}
     for name, z_series_list in z_dict.items():
-        fig, ax = plt.subplots(figsize=(6.4, 12.8))
-        ax.set(ylim=[0, box_z], xlabel='time (ns)', ylabel='z (nm)')
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(8, 8))
+        ax1.set(ylim=[box_z - 1.0, box_z], ylabel='z (nm)')
+        ax2.set(ylim=[0, 1.0], xlabel='time (ns)', ylabel='z (nm)')
+        ax1.spines['bottom'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax1.xaxis.tick_top()
+        ax2.xaxis.tick_bottom()
         for z_series in z_series_list:
-            ax.plot(t_array, z_series)
+            ax1.plot(t_array, z_series, linewidth=1)
+            ax2.plot(t_array, z_series, linewidth=1)
+        plt.subplots_adjust(hspace=0.1)
         fig.tight_layout()
         fig.savefig(f'{args.output}-diffusion-{name}.png')
 
     fig, ax = plt.subplots()
-    ax.set(ylim=[0, 1.2], xlabel='time (ns)', ylabel='residence auto correlation')
+    ax.set(xlim=[0, t_array[-1] * 0.75], ylim=[0, 1.2], xlabel='time (ns)',
+           ylabel='residence auto correlation')
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
         ax.plot(t_array[:_len], acf_dict[name], label=name)
         name_cloumn_dict['time'] = t_array[:_len]
         name_cloumn_dict['acf - ' + name] = acf_dict[name]
-    ax.plot([0, t_array[-1] * 0.5], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
+    ax.plot([0, t_array[-1] * 0.75], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(f'{args.output}-diff_acf.png')
+    fig.savefig(f'{args.output}-residence.png')
 
-    print_data_to_file(name_cloumn_dict, f'{args.output}-diff_acf.txt')
+    print_data_to_file(name_cloumn_dict, f'{args.output}-residence.txt')
 
 
 def voltage():
-    charges = np.array([0.] * n_bin)
-    voltage = np.array([0.] * n_bin)
+    charges = np.zeros(n_bin)
+    top_atom_charges = np.array(top.charges, dtype=np.float32)
 
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
@@ -325,26 +323,25 @@ def voltage():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        for k, atom in enumerate(top.atoms):
-            if atom.molecule.name in args.ignore:
-                continue
-            z = frame.positions[k][2]
-            i_bin = math.floor((z - edges[0]) / dz)
-            i_bin = min(i_bin, n_bin - 1)
-            q = frame.charges[k] if frame.has_charge else atom.charge
-            charges[i_bin] += q
+        atom_z_coors = frame.positions[id_atoms][:, 2]
+        atom_charges = frame.charges[id_atoms] if frame.has_charge else top_atom_charges[id_atoms]
+        atom_i_bin = ((atom_z_coors - edges[0]) / dz).astype(int)
+        for i, i_bin in enumerate(atom_i_bin):
+            charges[i_bin] += atom_charges[i]
 
     charges_cumulative = np.cumsum(charges) / n_frame
     charges /= area * dz * n_frame  # e/nm^3
 
-    for i in range(1, n_bin):
-        s = 0
-        for j in range(0, i + 1):
-            s += dz * (dz * (i - j)) * charges[j]
-        voltage[i] = -s / VACUUM_PERMITTIVITY * ELEMENTARY_CHARGE / NANO
-        if args.voltage != 0:
+    e_field = itg.cumtrapz(charges, dx=dz, initial=0) \
+              * ELEMENTARY_CHARGE / NANO ** 2 / VACUUM_PERMITTIVITY
+    voltage = -itg.cumtrapz(e_field, dx=dz, initial=0) * NANO
+
+    ### add voltage drop because of charges on electrodes
+    if args.voltage != 0:
+        for i in range(0, n_bin):
             if args.cathode < z_array[i] < args.anode:
-                voltage[i] -= args.voltage * (z_array[i] - args.cathode) / (args.anode - args.cathode)
+                voltage[i] -= args.voltage * (z_array[i] - args.cathode) / (
+                        args.anode - args.cathode)
             elif z_array[i] > args.anode:
                 voltage[i] -= args.voltage
 
@@ -358,7 +355,7 @@ def voltage():
     name_cloumn_dict['charge density'] = charges
 
     ax2 = fig.add_subplot('312')
-    ax2.set(ylim=[-5, 5], xlabel='z (nm)', ylabel='cumulative charges (e)')
+    ax2.set(xlabel='z (nm)', ylabel='cumulative charges (e)')
     ax2.plot(z_array, charges_cumulative)
     ax2.plot(z_array, [0] * n_bin, '--')
     name_cloumn_dict['cumulative charge'] = charges_cumulative
