@@ -272,16 +272,18 @@ def diffusion():
 
     # TODO optimize the performance with multiprocessing
     for name, residence_series_list in residence_dict.items():
-        series_array = np.array(residence_series_list)
         acf_series_list = []
-        for array in series_array:
-            acf_series_list.append(_calc_acf(array - series_array.mean()))
-        acf_dict[name] = np.mean(acf_series_list, axis=0) / series_array.var()
+        # for series in residence_series_list:
+        #     acf_series_list.append(_calc_acf(series - np.mean(residence_series_list)))
+        # acf_dict[name] = np.mean(acf_series_list, axis=0) / np.var(residence_series_list)
+        for series in residence_series_list:
+            acf_series_list.append(_calc_acf(series))
+        acf_dict[name] = np.mean(acf_series_list, axis=0) / np.mean(residence_series_list)
 
     print('')
 
     t_array = np.array(t_list) - t_list[0]
-    name_cloumn_dict = {'time': t_array}
+    name_column_dict = {'time': t_array}
     for name, z_series_list in z_dict.items():
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(8, 8))
         ax1.set(ylim=[box_z - 1.0, box_z], ylabel='z (nm)')
@@ -303,14 +305,14 @@ def diffusion():
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
         ax.plot(t_array[:_len], acf_dict[name], label=name)
-        name_cloumn_dict['time'] = t_array[:_len]
-        name_cloumn_dict['acf - ' + name] = acf_dict[name]
+        name_column_dict['time'] = t_array[:_len]
+        name_column_dict['acf - ' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.75], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-residence.png')
 
-    print_data_to_file(name_cloumn_dict, f'{args.output}-residence.txt')
+    print_data_to_file(name_column_dict, f'{args.output}-residence.txt')
 
 
 def voltage():
@@ -345,20 +347,20 @@ def voltage():
             elif z_array[i] > args.anode:
                 voltage[i] -= args.voltage
 
-    name_cloumn_dict = {'z': z_array}
+    name_column_dict = {'z': z_array}
 
     fig = plt.figure(figsize=[6.4, 12.8])
     ax1 = fig.add_subplot('311')
     ax1.set(xlabel='z (nm)', ylabel='charge density (e/nm$^3$)')
     ax1.plot(z_array, charges)
     ax1.plot(z_array, [0] * n_bin, '--')
-    name_cloumn_dict['charge density'] = charges
+    name_column_dict['charge density'] = charges
 
     ax2 = fig.add_subplot('312')
     ax2.set(xlabel='z (nm)', ylabel='cumulative charges (e)')
     ax2.plot(z_array, charges_cumulative)
     ax2.plot(z_array, [0] * n_bin, '--')
-    name_cloumn_dict['cumulative charge'] = charges_cumulative
+    name_column_dict['cumulative charge'] = charges_cumulative
 
     ax3 = fig.add_subplot('313')
     ax3.set(xlabel='z (nm)', ylabel='voltage (V)')
@@ -366,9 +368,9 @@ def voltage():
     ax3.plot(z_array, [0] * n_bin, '--')
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
-    name_cloumn_dict['voltage'] = voltage
+    name_column_dict['voltage'] = voltage
 
-    print_data_to_file(name_cloumn_dict, f'{args.output}-voltage.txt')
+    print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
 
 def charge_2d():
