@@ -142,10 +142,6 @@ class Topology():
         return [atom.position for atom in self.atoms]
 
     @property
-    def charges(self):
-        return [atom.charge for atom in self.atoms]
-
-    @property
     def is_drude(self):
         return any(atom.is_drude for atom in self._atoms)
 

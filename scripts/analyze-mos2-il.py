@@ -317,7 +317,7 @@ def diffusion():
 
 def voltage():
     charges = np.zeros(n_bin)
-    top_atom_charges = np.array(top.charges, dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
 
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
