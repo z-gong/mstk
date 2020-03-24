@@ -24,7 +24,7 @@ class UnitCell():
             self._lengths = None  # calculate lengths and angles when required
             self._angles = None  # calculate lengths and angles when required
         elif array.shape == (2, 3):
-            self._vectors = None  # calculate lengths and angles when required
+            self._vectors = None  # calculate vectors when required
             self._lengths = array[0]
             self._angles = array[1]
 

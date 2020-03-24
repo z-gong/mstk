@@ -17,7 +17,7 @@ class Atom():
         self.alpha = 0.  # for polarizable model
         self.thole = 0.  # for polarizable model
         self.has_position = False
-        self._position = np.array([0, 0, 0], dtype=float)
+        self._position = np.zeros(3, dtype=np.float32)
         self._molecule: Molecule = None
         self._bonds: [Bond] = []
         self._id_in_molecule = -1
@@ -46,7 +46,7 @@ class Atom():
         atom.alpha = self.alpha
         atom.thole = self.thole
         atom.has_position = self.has_position
-        atom._position = self._position[:]
+        atom._position[:] = self._position[:]
         return atom
 
     @property
@@ -69,7 +69,7 @@ class Atom():
     def position(self, value):
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('position should has three elements')
-        self._position = np.array(value)
+        self._position[:] = value
 
 
 class Bond():

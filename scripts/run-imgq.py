@@ -43,7 +43,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     spring_self(system, gro.positions.value_in_unit(nm), group_mos_core, [0.001, 0.001, 5.0] * kCal_mol / A ** 2)
-    wall = wall_lj126(system, group_ils_drude, 'z', [0, box_z / 2], epsilon=0.5 * kCal_mol, sigma=0.2 * nm)
+    wall = wall_lj126(system, group_ils_drude, 'z', [0, box_z / 2], epsilon=0.5 * kCal_mol, sigma=0.15 * nm)
     print(wall.getEnergyFunction())
 
     ### randomlize particle positions to get ride of overlap
