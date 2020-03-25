@@ -78,8 +78,10 @@ _frame = trj.read_frame(0)
 area = _frame.cell.size[0] * _frame.cell.size[1]
 box_z = _frame.cell.size[2]
 dz = args.dz
-n_bin = math.ceil((box_z + 1.0) / dz)  # increase both the bottom and top by 0.5 nm to consider MoS2
-edges = np.array([dz * i - 0.5 for i in range(n_bin + 1)], dtype=np.float32)
+# increase both the bottom and top by 0.4 nm to consider MoS2
+# add one extra bin and move edges by 0.5*dz so that the centers of bins are prettier
+n_bin = math.ceil((box_z + 0.8) / dz) + 1
+edges = np.array([dz * (i - 0.5) - 0.4 for i in range(n_bin + 1)], dtype=np.float32)
 z_array = (edges[1:] + edges[:-1]) / 2
 
 if args.end > trj.n_frame or args.end == -1:
@@ -331,46 +333,49 @@ def voltage():
         for i, i_bin in enumerate(atom_i_bin):
             charges[i_bin] += atom_charges[i]
 
-    charges_cumulative = np.cumsum(charges) / n_frame
-    charges /= area * dz * n_frame  # e/nm^3
+    charges /= n_frame
+    ### add back charges on electrodes
+    if args.voltage != 0:
+        q_electrode = args.voltage * VACUUM_PERMITTIVITY * area / (args.anode - args.cathode) \
+                      * NANO / ELEMENTARY_CHARGE
+        idx_cat = int((args.cathode - edges[0]) / dz)
+        idx_ano = int((args.anode - edges[0]) / dz)
+        charges[idx_cat] += q_electrode
+        charges[idx_ano] -= q_electrode
+
+    charges_cumulative = np.cumsum(charges)
+    charges /= area * dz  # e/nm^3
 
     e_field = itg.cumtrapz(charges, dx=dz, initial=0) \
               * ELEMENTARY_CHARGE / NANO ** 2 / VACUUM_PERMITTIVITY
     voltage = -itg.cumtrapz(e_field, dx=dz, initial=0) * NANO
 
-    ### add voltage drop because of charges on electrodes
-    if args.voltage != 0:
-        for i in range(0, n_bin):
-            if args.cathode < z_array[i] < args.anode:
-                voltage[i] -= args.voltage * (z_array[i] - args.cathode) / (
-                        args.anode - args.cathode)
-            elif z_array[i] > args.anode:
-                voltage[i] -= args.voltage
+    name_column_dict = {'z'                : z_array,
+                        'charge density'   : charges,
+                        'cumulative charge': charges_cumulative,
+                        'voltage'          : voltage}
+    print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
-    name_column_dict = {'z': z_array}
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='charge density (e/nm$^3$)')
+    ax.plot(z_array, charges)
+    ax.plot(z_array, [0] * n_bin, '--')
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-charge.png')
 
-    fig = plt.figure(figsize=[6.4, 12.8])
-    ax1 = fig.add_subplot('311')
-    ax1.set(xlabel='z (nm)', ylabel='charge density (e/nm$^3$)')
-    ax1.plot(z_array, charges)
-    ax1.plot(z_array, [0] * n_bin, '--')
-    name_column_dict['charge density'] = charges
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='cumulative charges (e)')
+    ax.plot(z_array, charges_cumulative)
+    ax.plot(z_array, [0] * n_bin, '--')
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-charge_cumulative.png')
 
-    ax2 = fig.add_subplot('312')
-    ax2.set(xlabel='z (nm)', ylabel='cumulative charges (e)')
-    ax2.plot(z_array, charges_cumulative)
-    ax2.plot(z_array, [0] * n_bin, '--')
-    name_column_dict['cumulative charge'] = charges_cumulative
-
-    ax3 = fig.add_subplot('313')
-    ax3.set(xlabel='z (nm)', ylabel='voltage (V)')
-    ax3.plot(z_array, voltage)
-    ax3.plot(z_array, [0] * n_bin, '--')
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='voltage (V)')
+    ax.plot(z_array, voltage)
+    ax.plot(z_array, [0] * n_bin, '--')
     fig.tight_layout()
     fig.savefig(f'{args.output}-voltage.png')
-    name_column_dict['voltage'] = voltage
-
-    print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
 
 def charge_2d():
