@@ -415,9 +415,9 @@ class Molecule():
         self._impropers = []
 
         def check_and_add_angle(atom1, atom2, atom3):
-            atype1: AtomType = params.atom_types[atom1.type].equivalent_type_angle
-            atype2: AtomType = params.atom_types[atom2.type].equivalent_type_angle
-            atype3: AtomType = params.atom_types[atom3.type].equivalent_type_angle
+            atype1: AtomType = params.atom_types[atom1.type].eqt_angle
+            atype2: AtomType = params.atom_types[atom2.type].eqt_angle
+            atype3: AtomType = params.atom_types[atom3.type].eqt_angle
             angle_term = AngleTerm(atype1.name, atype2.name, atype3.name, 0)
             if angle_term.name not in params.angle_terms.keys():
                 raise Exception(f'{str(angle_term)} not exist in force field parameter set')
@@ -452,8 +452,8 @@ class Molecule():
                 if atom2.type not in params.atom_types.keys():
                     raise Exception(
                         f'Atom type {atom2.type} not exist in force field parameter set')
-                atype1: AtomType = params.atom_types[atom1.type].equivalent_type_bond
-                atype2: AtomType = params.atom_types[atom2.type].equivalent_type_bond
+                atype1: AtomType = params.atom_types[atom1.type].eqt_bond
+                atype2: AtomType = params.atom_types[atom2.type].eqt_bond
                 bond_term = BondTerm(atype1.name, atype2.name, 0)
                 if bond_term.name not in params.bond_terms.keys():
                     raise Exception(f'{str(bond_term)} not exist in force field parameter set')
@@ -486,10 +486,10 @@ class Molecule():
                 for atom4 in atom3.bond_partners:
                     if atom1 == atom4 or Dihedral(atom1, atom2, atom3, atom4) in self._dihedrals:
                         continue
-                    atype1: AtomType = params.atom_types[atom1.type].equivalent_type_dihedral_side
-                    atype2: AtomType = params.atom_types[atom2.type].equivalent_type_dihedral_center
-                    atype3: AtomType = params.atom_types[atom3.type].equivalent_type_dihedral_center
-                    atype4: AtomType = params.atom_types[atom4.type].equivalent_type_dihedral_side
+                    atype1: AtomType = params.atom_types[atom1.type].eqt_dihedral_side
+                    atype2: AtomType = params.atom_types[atom2.type].eqt_dihedral_center
+                    atype3: AtomType = params.atom_types[atom3.type].eqt_dihedral_center
+                    atype4: AtomType = params.atom_types[atom4.type].eqt_dihedral_side
                     dihedral_term = DihedralTerm(atype1.name, atype2.name, atype3.name, atype4.name)
                     if dihedral_term.name not in params.dihedral_terms.keys():
                         print(f'warning: {str(Dihedral(atom1, atom2, atom3, atom4))} '
@@ -501,10 +501,10 @@ class Molecule():
             if len(atom1.bond_partners) != 3:
                 continue
             atom2, atom3, atom4 = atom1.bond_partners
-            atype1: AtomType = params.atom_types[atom1.type].equivalent_type_improper_center
-            atype2: AtomType = params.atom_types[atom2.type].equivalent_type_improper_side
-            atype3: AtomType = params.atom_types[atom3.type].equivalent_type_improper_side
-            atype4: AtomType = params.atom_types[atom4.type].equivalent_type_improper_side
+            atype1: AtomType = params.atom_types[atom1.type].eqt_improper_center
+            atype2: AtomType = params.atom_types[atom2.type].eqt_improper_side
+            atype3: AtomType = params.atom_types[atom3.type].eqt_improper_side
+            atype4: AtomType = params.atom_types[atom4.type].eqt_improper_side
             improper_term = ImproperTerm(atype1.name, atype2.name, atype3.name, atype4.name)
             if improper_term.name not in params.improper_terms.keys():
                 print(f'warning: {str(Improper(atom1, atom2, atom3, atom4))} '
@@ -515,15 +515,15 @@ class Molecule():
     def assign_charge_from_forcefield(self, params: ParameterSet):
         for atom in self._atoms:
             try:
-                atom.charge = params.atom_types[atom.type].equivalent_type_charge.charge
+                atom.charge = params.atom_types[atom.type].eqt_charge.charge
             except:
                 raise Exception(f'Atom type {atom.type} not exist in parameter set')
 
         for bond in self._bonds:
             atom1, atom2 = bond.atom1, bond.atom2
             try:
-                atype1: AtomType = params.atom_types[atom1.type].equivalent_type_charge_increment
-                atype2: AtomType = params.atom_types[atom2.type].equivalent_type_charge_increment
+                atype1: AtomType = params.atom_types[atom1.type].eqt_charge_increment
+                atype2: AtomType = params.atom_types[atom2.type].eqt_charge_increment
             except:
                 raise Exception(f'Atom type {bond.atom1.type} or {bond.atom2.type}'
                                 f'not exist in parameter set')

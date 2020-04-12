@@ -23,61 +23,61 @@ class AtomType(FFTerm):
         # instead of writing every pair as LJTerm
         self._epsilon = 0.0
         self._sigma = 0.0
-        self.equivalent_type_vdw = self
-        self.equivalent_type_charge = self
-        self.equivalent_type_bond_increment = self
-        self.equivalent_type_bond = self
-        self.equivalent_type_angle_center = self
-        self.equivalent_type_angle_side = self
-        self.equivalent_type_dihedral_center = self
-        self.equivalent_type_dihedral_side = self
-        self.equivalent_type_improper_center = self
-        self.equivalent_type_improper_side = self
+        self.eqt_vdw = self
+        self.eqt_charge = self
+        self.eqt_bond_increment = self
+        self.eqt_bond = self
+        self.eqt_angle_center = self
+        self.eqt_angle_side = self
+        self.eqt_dihedral_center = self
+        self.eqt_dihedral_side = self
+        self.eqt_improper_center = self
+        self.eqt_improper_side = self
 
     @property
     def charge(self):
-        if self.equivalent_type_charge == self:
+        if self.eqt_charge == self:
             return self._charge
         else:
-            return self.equivalent_type_charge._charge
+            return self.eqt_charge._charge
 
     @charge.setter
     def charge(self, value):
         self._charge = value
-        if self.equivalent_type_charge != self:
+        if self.eqt_charge != self:
             print('warning: charge parameter for %s is equivalent to %s, '
-                  'you may want to set the charge for %s or change the equivalent_type_charge to self'
-                  % (str(self), str(self.equivalent_type_charge), str(self.equivalent_type_charge)))
+                  'you may want to set the charge for %s or change the eqt_charge to self'
+                  % (str(self), str(self.eqt_charge), str(self.eqt_charge)))
 
     @property
     def epsilon(self):
-        if self.equivalent_type_vdw == self:
+        if self.eqt_vdw == self:
             return self._epsilon
         else:
-            return self.equivalent_type_vdw._epsilon
+            return self.eqt_vdw._epsilon
 
     @epsilon.setter
     def epsilon(self, value):
         self._epsilon = value
-        if self.equivalent_type_vdw != self:
+        if self.eqt_vdw != self:
             print('warning: epsilon parameter for %s is equivalent to %s, '
-                  'you may want to set the epsilon for %s or change the equivalent_type_lj to self'
-                  % (str(self), str(self.equivalent_type_charge), str(self.equivalent_type_charge)))
+                  'you may want to set the epsilon for %s or change the eqt_lj to self'
+                  % (str(self), str(self.eqt_charge), str(self.eqt_charge)))
 
     @property
     def sigma(self):
-        if self.equivalent_type_vdw == self:
+        if self.eqt_vdw == self:
             return self._sigma
         else:
-            return self.equivalent_type_vdw._sigma
+            return self.eqt_vdw._sigma
 
     @sigma.setter
     def sigma(self, value):
         self._sigma = value
-        if self.equivalent_type_vdw != self:
+        if self.eqt_vdw != self:
             print('warning: sigma parameter for %s is equivalent to %s, '
-                  'you may want to set the sigma for %s or change the equivalent_type_lj to self'
-                  % (str(self), str(self.equivalent_type_charge), str(self.equivalent_type_charge)))
+                  'you may want to set the sigma for %s or change the eqt_lj to self'
+                  % (str(self), str(self.eqt_charge), str(self.eqt_charge)))
 
     def __lt__(self, other):
         return self.name < other.name
@@ -173,7 +173,7 @@ class DihedralTerm(FFTerm):
 
 class ImproperTerm(FFTerm):
     '''
-    center atom is the first, following the convention of GROMACS
+    Center atom is the first, following the convention of GROMACS
     '''
 
     def __init__(self, type1: str, type2: str, type3: str, type4: str):
@@ -218,7 +218,7 @@ class LJTerm(VdwTerm):
 
 class HarmonicBondTerm(BondTerm):
     '''
-    U = 0.5 * k * (b-b0)^2
+    U = k * (b-b0)^2
     '''
 
     def __init__(self, type1, type2, length, k, fixed=False):
@@ -228,7 +228,7 @@ class HarmonicBondTerm(BondTerm):
 
 class HarmonicAngleTerm(AngleTerm):
     '''
-    U = 0.5 * k * (theta-theta0)^2
+    U = k * (theta-theta0)^2
     '''
 
     def __init__(self, type1, type2, type3, theta, k, fixed=False):
@@ -238,7 +238,7 @@ class HarmonicAngleTerm(AngleTerm):
 
 class PeriodicDihedralTerm(DihedralTerm):
     '''
-    U = k*(1+cos(n*phi-phi0))
+    U = k * (1+cos(n*phi-phi0))
     '''
     Parameter = namedtuple('Parameter', ['multiplicity', 'phi', 'k'])
 
@@ -255,7 +255,7 @@ class PeriodicDihedralTerm(DihedralTerm):
 
 class FourierDihedralTerm(DihedralTerm):
     '''
-    U = 0.5 * (k1*(1+cos(phi)) + k2*(1-cos(2*phi)) + k3*(1+cos(3*phi)) + k4*(1-cos(4*phi)))
+    U = (k1*(1+cos(phi)) + k2*(1-cos(2*phi)) + k3*(1+cos(3*phi)) + k4*(1-cos(4*phi)))
     '''
 
     def __init__(self, type1, type2, type3, type4, k1, k2, k3, k4):
@@ -278,7 +278,7 @@ class PeriodicImproperTerm(ImproperTerm):
 
 class HarmonicImproperTerm(ImproperTerm):
     '''
-    U = 0.5 * k * phi^2
+    U = k * phi^2
     '''
 
     def __init__(self, type1, type2, type3, type4, k):

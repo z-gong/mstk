@@ -74,8 +74,7 @@ class System():
         for bond in self._topology.bonds:
             atype1: AtomType = self._params.atom_types[bond.atom1.type]
             atype2: AtomType = self._params.atom_types[bond.atom2.type]
-            bterm = BondTerm(atype1.equivalent_type_bond.name, atype2.equivalent_type_bond.name,
-                             0.0)
+            bterm = BondTerm(atype1.eqt_bond.name, atype2.eqt_bond.name, 0.0)
             bterm = self._params.bond_terms[bterm.name]
             if bterm.fixed:
                 bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k)
@@ -93,9 +92,8 @@ class System():
             atype1: AtomType = self._params.atom_types[angle.atom1.type]
             atype2: AtomType = self._params.atom_types[angle.atom2.type]
             atype3: AtomType = self._params.atom_types[angle.atom3.type]
-            aterm = AngleTerm(atype1.equivalent_type_angle_side.name,
-                              atype2.equivalent_type_angle_center.name,
-                              atype3.equivalent_type_angle_side.name, 0.0)
+            aterm = AngleTerm(atype1.eqt_angle_side.name, atype2.eqt_angle_center.name,
+                              atype3.eqt_angle_side.name, 0.0)
             aterm = self._params.angle_terms[aterm.name]
             aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                             aterm.theta * CONST.PI / 180, aterm.k)
@@ -113,10 +111,8 @@ class System():
             dtype2: AtomType = self._params.atom_types[dihedral.atom2.type]
             dtype3: AtomType = self._params.atom_types[dihedral.atom3.type]
             dtype4: AtomType = self._params.atom_types[dihedral.atom4.type]
-            dterm = DihedralTerm(dtype1.equivalent_type_dihedral_side.name,
-                                 dtype2.equivalent_type_dihedral_center.name,
-                                 dtype3.equivalent_type_dihedral_center.name,
-                                 dtype4.equivalent_type_dihedral_side.name)
+            dterm = DihedralTerm(dtype1.eqt_dihedral_side.name, dtype2.eqt_dihedral_center.name,
+                                 dtype3.eqt_dihedral_center.name, dtype4.eqt_dihedral_side.name)
 
             dterm = self._params.dihedral_terms[dterm.name]
             ia1, ia2, ia3, ia4 = dihedral.atom1.id, dihedral.atom2.id, dihedral.atom3.id, dihedral.atom4.id
@@ -147,10 +143,8 @@ class System():
             itype2: AtomType = self._params.atom_types[improper.atom2.type]
             itype3: AtomType = self._params.atom_types[improper.atom3.type]
             itype4: AtomType = self._params.atom_types[improper.atom4.type]
-            iterm = ImproperTerm(itype1.equivalent_type_improper_center.name,
-                                 itype2.equivalent_type_improper_side.name,
-                                 itype3.equivalent_type_improper_side.name,
-                                 itype4.equivalent_type_improper_side.name)
+            iterm = ImproperTerm(itype1.eqt_improper_center.name, itype2.eqt_improper_side.name,
+                                 itype3.eqt_improper_side.name, itype4.eqt_improper_side.name)
             iterm = self._params.improper_terms[iterm.name]
             iforce.addTorsion(improper.atom1.id, improper.atom2.id, improper.atom3.id,
                               improper.atom4.id, [iterm.k])

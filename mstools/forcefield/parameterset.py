@@ -1,5 +1,6 @@
 import math
 from .ffterm import *
+from .element import Element
 
 
 class ParameterSet():
@@ -45,8 +46,8 @@ class ParameterSet():
         get vdW term between two atom types
         if not exist, assuming it's LJ126 and generate it using combination rule
         '''
-        atype1 = type1.equivalent_type_vdw
-        atype2 = type2.equivalent_type_vdw
+        atype1 = type1.eqt_vdw
+        atype2 = type2.eqt_vdw
         vdw = self.vdw_terms.get(VdwTerm(atype1.name, atype2.name).name)
         if vdw is not None:
             return vdw
@@ -65,20 +66,20 @@ class ParameterSet():
 
 
 class FFToolParameterSet(ParameterSet):
-    def __init__(self, file, mode='r'):
+    '''
+    FFTool use OPLS convention. Length are in A, energy are in kJ/mol
+    The energy term is in k/2 form for bond, angle, dihedral and improper
+    '''
+
+    def __init__(self, file):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_GEOMETRIC
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
-        self._file = open(file, mode)
-        if mode == 'r':
-            self.parse()
-        elif mode == 'w':
-            raise Exception('Writing is not supported for FFToolParameterSet')
-
-    def __del__(self):
-        self.close()
+        self._file = open(file)
+        self.parse()
+        self._file.close()
 
     def parse(self):
         self._eq_atom_types = {}  # add a temporary attribute to match equivalent type later
@@ -114,7 +115,7 @@ class FFToolParameterSet(ParameterSet):
             elif section == 'impropers':
                 self.parse_improper(words)
 
-        self.setup_equivalent_types()
+        self.setup_eqts()
 
     def parse_atom(self, words):
         atype_eq = AtomType(words[1])
@@ -149,25 +150,25 @@ class FFToolParameterSet(ParameterSet):
         else:
             raise Exception('Duplicated atom type: %s' % atype)
 
-    def setup_equivalent_types(self):
+    def setup_eqts(self):
         for name, atype in self._eq_atom_types.items():
             if name not in self.atom_types:
                 self.atom_types[name] = atype
 
         for atype in self.atom_types.values():
-            atype.equivalent_type_bond = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_angle_center = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_angle_side = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_dihedral_center = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_dihedral_side = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_improper_center = self.atom_types[atype._eq_type_name]
-            atype.equivalent_type_improper_side = self.atom_types[atype._eq_type_name]
+            atype.eqt_bond = self.atom_types[atype._eq_type_name]
+            atype.eqt_angle_center = self.atom_types[atype._eq_type_name]
+            atype.eqt_angle_side = self.atom_types[atype._eq_type_name]
+            atype.eqt_dihedral_center = self.atom_types[atype._eq_type_name]
+            atype.eqt_dihedral_side = self.atom_types[atype._eq_type_name]
+            atype.eqt_improper_center = self.atom_types[atype._eq_type_name]
+            atype.eqt_improper_side = self.atom_types[atype._eq_type_name]
 
     def parse_bond(self, words):
         if words[2] not in ['harm', 'cons']:
             raise Exception('Unsupported bond function: %s' % (words[2]))
-        bond = HarmonicBondTerm(words[0], words[1], length=float(words[3]) / 10, k=float(words[4]),
-                                fixed=(words[2] == 'cons'))
+        bond = HarmonicBondTerm(words[0], words[1], length=float(words[3]) / 10,
+                                k=float(words[4]) / 2, fixed=(words[2] == 'cons'))
         if bond.name in self.bond_terms.keys():
             raise Exception('Duplicated bond term: %s' % self)
         self.bond_terms[bond.name] = bond
@@ -176,7 +177,7 @@ class FFToolParameterSet(ParameterSet):
         if words[3] not in ['harm']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
         angle = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
-                                  k=float(words[5]))
+                                  k=float(words[5]) / 2)
         if angle.name in self.angle_terms.keys():
             raise Exception('Duplicated angle term: %s' % self)
         self.angle_terms[angle.name] = angle
@@ -185,8 +186,8 @@ class FFToolParameterSet(ParameterSet):
         if words[4] not in ['opls']:
             raise Exception('Unsupported dihedral function: %s' % (words[4]))
         dihedral = FourierDihedralTerm(words[0], words[1], words[2], words[3],
-                                       k1=float(words[5]), k2=float(words[6]),
-                                       k3=float(words[7]), k4=float(words[8])
+                                       k1=float(words[5]) / 2, k2=float(words[6]) / 2,
+                                       k3=float(words[7]) / 2, k4=float(words[8]) / 2
                                        )
         if dihedral.name in self.dihedral_terms.keys():
             raise Exception('Duplicated dihedral term: %s' % self)
@@ -198,30 +199,32 @@ class FFToolParameterSet(ParameterSet):
         '''
         if words[4] not in ['opls']:
             raise Exception('Unsupported improper function: %s' % (words[4]))
-        improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3], k=float(words[6]))
+        improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3],
+                                        k=float(words[6]) / 2)
         if improper.name in self.improper_terms.keys():
             raise Exception('Duplicated improper term: %s' % self)
         self.improper_terms[improper.name] = improper
 
-    def close(self):
-        self._file.close()
+    def write(self, file):
+        '''
+        Writing is not supported for FFTool
+        '''
 
 
 class PpfParameterSet(ParameterSet):
-    def __init__(self, file, mode='r'):
+    '''
+    In pff format, there is no 1/2 for all energy terms
+    '''
+
+    def __init__(self, file):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_LB
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 1.0 / 1.2
 
-        self._file = open(file, mode)
-        if mode == 'r':
-            self.parse()
-        elif mode == 'w':
-            raise Exception('Writing is not supported for PpfParameterSet')
-
-    def __del__(self):
-        self.close()
+        self._file = open(file)
+        self.parse()
+        self._file.close()
 
     def parse(self):
         '''
@@ -229,5 +232,73 @@ class PpfParameterSet(ParameterSet):
         '''
         pass
 
-    def close(self):
-        self._file.close()
+    @staticmethod
+    def write(params, file):
+        line = '#DFF:EQT\n'
+        line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
+        for atype in params.atom_types.values():
+            line += '%s: %s %s %s %s %s %s %s %s %s %s\n' % (
+                atype.name, atype.eqt_vdw.name, atype.eqt_charge.name, atype.eqt_charge.name,
+                atype.eqt_bond.name,
+                atype.eqt_angle_center.name, atype.eqt_angle_side.name,
+                atype.eqt_dihedral_center.name, atype.eqt_dihedral_side.name,
+                atype.eqt_improper_center.name, atype.eqt_improper_side.name
+            )
+        line += ('#DFF:PPF\n'
+                 '#PROTOCOL = AMBER\n'
+                 '#TYPINGRULE = \n'
+                 )
+        for atype in params.atom_types.values():
+            element = Element.guess_from_atom_type(atype.name)
+            line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, element.mass)
+        for atype in params.atom_types.values():
+            line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)
+        for atype in params.atom_types.values():
+            line += 'N12_6: %s: %.5f, %.5f: \n' % (
+                atype.name, atype.sigma * 10 * 2 ** (1 / 6), atype.epsilon / 4.184)
+        for binc in params.charge_increment_terms.values():
+            line += 'BINC: %s, %s: %.5f: ' % (binc.type1, binc.type2, binc.value)
+        for bond in params.bond_terms.values():
+            if isinstance(bond, HarmonicBondTerm):
+                line += 'BHARM: %s, %s: %.5f, %.5f: \n' % (
+                    bond.type1, bond.type2, bond.length * 10, bond.k / 4.184)
+            else:
+                raise Exception('Only HarmonicBondTerm is implemented')
+        for angle in params.angle_terms.values():
+            if isinstance(angle, HarmonicAngleTerm):
+                line += 'AHARM: %s, %s, %s: %.5f, %.5f: \n' % (
+                    angle.type1, angle.type2, angle.type3, angle.theta, angle.k / 4.184)
+            else:
+                raise Exception('Only HarmonicAngleTerm is implemented')
+        for dihedral in params.dihedral_terms.values():
+            if isinstance(dihedral, PeriodicDihedralTerm):
+                line += 'TCOSP: %s, %s, %s, %s:' % (
+                    dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
+                for par in dihedral.parameters:
+                    line += f' {par.phi}, {par.k}, {par.multiplicity}'
+                line += ' : \n'
+            elif isinstance(dihedral, FourierDihedralTerm):
+                # if dihedral.k4 != 0:
+                #     print(f'4th terms of {str(dihedral)} is ignored')
+                line += 'TCOSP: %s, %s, %s, %s: ' % (
+                    dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
+                str_paras = []
+                if dihedral.k1 != 0: str_paras.append('0.0, %.5f, 1' % (dihedral.k1 / 4.184))
+                if dihedral.k2 != 0: str_paras.append('180, %.5f, 2' % (dihedral.k2 / 4.184))
+                if dihedral.k3 != 0: str_paras.append('0.0, %.5f, 3' % (dihedral.k3 / 4.184))
+                if dihedral.k4 != 0: str_paras.append('180, %.5f, 4' % (dihedral.k4 / 4.184))
+                if {dihedral.k1, dihedral.k2, dihedral.k3, dihedral.k4} == {0}:
+                    str_paras.append('0.0, 0 , 1')
+                line += ', '.join(str_paras) + ': \n'
+            else:
+                raise Exception('Only PeriodicDihedralTerm is implemented')
+        for improper in params.improper_terms.values():
+            if isinstance(improper, PeriodicImproperTerm):
+                line += 'IBCOS: %s, %s, %s, %s: 180, %.5f, 2: \n' % (
+                    improper.type2, improper.type3, improper.type1, improper.type4,
+                    improper.k / 4.184)
+            else:
+                raise Exception('Only PeriodicImproperTerm is implemented')
+
+        with open(file, 'w') as f:
+            f.write(line)
