@@ -1,7 +1,8 @@
-from ..topology import Topology, Atom
-from ..trajectory import Frame, Trajectory
-from .parameterset import ParameterSet
-from .ffterm import *
+import numpy as np
+from ..topology import Topology, Atom, UnitCell, Psf
+from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import FFSet
+from ..forcefield.ffterm import *
 
 try:
     from simtk import openmm as mm
@@ -17,10 +18,22 @@ class CONST:
 
 
 class System():
-    def __init__(self, topology: Topology, params: ParameterSet, frame: Frame):
+    def __init__(self, topology: Topology, params: FFSet, positions=None, cell=None):
         self._topology = topology
         self._params = params
-        self._frame = frame
+        self._frame = Frame(topology.n_atom)
+
+        if positions is not None:
+            self._frame.positions = positions
+        elif topology.has_position:
+            self._frame.positions = positions
+        else:
+            raise Exception('Positions should be provided with topology or positions')
+
+        if cell is not None:
+            self._frame.cell = cell
+        else:
+            self._frame.cell = topology.cell
 
     def write_lmp(self):
         pass
@@ -32,15 +45,12 @@ class System():
         pass
 
     def write_gro(self, file):
-        from ..trajectory import Gro
         gro = Gro(file, 'w')
         gro.write_frame(self._topology, self._frame)
         gro.close()
 
     def write_psf(self, file):
-        from ..topology import Psf
         psf = Psf(file, 'w')
-        psf.is_drude = self._topology.is_drude
         psf.init_from_molecules(self._topology.molecules)
         psf.write()
 
@@ -53,6 +63,8 @@ class System():
             omm_system.addParticle(atom.mass)
 
         nbforce = mm.NonbondedForce()
+        nbforce.setNonbondedMethod(mm.app.PME)
+        nbforce.setCutoffDistance(1.0)
         try:
             nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
         except:
@@ -60,9 +72,8 @@ class System():
                   'be careful if there\'s infinite structures in the system')
         omm_system.addForce(nbforce)
         for atom in self._topology.atoms:
-            atype = self._params.atom_types[atom.type]
             # use CustomNonbondedForce to handle vdW interactions
-            nbforce.addParticle(atype.charge, 1.0, 0.0)
+            nbforce.addParticle(atom.charge, 1.0, 0.0)
             nbforce.setUseDispersionCorrection(False)
 
         for bterm in self._params.bond_terms:
@@ -99,9 +110,9 @@ class System():
                             aterm.theta * CONST.PI / 180, aterm.k)
 
         for dterm in self._params.dihedral_terms:
-            if type(dterm) not in (PeriodicDihedralTerm, FourierDihedralTerm):
+            if type(dterm) not in (PeriodicDihedralTerm, OplsDihedralTerm):
                 raise Exception(
-                    'Dihedral terms other that PeriodicDihedralTerm and FourierDihedralTerm'
+                    'Dihedral terms other that PeriodicDihedralTerm and OplsDihedralTerm'
                     'haven\'t been implemented')
         dforce = mm.PeriodicTorsionForce()
         dforce.setUsesPeriodicBoundaryConditions(True)
@@ -120,7 +131,7 @@ class System():
                 for para in dterm.parameters:
                     dforce.addTorsion(ia1, ia2, ia3, ia4, para.multiplicity,
                                       para.phi * CONST.PI / 180, para.k)
-            elif type(dterm) == FourierDihedralTerm:
+            elif type(dterm) == OplsDihedralTerm:
                 if dterm.k1 != 0:
                     dforce.addTorsion(ia1, ia2, ia3, ia4, 1, 0, dterm.k1)
                 if dterm.k2 != 0:

@@ -1,192 +1,10 @@
 import math
-import numpy as np
 import copy
-from ..forcefield import ParameterSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm, \
+import numpy as np
+from .atom import Atom
+from .bond import Bond, Angle, Dihedral, Improper
+from ..forcefield import FFSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm, \
     ChargeIncrementTerm
-
-
-class Atom():
-    def __init__(self, name='UNK'):
-        self.id = -1  # id in topology
-        self.name = name
-        self.type = ''
-        self.symbol = ''
-        self.charge = 0.
-        self.mass = 0.
-        self.is_drude = False  # for polarizable model
-        self.alpha = 0.  # for polarizable model
-        self.thole = 0.  # for polarizable model
-        self.has_position = False
-        self._position = np.zeros(3, dtype=np.float32)
-        self._molecule: Molecule = None
-        self._bonds: [Bond] = []
-        self._id_in_molecule = -1
-
-    def __str__(self):
-        return f'<Atom: {self.name} {self.id} {self.type}>'
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
-
-    def __lt__(self, other):
-        return self.id < other.id
-
-    def __gt__(self, other):
-        return self.id > other.id
-
-    def __deepcopy__(self, memodict={}):
-        atom = Atom()
-        atom.id = self.id
-        atom.name = self.name
-        atom.type = self.type
-        atom.symbol = self.symbol
-        atom.charge = self.charge
-        atom.mass = self.mass
-        atom.is_drude = self.is_drude
-        atom.alpha = self.alpha
-        atom.thole = self.thole
-        atom.has_position = self.has_position
-        atom._position[:] = self._position[:]
-        return atom
-
-    @property
-    def molecule(self):
-        return self._molecule
-
-    @property
-    def bonds(self):
-        return self._bonds
-
-    @property
-    def bond_partners(self):
-        return [bond.atom2 if bond.atom1 == self else bond.atom1 for bond in self._bonds]
-
-    @property
-    def position(self):
-        return self._position
-
-    @position.setter
-    def position(self, value):
-        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
-            raise ValueError('position should has three elements')
-        self._position[:] = value
-
-
-class Bond():
-    def __init__(self, atom1: Atom, atom2: Atom):
-        '''
-        Because the properties of atoms are prone to changing,
-        there's no point to sort atoms here
-        it's better to sort them when compare bonds or match force field parameters
-        '''
-        self.atom1 = atom1
-        self.atom2 = atom2
-
-    def __str__(self):
-        return '<Bond: %s-%s>' % (self.atom1.name, self.atom2.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
-
-    def __eq__(self, other):
-        return (self.atom1 == other.atom1 and self.atom2 == other.atom2) \
-               or (self.atom1 == other.atom2 and self.atom2 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2] < [other.atom1, other.atom2]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2] > [other.atom1, other.atom2]
-
-
-class Angle():
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom):
-        self.atom1 = atom1
-        self.atom2 = atom2
-        self.atom3 = atom3
-
-    def __str__(self):
-        return '<Angle: %s-%s-%s>' % (self.atom1.name, self.atom2.name, self.atom3.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
-
-    def __eq__(self, other):
-        if self.atom2 != other.atom2:
-            return False
-
-        return (self.atom1 == other.atom1 and self.atom3 == other.atom3) \
-               or (self.atom1 == other.atom3 and self.atom3 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3] < [other.atom1, other.atom2, other.atom3]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3] > [other.atom1, other.atom2, other.atom3]
-
-
-class Dihedral():
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom):
-        self.atom1 = atom1
-        self.atom2 = atom2
-        self.atom3 = atom3
-        self.atom4 = atom4
-
-    def __str__(self):
-        return '<Dihedral: %s-%s-%s-%s>' \
-               % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
-
-    def __eq__(self, other):
-        return (self.atom1 == other.atom1 and self.atom2 == other.atom2 and
-                self.atom3 == other.atom3 and self.atom4 == other.atom4) \
-               or (self.atom1 == other.atom4 and self.atom2 == other.atom3 and
-                   self.atom3 == other.atom2 and self.atom4 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               < [other.atom1, other.atom2, other.atom3, other.atom4]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               > [other.atom1, other.atom2, other.atom3, other.atom4]
-
-
-class Improper():
-    '''
-    center atom is the first
-    '''
-
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom):
-        self.atom1 = atom1
-        self.atom2 = atom2
-        self.atom3 = atom3
-        self.atom4 = atom4
-
-    def __str__(self):
-        return '<Improper: %s-%s-%s-%s>' \
-               % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
-
-    def __eq__(self, other):
-        if self.atom1 != other.atom1:
-            return False
-
-        at12, at13, at14 = sorted([self.atom2, self.atom3, self.atom4])
-        at22, at23, at24 = sorted([other.atom2, other.atom3, other.atom4])
-        return at12 == at22 and at13 == at23 and at14 == at24
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               < [other.atom1, other.atom2, other.atom3, other.atom4]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               > [other.atom1, other.atom2, other.atom3, other.atom4]
 
 
 class Molecule():
@@ -255,9 +73,6 @@ class Molecule():
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
     def add_bond(self, atom1: Atom, atom2: Atom, check_existence=False):
-        # if atom1 not in self._atoms or atom2 not in self._atoms:
-        #     raise Exception('both atoms %s %s should belong to same molecule %s'%(atom1, atom2, self))
-
         bond = Bond(atom1, atom2)
         if check_existence and bond in self._bonds:
             return
@@ -273,9 +88,6 @@ class Molecule():
         bond.atom2._bonds.remove(bond)
 
     def add_angle(self, atom1: Atom, atom2: Atom, atom3: Atom, check_existence=False):
-        # if atom1 not in self._atoms or atom2 not in self._atoms or atom3 not in self._atoms:
-        #     raise Exception('both atoms %s %s %s should belong to same molecule %s' % (atom1, atom2, atom3, self))
-
         angle = Angle(atom1, atom2, atom3)
         if check_existence and angle in self._angles:
             return
@@ -288,10 +100,6 @@ class Molecule():
 
     def add_dihedral(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom,
                      check_existence=False):
-        # if atom1 not in self._atoms or atom2 not in self._atoms \
-        #     or atom3 not in self._atoms or atom4 not in self._atoms:
-        #     raise Exception('both atoms %s %s %s %s should belong to same molecule %s' % (atom1, atom2, atom3, atom4, self))
-
         dihedral = Dihedral(atom1, atom2, atom3, atom4)
         if check_existence and dihedral in self._dihedrals:
             return
@@ -304,10 +112,6 @@ class Molecule():
 
     def add_improper(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom,
                      check_existence=False):
-        # if atom1 not in self._atoms or atom2 not in self._atoms \
-        #         or atom3 not in self._atoms or atom4 not in self._atoms:
-        #     raise Exception('both atoms %s %s %s %s should belong to same molecule %s' % (atom1, atom2, atom3, atom4, self))
-
         improper = Improper(atom1, atom2, atom3, atom4)
         if check_existence and improper in self._impropers:
             return
@@ -394,8 +198,8 @@ class Molecule():
             if len(atom.bond_partners) == 3:
                 self.add_improper(atom, *atom.bond_partners)
 
-    def guess_connectivity_from_forcefield(self, params: ParameterSet, bond_tolerance=0.025,
-                                           angle_tolerance=15, pbc='xyz', box=None):
+    def guess_connectivity_from_ff(self, params: FFSet, bond_tolerance=0.025,
+                                   angle_tolerance=15, pbc='xyz', box=None):
         '''
         Guess the connectivity from force field parameter set
         It requires that atoms types are defined and positions are provided
@@ -415,10 +219,10 @@ class Molecule():
         self._impropers = []
 
         def check_and_add_angle(atom1, atom2, atom3):
-            atype1: AtomType = params.atom_types[atom1.type].eqt_angle
-            atype2: AtomType = params.atom_types[atom2.type].eqt_angle
-            atype3: AtomType = params.atom_types[atom3.type].eqt_angle
-            angle_term = AngleTerm(atype1.name, atype2.name, atype3.name, 0)
+            atype1 = params.atom_types[atom1.type].eqt_angle
+            atype2 = params.atom_types[atom2.type].eqt_angle
+            atype3 = params.atom_types[atom3.type].eqt_angle
+            angle_term = AngleTerm(atype1, atype2, atype3, 0)
             if angle_term.name not in params.angle_terms.keys():
                 raise Exception(f'{str(angle_term)} not exist in force field parameter set')
             angle_term: AngleTerm = params.angle_terms[angle_term.name]
@@ -436,7 +240,7 @@ class Molecule():
                 delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
             cos = delta21.dot(delta23) / delta21.dot(delta21) / delta23.dot(delta23)
             theta = np.arccos(np.clip(cos, -1, 1))
-            if abs(theta * 180 / np.pi - angle_term.theta <= angle_tolerance):
+            if abs(theta * 180 / math.pi - angle_term.theta <= angle_tolerance):
                 self.add_angle(atom1, atom2, atom3)
             else:
                 print(f'warning: {str(Angle(atom1, atom2, atom3))} not added '
@@ -452,9 +256,9 @@ class Molecule():
                 if atom2.type not in params.atom_types.keys():
                     raise Exception(
                         f'Atom type {atom2.type} not exist in force field parameter set')
-                atype1: AtomType = params.atom_types[atom1.type].eqt_bond
-                atype2: AtomType = params.atom_types[atom2.type].eqt_bond
-                bond_term = BondTerm(atype1.name, atype2.name, 0)
+                atype1 = params.atom_types[atom1.type].eqt_bond
+                atype2 = params.atom_types[atom2.type].eqt_bond
+                bond_term = BondTerm(atype1, atype2, 0)
                 if bond_term.name not in params.bond_terms.keys():
                     raise Exception(f'{str(bond_term)} not exist in force field parameter set')
                 bond_term: BondTerm = params.bond_terms[bond_term.name]
@@ -486,11 +290,11 @@ class Molecule():
                 for atom4 in atom3.bond_partners:
                     if atom1 == atom4 or Dihedral(atom1, atom2, atom3, atom4) in self._dihedrals:
                         continue
-                    atype1: AtomType = params.atom_types[atom1.type].eqt_dihedral_side
-                    atype2: AtomType = params.atom_types[atom2.type].eqt_dihedral_center
-                    atype3: AtomType = params.atom_types[atom3.type].eqt_dihedral_center
-                    atype4: AtomType = params.atom_types[atom4.type].eqt_dihedral_side
-                    dihedral_term = DihedralTerm(atype1.name, atype2.name, atype3.name, atype4.name)
+                    atype1 = params.atom_types[atom1.type].eqt_dihedral_side
+                    atype2 = params.atom_types[atom2.type].eqt_dihedral_center
+                    atype3 = params.atom_types[atom3.type].eqt_dihedral_center
+                    atype4 = params.atom_types[atom4.type].eqt_dihedral_side
+                    dihedral_term = DihedralTerm(atype1, atype2, atype3, atype4)
                     if dihedral_term.name not in params.dihedral_terms.keys():
                         print(f'warning: {str(Dihedral(atom1, atom2, atom3, atom4))} '
                               f'not added because not exist in force field parameter set')
@@ -501,21 +305,21 @@ class Molecule():
             if len(atom1.bond_partners) != 3:
                 continue
             atom2, atom3, atom4 = atom1.bond_partners
-            atype1: AtomType = params.atom_types[atom1.type].eqt_improper_center
-            atype2: AtomType = params.atom_types[atom2.type].eqt_improper_side
-            atype3: AtomType = params.atom_types[atom3.type].eqt_improper_side
-            atype4: AtomType = params.atom_types[atom4.type].eqt_improper_side
-            improper_term = ImproperTerm(atype1.name, atype2.name, atype3.name, atype4.name)
+            atype1 = params.atom_types[atom1.type].eqt_improper_center
+            atype2 = params.atom_types[atom2.type].eqt_improper_side
+            atype3 = params.atom_types[atom3.type].eqt_improper_side
+            atype4 = params.atom_types[atom4.type].eqt_improper_side
+            improper_term = ImproperTerm(atype1, atype2, atype3, atype4)
             if improper_term.name not in params.improper_terms.keys():
                 print(f'warning: {str(Improper(atom1, atom2, atom3, atom4))} '
                       f'not added because not exist in force field parameter set')
             else:
                 self.add_improper(atom1, atom2, atom3, atom4)
 
-    def assign_charge_from_forcefield(self, params: ParameterSet):
+    def assign_charge_from_forcefield(self, params: FFSet):
         for atom in self._atoms:
             try:
-                atom.charge = params.atom_types[atom.type].eqt_charge.charge
+                atom.charge = params.atom_types[atom.type].charge
             except:
                 raise Exception(f'Atom type {atom.type} not exist in parameter set')
 
@@ -527,9 +331,9 @@ class Molecule():
             except:
                 raise Exception(f'Atom type {bond.atom1.type} or {bond.atom2.type}'
                                 f'not exist in parameter set')
-            binc: ChargeIncrementTerm = params.charge_increment_terms.get(
+            binc = params.charge_increment_terms.get(
                 ChargeIncrementTerm(atype1.name, atype2.name, 0).name)
             if binc is not None:
                 direction = 1 if atype1.name == binc.type1 else -1
-                atom1.charge += binc.increment * direction
-                atom2.charge -= binc.increment * direction
+                atom1.charge += binc.value * direction
+                atom2.charge -= binc.value * direction

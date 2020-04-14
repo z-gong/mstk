@@ -1,4 +1,6 @@
-from .molecule import Atom, Bond, Angle, Dihedral, Improper, Molecule
+from .atom import Atom
+from .bond import Bond, Angle, Dihedral, Improper
+from .molecule import  Molecule
 from .topology import Topology
 from .lammps import LammpsData
 from .psf import Psf

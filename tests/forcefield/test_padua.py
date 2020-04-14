@@ -1,18 +1,29 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield import FFToolParameterSet
+from mstools.forcefield import PaduaFFSet
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-params = FFToolParameterSet(cwd + '/files/oplsaa.ff')
+params = PaduaFFSet(cwd + '/files/oplsaa.ff')
 
-def test_fftool():
+def test_padua():
     br = params.atom_types['Br']
     assert br.mass == 79.904
     assert br.charge == -1.0
-    assert br.epsilon == 0.37656
-    assert br.sigma == 4.624 / 10
+
+    cap = params.atom_types['CAP']
+    ca = params.atom_types['CA']
+    assert cap.eqt_vdw == cap
+    assert cap.eqt_bond == ca
+    assert cap.eqt_improper_side == ca
+    assert ca.eqt_vdw == ca
+    assert ca.eqt_angle_center == ca
+    assert ca.eqt_dihedral_center == ca
+
+    vdw = params.vdw_terms['Br,Br']
+    assert vdw.epsilon == 0.37656
+    assert vdw.sigma == 4.624 / 10
 
     bond = params.bond_terms['CT,CT']
     assert bond.length == 1.529 / 10
@@ -35,4 +46,5 @@ def test_fftool():
     assert dihedral.k4 == 0
 
     improper = params.improper_terms['N,C,CT,CT']
+    assert improper.phi == 180
     assert improper.k == 8.368 / 2
