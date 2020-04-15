@@ -1,3 +1,4 @@
+import sys
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from .ffset import FFSet
@@ -19,35 +20,49 @@ class ZfpFFSet(FFSet):
         except:
             raise Exception('Invalid ZFP file')
 
+        root = tree.getroot()
+        if root is None:
+            raise Exception('Empty ZFP file')
+
+        tags = {
+            'AtomTypes'           : self.atom_types,
+            'ChargeIncrementTerms': self.charge_increment_terms,
+            'VdwTerms'            : self.vdw_terms,
+            'PairwiseVdwTerms'    : self.pairwise_vdw_terms,
+            'BondTerms'           : self.bond_terms,
+            'AngleTerms'          : self.angle_terms,
+            'DihedralTerms'       : self.dihedral_terms,
+            'ImproperTerms'       : self.improper_terms,
+            'DrudeTerms'          : self.drude_terms,
+        }
+        for tag, d in tags.items():
+            node = root.find(tag)
+            if node is None:
+                continue
+            for element in node:
+                cls = getattr(sys.modules['mstools.forcefield.ffterm'], element.tag)
+                at = cls.from_zfp(element.attrib)
+                d[at.name] = at
+
     @staticmethod
     def write(params: FFSet, file):
         root = ET.Element('ForceFieldTerms')
-        node_atype = ET.SubElement(root, 'AtomTypes')
-        node_increment = ET.SubElement(root, 'ChargeIncrementTerms')
-        node_vdw = ET.SubElement(root, 'VdwTerms')
-        node_pair = ET.SubElement(root, 'PairwiseVdwTerms')
-        node_bond = ET.SubElement(root, 'BondTerms')
-        node_angle = ET.SubElement(root, 'AngleTerms')
-        node_dihedral = ET.SubElement(root, 'DihedralTerms')
-        node_improper = ET.SubElement(root, 'ImproperTerms')
+        tags = {
+            'AtomTypes'           : params.atom_types,
+            'ChargeIncrementTerms': params.charge_increment_terms,
+            'VdwTerms'            : params.vdw_terms,
+            'PairwiseVdwTerms'    : params.pairwise_vdw_terms,
+            'BondTerms'           : params.bond_terms,
+            'AngleTerms'          : params.angle_terms,
+            'DihedralTerms'       : params.dihedral_terms,
+            'ImproperTerms'       : params.improper_terms,
+            'DrudeTerms'          : params.drude_terms,
+        }
+        for tag, d in tags.items():
+            node = ET.SubElement(root, tag)
+            for term in d.values():
+                ET.SubElement(node, term.__class__.__name__, attrib=term.to_zfp())
 
-        for term in params.atom_types.values():
-            ET.SubElement(node_atype, term.identifier, attrib=term.to_zfp())
-        for term in params.charge_increment_terms.values():
-            ET.SubElement(node_increment, term.identifier, attrib=term.to_zfp())
-        for term in params.vdw_terms.values():
-            ET.SubElement(node_vdw, term.identifier, attrib=term.to_zfp())
-        for term in params.pairwise_vdw_terms.values():
-            ET.SubElement(node_pair, term.identifier, attrib=term.to_zfp())
-        for term in params.bond_terms.values():
-            ET.SubElement(node_bond, term.identifier, attrib=term.to_zfp())
-        for term in params.angle_terms.values():
-            ET.SubElement(node_angle, term.identifier, attrib=term.to_zfp())
-        for term in params.dihedral_terms.values():
-            ET.SubElement(node_dihedral, term.identifier, attrib=term.to_zfp())
-        for term in params.improper_terms.values():
-            ET.SubElement(node_improper, term.identifier, attrib=term.to_zfp())
-
-        xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
+        str_xml = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
         with open(file, 'w') as f:
-            f.write(xmlstr)
+            f.write(str_xml)

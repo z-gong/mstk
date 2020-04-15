@@ -20,6 +20,6 @@ def test_zmat():
     assert atom.name == 'N1'
     assert atom.type == 'NA'
     atom = zmat.atoms[-1]
-    assert pytest.approx(atom.position, abs=1E-6) == [0.336903, 0.224955, -0.088982]
+    assert pytest.approx(atom.position, abs=1E-4) == [0.3369, 0.2250, -0.0890]
     assert atom.name == 'H16'
     assert atom.type == 'H1'

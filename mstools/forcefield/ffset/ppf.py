@@ -99,10 +99,10 @@ class PpfFFSet(FFSet):
             if line.term != 'EQT':
                 continue
             atype = AtomType(line.key)
-            (atype.eqt_vdw, atype._eqt_charge, atype.eqt_charge_increment, atype.eqt_bond,
-             atype.eqt_angle_center, atype.eqt_angle_side, atype.eqt_dihedral_center,
-             atype.eqt_dihedral_side, atype.eqt_improper_center,
-             atype.eqt_improper_side) = line.value.split()
+            # _eqt_charge is a temporary variable for matching charge
+            (atype.eqt_vdw, atype._eqt_charge, atype.eqt_q_inc, atype.eqt_bond,
+             atype.eqt_ang_c, atype.eqt_ang_s, atype.eqt_dih_c, atype.eqt_dih_s,
+             atype.eqt_imp_c, atype.eqt_imp_s) = line.value.split()
             atype.version = line.version
             self.atom_types[atype.name] = atype
 
@@ -118,7 +118,6 @@ class PpfFFSet(FFSet):
                 for atype in self.atom_types.values():
                     if atype._eqt_charge == line.key:
                         atype.charge = line.get_float_values()[0]
-                        atype._eqt_charge = atype.name
             elif line.term == 'BINC':
                 term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
                 term.version = line.version
@@ -146,17 +145,18 @@ class PpfFFSet(FFSet):
                 self.angle_terms[term.name] = term
             elif line.term == 'TCOSP':
                 values = line.get_float_values()
-                phi_list = values[0::3]
-                k_list = values[1::3]
-                n_list = list(map(int, values[2::3]))
-                term = PeriodicDihedralTerm(*line.get_names(), n_list, k_list, phi_list)
+                count = len(values) // 3
+                term = PeriodicDihedralTerm(*line.get_names())
+                for i in range(count):
+                    term.add_parameter(
+                        values[i * 3], values[i * 3 + 1] * 4.184, int(values[i * 3 + 2]))
                 term.version = line.version
                 self.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':
                 # the third atom is the center atom in PPF
                 a1, a2, a3, a4 = line.get_names()
-                phi, k, multiplicity = line.get_float_values()
-                if multiplicity != 2:
+                phi, k, n = line.get_float_values()
+                if n != 2:
                     raise Exception('Multiplicity in IBCOS should equal to 2: %s' % line.key)
                 term = PeriodicImproperTerm(a3, a1, a2, a4, phi, k * 4.184)
                 term.version = line.version
@@ -168,10 +168,9 @@ class PpfFFSet(FFSet):
         line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
         for atype in params.atom_types.values():
             line += '%s: %s %s %s %s %s %s %s %s %s %s\n' % (
-                atype.name, atype.eqt_vdw, atype.name, atype.eqt_charge,
-                atype.eqt_bond, atype.eqt_angle_center, atype.eqt_angle_side,
-                atype.eqt_dihedral_center, atype.eqt_dihedral_side,
-                atype.eqt_improper_center, atype.eqt_improper_side
+                atype.name, atype.eqt_vdw, atype.name, atype.eqt_q_inc,
+                atype.eqt_bond, atype.eqt_ang_c, atype.eqt_ang_s,
+                atype.eqt_dih_c, atype.eqt_dih_s, atype.eqt_imp_c, atype.eqt_imp_s
             )
         line += ('#DFF:PPF\n'
                  '#PROTOCOL = AMBER\n'
@@ -213,7 +212,7 @@ class PpfFFSet(FFSet):
                     dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
                 str_paras = []
                 for par in dihedral.parameters:
-                    str_paras.append('%.1f, %.5f, %i' % (par.phi, par.k / 4.184, par.multiplicity))
+                    str_paras.append('%.1f, %.5f, %i' % (par.phi, par.k / 4.184, par.n))
                 line += ', '.join(str_paras) + ': \n'
             elif isinstance(dihedral, OplsDihedralTerm):
                 line += 'TCOSP: %s, %s, %s, %s: ' % (

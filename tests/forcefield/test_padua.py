@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import pytest
 from mstools.forcefield import PaduaFFSet
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 params = PaduaFFSet(cwd + '/files/oplsaa.ff')
+
 
 def test_padua():
     br = params.atom_types['Br']
@@ -14,12 +16,12 @@ def test_padua():
 
     cap = params.atom_types['CAP']
     ca = params.atom_types['CA']
-    assert cap.eqt_vdw == cap
-    assert cap.eqt_bond == ca
-    assert cap.eqt_improper_side == ca
-    assert ca.eqt_vdw == ca
-    assert ca.eqt_angle_center == ca
-    assert ca.eqt_dihedral_center == ca
+    assert cap.eqt_vdw == 'CAP'
+    assert cap.eqt_bond == 'CA'
+    assert cap.eqt_imp_s == ca.name
+    assert ca.eqt_vdw == ca.name
+    assert ca.eqt_ang_c == ca.name
+    assert ca.eqt_dih_c == 'CA'
 
     vdw = params.vdw_terms['Br,Br']
     assert vdw.epsilon == 0.37656
@@ -27,7 +29,7 @@ def test_padua():
 
     bond = params.bond_terms['CT,CT']
     assert bond.length == 1.529 / 10
-    assert bond.k == 2242.6 / 2
+    assert pytest.approx(bond.k, abs=1E-6) == 2242.6 / 2 * 100
 
     angle = params.angle_terms['CT,CT,HC']
     assert angle.theta == 110.7

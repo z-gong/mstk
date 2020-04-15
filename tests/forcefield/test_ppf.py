@@ -14,14 +14,14 @@ def test_read():
     c_4pp = params.atom_types.get('c_4pp')
     assert c_4pp.charge == 0
     assert c_4pp.eqt_vdw == c_4pp.name
-    assert c_4pp.eqt_charge_increment == c_4pp.name
+    assert c_4pp.eqt_q_inc == c_4pp.name
     assert c_4pp.eqt_bond == 'c_4'
-    assert c_4pp.eqt_angle_center == 'c_4'
-    assert c_4pp.eqt_angle_side == 'c_4'
-    assert c_4pp.eqt_dihedral_center == 'c_4'
-    assert c_4pp.eqt_dihedral_side == 'c_4'
-    assert c_4pp.eqt_improper_center == 'c_4'
-    assert c_4pp.eqt_improper_side == 'c_4'
+    assert c_4pp.eqt_ang_c == 'c_4'
+    assert c_4pp.eqt_ang_s == 'c_4'
+    assert c_4pp.eqt_dih_c == 'c_4'
+    assert c_4pp.eqt_dih_s == 'c_4'
+    assert c_4pp.eqt_imp_c == 'c_4'
+    assert c_4pp.eqt_imp_s == 'c_4'
     assert c_4pp.version == '0.25'
 
     c_3_ = params.atom_types.get('c_3-')
@@ -73,15 +73,15 @@ def test_read():
     assert dihedral.type4 == '*'
     para0 = dihedral.parameters[0]
     assert pytest.approx(para0.k / 4.184, abs=1E-6) == 0.0688
-    assert para0.multiplicity == 3
+    assert para0.n == 3
     assert para0.phi == 0.0
     para1 = dihedral.parameters[1]
     assert pytest.approx(para1.k / 4.184, abs=1E-6) == 0.6214
-    assert para1.multiplicity == 1
+    assert para1.n == 1
     assert para1.phi == 0.0
     para2 = dihedral.parameters[2]
     assert pytest.approx(para2.k / 4.184, abs=1E-6) == 0.0507
-    assert para2.multiplicity == 2
+    assert para2.n == 2
     assert para2.phi == 180.0
     assert dihedral.version == '0.12'
 

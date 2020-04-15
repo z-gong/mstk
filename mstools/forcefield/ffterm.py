@@ -3,8 +3,11 @@ from collections import namedtuple
 
 class FFTerm():
     def __init__(self):
-        self.name = 'ffterm'
         self.version = None
+
+    @property
+    def name(self):
+        raise NotImplementedError('This property should be implemented by subclasses')
 
     def __str__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.name)
@@ -13,30 +16,60 @@ class FFTerm():
         return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def to_zfp(self) -> {str: str}:
-        raise NotImplementedError('This method should be implemented by subclass')
+        d = {}
+        for attr, func in self.zfp_attrs.items():
+            d[attr] = str(getattr(self, attr))
+        d.update(self.to_zfp_extra())
+        return d
+
+    def to_zfp_extra(self) -> {str: str}:
+        return {}
+
+    @classmethod
+    def from_zfp(cls, d: {str: str}):
+        term = cls.singleton()
+        for attr, func in term.zfp_attrs.items():
+            setattr(term, attr, func(d[attr]))
+        term.from_zfp_extra(d)
+        return term
+
+    def from_zfp_extra(self, d: {str: str}):
+        pass
+
+    @staticmethod
+    def singleton():
+        raise NotImplementedError('This method should be implemented by subclasses')
 
     @property
-    def identifier(self):
-        return self.__class__.__name__
+    def zfp_attrs(self):
+        raise NotImplementedError('This property should be implemented by subclasses')
 
 
 class AtomType(FFTerm):
     def __init__(self, name):
         super().__init__()
-        self.name = name
+        self._name = name
         self.symbol = 'UNK'
         self.mass = 0.
         self.charge = 0.
         self.eqt_vdw = name
-        self.eqt_charge_increment = name
+        self.eqt_q_inc = name
         self.eqt_bond = name
-        self.eqt_angle_center = name
-        self.eqt_angle_side = name
-        self.eqt_dihedral_center = name
-        self.eqt_dihedral_side = name
-        self.eqt_improper_center = name
-        self.eqt_improper_side = name
-        self._eqt_charge = name
+        self.eqt_ang_c = name
+        self.eqt_ang_s = name
+        self.eqt_dih_c = name
+        self.eqt_dih_s = name
+        self.eqt_imp_c = name
+        self.eqt_imp_s = name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        # this is a trick allowing from_zpf to work correctly
+        self._name = value
 
     def __lt__(self, other):
         return self.name < other.name
@@ -44,21 +77,26 @@ class AtomType(FFTerm):
     def __gt__(self, other):
         return self.name > other.name
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return AtomType('')
+
+    @property
+    def zfp_attrs(self):
         return {
-            'name'     : self.name,
-            'symbol'   : self.symbol,
-            'mass'     : '%.4f' % self.mass,
-            'charge'   : '%.6f' % self.charge,
-            'eqt_vdw'  : self.eqt_vdw,
-            'eqt_inc'  : self.eqt_charge_increment,
-            'eqt_bond' : self.eqt_bond,
-            'eqt_ang_c': self.eqt_angle_center,
-            'eqt_ang_s': self.eqt_angle_side,
-            'eqt_dih_c': self.eqt_dihedral_center,
-            'eqt_dih_s': self.eqt_dihedral_side,
-            'eqt_imp_c': self.eqt_improper_center,
-            'eqt_imp_s': self.eqt_improper_side,
+            'name'     : str,
+            'symbol'   : str,
+            'mass'     : float,
+            'charge'   : float,
+            'eqt_vdw'  : str,
+            'eqt_bond' : str,
+            'eqt_q_inc': str,
+            'eqt_ang_c': str,
+            'eqt_ang_s': str,
+            'eqt_dih_c': str,
+            'eqt_dih_s': str,
+            'eqt_imp_c': str,
+            'eqt_imp_s': str,
         }
 
 
@@ -69,7 +107,10 @@ class ChargeIncrementTerm(FFTerm):
         self.type1 = at1
         self.type2 = at2
         self.value = value if at1 == type1 else -value
-        self.name = '%s,%s' % (self.type1, self.type2)
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
 
     def __lt__(self, other):
         return [self.type1, self.type2] < [other.type1, other.type2]
@@ -77,11 +118,16 @@ class ChargeIncrementTerm(FFTerm):
     def __gt__(self, other):
         return [self.type1, self.type2] > [other.type1, other.type2]
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return ChargeIncrementTerm('', '', 0.0)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1': self.type1,
-            'type2': self.type2,
-            'value': '%.6f' % self.value,
+            'type1': str,
+            'type2': str,
+            'value': float,
         }
 
 
@@ -91,7 +137,10 @@ class VdwTerm(FFTerm):
         at1, at2 = sorted([type1, type2])
         self.type1 = at1
         self.type2 = at2
-        self.name = '%s,%s' % (self.type1, self.type2)
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
 
     def __lt__(self, other):
         return [self.type1, self.type2] < [other.type1, other.type2]
@@ -108,7 +157,10 @@ class BondTerm(FFTerm):
         self.type2 = at2
         self.length = length
         self.fixed = fixed
-        self.name = '%s,%s' % (self.type1, self.type2)
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
 
     def __lt__(self, other):
         return [self.type1, self.type2] < [other.type1, other.type2]
@@ -126,7 +178,10 @@ class AngleTerm(FFTerm):
         self.type3 = at3
         self.theta = theta
         self.fixed = fixed
-        self.name = '%s,%s,%s' % (self.type1, self.type2, self.type3)
+
+    @property
+    def name(self):
+        return '%s,%s,%s' % (self.type1, self.type2, self.type3)
 
     def __lt__(self, other):
         return [self.type1, self.type2, self.type3] < [other.type1, other.type2, other.type3]
@@ -154,7 +209,10 @@ class DihedralTerm(FFTerm):
         self.type2 = at2
         self.type3 = at3
         self.type4 = at4
-        self.name = '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
+
+    @property
+    def name(self):
+        return '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
 
     def __lt__(self, other):
         return [self.type1, self.type2, self.type3, self.type4] \
@@ -181,7 +239,10 @@ class ImproperTerm(FFTerm):
         self.type2 = at2
         self.type3 = at3
         self.type4 = at4
-        self.name = '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
+
+    @property
+    def name(self):
+        return '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
 
     def __lt__(self, other):
         return [self.type1, self.type2, self.type3, self.type4] \
@@ -203,12 +264,17 @@ class LJ126Term(VdwTerm):
         self.epsilon = epsilon
         self.sigma = sigma
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return LJ126Term('', '', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1'  : self.type1,
-            'type2'  : self.type2,
-            'epsilon': '%.5f' % self.epsilon,
-            'sigma'  : '%.5f' % self.sigma,
+            'type1'  : str,
+            'type2'  : str,
+            'epsilon': float,
+            'sigma'  : float,
         }
 
 
@@ -227,16 +293,6 @@ class MieTerm(VdwTerm):
         self.repulsion = repulsion
         self.attraction = attraction
 
-    def to_zfp(self) -> {str: str}:
-        return {
-            'type1'     : self.type1,
-            'type2'     : self.type2,
-            'epsilon'   : '%.5f' % self.epsilon,
-            'sigma'     : '%.5f' % self.sigma,
-            'repulsion' : '%.3f' % self.repulsion,
-            'attraction': '%.3f' % self.attraction,
-        }
-
     @staticmethod
     def factor_energy(rep, att):
         return rep / (rep - att) * (rep / att) ** (att / (rep - att))
@@ -244,6 +300,21 @@ class MieTerm(VdwTerm):
     @staticmethod
     def factor_r_min(rep, att):
         return (rep / att) ** (1 / (rep - att))
+
+    @staticmethod
+    def singleton():
+        return MieTerm('', '', 0., 0., 0., 0.)
+
+    @property
+    def zfp_attrs(self):
+        return {
+            'type1'     : str,
+            'type2'     : str,
+            'epsilon'   : float,
+            'sigma'     : float,
+            'repulsion' : float,
+            'attraction': float,
+        }
 
 
 class HarmonicBondTerm(BondTerm):
@@ -255,12 +326,17 @@ class HarmonicBondTerm(BondTerm):
         super().__init__(type1, type2, length, fixed=fixed)
         self.k = k
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return HarmonicBondTerm('', '', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1' : self.type1,
-            'type2' : self.type2,
-            'length': '%.5f' % self.length,
-            'k'     : '%.5f' % self.k,
+            'type1' : str,
+            'type2' : str,
+            'length': float,
+            'k'     : float,
         }
 
 
@@ -273,13 +349,18 @@ class HarmonicAngleTerm(AngleTerm):
         super().__init__(type1, type2, type3, theta, fixed=fixed)
         self.k = k
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return HarmonicAngleTerm('', '', '', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1': self.type1,
-            'type2': self.type2,
-            'type3': self.type3,
-            'theta': '%.3f' % self.theta,
-            'k'    : '%.5f' % self.k,
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'theta': float,
+            'k'    : float,
         }
 
 
@@ -295,15 +376,20 @@ class SDKAngleTerm(AngleTerm):
         self.epsilon = epsilon
         self.sigma = sigma
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return SDKAngleTerm('', '', '', 0., 0., 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1'  : self.type1,
-            'type2'  : self.type2,
-            'type3'  : self.type3,
-            'theta'  : '%.3f' % self.theta,
-            'k'      : '%.5f' % self.k,
-            'epsilon': '%.5f' % self.epsilon,
-            'sigma'  : '%.5f' % self.sigma,
+            'type1'  : str,
+            'type2'  : str,
+            'type3'  : str,
+            'theta'  : float,
+            'k'      : float,
+            'epsilon': float,
+            'sigma'  : float,
         }
 
 
@@ -312,34 +398,54 @@ class PeriodicDihedralTerm(DihedralTerm):
     U = k * (1+cos(n*phi-phi0_n))
     '''
 
-    def __init__(self, type1, type2, type3, type4, n_list: [int], k_list: [float],
-                 phi_list: [float]):
+    Parameter = namedtuple('Parameter', ('phi', 'k', 'n'))
+
+    def __init__(self, type1, type2, type3, type4, parameters=[]):
         super().__init__(type1, type2, type3, type4)
-        if len(set(n_list)) != len(n_list):
-            raise Exception('Duplicated multiplicities for PeriodicDihedralTerm: %s' % self.name)
-        if any([not isinstance(n, int) or n < 1 for n in n_list]):
-            raise Exception('Multiplicities should be positive integer: %s' % self.name)
-        self.n_list = n_list[:]
-        self.k_list = k_list[:]
-        self.phi_list = phi_list[:]
+        self.parameters = []
+        for para in parameters:
+            if len(para) != 3:
+                raise Exception(
+                    'Three values should be provided for each multiplicity: %s' % self.name)
+            self.add_parameter(*para)
 
-    def add_parameter(self, n, k, phi):
+    def add_parameter(self, phi, k, n):
         if not isinstance(n, int) or n < 1:
-            raise Exception('Multiplicity should be positive integer: %s' % self.name)
-        self.n_list.append(n)
-        self.k_list.append(k)
-        self.phi_list.append(phi)
+            raise Exception('Multiplicity should be a positive integer: %s' % self.name)
+        for para in self.parameters:
+            if para.n == n:
+                raise Exception('Duplicated multiplicity: %s' % self.name)
+        self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return PeriodicDihedralTerm('', '', '', '')
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1'   : self.type1,
-            'type2'   : self.type2,
-            'type3'   : self.type3,
-            'type4'   : self.type4,
-            'n_list'  : ','.join(['%i' % n for n in self.n_list]),
-            'k_list'  : ','.join(['%.5f' % k for k in self.k_list]),
-            'phi_list': ','.join(['%.3f' % phi for phi in self.phi_list]),
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'type4': str,
         }
+
+    def to_zfp_extra(self) -> {str: str}:
+        d = {}
+        for para in self.parameters:
+            d.update({
+                'phi_%i' % para.n: '%.1f' % para.phi,
+                'k_%i' % para.n  : '%.4f' % para.k,
+            })
+        return d
+
+    def from_zfp_extra(self, d: {str: str}):
+        for key in d.keys():
+            if key.startswith('phi_'):
+                n = int(key.split('_')[-1])
+                phi = float(d['phi_%i' % n])
+                k = float(d['k_%i' % n])
+                self.add_parameter(phi, k, n)
 
 
 class OplsDihedralTerm(DihedralTerm):
@@ -355,16 +461,21 @@ class OplsDihedralTerm(DihedralTerm):
         self.k3 = k3
         self.k4 = k4
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return OplsDihedralTerm('', '', '', '', 0., 0., 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1': self.type1,
-            'type2': self.type2,
-            'type3': self.type3,
-            'type4': self.type4,
-            'k1'   : '%.5f' % self.k1,
-            'k2'   : '%.5f' % self.k2,
-            'k3'   : '%.5f' % self.k3,
-            'k4'   : '%.5f' % self.k4,
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'type4': str,
+            'k1'   : float,
+            'k2'   : float,
+            'k3'   : float,
+            'k4'   : float,
         }
 
 
@@ -379,14 +490,19 @@ class PeriodicImproperTerm(ImproperTerm):
         self.phi = phi
         self.k = k
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return PeriodicImproperTerm('', '', '', '', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1': self.type1,
-            'type2': self.type2,
-            'type3': self.type3,
-            'type4': self.type4,
-            'phi'  : '%.3f' % self.phi,
-            'k'    : '%.5f' % self.k,
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'type4': str,
+            'phi'  : float,
+            'k'    : float,
         }
 
 
@@ -400,12 +516,41 @@ class HarmonicImproperTerm(ImproperTerm):
         self.phi = phi
         self.k = k
 
-    def to_zfp(self) -> {str: str}:
+    @staticmethod
+    def singleton():
+        return HarmonicImproperTerm('', '', '', '', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
         return {
-            'type1': self.type1,
-            'type2': self.type2,
-            'type3': self.type3,
-            'type4': self.type4,
-            'phi'  : '%.3f' % self.phi,
-            'k'    : '%.5f' % self.k,
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'type4': str,
+            'phi'  : float,
+            'k'    : float,
+        }
+
+
+class DrudeTerm(FFTerm):
+    def __init__(self, type, alpha, thole):
+        super().__init__()
+        self.type = type
+        self.alpha = alpha
+        self.thole = thole
+
+    @property
+    def name(self):
+        return self.type
+
+    @staticmethod
+    def singleton():
+        return DrudeTerm('', 0., 0.)
+
+    @property
+    def zfp_attrs(self):
+        return {
+            'type' : str,
+            'alpha': float,
+            'thole': float,
         }

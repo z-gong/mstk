@@ -57,9 +57,9 @@ class PaduaFFSet(FFSet):
         atype.symbol = Element.guess_from_atom_type(words[0]).symbol
         atype.mass = float(words[2])
         atype.charge = float(words[3])
-        (atype.eqt_bond, atype.eqt_angle_center, atype.eqt_angle_side,
-         atype.eqt_dihedral_center, atype.eqt_dihedral_side,
-         atype.eqt_improper_center, atype.eqt_improper_side) = [words[1]] * 7
+        (atype.eqt_bond, atype.eqt_ang_c, atype.eqt_ang_s,
+         atype.eqt_dih_c, atype.eqt_dih_s,
+         atype.eqt_imp_c, atype.eqt_imp_s) = [words[1]] * 7
         if words[4] == 'lj':
             sigma = float(words[5]) / 10  # convert from A to nm
             epsilon = float(words[6])
