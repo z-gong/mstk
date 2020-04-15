@@ -18,3 +18,7 @@ def test_xyz():
     assert atom.symbol == 'H'
     assert pytest.approx(atom.position, abs=1E-6) == [-0.194866, -0.115100, -0.158814]
     assert atom.has_position
+
+def test_write():
+    xyz.write(cwd + '/files/xyz-out.psf')
+    xyz.write(cwd + '/files/xyz-out.xyz')

@@ -61,6 +61,7 @@ class AtomType(FFTerm):
         self.eqt_dih_s = name
         self.eqt_imp_c = name
         self.eqt_imp_s = name
+        self.eqt_polar = name
 
     @property
     def name(self):
@@ -68,7 +69,7 @@ class AtomType(FFTerm):
 
     @name.setter
     def name(self, value):
-        # this is a trick allowing from_zpf to work correctly
+        # this is a trick allowing from_zfp() to work correctly
         self._name = value
 
     def __lt__(self, other):
@@ -97,6 +98,7 @@ class AtomType(FFTerm):
             'eqt_dih_s': str,
             'eqt_imp_c': str,
             'eqt_imp_s': str,
+            'eqt_polar': str,
         }
 
 
@@ -251,6 +253,22 @@ class ImproperTerm(FFTerm):
     def __gt__(self, other):
         return [self.type1, self.type2, self.type3, self.type4] \
                > [other.type1, other.type2, other.type3, other.type4]
+
+
+class PolarizableTerm(FFTerm):
+    def __init__(self, type):
+        super().__init__()
+        self.type = type
+
+    @property
+    def name(self):
+        return self.type
+
+    def __lt__(self, other):
+        return self.type < other.type
+
+    def __gt__(self, other):
+        return self.type > other.type
 
 
 class LJ126Term(VdwTerm):
@@ -532,20 +550,17 @@ class HarmonicImproperTerm(ImproperTerm):
         }
 
 
-class DrudeTerm(FFTerm):
+class IsotropicDrudeTerm(PolarizableTerm):
     def __init__(self, type, alpha, thole):
-        super().__init__()
-        self.type = type
+        super().__init__(type)
         self.alpha = alpha
         self.thole = thole
-
-    @property
-    def name(self):
-        return self.type
+        self.mass = 0.4
+        self.k = 4184 / 2 * 100
 
     @staticmethod
     def singleton():
-        return DrudeTerm('', 0., 0.)
+        return IsotropicDrudeTerm('', 0., 0.)
 
     @property
     def zfp_attrs(self):
@@ -553,4 +568,6 @@ class DrudeTerm(FFTerm):
             'type' : str,
             'alpha': float,
             'thole': float,
+            'mass' : float,
+            'k'    : float,
         }

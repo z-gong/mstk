@@ -6,13 +6,14 @@ from ..ffterm import *
 
 
 class ZfpFFSet(FFSet):
-    def __init__(self, file):
+    def __init__(self, *files):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_LB
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 1.0 / 1.2
 
-        self.parse(file)
+        for file in files:
+            self.parse(file)
 
     def parse(self, file):
         try:
@@ -33,16 +34,21 @@ class ZfpFFSet(FFSet):
             'AngleTerms'          : self.angle_terms,
             'DihedralTerms'       : self.dihedral_terms,
             'ImproperTerms'       : self.improper_terms,
-            'DrudeTerms'          : self.drude_terms,
+            'PolarizableTerms'    : self.polarizable_terms,
         }
         for tag, d in tags.items():
             node = root.find(tag)
             if node is None:
                 continue
             for element in node:
-                cls = getattr(sys.modules['mstools.forcefield.ffterm'], element.tag)
-                at = cls.from_zfp(element.attrib)
-                d[at.name] = at
+                try:
+                    cls = getattr(sys.modules['mstools.forcefield.ffterm'], element.tag)
+                except:
+                    raise Exception('Invalid term under node %s: %s' % (node, element.tag))
+                term = cls.from_zfp(element.attrib)
+                if term.name in d.keys():
+                    raise Exception('Duplicated term: %s' % str(term))
+                d[term.name] = term
 
     @staticmethod
     def write(params: FFSet, file):
@@ -56,7 +62,7 @@ class ZfpFFSet(FFSet):
             'AngleTerms'          : params.angle_terms,
             'DihedralTerms'       : params.dihedral_terms,
             'ImproperTerms'       : params.improper_terms,
-            'DrudeTerms'          : params.drude_terms,
+            'PolarizableTerms'    : params.polarizable_terms,
         }
         for tag, d in tags.items():
             node = ET.SubElement(root, tag)

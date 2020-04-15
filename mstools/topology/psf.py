@@ -12,16 +12,14 @@ class Psf(Topology):
     but anisotroic polarizability are ignored
     '''
 
-    def __init__(self, file, mode='r'):
+    def __init__(self, file):
         super(Psf, self).__init__()
-        self._file = open(file, mode)
-        if mode == 'r':
-            self.parse()
-        elif mode == 'w':
-            pass
+        self.parse(file)
 
-    def parse(self):
-        lines = self._file.read().splitlines()
+    def parse(self, file):
+        with open(file) as f:
+            lines = f.read().splitlines()
+
         words = lines[0].strip().split()
         if 'PSF' not in words:
             raise Exception('Invalid psf file, PSF not found in first line')
@@ -164,65 +162,68 @@ class Psf(Topology):
                                              atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
 
-    def write(self):
-        if self.is_drude:
-            self._file.write('PSF DRUDE\n\n')
+    @staticmethod
+    def write(top, file):
+        f = open(file, 'w')
+
+        if top.is_drude:
+            f.write('PSF DRUDE\n\n')
         else:
-            self._file.write('PSF\n\n')
+            f.write('PSF\n\n')
 
-        self._file.write('%8i !NTITLE\n' % 1)
-        self._file.write(' REMARKS Created by mstools\n\n')
+        f.write('%8i !NTITLE\n' % 1)
+        f.write(' REMARKS Created by mstools\n\n')
 
-        self._file.write('%8i !NATOM\n' % self.n_atom)
-        for i, atom in enumerate(self.atoms):
+        f.write('%8i !NATOM\n' % top.n_atom)
+        for i, atom in enumerate(top.atoms):
             line = '%8i S    %-4i %4s %-4s %-4s %10.6f %13.4f %11i %13.4f %13.4f\n' % (
                 atom.id + 1, atom.molecule.id + 1, atom.molecule.name[:4], atom.symbol, atom.type,
                 atom.charge, atom.mass, 0, -atom.alpha, atom.thole / 2
             )
-            self._file.write(line)
-        self._file.write('\n')
+            f.write(line)
+        f.write('\n')
 
-        n_bond = self.n_bond
-        self._file.write('%8i !NBOND: bonds\n' % n_bond)
-        for i, bond in enumerate(self.bonds):
-            self._file.write('%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1))
+        n_bond = top.n_bond
+        f.write('%8i !NBOND: bonds\n' % n_bond)
+        for i, bond in enumerate(top.bonds):
+            f.write('%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1))
             if (i + 1) % 4 == 0 or i + 1 == n_bond:
-                self._file.write('\n')
-        self._file.write('\n')
+                f.write('\n')
+        f.write('\n')
 
-        n_angle = self.n_angle
-        self._file.write('%8i !NTHETA: angles\n' % n_angle)
-        for i, angle in enumerate(self.angles):
-            self._file.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
-                                            angle.atom3.id + 1))
+        n_angle = top.n_angle
+        f.write('%8i !NTHETA: angles\n' % n_angle)
+        for i, angle in enumerate(top.angles):
+            f.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
+                                       angle.atom3.id + 1))
             if (i + 1) % 3 == 0 or i + 1 == n_angle:
-                self._file.write('\n')
-        self._file.write('\n')
+                f.write('\n')
+        f.write('\n')
 
-        n_dihedral = self.n_dihedral
-        self._file.write('%8i !NPHI: dihedrals\n' % n_dihedral)
-        for i, dihedral in enumerate(self.dihedrals):
-            self._file.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
-                                               dihedral.atom3.id + 1, dihedral.atom4.id + 1))
+        n_dihedral = top.n_dihedral
+        f.write('%8i !NPHI: dihedrals\n' % n_dihedral)
+        for i, dihedral in enumerate(top.dihedrals):
+            f.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
+                                          dihedral.atom3.id + 1, dihedral.atom4.id + 1))
             if (i + 1) % 2 == 0 or i + 1 == n_dihedral:
-                self._file.write('\n')
-        self._file.write('\n')
+                f.write('\n')
+        f.write('\n')
 
-        n_improper = self.n_improper
-        self._file.write('%8i !NIMPHI: impropers\n' % n_improper)
-        for i, improper in enumerate(self.impropers):
-            self._file.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
-                                               improper.atom3.id + 1, improper.atom4.id + 1))
+        n_improper = top.n_improper
+        f.write('%8i !NIMPHI: impropers\n' % n_improper)
+        for i, improper in enumerate(top.impropers):
+            f.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
+                                          improper.atom3.id + 1, improper.atom4.id + 1))
             if (i + 1) % 2 == 0 or i + 1 == n_improper:
-                self._file.write('\n')
-        self._file.write('\n')
+                f.write('\n')
+        f.write('\n')
 
-        self._file.write('%8i !NDON: donors\n\n' % 0)
+        f.write('%8i !NDON: donors\n\n' % 0)
 
-        self._file.write('%8i !NACC: acceptors\n\n' % 0)
+        f.write('%8i !NACC: acceptors\n\n' % 0)
 
-        self._file.write('%8i !NNB\n\n\n' % 0)
+        f.write('%8i !NNB\n\n\n' % 0)
 
-        self._file.write('%8i !NUMANISO\n\n' % 0)
+        f.write('%8i !NUMANISO\n\n' % 0)
 
-        self._file.flush()
+        f.close()

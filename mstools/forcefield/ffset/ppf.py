@@ -1,3 +1,4 @@
+import warnings
 from .ffset import FFSet
 from ..ffterm import *
 from ..element import Element
@@ -38,19 +39,19 @@ class PpfFFSet(FFSet):
     In PPF format, there is no 1/2 for all energy terms
     '''
 
-    def __init__(self, file):
+    def __init__(self, *files):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_LB
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 1.0 / 1.2
 
-        self.parse(file)
-
-    def parse(self, ppf_file):
         # save all lines to this so that we can keep only the latest version
         self._ppf_lines = {}
+        for file in files:
+            self.parse(file)
 
-        with open(ppf_file) as f:
+    def parse(self, file):
+        with open(file) as f:
             lines = f.read().splitlines()
 
         for line in lines:
@@ -234,6 +235,9 @@ class PpfFFSet(FFSet):
                     improper.phi, improper.k / 4.184)
             else:
                 raise Exception('Only PeriodicImproperTerm is implemented')
+
+        if len(params.polarizable_terms) > 0:
+            warnings.warn('Polarizable parameters are ignored because PPF does not support them')
 
         with open(file, 'w') as f:
             f.write(line)

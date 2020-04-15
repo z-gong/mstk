@@ -89,3 +89,5 @@ def test_read():
     assert improper.phi == 180
     assert pytest.approx(improper.k/4.184, abs=1E-6) == 18
     assert improper.version == '0.21'
+
+    assert len(params.polarizable_terms) == 0

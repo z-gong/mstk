@@ -6,7 +6,7 @@ import os
 cwd = os.path.dirname(os.path.abspath(__file__))
 psf = Topology.open(cwd + '/files/topol.psf')
 
-def test_psf():
+def test_read():
     assert psf.is_drude == False
     assert psf.n_atom == 75
     assert psf.n_molecule == 15
@@ -44,3 +44,6 @@ def test_psf():
     mol = psf.molecules[-1]
     assert mol.id == 14
     assert mol.name == 'C3H'
+
+def test_write():
+    psf.write(cwd + '/files/psf-out.psf')

@@ -10,16 +10,14 @@ class LammpsData(Topology):
     the velocities and force field parameters are ignored
     '''
 
-    def __init__(self, file, mode='r'):
+    def __init__(self, file):
         super(LammpsData, self).__init__()
-        self._file = open(file)
-        if mode == 'r':
-            self.parse()
-        if mode == 'w':
-            raise Exception('Writing support for LammpsData haven\'t been implemented')
+        self.parse(file)
 
-    def parse(self):
-        lines = self._file.read().splitlines()
+    def parse(self, file):
+        with open(file) as f:
+            lines = f.read().splitlines()
+
         self.remark = lines[0].strip()
 
         _sections = ["Atoms", "Velocities", "Ellipsoids", "Lines", "Triangles", "Bodies",

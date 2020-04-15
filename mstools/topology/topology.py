@@ -12,26 +12,8 @@ class Topology():
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         self._file = IOBase()
-
-    def __del__(self):
-        self.close()
-
-    def close(self):
-        self._file.close()
-
-    def init_from_topology(self, topology, deepcopy=False):
-        """
-        init a new topology from another topology
-        this is useful when you want to convert topology into different formats
-        by default the molecules are passed as reference without deepcopy
-        be careful if you still need to manipulate the original topology
-
-        @param topology: Topology
-        @param deepcopy: bool
-        """
-        self.remark = topology.remark
-        self.cell = UnitCell(topology.cell.vectors)
-        self.init_from_molecules(topology._molecules, deepcopy=deepcopy)
+        # replace the static write() by instance method so that we can call top.write(file)
+        self.write = self._instance_write
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
@@ -146,22 +128,38 @@ class Topology():
         return any(atom.is_drude for atom in self._atoms)
 
     @staticmethod
-    def open(file, mode='r'):
+    def open(file):
         from .psf import Psf
         from .lammps import LammpsData
         from .xyz import XyzTopology
         from .zmat import Zmat
 
         if file.endswith('.psf'):
-            return Psf(file, mode)
+            return Psf(file)
         elif file.endswith('.lmp'):
-            return LammpsData(file, mode)
+            return LammpsData(file)
         elif file.endswith('.xyz'):
-            return XyzTopology(file, mode)
+            return XyzTopology(file)
         elif file.endswith('.zmat'):
-            return Zmat(file, mode)
+            return Zmat(file)
         else:
-            raise Exception('filename for topology not understand')
+            raise Exception('Unsupported format')
+
+    @staticmethod
+    def write(top, file):
+        raise NotImplementedError('This method haven\'t been implemented')
+
+    def _instance_write(self, file):
+        # after initialization, this method will replace the static write method
+        from .psf import Psf
+        from .xyz import XyzTopology
+
+        if file.endswith('.psf'):
+            Psf.write(self, file)
+        elif file.endswith('.xyz'):
+            XyzTopology.write(self, file)
+        else:
+            raise Exception('Unsupported format for topology output')
 
     def to_omm_topology(self):
         try:

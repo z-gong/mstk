@@ -30,11 +30,9 @@ if not top.has_position or top.cell.volume == 0:
     top.set_positions(frame.positions)
     top.cell.set_box(frame.cell.vectors)
 
-top_out = Topology.open(args.output, 'w')
-top_out.init_from_topology(top)
-atoms_catho = [atom for atom in top_out.atoms if atom.type == args.atom
+atoms_catho = [atom for atom in top.atoms if atom.type == args.atom
                and abs(atom.position[2] - args.cathode) <= args.tolerance]
-atoms_anode = [atom for atom in top_out.atoms if atom.type == args.atom
+atoms_anode = [atom for atom in top.atoms if atom.type == args.atom
                and abs(atom.position[2] - args.anode) <= args.tolerance]
 
 area = top.cell.size[0] * top.cell.size[1]
@@ -53,5 +51,4 @@ for atom in atoms_catho:
 for atom in atoms_anode:
     atom.charge += q_anode
 
-top_out.write()
-top_out.close()
+top.write(args.output)

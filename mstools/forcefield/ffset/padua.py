@@ -9,13 +9,14 @@ class PaduaFFSet(FFSet):
     The energy term is in k/2 form for bond, angle, dihedral and improper
     '''
 
-    def __init__(self, file):
+    def __init__(self, *files):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_GEOMETRIC
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
-        self.parse(file)
+        for file in files:
+            self.parse(file)
 
     def parse(self, file):
         with open(file) as f:
@@ -39,6 +40,9 @@ class PaduaFFSet(FFSet):
             elif line.lower().startswith('impro'):
                 section = 'impropers'
                 continue
+            elif line.lower().startswith('polar'):
+                section = 'polarizations'
+                continue
 
             words = line.strip().split()
             if section == 'atoms':
@@ -51,6 +55,8 @@ class PaduaFFSet(FFSet):
                 self.parse_dihedral(words)
             elif section == 'impropers':
                 self.parse_improper(words)
+            elif section == 'polarizations':
+                self.parse_polarization(words)
 
     def parse_atom(self, words):
         atype = AtomType(words[0])
@@ -81,36 +87,36 @@ class PaduaFFSet(FFSet):
         if atype.name not in self.atom_types.keys():
             self.atom_types[atype.name] = atype
         else:
-            raise Exception('Duplicated atom type: %s' % atype)
+            raise Exception('Duplicated atom type: %s' % str(atype))
 
     def parse_bond(self, words):
         if words[2] not in ['harm', 'cons']:
             raise Exception('Unsupported bond function: %s' % (words[2]))
-        bond = HarmonicBondTerm(words[0], words[1], length=float(words[3]) / 10,
+        term = HarmonicBondTerm(words[0], words[1], length=float(words[3]) / 10,
                                 k=float(words[4]) * 100 / 2, fixed=(words[2] == 'cons'))
-        if bond.name in self.bond_terms.keys():
-            raise Exception('Duplicated bond term: %s' % self)
-        self.bond_terms[bond.name] = bond
+        if term.name in self.bond_terms.keys():
+            raise Exception('Duplicated bond term: %s' % str(term))
+        self.bond_terms[term.name] = term
 
     def parse_angle(self, words):
         if words[3] not in ['harm']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
-        angle = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
-                                  k=float(words[5]) / 2)
-        if angle.name in self.angle_terms.keys():
-            raise Exception('Duplicated angle term: %s' % self)
-        self.angle_terms[angle.name] = angle
+        term = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
+                                 k=float(words[5]) / 2)
+        if term.name in self.angle_terms.keys():
+            raise Exception('Duplicated angle term: %s' % str(term))
+        self.angle_terms[term.name] = term
 
     def parse_dihedral(self, words):
         if words[4] not in ['opls']:
             raise Exception('Unsupported dihedral function: %s' % (words[4]))
-        dihedral = OplsDihedralTerm(words[0], words[1], words[2], words[3],
-                                    k1=float(words[5]) / 2, k2=float(words[6]) / 2,
-                                    k3=float(words[7]) / 2, k4=float(words[8]) / 2
-                                    )
-        if dihedral.name in self.dihedral_terms.keys():
-            raise Exception('Duplicated dihedral term: %s' % self)
-        self.dihedral_terms[dihedral.name] = dihedral
+        term = OplsDihedralTerm(words[0], words[1], words[2], words[3],
+                                k1=float(words[5]) / 2, k2=float(words[6]) / 2,
+                                k3=float(words[7]) / 2, k4=float(words[8]) / 2
+                                )
+        if term.name in self.dihedral_terms.keys():
+            raise Exception('Duplicated dihedral term: %s' % str(term))
+        self.dihedral_terms[term.name] = term
 
     def parse_improper(self, words):
         '''
@@ -118,11 +124,20 @@ class PaduaFFSet(FFSet):
         '''
         if words[4] not in ['opls']:
             raise Exception('Unsupported improper function: %s' % (words[4]))
-        improper = PeriodicImproperTerm(words[2], words[0], words[1], words[3],
-                                        phi=180, k=float(words[6]) / 2)
-        if improper.name in self.improper_terms.keys():
-            raise Exception('Duplicated improper term: %s' % self)
-        self.improper_terms[improper.name] = improper
+        term = PeriodicImproperTerm(words[2], words[0], words[1], words[3],
+                                    phi=180, k=float(words[6]) / 2)
+        if term.name in self.improper_terms.keys():
+            raise Exception('Duplicated improper term: %s' % str(term))
+        self.improper_terms[term.name] = term
+
+    def parse_polarization(self, words):
+        name, mass, charge, k, alpha, thole = words
+        term = IsotropicDrudeTerm(name, float(alpha) / 1000, float(thole))
+        term.mass = float(mass)
+        term.k = float(k) / 2 * 100 # convert from kJ/mol/A^2 to kJ/mol/nm^2
+        if term.name in self.polarizable_terms.keys():
+            raise Exception('Duplicated drude term: %s' % str(term))
+        self.polarizable_terms[term.name] = term
 
     @staticmethod
     def write(params, file):

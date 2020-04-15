@@ -11,28 +11,26 @@ class Zmat(Topology):
     the first column will be treated as atom type
     """
 
-    def __init__(self, file, mode='r'):
+    def __init__(self, file):
         super().__init__()
-        self._file = open(file, mode)
-        if mode == 'r':
-            self.parse()
-        elif mode == 'w':
-            raise Exception('Writing is not supported for zmat')
+        self.parse(file)
 
-    def parse(self):
+    def parse(self, file):
+        f = open(file)
+
         mol = Molecule()
         z_atoms = []
 
         # read molecule name
-        line = self._file.readline()
+        line = f.readline()
         while line.strip().startswith('#'):
-            line = self._file.readline()
+            line = f.readline()
         mol.name = line.strip()
 
         # read z-matrix
-        line = self._file.readline()
+        line = f.readline()
         while line.strip().startswith('#') or line.strip() == '':
-            line = self._file.readline()
+            line = f.readline()
 
         words = line.strip().split()
         if len(words) > 1:  # there can be line numbers
@@ -83,12 +81,12 @@ class Zmat(Topology):
                   'ia'  : ia, 'var_a': var_a, 'a': a,
                   'id'  : id, 'var_d': var_d, 'd': d}
             z_atoms.append(za)
-            line = self._file.readline()
+            line = f.readline()
 
         # read variables
         if _read_variable:
             if line.strip().lower().startswith('var') or line.strip() == '':
-                line = self._file.readline()
+                line = f.readline()
             while line:
                 words = line.strip().split('=')
                 if len(words) < 2:
@@ -102,19 +100,21 @@ class Zmat(Topology):
                         za['a'] = val
                     if za['var_d'] == key:
                         za['d'] = val
-                line = self._file.readline()
+                line = f.readline()
 
         # read extra bonds
         while line:
             if line.strip().startswith('#') or line.strip() == '':
-                line = self._file.readline()
+                line = f.readline()
                 continue
             words = line.strip().split()
             if words[0] == 'connect':
                 ii = int(words[1]) - 1
                 ij = int(words[2]) - 1
                 mol.add_bond(mol.atoms[ii], mol.atoms[ij])
-            line = self._file.readline()
+            line = f.readline()
+
+        f.close()
 
         if mol.n_atom >= 1:
             mol.atoms[0].position = [0, 0, 0]

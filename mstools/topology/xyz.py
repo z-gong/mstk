@@ -9,37 +9,36 @@ class XyzTopology(Topology):
     we treat the first column as type instead of name
     '''
 
-    def __init__(self, file, mode='r'):
+    def __init__(self, file):
         super(XyzTopology, self).__init__()
-        self._file = open(file, mode)
-        if mode == 'r':
-            self.parse()
-        elif mode == 'w':
-            pass
+        self.parse(file)
 
-    def parse(self):
-        n_atom = int(self._file.readline().strip())
-        self.remark = self._file.readline().strip()
+    def parse(self, file):
+        with open(file) as f:
+            n_atom = int(f.readline().strip())
+            self.remark = f.readline().strip()
 
-        mol = Molecule()
-        for i in range(n_atom):
-            words = self._file.readline().split()
-            atom = Atom()
-            atom.type = words[0]
-            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-            atom.name = atom.symbol + str(mol.n_atom + 1)
-            atom.position = tuple(map(lambda x: float(x) / 10, words[1:4]))
-            atom.has_position = True
-            mol.add_atom(atom)
+            mol = Molecule()
+            for i in range(n_atom):
+                words = f.readline().split()
+                atom = Atom()
+                atom.type = words[0]
+                atom.symbol = Element.guess_from_atom_type(atom.type).symbol
+                atom.name = atom.symbol + str(mol.n_atom + 1)
+                atom.position = tuple(map(lambda x: float(x) / 10, words[1:4]))
+                atom.has_position = True
+                mol.add_atom(atom)
 
         self.init_from_molecules([mol])
 
-    def write(self):
-        if not self.has_position:
+    @staticmethod
+    def write(top, file):
+        if not top.has_position:
             raise Exception('Position is required for writing xyz file')
-        self._file.write('%i\n' % self.n_atom)
-        self._file.write('%s\n' % self.remark)
-        for atom in self.atoms:
-            pos = atom.position * 10
-            self._file.write('%-8s %10.4f %10.4f %10.4f\n' % (
-                atom.type, pos[0], pos[1], pos[2]))
+
+        with open(file, 'w')as f:
+            f.write('%i\n' % top.n_atom)
+            f.write('%s\n' % top.remark)
+            for atom in top.atoms:
+                pos = atom.position * 10
+                f.write('%-8s %11.5f %11.5f %11.5f\n' % (atom.type, pos[0], pos[1], pos[2]))

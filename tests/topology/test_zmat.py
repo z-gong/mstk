@@ -7,7 +7,7 @@ import os
 cwd = os.path.dirname(os.path.abspath(__file__))
 zmat = Topology.open(cwd + '/files/im11.zmat')
 
-def test_zmat():
+def test_read():
     assert zmat.n_atom == 16
     assert zmat.n_bond == 16
     assert zmat.n_angle == 27
@@ -23,3 +23,7 @@ def test_zmat():
     assert pytest.approx(atom.position, abs=1E-4) == [0.3369, 0.2250, -0.0890]
     assert atom.name == 'H16'
     assert atom.type == 'H1'
+
+def test_write():
+    zmat.write(cwd + '/files/zmat-out.psf')
+    zmat.write(cwd + '/files/zmat-out.xyz')

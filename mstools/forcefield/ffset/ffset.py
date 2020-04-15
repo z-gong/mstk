@@ -16,7 +16,7 @@ class FFSet():
         self.improper_terms: {str: ImproperTerm} = {}
         self.vdw_terms: {str: VdwTerm} = {}
         self.pairwise_vdw_terms: {str: VdwTerm} = {}
-        self.drude_terms: {str: DrudeTerm} = {}
+        self.polarizable_terms: {str: PolarizableTerm} = {}
         self.lj_mixing_rule = FFSet.LJ_MIXING_NONE
         self.scale_14_vdw = 1.0
         self.scale_14_coulomb = 1.0

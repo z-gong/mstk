@@ -6,10 +6,10 @@ from mstools.forcefield import PaduaFFSet
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-params = PaduaFFSet(cwd + '/files/oplsaa.ff')
+params = PaduaFFSet(cwd + '/files/oplsaa.ff', cwd + '/files/clp-alpha.ff')
 
 
-def test_padua():
+def test_read():
     br = params.atom_types['Br']
     assert br.mass == 79.904
     assert br.charge == -1.0
@@ -50,3 +50,9 @@ def test_padua():
     improper = params.improper_terms['N,C,CT,CT']
     assert improper.phi == 180
     assert improper.k == 8.368 / 2
+
+    drude = params.polarizable_terms['CT']
+    assert drude.mass == 0.4
+    assert pytest.approx(drude.k / 100, abs=1E-6) == 4184 / 2
+    assert pytest.approx(drude.alpha * 1000, abs=1E-6) == 1.016
+    assert drude.thole == 2.6
