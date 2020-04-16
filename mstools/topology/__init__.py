@@ -1,5 +1,5 @@
 from .atom import Atom
-from .bond import Bond, Angle, Dihedral, Improper
+from .connectivity import *
 from .molecule import  Molecule
 from .topology import Topology
 from .lammps import LammpsData

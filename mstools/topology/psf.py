@@ -1,6 +1,8 @@
 import math
 from ..forcefield import Element
-from ..topology import Atom, Molecule, Topology
+from .atom import Atom
+from .molecule import Molecule
+from .topology import Topology
 
 
 class Psf(Topology):
@@ -163,7 +165,7 @@ class Psf(Topology):
                 atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
 
     @staticmethod
-    def write(top, file):
+    def save_to(top, file):
         f = open(file, 'w')
 
         if top.is_drude:

@@ -1,6 +1,6 @@
 from .ffset import FFSet
-from ..ffterm import *
-from ..element import Element
+from .ffterm import *
+from .element import Element
 
 
 class PaduaFFSet(FFSet):
@@ -138,7 +138,3 @@ class PaduaFFSet(FFSet):
         if term.name in self.polarizable_terms.keys():
             raise Exception('Duplicated drude term: %s' % str(term))
         self.polarizable_terms[term.name] = term
-
-    @staticmethod
-    def write(params, file):
-        raise Exception('Writing support haven\'t been implemented for fftool format')

@@ -2,9 +2,9 @@ import math
 import copy
 import numpy as np
 from .atom import Atom
-from .bond import Bond, Angle, Dihedral, Improper
-from ..forcefield import FFSet, AtomType, BondTerm, AngleTerm, DihedralTerm, ImproperTerm, \
-    ChargeIncrementTerm
+from .connectivity import *
+from ..forcefield import FFSet
+from ..forcefield.ffterm import *
 
 
 class Molecule():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import PpfFFSet
+from mstools.forcefield import PpfFFSet, PaduaFFSet
 
 import os
 
@@ -87,7 +87,12 @@ def test_read():
 
     improper = params.improper_terms.get('c_3o,o_1,*,*')
     assert improper.phi == 180
-    assert pytest.approx(improper.k/4.184, abs=1E-6) == 18
+    assert pytest.approx(improper.k / 4.184, abs=1E-6) == 18
     assert improper.version == '0.21'
 
     assert len(params.polarizable_terms) == 0
+
+
+def test_write():
+    params = PaduaFFSet(cwd + '/files/clp.ff', cwd + '/files/clp-alpha.ff')
+    PpfFFSet.save_to(params, cwd + '/files/out-clp.ppf')

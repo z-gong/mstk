@@ -1,5 +1,5 @@
 import math
-from ..ffterm import *
+from .ffterm import *
 
 
 class FFSet():
@@ -74,3 +74,10 @@ class FFSet():
             raise Exception('Unknown mixing rule for LJ126 parameters')
 
         return LJ126Term(atype1.name, atype2.name, epsilon, sigma)
+
+    @staticmethod
+    def save_to(top, file):
+        '''
+        This method should be implemented by subclasses
+        '''
+        raise NotImplementedError('This method haven\'t been implemented')

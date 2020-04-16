@@ -2,7 +2,7 @@ import sys
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from .ffset import FFSet
-from ..ffterm import *
+from .ffterm import *
 
 
 class ZfpFFSet(FFSet):
@@ -51,7 +51,7 @@ class ZfpFFSet(FFSet):
                 d[term.name] = term
 
     @staticmethod
-    def write(params: FFSet, file):
+    def save_to(params: FFSet, file):
         root = ET.Element('ForceFieldTerms')
         tags = {
             'AtomTypes'           : params.atom_types,

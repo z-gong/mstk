@@ -1,7 +1,7 @@
 import warnings
 from .ffset import FFSet
-from ..ffterm import *
-from ..element import Element
+from .ffterm import *
+from .element import Element
 
 
 class PpfLine():
@@ -164,7 +164,7 @@ class PpfFFSet(FFSet):
                 self.improper_terms[term.name] = term
 
     @staticmethod
-    def write(params: FFSet, file):
+    def save_to(params: FFSet, file):
         line = '#DFF:EQT\n'
         line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
         for atype in params.atom_types.values():

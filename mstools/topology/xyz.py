@@ -1,5 +1,7 @@
+from .atom import Atom
+from .molecule import Molecule
+from .topology import Topology
 from ..forcefield import Element
-from ..topology import Topology, Atom, Molecule
 
 
 class XyzTopology(Topology):
@@ -32,7 +34,7 @@ class XyzTopology(Topology):
         self.init_from_molecules([mol])
 
     @staticmethod
-    def write(top, file):
+    def save_to(top, file):
         if not top.has_position:
             raise Exception('Position is required for writing xyz file')
 

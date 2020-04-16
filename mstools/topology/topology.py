@@ -1,7 +1,9 @@
 import numpy as np
 import copy
 from io import IOBase
-from .molecule import Atom, Bond, Angle, Dihedral, Improper, Molecule
+from .atom import Atom
+from .connectivity import *
+from .molecule import Molecule
 from .unitcell import UnitCell
 
 
@@ -12,8 +14,6 @@ class Topology():
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         self._file = IOBase()
-        # replace the static write() by instance method so that we can call top.write(file)
-        self.write = self._instance_write
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
@@ -145,21 +145,23 @@ class Topology():
         else:
             raise Exception('Unsupported format')
 
-    @staticmethod
-    def write(top, file):
-        raise NotImplementedError('This method haven\'t been implemented')
-
-    def _instance_write(self, file):
-        # after initialization, this method will replace the static write method
+    def write(self, file):
         from .psf import Psf
         from .xyz import XyzTopology
 
         if file.endswith('.psf'):
-            Psf.write(self, file)
+            Psf.save_to(self, file)
         elif file.endswith('.xyz'):
-            XyzTopology.write(self, file)
+            XyzTopology.save_to(self, file)
         else:
             raise Exception('Unsupported format for topology output')
+
+    @staticmethod
+    def save_to(top, file):
+        '''
+        This method should be implemented by subclasses
+        '''
+        raise NotImplementedError('This method haven\'t been implemented')
 
     def to_omm_topology(self):
         try:

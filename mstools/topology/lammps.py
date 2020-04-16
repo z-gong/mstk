@@ -1,6 +1,8 @@
 import numpy as np
+from .atom import Atom
+from .molecule import Molecule
+from .topology import Topology
 from ..forcefield import Element
-from ..topology import Atom, Molecule, Topology
 
 
 class LammpsData(Topology):
