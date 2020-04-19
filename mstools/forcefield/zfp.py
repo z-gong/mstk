@@ -8,9 +8,6 @@ from .ffterm import *
 class ZfpFFSet(FFSet):
     def __init__(self, *files):
         super().__init__()
-        self.lj_mixing_rule = self.LJ_MIXING_LB
-        self.scale_14_vdw = 0.5
-        self.scale_14_coulomb = 1.0 / 1.2
 
         for file in files:
             self.parse(file)
@@ -24,6 +21,13 @@ class ZfpFFSet(FFSet):
         root = tree.getroot()
         if root is None:
             raise Exception('Empty ZFP file')
+
+        node = root.find('Setting')
+        self.vdw_cutoff = float(node.attrib['vdw_cutoff'])
+        self.vdw_long_range = node.attrib['vdw_long_range']
+        self.lj_mixing_rule = node.attrib['lj_mixing_rule']
+        self.scale_14_vdw = float(node.attrib['scale_14_vdw'])
+        self.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
 
         tags = {
             'AtomTypes'           : self.atom_types,
@@ -53,6 +57,16 @@ class ZfpFFSet(FFSet):
     @staticmethod
     def save_to(params: FFSet, file):
         root = ET.Element('ForceFieldTerms')
+
+        attrib = {
+            'vdw_cutoff' : str(params.vdw_cutoff),
+            'vdw_long_range'   : params.vdw_long_range,
+            'lj_mixing_rule'  : params.lj_mixing_rule,
+            'scale_14_vdw'    : str(params.scale_14_vdw),
+            'scale_14_coulomb': str(params.scale_14_coulomb),
+        }
+        node = ET.SubElement(root, 'Setting', attrib=attrib)
+
         tags = {
             'AtomTypes'           : params.atom_types,
             'ChargeIncrementTerms': params.charge_increment_terms,

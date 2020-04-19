@@ -63,9 +63,9 @@ class UnitCell():
 
     @staticmethod
     def _reduce_box_vectors(vectors):
-        """
-        Reduces the representation of the PBC
-        """
+        '''
+        transform the orientations so that a0 > 2*b0, a0 > 2*c0, b1 > 2*c1
+        '''
         a, b, c = vectors
         c -= b * round(c[1] / b[1])
         c -= a * round(c[0] / a[0])

@@ -12,6 +12,8 @@ class PaduaFFSet(FFSet):
     def __init__(self, *files):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_GEOMETRIC
+        self.vdw_long_range = self.VDW_LONGRANGE_CORRECT
+        self.vdw_cutoff = 1.2 # nm
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
@@ -58,9 +60,17 @@ class PaduaFFSet(FFSet):
             elif section == 'polarizations':
                 self.parse_polarization(words)
 
+        # If this is a polarizable FF, add an AtomType and VdwTerm for Drude particles
+        if len(self.polarizable_terms) > 0:
+            type_drude = 'DRUDE'
+            if type_drude not in self.atom_types:
+                dtype = AtomType(type_drude)
+                self.atom_types[type_drude] = dtype
+                vdw = LJ126Term(type_drude, type_drude, 0, 1.0)
+                self.vdw_terms[vdw.name] = vdw
+
     def parse_atom(self, words):
         atype = AtomType(words[0])
-        atype.symbol = Element.guess_from_atom_type(words[0]).symbol
         atype.mass = float(words[2])
         atype.charge = float(words[3])
         (atype.eqt_bond, atype.eqt_ang_c, atype.eqt_ang_s,
@@ -134,7 +144,7 @@ class PaduaFFSet(FFSet):
         name, mass, charge, k, alpha, thole = words
         term = IsotropicDrudeTerm(name, float(alpha) / 1000, float(thole))
         term.mass = float(mass)
-        term.k = float(k) / 2 * 100 # convert from kJ/mol/A^2 to kJ/mol/nm^2
+        term.k = float(k) / 2 * 100  # convert from kJ/mol/A^2 to kJ/mol/nm^2
         if term.name in self.polarizable_terms.keys():
             raise Exception('Duplicated drude term: %s' % str(term))
         self.polarizable_terms[term.name] = term

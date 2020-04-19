@@ -47,7 +47,9 @@ class Zmat(Topology):
                 break
             atom = Atom()
             atom.type = words[shift]
-            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
+            element = Element.guess_from_atom_type(atom.type)
+            atom.symbol = element.symbol
+            atom.mass = element.mass
             atom.name = atom.symbol + str(mol.n_atom + 1)
             atom.has_position = True
             mol.add_atom(atom)

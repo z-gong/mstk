@@ -27,6 +27,10 @@ class Bond():
     def __gt__(self, other):
         return [self.atom1, self.atom2] > [other.atom1, other.atom2]
 
+    @property
+    def is_drude(self) -> bool:
+        return self.atom1.is_drude or self.atom2.is_drude
+
 
 class Angle():
     def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom):

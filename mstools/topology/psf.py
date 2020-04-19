@@ -197,7 +197,7 @@ class Psf(Topology):
         f.write('%8i !NTHETA: angles\n' % n_angle)
         for i, angle in enumerate(top.angles):
             f.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
-                                       angle.atom3.id + 1))
+                                   angle.atom3.id + 1))
             if (i + 1) % 3 == 0 or i + 1 == n_angle:
                 f.write('\n')
         f.write('\n')
@@ -206,7 +206,7 @@ class Psf(Topology):
         f.write('%8i !NPHI: dihedrals\n' % n_dihedral)
         for i, dihedral in enumerate(top.dihedrals):
             f.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
-                                          dihedral.atom3.id + 1, dihedral.atom4.id + 1))
+                                      dihedral.atom3.id + 1, dihedral.atom4.id + 1))
             if (i + 1) % 2 == 0 or i + 1 == n_dihedral:
                 f.write('\n')
         f.write('\n')
@@ -215,7 +215,7 @@ class Psf(Topology):
         f.write('%8i !NIMPHI: impropers\n' % n_improper)
         for i, improper in enumerate(top.impropers):
             f.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
-                                          improper.atom3.id + 1, improper.atom4.id + 1))
+                                      improper.atom3.id + 1, improper.atom4.id + 1))
             if (i + 1) % 2 == 0 or i + 1 == n_improper:
                 f.write('\n')
         f.write('\n')

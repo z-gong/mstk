@@ -5,6 +5,7 @@ from .atom import Atom
 from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
+from ..forcefield import FFSet
 
 
 class Topology():
@@ -188,26 +189,29 @@ class Topology():
 
         return omm_top
 
-    def get_12_13_14_exclusions(self) -> ([Atom], [Atom], [Atom]):
+    def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
+        '''
+        The pairs only concerns real atoms. Drude particles  will be ignored.
+        '''
         pair_12_set = set()
         pair_13_set = set()
         pair_14_set = set()
-        for bond in self.bonds:
+        for bond in filter(lambda x: not x.is_drude, self.bonds):
             a2, a3 = bond.atom1, bond.atom2
             pair = tuple(sorted([a2, a3]))
             pair_12_set.add(pair)
 
-            for a1 in a2.bond_partners:
+            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
                 if a1 != a3:
                     pair = tuple(sorted([a1, a3]))
                     pair_13_set.add(pair)
-            for a4 in a3.bond_partners:
+            for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
                 if a2 != a4:
                     pair = tuple(sorted([a2, a4]))
                     pair_13_set.add(pair)
 
-            for a1 in a2.bond_partners:
-                for a4 in a3.bond_partners:
+            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
+                for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
                     if a1 != a3 and a2 != a4 and a1 != a4:
                         pair = tuple(sorted([a1, a4]))
                         pair_14_set.add(pair)
@@ -216,3 +220,29 @@ class Topology():
         pair_13_list = list(sorted(pair_13_set - pair_12_set))
         pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
         return pair_12_list, pair_13_list, pair_14_list
+
+    def get_drude_pairs(self)->[(Atom, Atom)]:
+        '''
+        [(parent, drude)]
+        '''
+        return [pair for mol in self._molecules for pair in mol.get_drude_pairs()]
+
+    def generate_angle_dihedral_improper(self):
+        for mol in self._molecules:
+            mol.generate_angle_dihedral_improper()
+
+    def generate_drude_particles(self, params: FFSet):
+        for mol in self._molecules:
+            mol.generate_drude_particles(params)
+
+    def remove_drude_particles(self):
+        for mol in self._molecules:
+            mol.remove_drude_particles()
+
+    def assign_mass_from_forcefield(self, params: FFSet):
+        for mol in self._molecules:
+            mol.assign_mass_from_forcefield(params)
+
+    def assign_charge_from_forcefield(self, params: FFSet):
+        for mol in self._molecules:
+            mol.assign_charge_from_forcefield(params)

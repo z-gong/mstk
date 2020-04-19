@@ -1,4 +1,6 @@
 from collections import namedtuple
+import math
+from ..constant import *
 
 
 class FFTerm():
@@ -49,8 +51,9 @@ class AtomType(FFTerm):
     def __init__(self, name):
         super().__init__()
         self._name = name
-        self.symbol = 'UNK'
-        self.mass = 0.
+        # mass is only used for assign mass of topology in case mass not exist in topology
+        # mass = -1 means unknown
+        self.mass = -1
         self.charge = 0.
         self.eqt_vdw = name
         self.eqt_q_inc = name
@@ -86,7 +89,6 @@ class AtomType(FFTerm):
     def zfp_attrs(self):
         return {
             'name'     : str,
-            'symbol'   : str,
             'mass'     : float,
             'charge'   : float,
             'eqt_vdw'  : str,
@@ -149,6 +151,9 @@ class VdwTerm(FFTerm):
 
     def __gt__(self, other):
         return [self.type1, self.type2] > [other.type1, other.type2]
+
+    def evaluate_energy(self, r):
+        raise NotImplementedError('This method should be implemented by subclasses')
 
 
 class BondTerm(FFTerm):
@@ -295,6 +300,9 @@ class LJ126Term(VdwTerm):
             'sigma'  : float,
         }
 
+    def evaluate_energy(self, r):
+        return 4 * self.epsilon * ((self.sigma / r) ** 12 - (self.sigma / r) ** 6)
+
 
 class MieTerm(VdwTerm):
     '''
@@ -311,12 +319,16 @@ class MieTerm(VdwTerm):
         self.repulsion = repulsion
         self.attraction = attraction
 
-    @staticmethod
-    def factor_energy(rep, att):
+    def evaluate_energy(self, r):
+        return self.factor_energy() * self.epsilon \
+               * ((self.sigma / r) ** self.repulsion - (self.sigma / r) ** self.attraction)
+
+    def factor_energy(self):
+        rep, att = self.repulsion, self.attraction
         return rep / (rep - att) * (rep / att) ** (att / (rep - att))
 
-    @staticmethod
-    def factor_r_min(rep, att):
+    def factor_r_min(self):
+        rep, att = self.repulsion, self.attraction
         return (rep / att) ** (1 / (rep - att))
 
     @staticmethod
@@ -551,12 +563,17 @@ class HarmonicImproperTerm(ImproperTerm):
 
 
 class IsotropicDrudeTerm(PolarizableTerm):
+    '''
+    E = k * d^2
+    q = sqrt(4 * pi * eps_0 * (2k) * alpha)
+    '''
+
     def __init__(self, type, alpha, thole):
         super().__init__(type)
-        self.alpha = alpha
+        self.alpha = alpha  # nm^3
         self.thole = thole
         self.mass = 0.4
-        self.k = 4184 / 2 * 100
+        self.k = 4184 / 2 * 100  # kJ/mol/nm^2
 
     @staticmethod
     def singleton():
@@ -571,3 +588,7 @@ class IsotropicDrudeTerm(PolarizableTerm):
             'mass' : float,
             'k'    : float,
         }
+
+    def get_charge(self):
+        factor = math.sqrt(1E-6 / AVOGADRO) / ELEMENTARY_CHARGE
+        return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * self.alpha) * factor

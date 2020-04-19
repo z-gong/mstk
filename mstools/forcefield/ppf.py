@@ -42,6 +42,8 @@ class PpfFFSet(FFSet):
     def __init__(self, *files):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_LB
+        self.vdw_long_range = self.VDW_LONGRANGE_CORRECT
+        self.vdw_cutoff = 1.2 # nm
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 1.0 / 1.2
 
@@ -113,7 +115,6 @@ class PpfFFSet(FFSet):
                 if atype is None:
                     continue
                 number, mass = line.get_float_values()
-                atype.symbol = Element(int(number)).symbol
                 atype.mass = mass
             elif line.term == 'ATC':
                 for atype in self.atom_types.values():
@@ -177,7 +178,7 @@ class PpfFFSet(FFSet):
                  '#PROTOCOL = AMBER\n'
                  )
         for atype in params.atom_types.values():
-            element = Element(atype.symbol)
+            element = Element.guess_from_atom_type(atype.name)
             line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, atype.mass)
         for atype in params.atom_types.values():
             line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)

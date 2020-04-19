@@ -1,8 +1,11 @@
+import itertools
 import numpy as np
-from ..topology import Topology, Atom, UnitCell, Psf
+import warnings
+from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
 from ..forcefield import FFSet
 from ..forcefield.ffterm import *
+from ..constant import *
 
 try:
     from simtk import openmm as mm
@@ -11,10 +14,6 @@ except ImportError:
     OMM_EXIST = False
 else:
     OMM_EXIST = True
-
-
-class CONST:
-    PI = 3.1415926535
 
 
 class System():
@@ -35,157 +34,452 @@ class System():
         else:
             self._frame.cell = topology.cell
 
-    def write_lmp(self):
+        self.extract_required_ff_terms()
+
+    def extract_required_ff_terms(self):
+        self.atom_types: [AtomType] = []
+        self.type_names: [str] = []
+        self.vdw_terms: {str: VdwTerm} = {}
+        self.pairwise_vdw_terms: {str: VdwTerm} = {}
+        self.bond_terms: {int: BondTerm} = {}
+        self.angle_terms: {int: AngleTerm} = {}
+        self.dihedral_terms: {int: DihedralTerm} = {}
+        self.improper_terms: {int: ImproperTerm} = {}
+        self.polarizable_terms: {str: PolarizableTerm} = {}
+        self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
+
+        for atom in self._topology.atoms:
+            at = self._params.atom_types[atom.type]
+            if at is None:
+                raise Exception(f'AtomType {atom.type} not found in FF')
+
+            if at not in self.atom_types:
+                self.atom_types.append(at)
+                self.type_names.append(at.name)
+                self.vdw_terms[at.name] = self._params.get_vdw_term(at, at)
+
+        for at1, at2 in itertools.combinations(self.atom_types, 2):
+            vdw = self._params.pairwise_vdw_terms.get(VdwTerm(at1.eqt_vdw, at2.eqt_vdw).name)
+            if vdw is not None:
+                self.pairwise_vdw_terms[VdwTerm(at1.name, at2.name).name] = vdw
+
+        for bond in self._topology.bonds:
+            if bond.is_drude:
+                # the Drude-parent bonds will be handled by DrudeForce below
+                continue
+            at1 = self._params.atom_types[bond.atom1.type].eqt_bond
+            at2 = self._params.atom_types[bond.atom2.type].eqt_bond
+            bterm = BondTerm(at1, at2, 0)
+            try:
+                self.bond_terms[id(bond)] = self._params.bond_terms[bterm.name]
+            except:
+                raise Exception(f'{str(bterm)} for {str(bond)} not found in FF')
+
+        for angle in self._topology.angles:
+            at1 = self._params.atom_types[angle.atom1.type].eqt_ang_s
+            at2 = self._params.atom_types[angle.atom2.type].eqt_ang_c
+            at3 = self._params.atom_types[angle.atom3.type].eqt_ang_s
+            aterm = AngleTerm(at1, at2, at3, 0)
+            try:
+                self.angle_terms[id(angle)] = self._params.angle_terms[aterm.name]
+            except:
+                raise Exception(f'{str(aterm)} for {str(angle)} not found in FF')
+
+        for dihedral in self._topology.dihedrals:
+            at1 = self._params.atom_types[dihedral.atom1.type].eqt_dih_s
+            at2 = self._params.atom_types[dihedral.atom2.type].eqt_dih_c
+            at3 = self._params.atom_types[dihedral.atom3.type].eqt_dih_c
+            at4 = self._params.atom_types[dihedral.atom4.type].eqt_dih_s
+            for a1, a2, a3, a4 in [(at1, at2, at3, at4),
+                                   (at1, at2, at3, '*'),
+                                   ('*', at2, at3, at4),
+                                   ('*', at2, at3, '*')]:
+                dterm = self._params.dihedral_terms.get(DihedralTerm(a1, a2, a3, a4).name)
+                if dterm is not None:
+                    self.dihedral_terms[id(dihedral)] = dterm
+                    break
+            else:
+                dterm = DihedralTerm(at1, at2, at3, at4)
+                raise Exception(f'{str(dterm)} for {str(dihedral)} not found in FF')
+
+        for improper in self._topology.impropers:
+            at1 = self._params.atom_types[improper.atom1.type].eqt_imp_c
+            at2 = self._params.atom_types[improper.atom2.type].eqt_imp_s
+            at3 = self._params.atom_types[improper.atom3.type].eqt_imp_s
+            at4 = self._params.atom_types[improper.atom4.type].eqt_imp_s
+            for a2, a3, a4 in [(at2, at3, at4),
+                               (at2, at3, '*'),
+                               (at2, at4, '*'),
+                               (at3, at4, '*'),
+                               (at2, '*', '*'),
+                               (at3, '*', '*'),
+                               (at4, '*', '*'),
+                               ('*', '*', '*')]:
+                iterm = self._params.improper_terms.get(ImproperTerm(at1, a2, a3, a4).name)
+                if iterm is not None:
+                    self.improper_terms[id(improper)] = iterm
+                    break
+            else:
+                iterm = ImproperTerm(at1, at2, at3, at4)
+                raise Exception(f'{str(iterm)} for {str(improper)} not found in FF')
+
+        for parent in self.drude_pairs.keys():
+            at = self._params.atom_types[parent.type]
+            pterm = PolarizableTerm(at.eqt_polar)
+            try:
+                self.polarizable_terms[at.name] = self._params.polarizable_terms[pterm.name]
+            except:
+                raise Exception(f'{str(pterm)} for {str(parent)} not found')
+
+        # TODO This is not robust enough
+        # allows for the alpha of H being merged into parent atoms
+        if 'H' in self._params.polarizable_terms:
+            self.polarizable_terms['H'] = self._params.polarizable_terms['H']
+
+        self.vdw_classes = set([term.__class__ for term in self.vdw_terms.values()])
+        self.vdw_classes.update([term.__class__ for term in self.pairwise_vdw_terms.values()])
+        self.bond_classes = set([term.__class__ for term in self.bond_terms.values()])
+        self.angle_classes = set([term.__class__ for term in self.angle_terms.values()])
+        self.dihedral_classes = set([term.__class__ for term in self.dihedral_terms.values()])
+        self.improper_classes = set([term.__class__ for term in self.improper_terms.values()])
+        self.polarizable_classes = set([term.__class__ for term in self.polarizable_terms.values()])
+
+    def export_lmp(self):
         pass
 
-    def write_gmx(self):
+    def export_gmx(self):
         pass
-
-    def write_omm(self):
-        pass
-
-    def write_gro(self, file):
-        gro = Gro(file, 'w')
-        gro.write_frame(self._topology, self._frame)
-        gro.close()
-
-    def write_psf(self, file):
-        psf = Psf(file, 'w')
-        psf.init_from_molecules(self._topology.molecules)
-        psf.write()
 
     def to_omm_system(self):
         if not OMM_EXIST:
-            raise Exception('cannot import openmm')
+            raise ImportError('Can not import OpenMM')
 
         omm_system = mm.System()
+        omm_system.setDefaultPeriodicBoxVectors(*self._frame.cell.vectors)
         for atom in self._topology.atoms:
             omm_system.addParticle(atom.mass)
 
-        nbforce = mm.NonbondedForce()
-        nbforce.setNonbondedMethod(mm.app.PME)
-        nbforce.setCutoffDistance(1.0)
-        try:
-            nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
-        except:
-            print('warning: cannot apply periodic boundary conditions for exceptions. '
-                  'be careful if there\'s infinite structures in the system')
-        omm_system.addForce(nbforce)
-        for atom in self._topology.atoms:
-            # use CustomNonbondedForce to handle vdW interactions
-            nbforce.addParticle(atom.charge, 1.0, 0.0)
-            nbforce.setUseDispersionCorrection(False)
-
-        for bterm in self._params.bond_terms:
-            if type(bterm) != HarmonicBondTerm:
-                raise Exception('Bond terms other that HarmonicBondTerm haven\'t been implemented')
+        ### Set up bonds #######################################################################
+        if self.bond_classes - {HarmonicBondTerm} > set():
+            raise Exception('Bond terms other that HarmonicBondTerm haven\'t been implemented')
         bforce = mm.HarmonicBondForce()
         bforce.setUsesPeriodicBoundaryConditions(True)
+        bforce.setForceGroup(1)
         omm_system.addForce(bforce)
         for bond in self._topology.bonds:
-            atype1: AtomType = self._params.atom_types[bond.atom1.type]
-            atype2: AtomType = self._params.atom_types[bond.atom2.type]
-            bterm = BondTerm(atype1.eqt_bond.name, atype2.eqt_bond.name, 0.0)
-            bterm = self._params.bond_terms[bterm.name]
+            if bond.is_drude:
+                continue
+            bterm = self.bond_terms[id(bond)]
+            bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
             if bterm.fixed:
-                bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k)
+                omm_system.addConstraint(bond.atom1.id, bond.atom2.id, bterm.length)
+
+        ### Set up angles #######################################################################
+        for angle_class in self.angle_classes:
+            if angle_class == HarmonicAngleTerm:
+                aforce = mm.HarmonicAngleForce()
+                for angle in self._topology.angles:
+                    aterm = self.angle_terms[id(angle)]
+                    if type(aterm) == HarmonicAngleTerm:
+                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
+                                        aterm.theta * PI / 180, aterm.k * 2)
+            elif angle_class == SDKAngleTerm:
+                aforce = mm.CustomCompoundBondForce(
+                    'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
+                    'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
+                    'theta=angle(p1,p2,p3);'
+                    'r=distance(p1,p3);'
+                    'rmin=1.144714*sigma')
+                aforce.addPerBondParameter('theta0')
+                aforce.addPerBondParameter('k')
+                aforce.addPerBondParameter('epsilon')
+                aforce.addPerBondParameter('sigma')
+                for angle in self._topology.angles:
+                    aterm = self.angle_terms[id(angle)]
+                    if type(aterm) == SDKAngleTerm:
+                        aforce.addAngle(
+                            [angle.atom1.id, angle.atom2.id, angle.atom3.id],
+                            [aterm.theta * PI / 180, aterm.k, aterm.epsilon, aterm.sigma])
             else:
-                omm_system.addConstraint(bond.atom1, bond.atom2, bterm.length)
+                raise Exception('Angle terms other that HarmonicAngleTerm and SDKAngleTerm '
+                                'haven\'t been implemented')
+            aforce.setUsesPeriodicBoundaryConditions(True)
+            aforce.setForceGroup(2)
+            omm_system.addForce(aforce)
 
-        for aterm in self._params.angle_terms:
-            if type(aterm) != HarmonicAngleTerm:
-                raise Exception(
-                    'Angle terms other that HarmonicAngleTerm haven\'t been implemented')
-        aforce = mm.HarmonicAngleForce()
-        aforce.setUsesPeriodicBoundaryConditions(True)
-        omm_system.addForce(aforce)
-        for angle in self._topology.angles:
-            atype1: AtomType = self._params.atom_types[angle.atom1.type]
-            atype2: AtomType = self._params.atom_types[angle.atom2.type]
-            atype3: AtomType = self._params.atom_types[angle.atom3.type]
-            aterm = AngleTerm(atype1.eqt_ang_s.name, atype2.eqt_ang_c.name,
-                              atype3.eqt_ang_s.name, 0.0)
-            aterm = self._params.angle_terms[aterm.name]
-            aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
-                            aterm.theta * CONST.PI / 180, aterm.k)
-
-        for dterm in self._params.dihedral_terms:
-            if type(dterm) not in (PeriodicDihedralTerm, OplsDihedralTerm):
-                raise Exception(
-                    'Dihedral terms other that PeriodicDihedralTerm and OplsDihedralTerm'
-                    'haven\'t been implemented')
+        ### Set up dihedrals #######################################################################
         dforce = mm.PeriodicTorsionForce()
         dforce.setUsesPeriodicBoundaryConditions(True)
+        dforce.setForceGroup(3)
         omm_system.addForce(dforce)
         for dihedral in self._topology.dihedrals:
-            dtype1: AtomType = self._params.atom_types[dihedral.atom1.type]
-            dtype2: AtomType = self._params.atom_types[dihedral.atom2.type]
-            dtype3: AtomType = self._params.atom_types[dihedral.atom3.type]
-            dtype4: AtomType = self._params.atom_types[dihedral.atom4.type]
-            dterm = DihedralTerm(dtype1.eqt_dih_s.name, dtype2.eqt_dih_c.name,
-                                 dtype3.eqt_dih_c.name, dtype4.eqt_dih_s.name)
-
-            dterm = self._params.dihedral_terms[dterm.name]
+            dterm = self.dihedral_terms[id(dihedral)]
             ia1, ia2, ia3, ia4 = dihedral.atom1.id, dihedral.atom2.id, dihedral.atom3.id, dihedral.atom4.id
             if type(dterm) == PeriodicDihedralTerm:
-                for para in dterm.parameters:
-                    dforce.addTorsion(ia1, ia2, ia3, ia4, para.multiplicity,
-                                      para.phi * CONST.PI / 180, para.k)
+                for par in dterm.parameters:
+                    dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi * PI / 180, par.k)
             elif type(dterm) == OplsDihedralTerm:
                 if dterm.k1 != 0:
                     dforce.addTorsion(ia1, ia2, ia3, ia4, 1, 0, dterm.k1)
                 if dterm.k2 != 0:
-                    dforce.addTorsion(ia1, ia2, ia3, ia4, 2, CONST.PI, dterm.k2)
+                    dforce.addTorsion(ia1, ia2, ia3, ia4, 2, PI, dterm.k2)
                 if dterm.k3 != 0:
                     dforce.addTorsion(ia1, ia2, ia3, ia4, 3, 0, dterm.k3)
                 if dterm.k4 != 0:
-                    dforce.addTorsion(ia1, ia2, ia3, ia4, 4, CONST.PI, dterm.k4)
-
-        for iterm in self._params.improper_terms:
-            if type(iterm) not in (PeriodicImproperTerm,):
+                    dforce.addTorsion(ia1, ia2, ia3, ia4, 4, PI, dterm.k4)
+            else:
                 raise Exception(
-                    'Improper terms other that PeriodicImproperTerm haven\'t been implemented')
-        iforce = mm.CustomTorsionForce('0.5*k*(1-cos(2*theta))')
-        iforce.addPerTorsionParameter('k')
-        iforce.setUsesPeriodicBoundaryConditions(True)
-        omm_system.addForce(iforce)
-        for improper in self._topology.impropers:
-            itype1: AtomType = self._params.atom_types[improper.atom1.type]
-            itype2: AtomType = self._params.atom_types[improper.atom2.type]
-            itype3: AtomType = self._params.atom_types[improper.atom3.type]
-            itype4: AtomType = self._params.atom_types[improper.atom4.type]
-            iterm = ImproperTerm(itype1.eqt_imp_c.name, itype2.eqt_imp_s.name,
-                                 itype3.eqt_imp_s.name, itype4.eqt_imp_s.name)
-            iterm = self._params.improper_terms[iterm.name]
-            iforce.addTorsion(improper.atom1.id, improper.atom2.id, improper.atom3.id,
-                              improper.atom4.id, [iterm.k])
+                    'Dihedral terms other that PeriodicDihedralTerm and OplsDihedralTerm'
+                    'haven\'t been implemented')
 
-        cforce = mm.CustomNonbondedForce()
-        cforce.setUseLongRangeCorrection(True)
-        omm_system.addForce(cforce)
+        ### Set up impropers #######################################################################
+        for improper_class in self.improper_classes:
+            if improper_class == PeriodicImproperTerm:
+                iforce = mm.CustomTorsionForce('k*(1+cos(2*theta-phi0))')
+                iforce.addPerTorsionParameter('phi0')
+                iforce.addPerTorsionParameter('k')
+                for improper in self._topology.impropers:
+                    iterm = self.improper_terms[id(improper)]
+                    if type(iterm) == PeriodicImproperTerm:
+                        iforce.addTorsion(improper.atom1.id, improper.atom2.id,
+                                          improper.atom3.id, improper.atom4.id,
+                                          [iterm.phi * PI / 180, iterm.k])
+            elif improper_class == HarmonicImproperTerm:
+                iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
+                                               f'dtheta=abs(theta-phi0);'
+                                               f'pi={PI}')
+                iforce.addPerTorsionParameter('phi0')
+                iforce.addPerTorsionParameter('k')
+                for improper in self._topology.impropers:
+                    iterm = self.improper_terms[id(improper)]
+                    if type(iterm) == HarmonicImproperTerm:
+                        iforce.addTorsion(improper.atom1.id, improper.atom2.id,
+                                          improper.atom3.id, improper.atom4.id,
+                                          [iterm.phi * PI / 180, iterm.k])
+            else:
+                raise Exception(
+                    'Improper terms other that PeriodicImproperTerm and HarmonicImproperTerm '
+                    'haven\'t been implemented')
+            iforce.setUsesPeriodicBoundaryConditions(True)
+            iforce.setForceGroup(4)
+            omm_system.addForce(iforce)
 
-        pair12, pair13, pair14 = self._topology.get_12_13_14_exclusions()
+        ### Set up coulomb interactions #########################################################
+        n_type = len(self.atom_types)
+        cutoff = self._params.vdw_cutoff
+        # NonbonedForce is not flexible enough. only used for Coulomb interactions and 1-4 pairs
+        # CustomNonbondedForce handles vdW interactions
+        nbforce = mm.NonbondedForce()
+        nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
+        nbforce.setCutoffDistance(cutoff)
+        nbforce.setUseDispersionCorrection(False)
+        try:
+            nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
+        except:
+            warnings.warn('Cannot apply PBC for vdW exceptions. '
+                          'Be careful if there\'s infinite structures in the system')
+        nbforce.setForceGroup(5)
+        omm_system.addForce(nbforce)
+        for atom in self._topology.atoms:
+            nbforce.addParticle(atom.charge, 1.0, 0.0)
+
+        ### Set up vdW interactions #########################################################
+        for vdw_class in self.vdw_classes:
+            if vdw_class == LJ126Term:
+                if self._params.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                    invRc6 = 1 / cutoff ** 6
+                    cforce = mm.CustomNonbondedForce(
+                        f'A(type1,type2)*(invR6*invR6-{invRc6 * invRc6})-'
+                        f'B(type1,type2)*(invR6-{invRc6});'
+                        f'invR6=1/r^6')
+                else:
+                    cforce = mm.CustomNonbondedForce(
+                        'A(type1,type2)*invR6*invR6-B(type1,type2)*invR6;'
+                        'invR6=1/r^6')
+                cforce.addPerParticleParameter('type')
+                A_list = [0.0] * n_type * n_type
+                B_list = [0.0] * n_type * n_type
+                for idx in range(n_type):
+                    for j in range(n_type):
+                        at1 = self.atom_types[idx]
+                        at2 = self.atom_types[j]
+                        vdw = self._params.get_vdw_term(at1, at2)
+                        if type(vdw) == LJ126Term:
+                            A = 4 * vdw.epsilon * vdw.sigma ** 12
+                            B = 4 * vdw.epsilon * vdw.sigma ** 6
+                        else:
+                            A = B = 0
+                        A_list[idx + n_type * j] = A
+                        B_list[idx + n_type * j] = B
+                cforce.addTabulatedFunction('A', mm.Discrete2DFunction(n_type, n_type, A_list))
+                cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
+
+                for atom in self._topology.atoms:
+                    id_type = self.type_names.index(atom.type)
+                    cforce.addParticle([id_type])
+
+            elif vdw_class == MieTerm:
+                if self._params.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                    cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
+                                                     'B(type1,type2)/r^ATT(type1,type2)-'
+                                                     'SHIFT(type1,type2)')
+                else:
+                    cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
+                                                     'B(type1,type2)/r^ATT(type1,type2)')
+                cforce.addPerParticleParameter('type')
+                A_list = [0.0] * n_type * n_type
+                B_list = [0.0] * n_type * n_type
+                REP_list = [0.0] * n_type * n_type
+                ATT_list = [0.0] * n_type * n_type
+                SHIFT_list = [0.0] * n_type * n_type
+                for idx in range(n_type):
+                    for j in range(n_type):
+                        at1 = self.atom_types[idx]
+                        at2 = self.atom_types[j]
+                        vdw = self._params.get_vdw_term(at1, at2)
+                        if type(vdw) == MieTerm:
+                            A = vdw.factor_energy() * vdw.epsilon * vdw.sigma ** vdw.repulsion
+                            B = vdw.factor_energy() * vdw.epsilon * vdw.sigma ** vdw.attraction
+                            REP = vdw.repulsion
+                            ATT = vdw.attraction
+                            SHIFT = A / cutoff ** REP - B / cutoff ** ATT
+                        else:
+                            A = B = REP = ATT = SHIFT = 0
+                        A_list[idx + n_type * j] = A
+                        B_list[idx + n_type * j] = B
+                        REP_list[idx + n_type * j] = REP
+                        ATT_list[idx + n_type * j] = ATT
+                        SHIFT_list[idx + n_type * j] = SHIFT
+                cforce.addTabulatedFunction('A', mm.Discrete2DFunction(n_type, n_type, A_list))
+                cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
+                cforce.addTabulatedFunction('REP',
+                                            mm.Discrete2DFunction(n_type, n_type, REP_list))
+                cforce.addTabulatedFunction('ATT',
+                                            mm.Discrete2DFunction(n_type, n_type, ATT_list))
+                if self._params.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                    cforce.addTabulatedFunction('SHIFT',
+                                                mm.Discrete2DFunction(n_type, n_type, SHIFT_list))
+
+                for atom in self._topology.atoms:
+                    id_type = self.type_names.index(atom.type)
+                    cforce.addParticle([id_type])
+
+            else:
+                raise Exception('vdW terms other than LJ126Term and MieTerm '
+                                'haven\'t been implemented')
+            cforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
+            cforce.setCutoffDistance(cutoff)
+            if self._params.vdw_long_range == FFSet.VDW_LONGRANGE_CORRECT:
+                cforce.setUseLongRangeCorrection(True)
+            else:
+                cforce.setUseLongRangeCorrection(False)
+            cforce.setForceGroup(6)
+            omm_system.addForce(cforce)
+
+        ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
+        custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
+        pair14_forces = {}  # {VdwTerm: mm.NbForce}
+        pair12, pair13, pair14 = self._topology.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
-            cforce.addExclusion(atom1.id, atom2.id)
             nbforce.addException(atom1.id, atom2.id, 0.0, 1.0, 0.0)
+            for f in custom_nb_forces:
+                f.addExclusion(atom1.id, atom2.id)
         for atom1, atom2 in pair14:
             if self._params.scale_14_vdw == 1 and self._params.scale_14_coulomb == 1:
                 continue
-            if self._params.scale_14_vdw == 0 and self._params.scale_14_coulomb == 0:
-                cforce.addExclusion(atom1.id, atom2.id)
+            elif self._params.scale_14_vdw == 0 and self._params.scale_14_coulomb == 0:
                 nbforce.addException(atom1.id, atom2.id, 0.0, 1.0, 0.0)
+                for f in custom_nb_forces:
+                    f.addExclusion(atom1.id, atom2.id)
             else:
-                charge_product = atom1.charge * atom2.charge * self._params.scale_14_coulomb
-                if self._params.scale_14_vdw == 1:
-                    nbforce.addException(atom1.id, atom2.id, charge_product, 1.0, 0.0)
+                # As long as 1-4 LJ OR Coulomb need to be scaled,
+                # then this pair should be excluded from ALL non-bonded forces.
+                # This is required by OpenMM's internal implementation.
+                # If it's a LJ126 term, we can use NonbondedForce to handle both 1-4 LJ and Coulomb.
+                # Otherwise, we have to use NonbondedForce to handle 1-4 coulomb,
+                # and another CustomBondForce to handle 1-4 vdW.
+                for f in custom_nb_forces:
+                    f.addExclusion(atom1.id, atom2.id)
+                charge_prod = atom1.charge * atom2.charge * self._params.scale_14_coulomb
+                vdw = self._params.get_vdw_term(self._params.atom_types[atom1.type],
+                                                self._params.atom_types[atom2.type])
+                if type(vdw) == LJ126Term:
+                    nbforce.addException(atom1.id, atom2.id, charge_prod, vdw.sigma,
+                                         vdw.epsilon * self._params.scale_14_vdw)
+                elif type(vdw) == MieTerm:
+                    nbforce.addException(atom1.id, atom2.id, charge_prod, 1.0, 0.0)
+                    cbforce = pair14_forces.get(MieTerm)
+                    if cbforce is None:
+                        cbforce = mm.CustomBondForce('C*epsilon*((sigma/r)^n-(sigma/r)^m);'
+                                                     'C=n/(n-m)*(n/m)^(m/(n-m))')
+                        cbforce.addPerBondParameter('epsilon')
+                        cbforce.addPerBondParameter('sigma')
+                        cbforce.addPerBondParameter('n')
+                        cbforce.addPerBondParameter('m')
+                        cbforce.setUsesPeriodicBoundaryConditions(True)
+                        pair14_forces[MieTerm] = cbforce
+                    cbforce.addBond(atom1.id, atom2.id,
+                                    [vdw.epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
+
                 else:
-                    cforce.addExclusion(atom1.id, atom2.id)
-                    vdw = self._params.get_vdw_term(self._params.atom_types[atom1.type],
-                                                    self._params.atom_types[atom2.type])
-                    if type(vdw) == LJ126Term:
-                        nbforce.addException(atom1.id, atom2.id, charge_product, vdw.sigma,
-                                             vdw.epsilon * self._params.scale_14_vdw)
-                    else:
-                        raise Exception('vdW 1-4 scaling for non-LJ126 haven\'t been implemented')
+                    raise Exception(
+                        '1-4 scaling for vdW terms other than LJ126Term and MieTerm '
+                        'haven\'t been implemented')
+
+        ### Set up Drude particles ##############################################################
+        if self.polarizable_classes - {IsotropicDrudeTerm} > set():
+            raise Exception('Polarizable terms other that IsotropicDrudeTerm'
+                            'haven\'t been implemented')
+        pforce = mm.DrudeForce()
+        pforce.setForceGroup(7)
+        omm_system.addForce(pforce)
+        parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
+        alpha_H = self.polarizable_terms.get('H').alpha
+        for parent, drude in self.drude_pairs.items():
+            pterm = self.polarizable_terms[parent.type]
+            n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
+            alpha = pterm.alpha + n_H * alpha_H
+            idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1, drude.charge, alpha, 0, 0)
+            parent_idx_thole[parent] = (idx, pterm.thole)
+
+        # exclude the non-boned interactions between Drude and parent
+        # and those concerning Drude particles in 1-2 and 1-3 pairs
+        # pairs formed by real atoms have already been handled above
+        # also apply thole screening between 1-2 and 1-3 Drude dipole pairs
+        drude_exclusions = list(self.drude_pairs.items())
+        for atom1, atom2 in pair12 + pair13:
+            drude1 = self.drude_pairs.get(atom1)
+            drude2 = self.drude_pairs.get(atom2)
+            if drude1 is not None:
+                drude_exclusions.append((drude1, atom2))
+            if drude2 is not None:
+                drude_exclusions.append((atom1, drude2))
+            if drude1 is not None and drude2 is not None:
+                drude_exclusions.append((drude1, drude2))
+                idx1, thole1 = parent_idx_thole[atom1]
+                idx2, thole2 = parent_idx_thole[atom2]
+                pforce.addScreenedPair(idx1, idx2, (thole1 + thole2) / 2)
+        for a1, a2 in drude_exclusions:
+            nbforce.addException(a1.id, a2.id, 0, 1.0, 0)
+            for f in custom_nb_forces:
+                f.addExclusion(a1.id, a2.id)
+
+        # scale the non-boned interactions concerning Drude particles in 1-4 pairs
+        # pairs formed by real atoms have already been handled above
+        drude_exclusions14 = []
+        for atom1, atom2 in pair14:
+            drude1 = self.drude_pairs.get(atom1)
+            drude2 = self.drude_pairs.get(atom2)
+            if drude1 is not None:
+                drude_exclusions14.append((drude1, atom2))
+            if drude2 is not None:
+                drude_exclusions14.append((atom1, drude2))
+            if drude1 is not None and drude2 is not None:
+                drude_exclusions14.append((drude1, drude2))
+        for a1, a2 in drude_exclusions14:
+            charge_prod = a1.charge * a2.charge * self._params.scale_14_coulomb
+            nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
+            for f in custom_nb_forces:
+                f.addExclusion(a1.id, a2.id)
 
         return omm_system

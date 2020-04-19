@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from .atom import Atom
 from .molecule import Molecule
@@ -102,10 +103,12 @@ class LammpsData(Topology):
         for i in range(n_atom_type):
             words = lines[i].strip().split()
             type_id = int(words[0])
-            self._type_masses[type_id] = float(words[1])
+            mass = float(words[1])
+            self._type_masses[type_id] = mass
             if len(words) > 2 and words[2] == '#':
                 if words[-1] == 'DP':
-                    self._type_names[type_id] = 'D'  # Drude particles
+                    self._type_names[type_id] = 'DRUDE'
+                    warnings.warn(f'Atom type {type_id} is considered to be Drude particle')
                 else:
                     self._type_names[type_id] = words[3]
             else:
@@ -144,7 +147,11 @@ class LammpsData(Topology):
             atom.charge = charge
             atom.mass = self._type_masses[type_id]
             atom.type = self._type_names[type_id]
-            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
+            if atom.type == 'DRUDE':
+                atom.is_drude = True
+            else:
+                element = Element.guess_from_atom_type(atom.type)
+                atom.symbol = element.symbol
             atom.has_position = True
             atom.position = np.array([x - self._xlo + ix * self.cell.size[0],
                                       y - self._ylo + iy * self.cell.size[1],
