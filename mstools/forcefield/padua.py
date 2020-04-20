@@ -1,3 +1,4 @@
+import warnings
 from .ffset import FFSet
 from .ffterm import *
 from .element import Element
@@ -13,7 +14,7 @@ class PaduaFFSet(FFSet):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_GEOMETRIC
         self.vdw_long_range = self.VDW_LONGRANGE_CORRECT
-        self.vdw_cutoff = 1.2 # nm
+        self.vdw_cutoff = 1.2  # nm
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
@@ -60,6 +61,7 @@ class PaduaFFSet(FFSet):
             elif section == 'polarizations':
                 self.parse_polarization(words)
 
+        # TODO not robust enough
         # If this is a polarizable FF, add an AtomType and VdwTerm for Drude particles
         if len(self.polarizable_terms) > 0:
             type_drude = 'DRUDE'
@@ -68,6 +70,14 @@ class PaduaFFSet(FFSet):
                 self.atom_types[type_drude] = dtype
                 vdw = LJ126Term(type_drude, type_drude, 0, 1.0)
                 self.vdw_terms[vdw.name] = vdw
+
+        # If H* is defined in polarizable term, the alpha will be merged into parent atoms
+        if 'H*' in self.polarizable_terms:
+            hterm = self.polarizable_terms['H*']
+            for pterm in self.polarizable_terms.values():
+                pterm.merge_alpha_H = hterm.alpha
+            warnings.warn(f'{str(hterm)} found in polarizable term. '
+                          f'Its polarizability will be merged into parent atom.')
 
     def parse_atom(self, words):
         atype = AtomType(words[0])
@@ -142,7 +152,7 @@ class PaduaFFSet(FFSet):
 
     def parse_polarization(self, words):
         name, mass, charge, k, alpha, thole = words
-        term = IsotropicDrudeTerm(name, float(alpha) / 1000, float(thole))
+        term = DrudePolarizableTerm(name, float(alpha) / 1000, float(thole))
         term.mass = float(mass)
         term.k = float(k) / 2 * 100  # convert from kJ/mol/A^2 to kJ/mol/nm^2
         if term.name in self.polarizable_terms.keys():

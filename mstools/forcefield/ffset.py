@@ -21,7 +21,7 @@ class FFSet():
         self.pairwise_vdw_terms: {str: VdwTerm} = {}
         self.polarizable_terms: {str: PolarizableTerm} = {}
 
-        self.vdw_cutoff = 1.2 # nm
+        self.vdw_cutoff = 1.2  # nm
         self.vdw_long_range = FFSet.VDW_LONGRANGE_CORRECT
         self.lj_mixing_rule = FFSet.LJ_MIXING_NONE
         self.scale_14_vdw = 1.0
@@ -62,7 +62,7 @@ class FFSet():
         return LJ126Term(at1, at2, epsilon, sigma)
 
     @staticmethod
-    def save_to(top, file):
+    def save_to(params, file):
         '''
         This method should be implemented by subclasses
         '''

@@ -9,14 +9,14 @@ class Atom():
         self.mass = 0.
         self.type = ''
         self.charge = 0.
-        self.is_drude = False  # for polarizable model
-        self.alpha = 0.  # for polarizable model
-        self.thole = 0.  # for polarizable model
+        self.is_drude = False  # this is a Drude particle for polarizable model
         self.has_position = False
         self._position = np.zeros(3, dtype=np.float32)
         self._molecule = None
         self._bonds = []
         self._id_in_molecule = -1
+        self._alpha = 0.  # only for PSF export if this is a parent atom for Drude model
+        self._thole = 0.  # only for PSF export if this is a parent atom for Drude model
 
     def __str__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -39,10 +39,10 @@ class Atom():
         atom.charge = self.charge
         atom.mass = self.mass
         atom.is_drude = self.is_drude
-        atom.alpha = self.alpha
-        atom.thole = self.thole
         atom.has_position = self.has_position
         atom._position[:] = self._position[:]
+        atom._alpha = self._alpha
+        atom._thole = self._thole
         return atom
 
     @property

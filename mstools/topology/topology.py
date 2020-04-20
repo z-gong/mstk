@@ -221,7 +221,7 @@ class Topology():
         pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
         return pair_12_list, pair_13_list, pair_14_list
 
-    def get_drude_pairs(self)->[(Atom, Atom)]:
+    def get_drude_pairs(self) -> [(Atom, Atom)]:
         '''
         [(parent, drude)]
         '''
@@ -231,9 +231,13 @@ class Topology():
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper()
 
-    def generate_drude_particles(self, params: FFSet):
+    def guess_connectivity_from_forcefield(self, params: FFSet, **kwargs):
         for mol in self._molecules:
-            mol.generate_drude_particles(params)
+            mol.guess_connectivity_from_forcefield(params, **kwargs)
+
+    def generate_drude_particles(self, params: FFSet, **kwargs):
+        for mol in self._molecules:
+            mol.generate_drude_particles(params, **kwargs)
 
     def remove_drude_particles(self):
         for mol in self._molecules:

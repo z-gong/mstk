@@ -562,33 +562,38 @@ class HarmonicImproperTerm(ImproperTerm):
         }
 
 
-class IsotropicDrudeTerm(PolarizableTerm):
+class DrudePolarizableTerm(PolarizableTerm):
     '''
     E = k * d^2
     q = sqrt(4 * pi * eps_0 * (2k) * alpha)
+    TODO Implement anisotropic Drude polarization
     '''
 
-    def __init__(self, type, alpha, thole):
+    def __init__(self, type: str, alpha, thole, merge_alpha_H=0.0):
         super().__init__(type)
         self.alpha = alpha  # nm^3
         self.thole = thole
-        self.mass = 0.4
         self.k = 4184 / 2 * 100  # kJ/mol/nm^2
+        self.mass = 0.4
+        self.merge_alpha_H = merge_alpha_H
 
     @staticmethod
     def singleton():
-        return IsotropicDrudeTerm('', 0., 0.)
+        return DrudePolarizableTerm('', 0., 0.)
 
     @property
     def zfp_attrs(self):
         return {
-            'type' : str,
-            'alpha': float,
-            'thole': float,
-            'mass' : float,
-            'k'    : float,
+            'type'         : str,
+            'alpha'        : float,
+            'thole'        : float,
+            'k'            : float,
+            'mass'         : float,
+            'merge_alpha_H': float,
         }
 
-    def get_charge(self):
+    def get_charge(self, alpha=None):
+        if alpha is None:
+            alpha = self.alpha
         factor = math.sqrt(1E-6 / AVOGADRO) / ELEMENTARY_CHARGE
-        return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * self.alpha) * factor
+        return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * alpha) * factor

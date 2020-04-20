@@ -1,3 +1,4 @@
+import warnings
 import math
 from ..forcefield import Element
 from .atom import Atom
@@ -98,8 +99,8 @@ class Psf(Topology):
             atom.mass = mass
             atom.type = atom_type
             atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-            atom.alpha = -alpha
-            atom.thole = thole * 2
+            atom._alpha = -alpha / 1000  # convert A^3 to nm^3
+            atom._thole = thole * 2
             if parse_drude and atom.type.startswith('D'):
                 atom.is_drude = True
 
@@ -178,9 +179,9 @@ class Psf(Topology):
 
         f.write('%8i !NATOM\n' % top.n_atom)
         for i, atom in enumerate(top.atoms):
-            line = '%8i S    %-4i %4s %-4s %-4s %10.6f %13.4f %11i %13.4f %13.4f\n' % (
+            line = '%8i S    %-4i %4s %-3s %-8s %10.6f %10.4f %6i %10.4f %10.4f\n' % (
                 atom.id + 1, atom.molecule.id + 1, atom.molecule.name[:4], atom.symbol, atom.type,
-                atom.charge, atom.mass, 0, -atom.alpha, atom.thole / 2
+                atom.charge, atom.mass, 0, -atom._alpha * 1000, atom._thole / 2
             )
             f.write(line)
         f.write('\n')
@@ -221,11 +222,7 @@ class Psf(Topology):
         f.write('\n')
 
         f.write('%8i !NDON: donors\n\n' % 0)
-
         f.write('%8i !NACC: acceptors\n\n' % 0)
-
         f.write('%8i !NNB\n\n\n' % 0)
-
         f.write('%8i !NUMANISO\n\n' % 0)
-
         f.close()

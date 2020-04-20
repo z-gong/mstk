@@ -51,7 +51,7 @@ class LammpsData(Topology):
                 iline_next = len(lines)
             if section == 'Masses':
                 # there is a blank line after each section header
-                self.parse_masses(lines[iline + 2: iline_next], n_atom_type)
+                self.parse_atom_types(lines[iline + 2: iline_next], n_atom_type)
             if section == 'Atoms':
                 self.parse_atoms(lines[iline + 2: iline_next], n_atom)
             if section == 'Bonds':
@@ -99,7 +99,7 @@ class LammpsData(Topology):
 
         return n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type
 
-    def parse_masses(self, lines, n_atom_type):
+    def parse_atom_types(self, lines, n_atom_type):
         for i in range(n_atom_type):
             words = lines[i].strip().split()
             type_id = int(words[0])
@@ -149,9 +149,8 @@ class LammpsData(Topology):
             atom.type = self._type_names[type_id]
             if atom.type == 'DRUDE':
                 atom.is_drude = True
-            else:
-                element = Element.guess_from_atom_type(atom.type)
-                atom.symbol = element.symbol
+            element = Element.guess_from_atom_type(atom.type)
+            atom.symbol = element.symbol
             atom.has_position = True
             atom.position = np.array([x - self._xlo + ix * self.cell.size[0],
                                       y - self._ylo + iy * self.cell.size[1],

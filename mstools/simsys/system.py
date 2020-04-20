@@ -25,7 +25,7 @@ class System():
         if positions is not None:
             self._frame.positions = positions
         elif topology.has_position:
-            self._frame.positions = positions
+            self._frame.positions = topology.positions
         else:
             raise Exception('Positions should be provided with topology or positions')
 
@@ -39,29 +39,28 @@ class System():
     def extract_required_ff_terms(self):
         self.atom_types: [AtomType] = []
         self.type_names: [str] = []
-        self.vdw_terms: {str: VdwTerm} = {}
-        self.pairwise_vdw_terms: {str: VdwTerm} = {}
-        self.bond_terms: {int: BondTerm} = {}
-        self.angle_terms: {int: AngleTerm} = {}
-        self.dihedral_terms: {int: DihedralTerm} = {}
-        self.improper_terms: {int: ImproperTerm} = {}
-        self.polarizable_terms: {str: PolarizableTerm} = {}
+        self.vdw_terms: [VdwTerm] = [] # all required self-self and pairwise vdW terms
+        self.bond_terms: {int: BondTerm} = {}  # key is id(Bond)
+        self.angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
+        self.dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
+        self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
+        self.polarizable_terms: {str: PolarizableTerm} = {}  # key is Atom.type
         self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
 
         for atom in self._topology.atoms:
-            at = self._params.atom_types[atom.type]
-            if at is None:
+            atype = self._params.atom_types[atom.type]
+            if atype is None:
                 raise Exception(f'AtomType {atom.type} not found in FF')
 
-            if at not in self.atom_types:
-                self.atom_types.append(at)
-                self.type_names.append(at.name)
-                self.vdw_terms[at.name] = self._params.get_vdw_term(at, at)
+            if atype not in self.atom_types:
+                self.atom_types.append(atype)
+                self.type_names.append(atype.name)
+                self.vdw_terms.append(self._params.get_vdw_term(atype, atype))
 
-        for at1, at2 in itertools.combinations(self.atom_types, 2):
-            vdw = self._params.pairwise_vdw_terms.get(VdwTerm(at1.eqt_vdw, at2.eqt_vdw).name)
+        for atype1, atype2 in itertools.combinations(self.atom_types, 2):
+            vdw = self._params.pairwise_vdw_terms.get(VdwTerm(atype1.eqt_vdw, atype2.eqt_vdw).name)
             if vdw is not None:
-                self.pairwise_vdw_terms[VdwTerm(at1.name, at2.name).name] = vdw
+                self.vdw_terms.append(vdw)
 
         for bond in self._topology.bonds:
             if bond.is_drude:
@@ -124,20 +123,13 @@ class System():
                 raise Exception(f'{str(iterm)} for {str(improper)} not found in FF')
 
         for parent in self.drude_pairs.keys():
-            at = self._params.atom_types[parent.type]
-            pterm = PolarizableTerm(at.eqt_polar)
+            pterm = PolarizableTerm(self._params.atom_types[parent.type].eqt_polar)
             try:
-                self.polarizable_terms[at.name] = self._params.polarizable_terms[pterm.name]
+                self.polarizable_terms[parent.type] = self._params.polarizable_terms[pterm.name]
             except:
                 raise Exception(f'{str(pterm)} for {str(parent)} not found')
 
-        # TODO This is not robust enough
-        # allows for the alpha of H being merged into parent atoms
-        if 'H' in self._params.polarizable_terms:
-            self.polarizable_terms['H'] = self._params.polarizable_terms['H']
-
-        self.vdw_classes = set([term.__class__ for term in self.vdw_terms.values()])
-        self.vdw_classes.update([term.__class__ for term in self.pairwise_vdw_terms.values()])
+        self.vdw_classes = set([term.__class__ for term in self.vdw_terms])
         self.bond_classes = set([term.__class__ for term in self.bond_terms.values()])
         self.angle_classes = set([term.__class__ for term in self.angle_terms.values()])
         self.dihedral_classes = set([term.__class__ for term in self.dihedral_terms.values()])
@@ -427,18 +419,17 @@ class System():
                         'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
-        if self.polarizable_classes - {IsotropicDrudeTerm} > set():
-            raise Exception('Polarizable terms other that IsotropicDrudeTerm'
+        if self.polarizable_classes - {DrudePolarizableTerm} > set():
+            raise Exception('Polarizable terms other that DrudePolarizableTerm '
                             'haven\'t been implemented')
         pforce = mm.DrudeForce()
         pforce.setForceGroup(7)
         omm_system.addForce(pforce)
         parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
-        alpha_H = self.polarizable_terms.get('H').alpha
         for parent, drude in self.drude_pairs.items():
             pterm = self.polarizable_terms[parent.type]
             n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
-            alpha = pterm.alpha + n_H * alpha_H
+            alpha = pterm.alpha + n_H * pterm.merge_alpha_H
             idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1, drude.charge, alpha, 0, 0)
             parent_idx_thole[parent] = (idx, pterm.thole)
 

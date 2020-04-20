@@ -8,7 +8,7 @@ POLAR
 # The polarizability of Hydrogen atoms will always be merged into connected heavy atoms.
 # All H atoms share same polarizability, so the name of different H types are not distiguished here.
 # Other lines starswith H (like HC, H1 or whatever) will be ignored.
-H       0.0     0.0        0.0   0.323   0.0
+H*       0.0     0.0        0.0   0.323   0.0
 # imidazolium PCCP 20(2018)10992
 CR      0.4    -1.0     4184.0   1.122   2.6
 CW      0.4    -1.0     4184.0   1.122   2.6

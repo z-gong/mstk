@@ -60,18 +60,23 @@ class Molecule():
     def topology(self):
         return self._topology
 
-    def add_atom(self, atom: Atom):
-        self._atoms.append(atom)
+    def add_atom(self, atom: Atom, index=None, update_topology=True):
         atom._molecule = self
-        atom._id_in_molecule = len(self._atoms) - 1
-        if self._topology is not None:
+        if index is None:
+            self._atoms.append(atom)
+            atom._id_in_molecule = len(self._atoms) - 1
+        else:
+            self._atoms.insert(index, atom)
+            for i, at in enumerate(self._atoms):
+                at._id_in_molecule = i
+        if self._topology is not None and update_topology:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
-    def remove_atom(self, atom: Atom):
+    def remove_atom(self, atom: Atom, update_topology=True):
         self._atoms.remove(atom)
         atom._molecule = None
         atom._id_in_molecule = -1
-        if self._topology is not None:
+        if self._topology is not None and update_topology:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
         for bond in atom._bonds[:]:
             self.remove_bond(bond)
@@ -174,7 +179,7 @@ class Molecule():
     def has_position(self):
         return all(atom.has_position for atom in self.atoms)
 
-    def get_drude_pairs(self)->[(Atom, Atom)]:
+    def get_drude_pairs(self) -> [(Atom, Atom)]:
         '''
         [(parent, drude)]
         '''
@@ -341,30 +346,39 @@ class Molecule():
         random.seed(seed)
 
         self.remove_drude_particles()
-        for atom in self._atoms[:]:
-            atype = params.atom_types.get(atom.type)
+        for parent in self._atoms[:]:
+            atype = params.atom_types.get(parent.type)
             if atype is None:
-                raise Exception(f'Atom type {atom.type} not found in force field')
+                raise Exception(f'Atom type {parent.type} not found in force field')
 
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 continue
-            if type(pterm) != IsotropicDrudeTerm:
-                raise Exception('Polarizable terms other than IsotropicDrudeTerm '
+            if type(pterm) != DrudePolarizableTerm:
+                raise Exception('Polarizable terms other than DrudePolarizableTerm '
                                 'haven\'t been implemented')
             drude = Atom()
             drude.is_drude = True
             drude.type = type_drude
+            drude.symbol = 'D'
             drude.mass = pterm.mass
-            atom.mass -= drude.mass
-            drude.charge = - pterm.get_charge()
-            atom.charge += pterm.get_charge()
-            if atom.has_position:
+            parent.mass -= drude.mass
+            n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
+            alpha = pterm.alpha + n_H * pterm.merge_alpha_H
+            drude.charge = - pterm.get_charge(alpha)
+            parent.charge += pterm.get_charge(alpha)
+            # store _alpha and _thole for PSF exporting
+            parent._alpha = alpha
+            parent._thole = pterm.thole
+
+            if parent.has_position:
+                # make sure Drude and parent atom do not overlap. max deviation 0.001 nm
                 deviation = random.random() / 1000
-                drude.position = atom.position + [deviation, deviation, deviation]
+                drude.position = parent.position + [deviation, deviation, deviation]
                 drude.has_position = True
-            self._atoms.append(drude)
-            self.add_bond(atom, drude)
+            self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
+            self.add_bond(parent, drude)
+
         if self._topology is not None:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
@@ -382,10 +396,16 @@ class Molecule():
                           f'{str(vdw)} with zero interactions is added to the FF')
 
     def remove_drude_particles(self):
-        for atom in self._atoms[:]:
-            if atom.is_drude:
-                self.remove_bond(atom._bonds[0])
-                self._atoms.remove(atom)
+        '''
+        Remove all Drude particles and bonds belong to Drude particles
+        The charges and masses carried by Drude particles will be transferred back to parent atoms
+        :return:
+        '''
+        for parent, drude in self.get_drude_pairs():
+            parent.mass += drude.mass
+            parent.charge += drude.charge
+            self.remove_bond(drude._bonds[0])
+            self.remove_atom(drude, update_topology=False)
         if self._topology is not None:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
@@ -393,7 +413,7 @@ class Molecule():
         '''
         Assign masses of all atoms from the force field.
         The atom types should have been assigned already, and the AtomType in FF should carry mass information.
-        The masses of Drude particles will be determined ONLY from the IsotropicDrudeTerm,
+        The masses of Drude particles will be determined ONLY from the DrudePolarizableTerm,
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
         '''
@@ -414,8 +434,8 @@ class Molecule():
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != IsotropicDrudeTerm:
-                raise Exception('Polarizable terms other than IsotropicDrudeTerm '
+            if type(pterm) != DrudePolarizableTerm:
+                raise Exception('Polarizable terms other than DrudePolarizableTerm '
                                 'haven\'t been implemented')
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
@@ -426,7 +446,7 @@ class Molecule():
         The atom types should have been assigned already.
         The charge of corresponding AtomType in FF will be assigned to the atoms first.
         Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
-        The charge of Drude particles will be determined ONLY from the IsotropicDrudeTerm,
+        The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
         and the the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
         '''
@@ -436,12 +456,10 @@ class Molecule():
             try:
                 atom.charge = params.atom_types[atom.type].charge
             except:
-                raise Exception(f'Atom type {atom.type} not found in force field')
+                raise Exception(f'Atom type {atom.type} not found in FF')
 
         if len(params.charge_increment_terms) > 0:
-            for bond in self._bonds:
-                if bond.is_drude:
-                    continue
+            for bond in filter(lambda x: not x.is_drude, self._bonds):
                 atom1, atom2 = bond.atom1, bond.atom2
                 at1 = params.atom_types[atom1.type].eqt_q_inc
                 at2 = params.atom_types[atom2.type].eqt_q_inc
@@ -449,7 +467,7 @@ class Molecule():
                 try:
                     binc = params.charge_increment_terms[binc.name]
                 except:
-                    warnings.warn(f'{binc} not found in force field')
+                    warnings.warn(f'{binc} for {bond} not found in FF')
 
                 direction = 1 if at1.name == binc.type1 else -1
                 atom1.charge += binc.value * direction
@@ -460,8 +478,13 @@ class Molecule():
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != IsotropicDrudeTerm:
-                raise Exception('Polarizable terms other than IsotropicDrudeTerm '
+            if type(pterm) != DrudePolarizableTerm:
+                raise Exception('Polarizable terms other than DrudePolarizableTerm '
                                 'haven\'t been implemented')
-            drude.charge = -pterm.get_charge()
-            parent.charge += pterm.get_charge()
+            n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
+            alpha = pterm.alpha + n_H * pterm.merge_alpha_H
+            drude.charge = -pterm.get_charge(alpha)
+            parent.charge += pterm.get_charge(alpha)
+            # store _alpha and _thole for PSF exporting
+            parent._alpha = alpha
+            parent._thole = pterm.thole

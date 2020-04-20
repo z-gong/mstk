@@ -11,14 +11,21 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 # top = Topology.open(cwd + '/../topology/files/benzene.zmat')
 # ff = PaduaFFSet(cwd + '/../forcefield/files/oplsaa.ff')
 top = Topology.open(cwd + '/files/50-Im21-BF4-drude.lmp')
+# top = Topology.open(cwd + '/files/N1111-BF4-drude.lmp')
 ff = PaduaFFSet(cwd + '/../forcefield/files/clp.ff', cwd + '/../forcefield/files/clp-alpha.ff')
 
 top.generate_angle_dihedral_improper()
 
-top.remove_drude_particles()
-top.assign_charge_from_forcefield(ff)
+# top.remove_drude_particles()
+top.generate_drude_particles(ff)
+# top.assign_charge_from_forcefield(ff)
+Topology.write(top, cwd + '/files/top.psf')
 
 system = System(top, ff)
+
+from mstools.trajectory import Pdb
+Pdb = Pdb( cwd + '/files/out.pdb', 'w')
+Pdb.write_frame(top, system._frame)
 
 omm_sys = system.to_omm_system()
 
