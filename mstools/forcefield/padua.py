@@ -71,13 +71,13 @@ class PaduaFFSet(FFSet):
                 vdw = LJ126Term(type_drude, type_drude, 0, 1.0)
                 self.vdw_terms[vdw.name] = vdw
 
-        # If H* is defined in polarizable term, the alpha will be merged into parent atoms
+        # If H* is defined in polarizable term, its alpha will be merged into parent atoms and the term will be removed
         if 'H*' in self.polarizable_terms:
-            hterm = self.polarizable_terms['H*']
+            hterm = self.polarizable_terms.pop('H*')
             for pterm in self.polarizable_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
             warnings.warn(f'{str(hterm)} found in polarizable term. '
-                          f'Its polarizability will be merged into parent atom.')
+                          f'Its polarizability will be merged into parent atoms.')
 
     def parse_atom(self, words):
         atype = AtomType(words[0])

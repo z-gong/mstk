@@ -17,7 +17,7 @@ ff = PaduaFFSet(cwd + '/../forcefield/files/clp.ff', cwd + '/../forcefield/files
 top.generate_angle_dihedral_improper()
 
 # top.remove_drude_particles()
-top.generate_drude_particles(ff)
+# top.generate_drude_particles(ff)
 # top.assign_charge_from_forcefield(ff)
 Topology.write(top, cwd + '/files/top.psf')
 
