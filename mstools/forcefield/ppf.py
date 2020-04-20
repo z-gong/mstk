@@ -12,11 +12,11 @@ class PpfLine():
         self.comment = comment.strip()
         self.name = self.term + '-' + self.key
 
-        try:
-            version = comment.split(',')[0].strip('V').strip()
-        except:
+        version = self.comment.split(',')[0].strip()
+        if not version.startswith('V'):
             version = None
-        if version is not None:
+        else:
+            version = version.lstrip('V').strip()
             try:
                 float(version)
             except:
@@ -43,7 +43,7 @@ class PpfFFSet(FFSet):
         super().__init__()
         self.lj_mixing_rule = self.LJ_MIXING_LB
         self.vdw_long_range = self.VDW_LONGRANGE_CORRECT
-        self.vdw_cutoff = 1.2 # nm
+        self.vdw_cutoff = 1.2  # nm
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 1.0 / 1.2
 

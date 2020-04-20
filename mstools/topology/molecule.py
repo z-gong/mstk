@@ -61,6 +61,13 @@ class Molecule():
         return self._topology
 
     def add_atom(self, atom: Atom, index=None, update_topology=True):
+        '''
+        Add an atom to this molecule.
+        If index is None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
+        The _id_in_molecule attribute of all atoms will be updated after insertion.
+        If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+        Otherwise, you have to re-init the topology manually so that the topological information is correct.
+        '''
         atom._molecule = self
         if index is None:
             self._atoms.append(atom)
@@ -73,13 +80,20 @@ class Molecule():
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom: Atom, update_topology=True):
-        self._atoms.remove(atom)
-        atom._molecule = None
-        atom._id_in_molecule = -1
-        if self._topology is not None and update_topology:
-            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
+        '''
+        Remove an atom and all the bonds connected to the atom from this molecule.
+        The _id_in_molecule attribute of all atoms will be updated after removal.
+        If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+        Otherwise, you have to re-init the topology manually so that the topological information is correct.
+        '''
         for bond in atom._bonds[:]:
             self.remove_bond(bond)
+        self._atoms.remove(atom)
+        atom._molecule = None
+        for i, at in enumerate(self._atoms):
+            at._id_in_molecule = i
+        if self._topology is not None and update_topology:
+            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
     def add_bond(self, atom1: Atom, atom2: Atom, check_existence=False):
         bond = Bond(atom1, atom2)
@@ -194,8 +208,8 @@ class Molecule():
     def generate_angle_dihedral_improper(self):
         '''
         Generate angle, dihedral and improper from bonds
-        The existing angles, dihedrals and impropers will be replaced
-        The Drude particles will be ignored
+        The existing angles, dihedrals and impropers will be removed first
+        The atoms and bonds concerning Drude particles will be ignored
         '''
         self._angles = []
         self._dihedrals = []
@@ -217,22 +231,24 @@ class Molecule():
                         self.add_dihedral(atom1, atom2, atom3, atom4, check_existence=True)
 
         for atom in self._atoms:
-            if len([p for p in atom.bond_partners if not p.is_drude]) == 3:
-                self.add_improper(atom, *atom.bond_partners)
+            partners = [p for p in atom.bond_partners if not p.is_drude]
+            if len(partners) == 3:
+                self.add_improper(atom, *partners)
 
-    def guess_connectivity_from_forcefield(self, params: FFSet, bond_length_limit=0.25,
-                                           bond_tolerance=0.025, angle_tolerance=None,
-                                           pbc='xyz', box=None):
+    def guess_connectivity_from_ff(self, params: FFSet, bond_length_limit=0.25,
+                                   bond_tolerance=0.025, angle_tolerance=None,
+                                   pbc='xyz', box=None):
         '''
         Guess bonds, angles, dihedrals and impropers from force field.
         It requires that atoms types are defined and positions are available.
         The distance between nearby atoms will be calculated.
         If it's smaller than bond_length_limit, then it will be compared with the equilibrium length in FF.
-        If the deviation is smaller than bond_tolerance, the bond will be added.
+        The bond will be added if a BondTerm is found in FF and the deviation is smaller than bond_tolerance.
         Then angles will be constructed from bonds. If angle_tolerance is None, all angles will be added.
-        If angle_tolerance is set (as degree), then the angles will be compared with the equilibrium value in FF,
-        and be added only if the deviation is smaller than angle_tolerance.
+        If angle_tolerance is set (as degree), then AngleTerm must be provided for these angles.
+        The angle will be added only if the deviation between angle and equilibrium value in FF is smaller than angle_tolerance.
         Dihedrals and impropers will be constructed form bonds and be added if relevant terms are presented in FF.
+        TODO Add support for triclinic cell
         '''
         if not self.has_position:
             raise Exception('Positions are required for guessing connectivity')
@@ -332,16 +348,17 @@ class Molecule():
 
     def generate_drude_particles(self, params: FFSet, type_drude='DRUDE', seed=1):
         '''
-        Generate Drude particles from polarizable terms in force field.
-        The atom types should have been assigned already.
-        Drude particle will not be generated if polarizable term for its atom type can not be found in the FF.
-        Note that The existing Drude particles will be deleted before generating.
-        The mass defined in the FF term will be transferred from parent atom to the Drude particle.
-        The Drude charge will be calculated from the FF term and transferred from parent atom to the Drude particle.
+        Generate Drude particles from DrudeTerms in force field.
+        The atom types should have been defined already.
+        Drude particle will not be generated if DrudeTerm for its atom type can not be found in the FF.
+        Note that The existing Drude particles will be removed before generating.
+        The mass defined in the DrudeTerm will be transferred from parent atom to the Drude particle.
+        The Drude charge will be calculated from the DrudeTerm and transferred from parent atom to the Drude particle.
         Bonds between parent-Drude will be generated and added to the topology.
+        If AtomType and VdwTerm for generated Drude particles are not found in FF, these terms will be created and added to the FF.
         '''
         if len(params.polarizable_terms) == 0:
-            raise Exception('PolarizableTerms not found in force field')
+            raise Exception('Polarizable terms not found in force field')
 
         random.seed(seed)
 
@@ -349,14 +366,13 @@ class Molecule():
         for parent in self._atoms[:]:
             atype = params.atom_types.get(parent.type)
             if atype is None:
-                raise Exception(f'Atom type {parent.type} not found in force field')
+                raise Exception(f'Atom type {parent.type} not found in FF')
 
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 continue
-            if type(pterm) != DrudePolarizableTerm:
-                raise Exception('Polarizable terms other than DrudePolarizableTerm '
-                                'haven\'t been implemented')
+            if type(pterm) != DrudeTerm:
+                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
             drude = Atom()
             drude.is_drude = True
             drude.type = type_drude
@@ -409,11 +425,11 @@ class Molecule():
         if self._topology is not None:
             self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
 
-    def assign_mass_from_forcefield(self, params: FFSet):
+    def assign_mass_from_ff(self, params: FFSet):
         '''
         Assign masses of all atoms from the force field.
-        The atom types should have been assigned already, and the AtomType in FF should carry mass information.
-        The masses of Drude particles will be determined ONLY from the DrudePolarizableTerm,
+        The atom types should have been defined, and the AtomType in FF should carry mass information.
+        The masses of Drude particles will be determined ONLY from the DrudeTerm,
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
         '''
@@ -422,7 +438,7 @@ class Molecule():
                 continue
             atype = params.atom_types.get(atom.type)
             if atype is None:
-                raise Exception(f'Atom type {atom.type} not found in force field')
+                raise Exception(f'Atom type {atom.type} not found in FF')
             if atype.mass == -1:
                 raise Exception(f'{atype} does not carry mass information')
             if atype.mass == 0:
@@ -434,16 +450,15 @@ class Molecule():
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudePolarizableTerm:
-                raise Exception('Polarizable terms other than DrudePolarizableTerm '
-                                'haven\'t been implemented')
+            if type(pterm) != DrudeTerm:
+                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge_from_forcefield(self, params: FFSet):
+    def assign_charge_from_ff(self, params: FFSet):
         '''
         Assign charges of all atoms from the force field.
-        The atom types should have been assigned already.
+        The atom types should have been defined.
         The charge of corresponding AtomType in FF will be assigned to the atoms first.
         Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
         The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
@@ -469,7 +484,7 @@ class Molecule():
                 except:
                     warnings.warn(f'{binc} for {bond} not found in FF')
 
-                direction = 1 if at1.name == binc.type1 else -1
+                direction = 1 if at1 == binc.type1 else -1
                 atom1.charge += binc.value * direction
                 atom2.charge -= binc.value * direction
 
@@ -478,9 +493,8 @@ class Molecule():
             pterm = params.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudePolarizableTerm:
-                raise Exception('Polarizable terms other than DrudePolarizableTerm '
-                                'haven\'t been implemented')
+            if type(pterm) != DrudeTerm:
+                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
             n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
             alpha = pterm.alpha + n_H * pterm.merge_alpha_H
             drude.charge = -pterm.get_charge(alpha)

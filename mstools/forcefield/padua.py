@@ -152,7 +152,7 @@ class PaduaFFSet(FFSet):
 
     def parse_polarization(self, words):
         name, mass, charge, k, alpha, thole = words
-        term = DrudePolarizableTerm(name, float(alpha) / 1000, float(thole))
+        term = DrudeTerm(name, float(alpha) / 1000, float(thole))
         term.mass = float(mass)
         term.k = float(k) / 2 * 100  # convert from kJ/mol/A^2 to kJ/mol/nm^2
         if term.name in self.polarizable_terms.keys():

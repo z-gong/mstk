@@ -11,6 +11,3 @@ ZfpFFSet.save_to(clp, cwd + '/files/out-clp.zfp')
 
 il = PpfFFSet(cwd + '/files/TEAM_IL.ppf')
 ZfpFFSet.save_to(il, cwd + '/files/out-TEAM_IL.zfp')
-
-zfp = ZfpFFSet(cwd + '/files/out-TEAM_IL.zfp')
-ZfpFFSet.save_to(zfp, cwd + '/files/out-TEAM_IL-2.zfp')

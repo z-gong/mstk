@@ -105,8 +105,8 @@ class LammpsData(Topology):
             type_id = int(words[0])
             mass = float(words[1])
             self._type_masses[type_id] = mass
-            if len(words) > 2 and words[2] == '#':
-                if words[-1] == 'DP':
+            if len(words) > 3 and words[2] == '#':
+                if words[-1].startswith('D') and mass < 1:
                     self._type_names[type_id] = 'DRUDE'
                     warnings.warn(f'Atom type {type_id} is considered to be Drude particle')
                 else:
@@ -139,7 +139,7 @@ class LammpsData(Topology):
             mol = molecules[mol_id - 1]
             if not mol.initialized:
                 mol.id = mol_id - 1  # mol.id starts from 0
-                mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
+                # mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
 
             atom = atoms[atom_id - 1]
             atom.id = atom_id - 1  # atom.id starts from 0

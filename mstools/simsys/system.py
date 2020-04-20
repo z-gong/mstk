@@ -39,7 +39,7 @@ class System():
     def extract_required_ff_terms(self):
         self.atom_types: [AtomType] = []
         self.type_names: [str] = []
-        self.vdw_terms: [VdwTerm] = [] # all required self-self and pairwise vdW terms
+        self.vdw_terms: [VdwTerm] = []  # all required self-self and pairwise vdW terms
         self.bond_terms: {int: BondTerm} = {}  # key is id(Bond)
         self.angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
         self.dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
@@ -259,7 +259,7 @@ class System():
         ### Set up coulomb interactions #########################################################
         n_type = len(self.atom_types)
         cutoff = self._params.vdw_cutoff
-        # NonbonedForce is not flexible enough. only used for Coulomb interactions and 1-4 pairs
+        # NonbonedForce is not flexible enough. Use it only for Coulomb interactions
         # CustomNonbondedForce handles vdW interactions
         nbforce = mm.NonbondedForce()
         nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
@@ -370,36 +370,28 @@ class System():
 
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
         custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
-        pair14_forces = {}  # {VdwTerm: mm.NbForce}
         pair12, pair13, pair14 = self._topology.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
             nbforce.addException(atom1.id, atom2.id, 0.0, 1.0, 0.0)
             for f in custom_nb_forces:
                 f.addExclusion(atom1.id, atom2.id)
-        for atom1, atom2 in pair14:
-            if self._params.scale_14_vdw == 1 and self._params.scale_14_coulomb == 1:
-                continue
-            elif self._params.scale_14_vdw == 0 and self._params.scale_14_coulomb == 0:
-                nbforce.addException(atom1.id, atom2.id, 0.0, 1.0, 0.0)
-                for f in custom_nb_forces:
-                    f.addExclusion(atom1.id, atom2.id)
-            else:
-                # As long as 1-4 LJ OR Coulomb need to be scaled,
-                # then this pair should be excluded from ALL non-bonded forces.
-                # This is required by OpenMM's internal implementation.
-                # If it's a LJ126 term, we can use NonbondedForce to handle both 1-4 LJ and Coulomb.
-                # Otherwise, we have to use NonbondedForce to handle 1-4 coulomb,
-                # and another CustomBondForce to handle 1-4 vdW.
-                for f in custom_nb_forces:
-                    f.addExclusion(atom1.id, atom2.id)
+        # As long as 1-4 LJ OR Coulomb need to be scaled, then this pair should be excluded from ALL non-bonded forces.
+        # This is required by OpenMM's internal implementation.
+        # Even though NonbondedForce can handle 1-4 vdW, we use it only for 1-4 Coulomb.
+        # And use CustomBondForce to handle 1-4 vdW, which makes it more clear for energy decomposition.
+        if self._params.scale_14_vdw != 1 or self._params.scale_14_coulomb != 1:
+            pair14_forces = {}  # {VdwTerm: mm.NbForce}
+            for atom1, atom2 in pair14:
                 charge_prod = atom1.charge * atom2.charge * self._params.scale_14_coulomb
+                nbforce.addException(atom1.id, atom2.id, charge_prod, 1.0, 0.0)
+                for f in custom_nb_forces:
+                    f.addExclusion(atom1.id, atom2.id)
+                if self._params.scale_14_vdw == 0:
+                    continue
                 vdw = self._params.get_vdw_term(self._params.atom_types[atom1.type],
                                                 self._params.atom_types[atom2.type])
-                if type(vdw) == LJ126Term:
-                    nbforce.addException(atom1.id, atom2.id, charge_prod, vdw.sigma,
-                                         vdw.epsilon * self._params.scale_14_vdw)
-                elif type(vdw) == MieTerm:
-                    nbforce.addException(atom1.id, atom2.id, charge_prod, 1.0, 0.0)
+                # We generalize LJ126Term and MieTerm because of minimal computational cost for 1-4 vdW
+                if type(vdw) in (LJ126Term, MieTerm):
                     cbforce = pair14_forces.get(MieTerm)
                     if cbforce is None:
                         cbforce = mm.CustomBondForce('C*epsilon*((sigma/r)^n-(sigma/r)^m);'
@@ -409,17 +401,21 @@ class System():
                         cbforce.addPerBondParameter('n')
                         cbforce.addPerBondParameter('m')
                         cbforce.setUsesPeriodicBoundaryConditions(True)
+                        cbforce.setForceGroup(6)
+                        omm_system.addForce(cbforce)
                         pair14_forces[MieTerm] = cbforce
-                    cbforce.addBond(atom1.id, atom2.id,
-                                    [vdw.epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
-
+                    epsilon = vdw.epsilon * self._params.scale_14_vdw
+                    if type(vdw) == LJ126Term:
+                        cbforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
+                    elif type(vdw) == MieTerm:
+                        cbforce.addBond(atom1.id, atom2.id,
+                                        [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
                 else:
-                    raise Exception(
-                        '1-4 scaling for vdW terms other than LJ126Term and MieTerm '
-                        'haven\'t been implemented')
+                    raise Exception('1-4 scaling for vdW terms other than LJ126Term and MieTerm '
+                                    'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
-        if self.polarizable_classes - {DrudePolarizableTerm} > set():
+        if self.polarizable_classes - {DrudeTerm} > set():
             raise Exception('Polarizable terms other that DrudePolarizableTerm '
                             'haven\'t been implemented')
         pforce = mm.DrudeForce()

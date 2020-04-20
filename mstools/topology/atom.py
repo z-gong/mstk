@@ -5,9 +5,9 @@ class Atom():
     def __init__(self, name='UNK'):
         self.id = -1  # id in topology
         self.name = name
+        self.type = ''
         self.symbol = 'UNK'
         self.mass = 0.
-        self.type = ''
         self.charge = 0.
         self.is_drude = False  # this is a Drude particle for polarizable model
         self.has_position = False
@@ -36,8 +36,8 @@ class Atom():
         atom.name = self.name
         atom.type = self.type
         atom.symbol = self.symbol
-        atom.charge = self.charge
         atom.mass = self.mass
+        atom.charge = self.charge
         atom.is_drude = self.is_drude
         atom.has_position = self.has_position
         atom._position[:] = self._position[:]

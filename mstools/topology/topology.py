@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-from io import IOBase
 from .atom import Atom
 from .connectivity import *
 from .molecule import Molecule
@@ -11,15 +10,16 @@ from ..forcefield import FFSet
 class Topology():
     def __init__(self):
         self.remark = ''
+        # TODO Better to set the default cell to None
         self.cell = UnitCell([0, 0, 0])
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
-        self._file = IOBase()
 
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
-        initialize a topology from a bunch of molecules
-        the molecules and atoms are deep copied if numbers is not None or deepcopy is True
+        Initialize a topology from a bunch of molecule.
+        The molecules and atoms are deep copied if numbers is not None or deepcopy is True.
+        This method should be called as long as atoms or molecules are added to or removed from topology.
         '''
         if len(set(molecules)) < len(molecules):
             raise Exception('There are duplicated molecules, consider set the number of molecule')
@@ -42,17 +42,18 @@ class Topology():
         self.assign_id()
 
     def assign_id(self):
-        idx_atom = 0
+        '''
+        Assign the id of molecules and atoms belongs to this topology
+        '''
         for i, mol in enumerate(self._molecules):
             mol.id = i
-            for j, atom in enumerate(mol.atoms):
-                atom.id = idx_atom
-                idx_atom += 1
+        for j, atom in enumerate(self._atoms):
+            atom.id = j
 
     def add_molecule(self, molecule: Molecule):
         '''
-        Add molecule into topology
-        Note that the molecule and atoms are not deep copied, the reference are passed
+        Add molecule into topology.
+        Note that the molecule and atoms are not deep copied, the reference are passed.
         '''
         molecule.id = self.n_molecule
         molecule._topology = self
@@ -122,7 +123,10 @@ class Topology():
 
     @property
     def positions(self):
-        return [atom.position for atom in self.atoms]
+        '''
+        positions should always be numpy array
+        '''
+        return np.array([atom.position for atom in self.atoms])
 
     @property
     def is_drude(self):
@@ -231,9 +235,9 @@ class Topology():
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper()
 
-    def guess_connectivity_from_forcefield(self, params: FFSet, **kwargs):
+    def guess_connectivity_from_ff(self, params: FFSet, **kwargs):
         for mol in self._molecules:
-            mol.guess_connectivity_from_forcefield(params, **kwargs)
+            mol.guess_connectivity_from_ff(params, **kwargs)
 
     def generate_drude_particles(self, params: FFSet, **kwargs):
         for mol in self._molecules:
@@ -243,10 +247,10 @@ class Topology():
         for mol in self._molecules:
             mol.remove_drude_particles()
 
-    def assign_mass_from_forcefield(self, params: FFSet):
+    def assign_mass_from_ff(self, params: FFSet):
         for mol in self._molecules:
-            mol.assign_mass_from_forcefield(params)
+            mol.assign_mass_from_ff(params)
 
-    def assign_charge_from_forcefield(self, params: FFSet):
+    def assign_charge_from_ff(self, params: FFSet):
         for mol in self._molecules:
-            mol.assign_charge_from_forcefield(params)
+            mol.assign_charge_from_ff(params)

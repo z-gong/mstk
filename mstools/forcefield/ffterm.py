@@ -562,7 +562,7 @@ class HarmonicImproperTerm(ImproperTerm):
         }
 
 
-class DrudePolarizableTerm(PolarizableTerm):
+class DrudeTerm(PolarizableTerm):
     '''
     E = k * d^2
     q = sqrt(4 * pi * eps_0 * (2k) * alpha)
@@ -579,7 +579,7 @@ class DrudePolarizableTerm(PolarizableTerm):
 
     @staticmethod
     def singleton():
-        return DrudePolarizableTerm('', 0., 0.)
+        return DrudeTerm('', 0., 0.)
 
     @property
     def zfp_attrs(self):
