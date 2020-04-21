@@ -7,7 +7,7 @@ class GroReporter(object):
     To use it, create a PDBReporter, then add it to the Simulation's list of reporters.
     """
 
-    def __init__(self, file, reportInterval, enforcePeriodicBox=None, subset=None, reportVelocity=False):
+    def __init__(self, file, reportInterval, enforcePeriodicBox=False, subset=None, reportVelocity=False):
         """Create a GroReporter.
 
         Parameters

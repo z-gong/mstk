@@ -2,6 +2,7 @@ import sys
 from simtk.openmm.app.gromacsgrofile import GromacsGroFile
 from simtk.unit import nanometer, picosecond, norm, is_quantity
 
+
 class GroFile(GromacsGroFile):
     @staticmethod
     def writeFile(topology, time, positions, vectors, file, subset=None, velocities=None):
@@ -58,13 +59,12 @@ class GroFile(GromacsGroFile):
             residue = atom.residue
             coords = positions[i]
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                int(residue.id), residue.name, atom.name, int(atom.id),
-                coords[0], coords[1], coords[2])
+                (residue.index + 1) % 100000, residue.name[:5], atom.name[5:],
+                (atom.index + 1) % 100000, coords[0], coords[1], coords[2])
             if velocities is not None:
                 vel = velocities[i]
-                line += '%8.3f%8.3f%8.3f' %(vel[0], vel[1], vel[2])
+                line += '%8.3f%8.3f%8.3f' % (vel[0], vel[1], vel[2])
             print(line, file=file)
-
 
     @staticmethod
     def writeFooter(periodicBoxVectors, file=sys.stdout):
@@ -81,5 +81,5 @@ class GroFile(GromacsGroFile):
         xx, xy, xz = vectors[0]
         yx, yy, yz = vectors[1]
         zx, zy, zz = vectors[2]
-        print(' %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f' %(
+        print(' %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f' % (
             xx, yy, zz, xy, xz, yx, yz, zx, zy), file=file)

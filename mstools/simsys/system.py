@@ -319,9 +319,9 @@ class System():
                 cforce.addPerParticleParameter('type')
                 A_list = [0.0] * n_type * n_type
                 B_list = [0.0] * n_type * n_type
-                for idx in range(n_type):
+                for i in range(n_type):
                     for j in range(n_type):
-                        at1 = self.atom_types[idx]
+                        at1 = self.atom_types[i]
                         at2 = self.atom_types[j]
                         vdw = self._params.get_vdw_term(at1, at2)
                         if type(vdw) == LJ126Term:
@@ -329,8 +329,8 @@ class System():
                             B = 4 * vdw.epsilon * vdw.sigma ** 6
                         else:
                             A = B = 0
-                        A_list[idx + n_type * j] = A
-                        B_list[idx + n_type * j] = B
+                        A_list[i + n_type * j] = A
+                        B_list[i + n_type * j] = B
                 cforce.addTabulatedFunction('A', mm.Discrete2DFunction(n_type, n_type, A_list))
                 cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
 
@@ -352,9 +352,9 @@ class System():
                 REP_list = [0.0] * n_type * n_type
                 ATT_list = [0.0] * n_type * n_type
                 SHIFT_list = [0.0] * n_type * n_type
-                for idx in range(n_type):
+                for i in range(n_type):
                     for j in range(n_type):
-                        at1 = self.atom_types[idx]
+                        at1 = self.atom_types[i]
                         at2 = self.atom_types[j]
                         vdw = self._params.get_vdw_term(at1, at2)
                         if type(vdw) == MieTerm:
@@ -365,17 +365,15 @@ class System():
                             SHIFT = A / cutoff ** REP - B / cutoff ** ATT
                         else:
                             A = B = REP = ATT = SHIFT = 0
-                        A_list[idx + n_type * j] = A
-                        B_list[idx + n_type * j] = B
-                        REP_list[idx + n_type * j] = REP
-                        ATT_list[idx + n_type * j] = ATT
-                        SHIFT_list[idx + n_type * j] = SHIFT
+                        A_list[i + n_type * j] = A
+                        B_list[i + n_type * j] = B
+                        REP_list[i + n_type * j] = REP
+                        ATT_list[i + n_type * j] = ATT
+                        SHIFT_list[i + n_type * j] = SHIFT
                 cforce.addTabulatedFunction('A', mm.Discrete2DFunction(n_type, n_type, A_list))
                 cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
-                cforce.addTabulatedFunction('REP',
-                                            mm.Discrete2DFunction(n_type, n_type, REP_list))
-                cforce.addTabulatedFunction('ATT',
-                                            mm.Discrete2DFunction(n_type, n_type, ATT_list))
+                cforce.addTabulatedFunction('REP', mm.Discrete2DFunction(n_type, n_type, REP_list))
+                cforce.addTabulatedFunction('ATT', mm.Discrete2DFunction(n_type, n_type, ATT_list))
                 if self._params.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
                     cforce.addTabulatedFunction('SHIFT',
                                                 mm.Discrete2DFunction(n_type, n_type, SHIFT_list))
