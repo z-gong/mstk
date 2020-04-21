@@ -283,9 +283,6 @@ class Molecule():
 
                 bterm = BondTerm(at1, at2, 0)
                 if bterm.name not in params.bond_terms.keys():
-                    warnings.warn(
-                        f'Distance between {str(atom1)} and {str(atom2)} smaller than limit '
-                        f'but {str(bterm)} not found in FF')
                     continue
 
                 bterm: BondTerm = params.bond_terms[bterm.name]

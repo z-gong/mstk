@@ -59,7 +59,7 @@ class GroFile(GromacsGroFile):
             residue = atom.residue
             coords = positions[i]
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                (residue.index + 1) % 100000, residue.name[:5], atom.name[5:],
+                (residue.index + 1) % 100000, residue.name[:5], atom.name[:5],
                 (atom.index + 1) % 100000, coords[0], coords[1], coords[2])
             if velocities is not None:
                 vel = velocities[i]

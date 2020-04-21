@@ -1,3 +1,5 @@
+import warnings
+
 _atomic_number = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5,
                   'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10,
                   'Na': 11, 'Mg': 12, 'Al': 13, 'Si': 14, 'P': 15,
@@ -48,6 +50,5 @@ class Element():
         elif type[0] in _atomic_number.keys():
             symbol = type[0]
         else:
-            print('warning: unknown element for atom type ' + type)
             symbol = 'UNK'
         return Element(symbol)
