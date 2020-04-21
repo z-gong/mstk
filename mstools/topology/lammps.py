@@ -116,10 +116,7 @@ class LammpsData(Topology):
 
     def parse_atoms(self, lines, n_atom):
         atoms = [Atom() for i in range(n_atom)]
-        # i don't know how many molecules there will be
-        # but it can not be larger than n_atom
-        # i'll kick out the redundant molecules later
-        molecules = [Molecule() for i in range(n_atom)]
+        mol_names: {int: str} = {}
         for i in range(n_atom):
             words = lines[i].strip().split()
             atom_id = int(words[0])
@@ -136,14 +133,13 @@ class LammpsData(Topology):
             except:
                 ix = iy = iz = 0
 
-            mol = molecules[mol_id - 1]
-            if not mol.initialized:
-                mol.id = mol_id - 1  # mol.id starts from 0
-                # mol.name = words[9] if (len(words) > 7 and words[7] == '#') else 'UNK'
+            if mol_id not in mol_names:
+                mol_names[mol_id] = words[9] if (
+                        len(words) > 9 and words[7] == '#') else 'M%i' % mol_id
 
             atom = atoms[atom_id - 1]
+            atom._mol_id = mol_id  # temporary attribute for identifying molecules
             atom.id = atom_id - 1  # atom.id starts from 0
-            mol.add_atom(atom)
             atom.charge = charge
             atom.mass = self._type_masses[type_id]
             atom.type = self._type_names[type_id]
@@ -156,9 +152,12 @@ class LammpsData(Topology):
                                       y - self._ylo + iy * self.cell.size[1],
                                       z - self._zlo + iz * self.cell.size[2]])
 
-        # kick out redundant molecules
-        molecules = [mol for mol in molecules if mol.initialized]
-        for mol in molecules:
+        molecules = []
+        for mol_id, mol_name in sorted(mol_names.items()):
+            mol = Molecule(mol_name)
+            molecules.append(mol)
+            for atom in sorted(filter(lambda x: x._mol_id == mol_id, atoms), key=lambda x: x.id):
+                mol.add_atom(atom)
             for i, atom in enumerate(mol.atoms):
                 # atomic symbol + index inside mol starting from 1
                 atom.name = atom.symbol + str(i + 1)
