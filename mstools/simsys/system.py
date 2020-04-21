@@ -17,9 +17,10 @@ else:
 
 
 class System():
-    def __init__(self, topology: Topology, params: FFSet, positions=None, cell=None):
+    def __init__(self, topology: Topology, params: FFSet, positions=None, cell=None, verbose=False):
         self._topology = topology
         self._params = params
+        self._verbose = verbose
         self._frame = Frame(topology.n_atom)
 
         if positions is not None:
@@ -46,6 +47,8 @@ class System():
         self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
         self.polarizable_terms: {str: PolarizableTerm} = {}  # key is Atom.type
         self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
+        self.constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
+        self.constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
 
         for atom in self._topology.atoms:
             atype = self._params.atom_types[atom.type]
@@ -70,9 +73,12 @@ class System():
             at2 = self._params.atom_types[bond.atom2.type].eqt_bond
             bterm = BondTerm(at1, at2, 0)
             try:
-                self.bond_terms[id(bond)] = self._params.bond_terms[bterm.name]
+                bterm = self._params.bond_terms[bterm.name]
             except:
                 raise Exception(f'{str(bterm)} for {str(bond)} not found in FF')
+            self.bond_terms[id(bond)] = bterm
+            if bterm.fixed:
+                self.constrain_bonds[id(bond)] = bterm.length
 
         for angle in self._topology.angles:
             at1 = self._params.atom_types[angle.atom1.type].eqt_ang_s
@@ -80,9 +86,18 @@ class System():
             at3 = self._params.atom_types[angle.atom3.type].eqt_ang_s
             aterm = AngleTerm(at1, at2, at3, 0)
             try:
-                self.angle_terms[id(angle)] = self._params.angle_terms[aterm.name]
+                aterm = self._params.angle_terms[aterm.name]
             except:
                 raise Exception(f'{str(aterm)} for {str(angle)} not found in FF')
+            self.angle_terms[id(angle)] = aterm
+            if aterm.fixed:
+                bond1 = next(b for b in self._topology.bonds if b == Bond(angle.atom1, angle.atom2))
+                bond2 = next(b for b in self._topology.bonds if b == Bond(angle.atom2, angle.atom3))
+                # constrain the angle only if two bonds are also constrained
+                if id(bond1) in self.constrain_bonds and id(bond2) in self.constrain_bonds:
+                    d1, d2 = self.constrain_bonds[id(bond1)], self.constrain_bonds[id(bond2)]
+                    self.constrain_angles[id(angle)] = math.sqrt(
+                        d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
 
         for dihedral in self._topology.dihedrals:
             at1 = self._params.atom_types[dihedral.atom1.type].eqt_dih_s
@@ -136,6 +151,11 @@ class System():
         self.improper_classes = set([term.__class__ for term in self.improper_terms.values()])
         self.polarizable_classes = set([term.__class__ for term in self.polarizable_terms.values()])
 
+        if self._verbose:
+            print('%10i atom types' % len(self.atom_types))
+            print('%10i bonds constrained' % len(self.constrain_bonds))
+            print('%10i angles constrained' % len(self.constrain_angles))
+
     def export_lmp(self):
         pass
 
@@ -163,8 +183,6 @@ class System():
                 continue
             bterm = self.bond_terms[id(bond)]
             bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
-            if bterm.fixed:
-                omm_system.addConstraint(bond.atom1.id, bond.atom2.id, bterm.length)
 
         ### Set up angles #######################################################################
         for angle_class in self.angle_classes:
@@ -199,7 +217,17 @@ class System():
             aforce.setForceGroup(2)
             omm_system.addForce(aforce)
 
-        ### Set up dihedrals #######################################################################
+        ### Set up constraints #################################################################
+        for bond in self._topology.bonds:
+            if id(bond) in self.constrain_bonds:
+                omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
+                                         self.constrain_bonds[id(bond)])
+        for angle in self._topology.angles:
+            if id(angle) in self.constrain_angles:
+                omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
+                                         self.constrain_angles[id(angle)])
+
+        ### Set up dihedrals ###################################################################
         dforce = mm.PeriodicTorsionForce()
         dforce.setUsesPeriodicBoundaryConditions(True)
         dforce.setForceGroup(3)
@@ -224,7 +252,7 @@ class System():
                     'Dihedral terms other that PeriodicDihedralTerm and OplsDihedralTerm'
                     'haven\'t been implemented')
 
-        ### Set up impropers #######################################################################
+        ### Set up impropers ####################################################################
         for improper_class in self.improper_classes:
             if improper_class == PeriodicImproperTerm:
                 iforce = mm.CustomTorsionForce('k*(1+cos(2*theta-phi0))')

@@ -119,10 +119,10 @@ class PaduaFFSet(FFSet):
         self.bond_terms[term.name] = term
 
     def parse_angle(self, words):
-        if words[3] not in ['harm']:
+        if words[3] not in ['harm', 'cons']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
         term = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
-                                 k=float(words[5]) / 2)
+                                 k=float(words[5]) / 2, fixed=(words[3] == 'cons'))
         if term.name in self.angle_terms.keys():
             raise Exception('Duplicated angle term: %s' % str(term))
         self.angle_terms[term.name] = term

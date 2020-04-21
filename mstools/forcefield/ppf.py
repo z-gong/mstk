@@ -137,12 +137,18 @@ class PpfFFSet(FFSet):
                 self.pairwise_vdw_terms[term.name] = term
             elif line.term == 'BHARM':
                 length, k = line.get_float_values()
-                term = HarmonicBondTerm(*line.get_names(), length / 10, k * 4.184 * 100)
+                at1, at2 = line.get_names()
+                # constrain the bonds involving hydrogen
+                fixed = at1.startswith('h_1') or at2.startswith('h_1')
+                term = HarmonicBondTerm(at1, at2, length / 10, k * 4.184 * 100, fixed=fixed)
                 term.version = line.version
                 self.bond_terms[term.name] = term
             elif line.term == 'AHARM':
                 theta, k = line.get_float_values()
-                term = HarmonicAngleTerm(*line.get_names(), theta, k * 4.184)
+                at1, at2, at3 = line.get_names()
+                # constrain the angles in water
+                fixed = at1.startswith('h_1') and at2.startswith('o_2') and at3.startswith('h_1')
+                term = HarmonicAngleTerm(at1, at2, at3, theta, k * 4.184, fixed=fixed)
                 term.version = line.version
                 self.angle_terms[term.name] = term
             elif line.term == 'TCOSP':
