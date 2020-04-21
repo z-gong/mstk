@@ -91,16 +91,6 @@ class PaduaFFSet(FFSet):
             epsilon = float(words[6])
             lj = LJ126Term(atype.name, atype.name, epsilon, sigma)
             self.vdw_terms[lj.name] = lj
-        elif words[4] == 'lj96':
-            sigma = float(words[5]) / 10  # convert from A to nm
-            epsilon = float(words[6])
-            lj = MieTerm(atype.name, atype.name, epsilon, sigma, 9, 6)
-            self.vdw_terms[lj.name] = lj
-        elif words[4] == 'lj124':
-            sigma = float(words[5]) / 10  # convert from A to nm
-            epsilon = float(words[6])
-            lj = MieTerm(atype.name, atype.name, epsilon, sigma, 12, 4)
-            self.vdw_terms[lj.name] = lj
         else:
             raise Exception('Unsupported vdw potential form: %s' % (words[4]))
 

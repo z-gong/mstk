@@ -1,5 +1,6 @@
 from collections import namedtuple
 import math
+from distutils.util import strtobool
 from ..constant import *
 
 
@@ -367,6 +368,7 @@ class HarmonicBondTerm(BondTerm):
             'type2' : str,
             'length': float,
             'k'     : float,
+            'fixed' : lambda x: bool(strtobool(x))
         }
 
 
@@ -391,6 +393,7 @@ class HarmonicAngleTerm(AngleTerm):
             'type3': str,
             'theta': float,
             'k'    : float,
+            'fixed' : lambda x: bool(strtobool(x))
         }
 
 
