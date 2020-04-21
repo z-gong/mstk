@@ -211,8 +211,8 @@ class System():
                     vdw = self._params.get_vdw_term(angle.atom1.type, angle.atom2.type)
                     if type(vdw) != MieTerm or vdw.repulsion != 9 or vdw.attraction != 6:
                         raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
-                    aforce.addAngle([angle.atom1.id, angle.atom2.id, angle.atom3.id],
-                                    [aterm.theta * PI / 180, aterm.k, vdw.epsilon, vdw.sigma])
+                    aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id],
+                                   [aterm.theta * PI / 180, aterm.k, vdw.epsilon, vdw.sigma])
             else:
                 raise Exception('Angle terms other that HarmonicAngleTerm and SDKAngleTerm '
                                 'haven\'t been implemented')

@@ -74,15 +74,8 @@ class FFSet():
         Get vdW term between two atom types
         If not exist and it's LJ126 form, then generate it using combination rule
         '''
-        if type(type1) == str:
-            type1 = self.atom_types.get(type1)
-        if type(type2) == str:
-            type2 = self.atom_types.get(type2)
-        if type1 is None or type2 is None:
-            raise Exception(f'Atom type {str(type1)} or {str(type2)} not found in FF')
-
-        at1 = type1.eqt_vdw
-        at2 = type2.eqt_vdw
+        at1 = type1.eqt_vdw if type(type1) is AtomType else type1
+        at2 = type2.eqt_vdw if type(type2) is AtomType else type2
         vdw = VdwTerm(at1, at2)
         if at1 == at2:
             vdw = self.vdw_terms.get(vdw.name)
@@ -96,7 +89,7 @@ class FFSet():
         lj2 = self.vdw_terms.get(VdwTerm(at2, at2).name)
         if lj1 is None or lj2 is None:
             raise Exception(f'VdwTerm for {str(at1)} or {str(at2)} not found')
-        if not isinstance(lj1, LJ126Term) or not isinstance(lj2, LJ126Term):
+        if type(lj1) is not LJ126Term or type(lj2) is not LJ126Term:
             raise Exception(f'Cannot using mixing rule for VdwTerm other than LJ126')
 
         if self.lj_mixing_rule == self.LJ_MIXING_LB:

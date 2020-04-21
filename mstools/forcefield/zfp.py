@@ -59,8 +59,8 @@ class ZfpFFSet(FFSet):
         root = ET.Element('ForceFieldTerms')
 
         attrib = {
-            'vdw_cutoff' : str(params.vdw_cutoff),
-            'vdw_long_range'   : params.vdw_long_range,
+            'vdw_cutoff'      : str(params.vdw_cutoff),
+            'vdw_long_range'  : params.vdw_long_range,
             'lj_mixing_rule'  : params.lj_mixing_rule,
             'scale_14_vdw'    : str(params.scale_14_vdw),
             'scale_14_coulomb': str(params.scale_14_coulomb),
