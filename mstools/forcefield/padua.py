@@ -4,7 +4,7 @@ from .ffterm import *
 from .element import Element
 
 
-class PaduaFFSet(FFSet):
+class Padua(FFSet):
     '''
     fftool of Padua use OPLS convention. Length are in A, energy are in kJ/mol
     The energy term is in k/2 form for bond, angle, dihedral and improper

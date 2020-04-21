@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+import os
+import pytest
 from mstools.topology import Topology
 
-import os
 cwd = os.path.dirname(os.path.abspath(__file__))
-psf = Topology.open(cwd + '/files/topol.psf')
+
 
 def test_read():
+    psf = Topology.open(cwd + '/files/10-H2O-5-C3H6.psf')
     assert psf.is_drude == False
     assert psf.n_atom == 75
     assert psf.n_molecule == 15
@@ -45,5 +47,9 @@ def test_read():
     assert mol.id == 14
     assert mol.name == 'C3H'
 
+
 def test_write():
-    psf.write(cwd + '/files/psf-out.psf')
+    lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp')
+    lmp.write(cwd + '/files/lmp-out.psf')
+    zmat = Topology.open(cwd + '/files/im11.zmat')
+    zmat.write(cwd + '/files/zmat-out.psf')

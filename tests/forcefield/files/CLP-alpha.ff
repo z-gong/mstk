@@ -4,11 +4,10 @@
 
 POLAR
 # type  m_D/u   q_D/e    k_D   alpha/A3  a_thole n_H
-# ! This line for H is necessary. DO NOT DELTE IT.
-# The polarizability of Hydrogen atoms will always be merged into connected heavy atoms.
-# All H atoms share same polarizability, so the name of different H types are not distiguished here.
-# Other lines starswith H (like HC, H1 or whatever) will be ignored.
-H*       0.0     0.0        0.0   0.323   0.0
+# The line for H* means all hydrogen atoms share the same polarizability,
+# and it will be merged into connected heavy atoms.
+# Other lines stars with H (like HC, H1 or whatever) should not be defined.
+H*      0.0     0.0        0.0   0.323   0.0
 # imidazolium PCCP 20(2018)10992
 CR      0.4    -1.0     4184.0   1.122   2.6
 CW      0.4    -1.0     4184.0   1.122   2.6

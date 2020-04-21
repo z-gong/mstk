@@ -4,7 +4,7 @@ c_3a                 :	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a: V 1.0,
 h_1                  :	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1: V 1.0, S MGI, C D, R R1
 #DFF:PPF
 #PROTOCOL = AMBER
-#TYPINGRULE = D:\Projects\DFF\Developing\database\TEAMFF.ref\MGI\MGI.ext
+#TYPINGRULE =
 ATYPE: c_3a:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
 ATYPE: h_1:    1.00000*,   1.00790*: V 1.0, S MGI, C D, R R1
 ATC: c_3a:    0.00000*: V 1.0, S MGI, C D, R R1

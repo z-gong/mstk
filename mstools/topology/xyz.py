@@ -6,13 +6,13 @@ from ..forcefield import Element
 
 class XyzTopology(Topology):
     '''
-    xyz format only records the type and position of atoms
-    there is no real topology
-    we treat the first column as type instead of name
+    XYZ format only records the type and position of atoms
+    There is no real topology, so all atoms are assumed to be in the same molecule
+    The first column is treated as atom type instead of name or symbol
     '''
 
     def __init__(self, file):
-        super(XyzTopology, self).__init__()
+        super().__init__()
         self.parse(file)
 
     def parse(self, file):
@@ -38,7 +38,7 @@ class XyzTopology(Topology):
     @staticmethod
     def save_to(top, file):
         if not top.has_position:
-            raise Exception('Position is required for writing xyz file')
+            raise Exception('Position is required for writing XYZ file')
 
         with open(file, 'w')as f:
             f.write('%i\n' % top.n_atom)

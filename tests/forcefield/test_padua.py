@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import PaduaFFSet
+from mstools.forcefield import Padua
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-params = PaduaFFSet(cwd + '/files/oplsaa.ff', cwd + '/files/clp-alpha.ff')
+params = Padua(cwd + '/files/clp.ff', cwd + '/files/clp-alpha.ff')
 
 
 def test_read():
@@ -24,12 +24,12 @@ def test_read():
     assert ca.eqt_dih_c == 'CA'
 
     vdw = params.vdw_terms['Br,Br']
-    assert vdw.epsilon == 0.37656
-    assert vdw.sigma == 4.624 / 10
+    assert vdw.epsilon == 0.86
+    assert vdw.sigma == 3.97 / 10
 
     bond = params.bond_terms['CT,CT']
     assert bond.length == 1.529 / 10
-    assert pytest.approx(bond.k, abs=1E-6) == 2242.6 / 2 * 100
+    assert pytest.approx(bond.k, abs=1E-6) == 2242.0 / 2 * 100
 
     angle = params.angle_terms['CT,CT,HC']
     assert angle.theta == 110.7
@@ -47,7 +47,7 @@ def test_read():
     assert dihedral.k3 == 0.8368 / 2
     assert dihedral.k4 == 0
 
-    improper = params.improper_terms['N,C,CT,CT']
+    improper = params.improper_terms['NA,CR,CT,CW']
     assert improper.phi == 180
     assert improper.k == 8.368 / 2
 

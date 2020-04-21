@@ -3,7 +3,7 @@
 import os
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import PpfFFSet, PaduaFFSet
+from mstools.forcefield import Ppf, Padua
 from mstools.simsys import System
 
 import simtk.openmm as mm
@@ -14,7 +14,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_team():
-    ff = PpfFFSet(cwd + '/files/10-benzene.ppf')
+    ff = Ppf(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp')
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
@@ -33,7 +33,7 @@ def test_team():
 
 
 def test_vdw_shift():
-    ff = PpfFFSet(cwd + '/files/10-benzene.ppf')
+    ff = Ppf(cwd + '/files/10-benzene.ppf')
     ff.vdw_long_range = ff.VDW_LONGRANGE_SHIFT
 
     top = Topology.open(cwd + '/files/10-benzene.lmp')
@@ -54,7 +54,7 @@ def test_vdw_shift():
 
 
 def test_drude():
-    ff = PaduaFFSet(cwd + '/../forcefield/files/clp.ff', cwd + '/../forcefield/files/clp-alpha.ff')
+    ff = Padua(cwd + '/../forcefield/files/clp.ff', cwd + '/../forcefield/files/clp-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
     top.generate_angle_dihedral_improper()
     # top.remove_drude_particles()

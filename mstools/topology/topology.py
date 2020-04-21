@@ -135,12 +135,15 @@ class Topology():
     @staticmethod
     def open(file):
         from .psf import Psf
+        from .pdb import Pdb
         from .lammps import LammpsData
         from .xyz import XyzTopology
         from .zmat import Zmat
 
         if file.endswith('.psf'):
             return Psf(file)
+        if file.endswith('.pdb'):
+            return Pdb(file)
         elif file.endswith('.lmp'):
             return LammpsData(file)
         elif file.endswith('.xyz'):
@@ -152,10 +155,13 @@ class Topology():
 
     def write(self, file):
         from .psf import Psf
+        from .pdb import Pdb
         from .xyz import XyzTopology
 
         if file.endswith('.psf'):
             Psf.save_to(self, file)
+        elif file.endswith('.pdb'):
+            Pdb.save_to(self, file)
         elif file.endswith('.xyz'):
             XyzTopology.save_to(self, file)
         else:

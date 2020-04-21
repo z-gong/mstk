@@ -758,14 +758,3 @@ IBCOS: X, X, n_3a, X:  180.00000*,   4.68180*,   2.00000*: V 0.21, S IL, C D
 IBCOS: X, X, n_3o, o_1:  180.00000*,  18.00000*,   2.00000*: V 0.21, S IL, C D
 IBCOS: c_3a, c_3a, c_3a, c_4:  180.00000*,   4.68180*,   2.00000*: V 0.1, S IL, C D
 IBCOS: c_3a, c_3a, c_3a, h_1:  180.00000*,   1.70340*,   2.00000*: V 0.1, S IL, C D
-P12_6: o_1, o_2w:    3.29979*,   0.23398*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2, o_2w:    0.31359*,   0.63432*: V 1.27, S MGI,  V 1.27, S TEAM_LS, C V, R R1
-P12_6: o_2, o_2w:    3.51993*,   0.15161*: V 1.32, S MGI,  V 1.32, S TEAM_LS, C V, R R1
-P12_6: o_2, o_2w:    3.44671*,   0.22936*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2ch, o_2w:    3.46726*,   0.23114*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2e, o_2w:    0.29032*,   0.34151*: V 1.27, S MGI,  V 1.27, S TEAM_LS, C V, R R1
-P12_6: o_2e, o_2w:    3.25873*,   0.08162*: V 1.32, S MGI,  V 1.32, S TEAM_LS, C V, R R1
-P12_6: o_2e, o_2w:    3.51341*,   0.08999*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2ec, o_2w:    3.49160*,   0.09242*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2w, s_2:    3.54225*,   0.39906*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V
-P12_6: o_2w, s_2h:    3.68279*,   0.33584*: V 1.47, S MGI,  V 1.47, S TEAM_LS, C V

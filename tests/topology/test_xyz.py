@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
+import os
 import pytest
 from mstools.topology import Topology
 
-import os
 cwd = os.path.dirname(os.path.abspath(__file__))
-xyz = Topology.open(cwd + '/files/urea.xyz')
 
-def test_xyz():
+
+def test_read():
+    xyz = Topology.open(cwd + '/files/urea.xyz')
     assert xyz.n_atom == 8
     assert xyz.remark == 'urea'
     assert xyz.cell.volume == 0
@@ -19,6 +20,7 @@ def test_xyz():
     assert pytest.approx(atom.position, abs=1E-6) == [-0.194866, -0.115100, -0.158814]
     assert atom.has_position
 
+
 def test_write():
-    xyz.write(cwd + '/files/xyz-out.psf')
-    xyz.write(cwd + '/files/xyz-out.xyz')
+    zmat = Topology.open(cwd + '/files/im11.zmat')
+    zmat.write(cwd + '/files/zmat-out.xyz')

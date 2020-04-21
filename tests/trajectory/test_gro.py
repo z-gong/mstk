@@ -5,9 +5,9 @@ from mstools.trajectory import Gro
 
 import os
 cwd = os.path.dirname(os.path.abspath(__file__))
-gro = Gro(cwd + '/files/dump.gro')
 
-def test_gro():
+def test_read():
+    gro = Gro(cwd + '/files/1000-W.gro')
     assert gro.n_atom == 1000
     assert gro.n_frame == 3
 

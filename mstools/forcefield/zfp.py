@@ -5,7 +5,7 @@ from .ffset import FFSet
 from .ffterm import *
 
 
-class ZfpFFSet(FFSet):
+class Zfp(FFSet):
     def __init__(self, *files):
         super().__init__()
 

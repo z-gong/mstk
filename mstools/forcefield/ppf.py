@@ -34,7 +34,7 @@ class PpfLine():
         return [float(x.strip().strip('*')) for x in self.value.split(',')]
 
 
-class PpfFFSet(FFSet):
+class Ppf(FFSet):
     '''
     In PPF format, there is no 1/2 for all energy terms
     '''

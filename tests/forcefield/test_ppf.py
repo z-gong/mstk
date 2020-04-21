@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import PpfFFSet, PaduaFFSet
+from mstools.forcefield import Ppf, Padua
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-params = PpfFFSet(cwd + '/files/TEAM_IL.ppf')
 
 
 def test_read():
-    assert len(params.atom_types) == 63
+    params = Ppf(cwd + '/files/TEAM_IL.ppf', cwd + '/files/SPCE.ppf')
+    assert len(params.atom_types) == 65
+
     c_4pp = params.atom_types.get('c_4pp')
     assert c_4pp.charge == 0
     assert c_4pp.eqt_vdw == c_4pp.name
@@ -49,7 +50,7 @@ def test_read():
     assert vdw.type2 == 'o_2w'
     assert pytest.approx(vdw.epsilon / 4.184, abs=1E-6) == 0.22936
     assert pytest.approx(vdw.sigma * 2 ** (1 / 6) * 10, abs=1E-6) == 3.44671
-    assert vdw.version == '1.47'
+    assert vdw.version == None
 
     bond = params.bond_terms.get('c_2n,n_2-')
     assert bond.type1 == 'c_2n'
@@ -94,5 +95,5 @@ def test_read():
 
 
 def test_write():
-    params = PaduaFFSet(cwd + '/files/clp.ff', cwd + '/files/clp-alpha.ff')
-    PpfFFSet.save_to(params, cwd + '/files/out-clp.ppf')
+    params = Padua(cwd + '/files/clp.ff', cwd + '/files/clp-alpha.ff')
+    Ppf.save_to(params, cwd + '/files/out-clp.ppf')
