@@ -27,11 +27,60 @@ class FFSet():
         self.scale_14_vdw = 1.0
         self.scale_14_coulomb = 1.0
 
+    def add_term(self, term):
+        _duplicated = False
+        if isinstance(term, AtomType):
+            if term.name not in self.atom_types:
+                self.atom_types[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, BondTerm):
+            if term.name not in self.bond_terms:
+                self.bond_terms[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, AngleTerm):
+            if term.name not in self.angle_terms:
+                self.angle_terms[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, DihedralTerm):
+            if term.name not in self.dihedral_terms:
+                self.dihedral_terms[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, ImproperTerm):
+            if term.name not in self.improper_terms:
+                self.improper_terms[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, VdwTerm):
+            if term.type1 == term.type2:
+                if term.name not in self.vdw_terms:
+                    self.vdw_terms[term.name] = term
+                else:
+                    _duplicated = True
+            else:
+                if term.name not in self.pairwise_vdw_terms:
+                    self.pairwise_vdw_terms[term.name] = term
+                else:
+                    _duplicated = True
+
+        if _duplicated:
+            raise Exception(f'{str(term)} already exist in FF')
+
     def get_vdw_term(self, type1: AtomType, type2: AtomType):
         '''
         Get vdW term between two atom types
         If not exist and it's LJ126 form, then generate it using combination rule
         '''
+        if type(type1) == str:
+            type1 = self.atom_types.get(type1)
+        if type(type2) == str:
+            type2 = self.atom_types.get(type2)
+        if type1 is None or type2 is None:
+            raise Exception(f'Atom type {str(type1)} or {str(type2)} not found in FF')
+
         at1 = type1.eqt_vdw
         at2 = type2.eqt_vdw
         vdw = VdwTerm(at1, at2)

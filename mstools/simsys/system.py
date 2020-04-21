@@ -195,21 +195,24 @@ class System():
                                         aterm.theta * PI / 180, aterm.k * 2)
             elif angle_class == SDKAngleTerm:
                 aforce = mm.CustomCompoundBondForce(
-                    'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
-                    'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
-                    'theta=angle(p1,p2,p3);'
-                    'r=distance(p1,p3);'
-                    'rmin=1.144714*sigma')
+                    3, 'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
+                       'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
+                       'theta=angle(p1,p2,p3);'
+                       'r=distance(p1,p3);'
+                       'rmin=1.144714*sigma')
                 aforce.addPerBondParameter('theta0')
                 aforce.addPerBondParameter('k')
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
                 for angle in self._topology.angles:
                     aterm = self.angle_terms[id(angle)]
-                    if type(aterm) == SDKAngleTerm:
-                        aforce.addAngle(
-                            [angle.atom1.id, angle.atom2.id, angle.atom3.id],
-                            [aterm.theta * PI / 180, aterm.k, aterm.epsilon, aterm.sigma])
+                    if type(aterm) != SDKAngleTerm:
+                        continue
+                    vdw = self._params.get_vdw_term(angle.atom1.type, angle.atom2.type)
+                    if type(vdw) != MieTerm or vdw.repulsion != 9 or vdw.attraction != 6:
+                        raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
+                    aforce.addAngle([angle.atom1.id, angle.atom2.id, angle.atom3.id],
+                                    [aterm.theta * PI / 180, aterm.k, vdw.epsilon, vdw.sigma])
             else:
                 raise Exception('Angle terms other that HarmonicAngleTerm and SDKAngleTerm '
                                 'haven\'t been implemented')
@@ -414,8 +417,7 @@ class System():
                     f.addExclusion(atom1.id, atom2.id)
                 if self._params.scale_14_vdw == 0:
                     continue
-                vdw = self._params.get_vdw_term(self._params.atom_types[atom1.type],
-                                                self._params.atom_types[atom2.type])
+                vdw = self._params.get_vdw_term(atom1.type, atom2.type)
                 # We generalize LJ126Term and MieTerm because of minimal computational cost for 1-4 vdW
                 if type(vdw) in (LJ126Term, MieTerm):
                     cbforce = pair14_forces.get(MieTerm)

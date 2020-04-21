@@ -403,15 +403,13 @@ class SDKAngleTerm(AngleTerm):
     LJ96 = 6.75 * epsilon * ((sigma/r)^9 - (sigma/r)^6) + epsilon, r < 1.144714 * sigma
     '''
 
-    def __init__(self, type1, type2, type3, theta, k, epsilon, sigma):
+    def __init__(self, type1, type2, type3, theta, k):
         super().__init__(type1, type2, type3, theta, fixed=False)
         self.k = k
-        self.epsilon = epsilon
-        self.sigma = sigma
 
     @staticmethod
     def singleton():
-        return SDKAngleTerm('', '', '', 0., 0., 0., 0.)
+        return SDKAngleTerm('', '', '', 0., 0.)
 
     @property
     def zfp_attrs(self):
@@ -421,8 +419,6 @@ class SDKAngleTerm(AngleTerm):
             'type3'  : str,
             'theta'  : float,
             'k'      : float,
-            'epsilon': float,
-            'sigma'  : float,
         }
 
 
