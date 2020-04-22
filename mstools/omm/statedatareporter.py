@@ -283,33 +283,33 @@ class StateDataReporter(object):
         """
         headers = []
         if self._progress:
-            headers.append('Progress (%)')
+            headers.append('Progress')
         if self._step:
             headers.append('Step')
         if self._time:
-            headers.append('Time (ps)')
+            headers.append('Time')
         if self._potentialEnergy:
-            headers.append('Potential Energy (kJ/mole)')
+            headers.append('E_potential')
         if self._kineticEnergy:
-            headers.append('Kinetic Energy (kJ/mole)')
+            headers.append('E_kinetic')
         if self._totalEnergy:
-            headers.append('Total Energy (kJ/mole)')
+            headers.append('E_total')
         if self._temperature:
-            headers.append('Temperature (K)')
+            headers.append('T')
         if self._volume:
-            headers.append('Box Volume (nm^3)')
+            headers.append('Vol')
         if self._box:
-            headers.append('Box X (nm)')
-            headers.append('Box Y (nm)')
-            headers.append('Box Z (nm)')
+            headers.append('Lx')
+            headers.append('Ly')
+            headers.append('Lz')
         if self._density:
-            headers.append('Density (g/mL)')
+            headers.append('Density')
         if self._speed:
-            headers.append('Speed (ns/day)')
+            headers.append('Speed')
         if self._elapsedTime:
-            headers.append('Elapsed Time (s)')
+            headers.append('Elapsed')
         if self._remainingTime:
-            headers.append('Time Remaining')
+            headers.append('Remaining')
         return headers
 
     def _checkForErrors(self, simulation, state):
