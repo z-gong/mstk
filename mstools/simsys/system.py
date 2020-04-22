@@ -122,9 +122,9 @@ class System():
         self.polarizable_classes = set([term.__class__ for term in self.polarizable_terms.values()])
 
         if self._verbose:
-            print('%i atom types' % len(self.atom_types))
-            print('%i bonds constrained' % len(self.constrain_bonds))
-            print('%i angles constrained' % len(self.constrain_angles))
+            print('    %i atom types' % len(self.atom_types))
+            print('    %i bonds constrained' % len(self.constrain_bonds))
+            print('    %i angles constrained' % len(self.constrain_angles))
 
     def export_lmp(self):
         pass

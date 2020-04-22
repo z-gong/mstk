@@ -54,7 +54,6 @@ class Trajectory():
     @staticmethod
     def open(file, mode='r'):
         from .gro import Gro
-        from .pdb import Pdb
         from .xyz import Xyz
         from .lammps import LammpsTrj
         from .dcd import Dcd
@@ -66,8 +65,6 @@ class Trajectory():
             return LammpsTrj(file, mode)
         elif file.endswith('.gro'):
             return Gro(file, mode)
-        elif file.endswith('.pdb'):
-            return Pdb(file, mode)
         elif file.endswith('.xyz'):
             return Xyz(file, mode)
         elif file.endswith('.dcd'):
