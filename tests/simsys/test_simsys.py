@@ -3,7 +3,7 @@
 import os
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import Ppf, Padua
+from mstools.forcefield import Ppf, Padua, Zfp
 from mstools.simsys import System
 
 import simtk.openmm as mm
@@ -74,6 +74,29 @@ def test_drude():
 
     pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 99.8
+
+
+def test_sdk():
+    ff = Zfp(cwd + '/../forcefield/files/SPICA_v1.zfp')
+    top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
+    for atom in top.atoms:
+        atom.charge /= 80 ** 0.5
+
+    system = System(top, ff)
+    omm_top = top.to_omm_topology()
+    omm_sys = system.to_omm_system()
+
+    integrator = mm.VerletIntegrator(0.001)
+
+    platform = mm.Platform.getPlatformByName('Reference')
+    # platform = mm.Platform.getPlatformByName('OpenCL')
+    sim = app.Simulation(omm_top, omm_sys, integrator, platform)
+    sim.context.setPositions(top.positions)
+
+    print_energy_terms(sim)
+
+    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    assert pytest.approx(pe, rel=0.001) == 186.0
 
 
 def print_energy_terms(sim):

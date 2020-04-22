@@ -70,15 +70,13 @@ class Psf(Topology):
         '''
         n_atom = int(lines[0].strip().split()[0])
         atoms = [Atom() for i in range(n_atom)]
-        # i don't know how many molecules there will be
-        # but it can not be larger than n_atom
-        # i'll kick out the redundant molecules later
-        molecules = [Molecule() for i in range(n_atom)]
+        mol_names = {}
         for i in range(n_atom):
             words = lines[1 + i].strip().split()
             atom_id = int(words[0])
             mol_id = int(words[2])
             mol_name = words[3]
+            atom_name = words[4]
             atom_type = words[5]
             charge, mass = list(map(float, words[6:8]))
             if parse_drude:
@@ -86,30 +84,28 @@ class Psf(Topology):
             else:
                 alpha = thole = 0.0
 
-            mol = molecules[mol_id - 1]  # mol.id starts from 0
-            if not mol.initialized:
-                # set the information of this molecule
-                mol.id = mol_id - 1
-                mol.name = mol_name
+            if mol_id not in mol_names:
+                mol_names[mol_id] = mol_name
 
             atom = atoms[atom_id - 1]  # atom.id starts from 0
             atom.id = atom_id - 1
-            mol.add_atom(atom)
+            atom.name = atom_name
             atom.charge = charge
             atom.mass = mass
             atom.type = atom_type
-            atom.symbol = Element.guess_from_atom_type(atom.type).symbol
+            atom._mol_id = mol_id
             atom._alpha = -alpha / 1000  # convert A^3 to nm^3
             atom._thole = thole * 2
             if parse_drude and atom.type.startswith('D'):
                 atom.is_drude = True
+                atom.symbol = 'DP'
+            else:
+                atom.symbol = Element.guess_from_atom_type(atom.type).symbol
 
-        # kick out redundant molecules
-        molecules = [mol for mol in molecules if mol.initialized]
-        for mol in molecules:
-            for i, atom in enumerate(mol.atoms):
-                # atomic symbol + index inside mol starting from 1
-                atom.name = atom.symbol + str(i + 1)
+        molecules = [Molecule(name) for id, name in mol_names.items()]
+        for atom in atoms:
+            mol = molecules[atom._mol_id - 1]
+            mol.add_atom(atom)
 
         self.init_from_molecules(molecules)
 
@@ -167,6 +163,10 @@ class Psf(Topology):
 
     @staticmethod
     def save_to(top, file):
+        for atom in top.atoms:
+            if atom.type == '':
+                raise Exception('PSF requires all atom types are defined')
+
         f = open(file, 'w')
 
         if top.is_drude:
@@ -180,7 +180,7 @@ class Psf(Topology):
         f.write('%8i !NATOM\n' % top.n_atom)
         for i, atom in enumerate(top.atoms):
             line = '%8i S    %-4i %4s %-3s %-8s %10.6f %10.4f %6i %10.4f %10.4f\n' % (
-                atom.id + 1, atom.molecule.id + 1, atom.molecule.name[:4], atom.symbol, atom.type,
+                atom.id + 1, atom.molecule.id + 1, atom.molecule.name, atom.symbol, atom.type,
                 atom.charge, atom.mass, 0, -atom._alpha * 1000, atom._thole / 2
             )
             f.write(line)

@@ -42,7 +42,8 @@ class XyzTopology(Topology):
 
         with open(file, 'w')as f:
             f.write('%i\n' % top.n_atom)
-            f.write('%s\n' % top.remark)
+            f.write('Created by mstools\n')
             for atom in top.atoms:
                 pos = atom.position * 10
-                f.write('%-8s %11.5f %11.5f %11.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
+                f.write('%-8s %11.5f %11.5f %11.5f\n' % (
+                    atom.type or atom.symbol, pos[0], pos[1], pos[2]))

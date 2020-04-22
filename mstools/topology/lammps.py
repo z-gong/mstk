@@ -105,6 +105,7 @@ class LammpsData(Topology):
             type_id = int(words[0])
             mass = float(words[1])
             self._type_masses[type_id] = mass
+            # TODO This is not robust but there's no better way
             if len(words) > 3 and words[2] == '#':
                 if words[-1].startswith('D') and mass < 1:
                     self._type_names[type_id] = 'DRUDE'
@@ -145,8 +146,9 @@ class LammpsData(Topology):
             atom.type = self._type_names[type_id]
             if atom.type == 'DRUDE':
                 atom.is_drude = True
-            element = Element.guess_from_atom_type(atom.type)
-            atom.symbol = element.symbol
+                atom.symbol = 'DP'
+            else:
+                atom.symbol = Element.guess_from_atom_type(atom.type).symbol
             atom.has_position = True
             atom.position = np.array([x - self._xlo + ix * self.cell.size[0],
                                       y - self._ylo + iy * self.cell.size[1],

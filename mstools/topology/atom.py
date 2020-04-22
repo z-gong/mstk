@@ -9,6 +9,7 @@ class Atom():
         self.symbol = 'UNK'
         self.mass = 0.
         self.charge = 0.
+        self.formal_charge = 0.
         self.is_drude = False  # this is a Drude particle for polarizable model
         self.has_position = False
         self._position = np.zeros(3, dtype=np.float32)
@@ -38,6 +39,7 @@ class Atom():
         atom.symbol = self.symbol
         atom.mass = self.mass
         atom.charge = self.charge
+        atom.formal_charge = self.formal_charge
         atom.is_drude = self.is_drude
         atom.has_position = self.has_position
         atom._position[:] = self._position[:]

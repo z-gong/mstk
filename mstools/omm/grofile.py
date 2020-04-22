@@ -58,12 +58,17 @@ class GroFile(GromacsGroFile):
             atom = atoms[i]
             residue = atom.residue
             coords = positions[i]
+            # writing atom symbol instead of name makes visualization easier
+            if atom.element is not None:
+                name = atom.element.symbol
+            else:
+                name = ''.join(i for i in atom.name if not i.isdigit())
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                (residue.index + 1) % 100000, residue.name[:5], atom.name[:5],
+                (residue.index + 1) % 100000, residue.name[:5], name[:5],
                 (atom.index + 1) % 100000, coords[0], coords[1], coords[2])
             if velocities is not None:
                 vel = velocities[i]
-                line += '%8.3f%8.3f%8.3f' % (vel[0], vel[1], vel[2])
+                line += '%8.4f%8.4f%8.4f' % (vel[0], vel[1], vel[2])
             print(line, file=file)
 
     @staticmethod

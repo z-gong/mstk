@@ -105,7 +105,7 @@ class Gro(Trajectory):
         if write_velocity and not frame.has_velocity:
             raise Exception('Velocities are requested but not exist in frame')
 
-        self._file.write('created by mstools. step %i\n' % frame.step)
+        self._file.write('Created by mstools. Step %i\n' % frame.step)
         if subset is None:
             subset = list(range(topology.n_atom))
         self._file.write('%i\n' % len(subset))
@@ -115,11 +115,11 @@ class Gro(Trajectory):
             mol = atom.molecule
             pos = frame.positions[id]
             line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
-                (mol.id + 1) % 100000, mol.name[:4], atom.symbol, (atom.id + 1) % 100000,
+                (mol.id + 1) % 100000, mol.name[:5], atom.symbol[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2])
             if write_velocity:
                 vel = frame.velocities[id]
-                line += '%8.3f%8.3f%8.3f' % (vel[0], vel[1], vel[2])
+                line += '%8.4f%8.4f%8.4f' % (vel[0], vel[1], vel[2])
             self._file.write(line + '\n')
 
         a, b, c = frame.cell.vectors

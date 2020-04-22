@@ -264,6 +264,7 @@ class System():
         # CustomNonbondedForce handles vdW interactions
         nbforce = mm.NonbondedForce()
         nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
+        nbforce.setEwaldErrorTolerance(1E-4)
         nbforce.setCutoffDistance(cutoff)
         nbforce.setUseDispersionCorrection(False)
         try:

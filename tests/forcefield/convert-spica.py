@@ -20,6 +20,10 @@ for k, v in j['topo'].items():
         atype.charge = round(v['charge'][i] * math.sqrt(80), 4)
         atype.mass = round(v['mass'][i], 4)
         ff.add_term(atype)
+aterm = AtomType('SO4')
+aterm.charge = -1.0
+aterm.mass = 96.062
+ff.add_term(aterm)
 
 with open('files/spica_par.json') as f:
     j = json.load(f)
@@ -28,7 +32,7 @@ for par in j['params']:
         if par['potential'] != 'harmonic':
             raise Exception('Unknown potential form: %s' % par['potential'])
         types = par['types']
-        k = par['k'] * 4.184
+        k = par['k'] * 4.184 * 100
         length = par['r0'] / 10
         bterm = HarmonicBondTerm(*types, length, k)
         ff.add_term(bterm)

@@ -18,9 +18,9 @@ def test_read():
     assert psf.n_improper == 10
     assert psf.cell.volume == 0
 
-    assert psf.bonds[-1].atom1.name == 'C3'
-    assert psf.angles[-1].atom2.name == 'C3'
-    assert psf.dihedrals[-1].atom4.name == 'H9'
+    assert psf.bonds[-1].atom1.name == 'C69'
+    assert psf.angles[-1].atom2.name == 'C69'
+    assert psf.dihedrals[-1].atom4.name == 'H75'
     assert psf.impropers[-1].atom1.type == 'c_3h'
 
     atom = psf.atoms[0]
@@ -35,7 +35,7 @@ def test_read():
     assert atom.id == 74
     assert atom.molecule.id == 14
     assert atom.type == 'h_1'
-    assert atom.name == 'H9'
+    assert atom.name == 'H75'
     assert atom.charge == 0.06
     assert atom.mass == 1.00794
 

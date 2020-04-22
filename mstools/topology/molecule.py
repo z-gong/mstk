@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from .atom import Atom
 from .connectivity import *
-from ..forcefield import FFSet
+from ..forcefield import FFSet, Element
 from ..forcefield.ffterm import *
 
 
@@ -54,6 +54,47 @@ class Molecule():
             idx3 = improper.atom3._id_in_molecule
             idx4 = improper.atom4._id_in_molecule
             mol.add_improper(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
+        return mol
+
+    @staticmethod
+    def from_smiles(smiles):
+        try:
+            import pybel
+        except ImportError:
+            raise Exception('OpenBabel is required for parsing SMIELS')
+
+        try:
+            py_mol = pybel.readstring('smi', smiles)
+        except:
+            raise Exception('Invalid SMILES')
+
+        py_mol.addh()
+        py_mol.make3D()
+        return Molecule.from_pybel(py_mol)
+
+    @staticmethod
+    def from_pybel(py_mol):
+        try:
+            import openbabel
+        except ImportError:
+            raise Exception('OpenBabel is required for parsing SMIELS')
+
+        mol = Molecule()
+        for i, a in enumerate(py_mol.atoms):
+            atom = Atom()
+            element = Element(a.atomicnum)
+            atom.name = element.symbol + str(i + 1)
+            atom.symbol = element.symbol
+            atom.mass = element.mass
+            atom.formal_charge = a.formalcharge
+            atom.has_position = True
+            atom.position = [i / 10 for i in a.coords]  # convert A to nm
+            mol.add_atom(atom)
+        for b in openbabel.OBMolBondIter(py_mol.OBMol):
+            atom1 = mol.atoms[b.GetBeginAtomIdx() - 1]
+            atom2 = mol.atoms[b.GetEndAtomIdx() - 1]
+            mol.add_bond(atom1, atom2)
+        mol.generate_angle_dihedral_improper()
         return mol
 
     @property
@@ -184,10 +225,6 @@ class Molecule():
     @property
     def impropers(self):
         return self._impropers
-
-    @property
-    def initialized(self):
-        return self.id != -1
 
     @property
     def has_position(self):
