@@ -152,12 +152,11 @@ class LammpsData(Topology):
                                       y - self._ylo + iy * self.cell.size[1],
                                       z - self._zlo + iz * self.cell.size[2]])
 
-        molecules = []
-        for mol_id, mol_name in sorted(mol_names.items()):
-            mol = Molecule(mol_name)
-            molecules.append(mol)
-            for atom in sorted(filter(lambda x: x._mol_id == mol_id, atoms), key=lambda x: x.id):
-                mol.add_atom(atom)
+        molecules = [Molecule(name) for id, name in sorted(mol_names.items())]
+        for atom in sorted(atoms, key=lambda x: x.id):
+            mol = molecules[atom._mol_id - 1]
+            mol.add_atom(atom)
+        for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 # atomic symbol + index inside mol starting from 1
                 atom.name = atom.symbol + str(i + 1)
