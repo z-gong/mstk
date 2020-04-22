@@ -1,5 +1,5 @@
 import simtk.openmm as mm
-from simtk.unit import kilojoule_per_mole as kj_mol, kelvin, bar
+from simtk.unit import kelvin, bar, kilojoule_per_mole as kj_mol, nanometer as ns
 from .grofile import GroFile
 
 
@@ -27,7 +27,7 @@ def apply_mc_barostat(system, pcoupl, P, T):
         system.addForce(mm.MonteCarloBarostat(P * bar, T * kelvin, 25))
     elif pcoupl == 'semi-iso':
         print('    Anisotropic barostat with coupled XY')
-        system.addForce(mm.MonteCarloMembraneBarostat(P * bar, 0 * bar, T * kelvin,
+        system.addForce(mm.MonteCarloMembraneBarostat(P * bar, 0 * bar * ns, T * kelvin,
                                                       mm.MonteCarloMembraneBarostat.XYIsotropic,
                                                       mm.MonteCarloMembraneBarostat.ZFree, 25))
     elif pcoupl == 'xyz':
