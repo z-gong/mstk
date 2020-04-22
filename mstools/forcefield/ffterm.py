@@ -3,6 +3,8 @@ import math
 from distutils.util import strtobool
 from ..constant import *
 
+class FFTermNotFoundError(Exception):
+    pass
 
 class FFTerm():
     def __init__(self):

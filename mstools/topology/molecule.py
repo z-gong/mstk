@@ -472,18 +472,13 @@ class Molecule():
 
         if len(params.charge_increment_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
-                atom1, atom2 = bond.atom1, bond.atom2
-                at1 = params.atom_types[atom1.type].eqt_q_inc
-                at2 = params.atom_types[atom2.type].eqt_q_inc
-                binc = ChargeIncrementTerm(at1, at2, 0)
                 try:
-                    binc = params.charge_increment_terms[binc.name]
-                except:
-                    warnings.warn(f'{binc} for {bond} not found in FF')
-
-                direction = 1 if at1 == binc.type1 else -1
-                atom1.charge += binc.value * direction
-                atom2.charge -= binc.value * direction
+                    increment = params.get_charge_increment(bond)
+                except FFTermNotFoundError:
+                    warnings.warn(f'Charge increment for {bond} not found in FF')
+                else:
+                    bond.atom1.charge += increment
+                    bond.atom2.charge -= increment
 
         for parent, drude in self.get_drude_pairs():
             atype = params.atom_types[parent.type]

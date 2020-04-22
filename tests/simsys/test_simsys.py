@@ -37,7 +37,7 @@ def test_vdw_shift():
     ff.vdw_long_range = ff.VDW_LONGRANGE_SHIFT
 
     top = Topology.open(cwd + '/files/10-benzene.lmp')
-    top.assign_charge_from_ff(ff)
+    # top.assign_charge_from_ff(ff)
     system = System(top, ff)
 
     omm_sys = system.to_omm_system()
@@ -59,7 +59,7 @@ def test_drude():
     top.generate_angle_dihedral_improper()
     # top.remove_drude_particles()
     # top.generate_drude_particles(ff)
-    # top.assign_charge_from_forcefield(ff)
+    top.assign_charge_from_ff(ff)
 
     system = System(top, ff)
 
