@@ -201,21 +201,21 @@ class StateDataReporter(object):
         if self._time:
             values.append(state.getTime().value_in_unit(unit.picosecond))
         if self._potentialEnergy:
-            values.append(state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole))
+            values.append('%.4f' % state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole))
         if self._kineticEnergy:
-            values.append(state.getKineticEnergy().value_in_unit(unit.kilojoules_per_mole))
+            values.append('%.4f' % state.getKineticEnergy().value_in_unit(unit.kilojoules_per_mole))
         if self._totalEnergy:
-            values.append((state.getKineticEnergy()+state.getPotentialEnergy()).value_in_unit(unit.kilojoules_per_mole))
+            values.append('%.4f' % (state.getKineticEnergy()+state.getPotentialEnergy()).value_in_unit(unit.kilojoules_per_mole))
         if self._temperature:
-            values.append((2*state.getKineticEnergy()/(self._dof*unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin))
+            values.append('%.2f' % (2*state.getKineticEnergy()/(self._dof*unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin))
         if self._volume:
-            values.append(volume.value_in_unit(unit.nanometer**3))
+            values.append('%.4f' % volume.value_in_unit(unit.nanometer**3))
         if self._box:
-            values.append(box[0][0].value_in_unit(unit.nanometer))
-            values.append(box[1][1].value_in_unit(unit.nanometer))
-            values.append(box[2][2].value_in_unit(unit.nanometer))
+            values.append('%.4f' % box[0][0].value_in_unit(unit.nanometer))
+            values.append('%.4f' % box[1][1].value_in_unit(unit.nanometer))
+            values.append('%.4f' % box[2][2].value_in_unit(unit.nanometer))
         if self._density:
-            values.append((self._totalMass/volume).value_in_unit(unit.gram/unit.item/unit.milliliter))
+            values.append('%.4f' % (self._totalMass/volume).value_in_unit(unit.gram/unit.item/unit.milliliter))
         if self._speed:
             elapsedDays = (clockTime-self._initialClockTime)/86400.0
             elapsedNs = (state.getTime()-self._initialSimulationTime).value_in_unit(unit.nanosecond)
