@@ -18,14 +18,9 @@ class Bond():
         return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
-        return (self.atom1 == other.atom1 and self.atom2 == other.atom2) \
-               or (self.atom1 == other.atom2 and self.atom2 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2] < [other.atom1, other.atom2]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2] > [other.atom1, other.atom2]
+        if type(other) != Bond:
+            return False
+        return {self.atom1, self.atom2} == {other.atom1, other.atom2}
 
     @property
     def is_drude(self) -> bool:
@@ -45,17 +40,11 @@ class Angle():
         return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
+        if type(other) != Angle:
+            return False
         if self.atom2 != other.atom2:
             return False
-
-        return (self.atom1 == other.atom1 and self.atom3 == other.atom3) \
-               or (self.atom1 == other.atom3 and self.atom3 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3] < [other.atom1, other.atom2, other.atom3]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3] > [other.atom1, other.atom2, other.atom3]
+        return {self.atom1, self.atom3} == {other.atom1, other.atom3}
 
 
 class Dihedral():
@@ -73,18 +62,12 @@ class Dihedral():
         return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
+        if type(other) != Dihedral:
+            return False
         return (self.atom1 == other.atom1 and self.atom2 == other.atom2 and
                 self.atom3 == other.atom3 and self.atom4 == other.atom4) \
                or (self.atom1 == other.atom4 and self.atom2 == other.atom3 and
                    self.atom3 == other.atom2 and self.atom4 == other.atom1)
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               < [other.atom1, other.atom2, other.atom3, other.atom4]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               > [other.atom1, other.atom2, other.atom3, other.atom4]
 
 
 class Improper():
@@ -106,17 +89,8 @@ class Improper():
         return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
+        if type(other) != Improper:
+            return False
         if self.atom1 != other.atom1:
             return False
-
-        at12, at13, at14 = sorted([self.atom2, self.atom3, self.atom4])
-        at22, at23, at24 = sorted([other.atom2, other.atom3, other.atom4])
-        return at12 == at22 and at13 == at23 and at14 == at24
-
-    def __lt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               < [other.atom1, other.atom2, other.atom3, other.atom4]
-
-    def __gt__(self, other):
-        return [self.atom1, self.atom2, self.atom3, self.atom4] \
-               > [other.atom1, other.atom2, other.atom3, other.atom4]
+        return {self.atom2, self.atom3, self.atom4} == {other.atom2, other.atom3, other.atom4}

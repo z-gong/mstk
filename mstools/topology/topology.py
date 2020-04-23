@@ -15,6 +15,13 @@ class Topology():
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
 
+    def __deepcopy__(self, memodict={}):
+        top = Topology()
+        top.remark = self.remark
+        top.cell = UnitCell(self.cell.vectors)
+        top.init_from_molecules(self._molecules, deepcopy=True)
+        return top
+
     def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
         Initialize a topology from a bunch of molecule.
@@ -47,8 +54,8 @@ class Topology():
         '''
         for i, mol in enumerate(self._molecules):
             mol.id = i
-        for j, atom in enumerate(self._atoms):
-            atom.id = j
+        for i, atom in enumerate(self._atoms):
+            atom.id = i
 
     def add_molecule(self, molecule: Molecule):
         '''

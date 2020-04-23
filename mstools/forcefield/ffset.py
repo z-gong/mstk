@@ -27,7 +27,19 @@ class FFSet():
         self.scale_14_vdw = 1.0
         self.scale_14_coulomb = 1.0
 
-    def add_term(self, term):
+    def get_settings(self):
+        d = {}
+        for i in ('vdw_cutoff', 'vdw_long_range', 'lj_mixing_rule',
+                  'scale_14_vdw', 'scale_14_coulomb'):
+            d[i] = getattr(self, i)
+        return d
+
+    def restore_settings(self, d):
+        for i in ('vdw_cutoff', 'vdw_long_range', 'lj_mixing_rule',
+                  'scale_14_vdw', 'scale_14_coulomb'):
+            setattr(self, i, d[i])
+
+    def add_term(self, term, ignore_duplicated=False):
         _duplicated = False
         if isinstance(term, AtomType):
             if term.name not in self.atom_types:
@@ -65,8 +77,15 @@ class FFSet():
                     self.pairwise_vdw_terms[term.name] = term
                 else:
                     _duplicated = True
+        elif isinstance(term, PolarizableTerm):
+            if term.name not in self.polarizable_terms:
+                self.polarizable_terms[term.name] = term
+            else:
+                _duplicated = True
+        else:
+            raise Exception('Invalid term to add')
 
-        if _duplicated:
+        if _duplicated and not ignore_duplicated:
             raise Exception(f'{str(term)} already exist in FF')
 
     def get_vdw_term(self, type1: AtomType, type2: AtomType):
