@@ -119,7 +119,7 @@ class StateDataReporter(object):
         self._needsForces = False
         self._needEnergy = potentialEnergy or kineticEnergy or totalEnergy or temperature
 
-        self._boxSizeList = []
+        self._boxSizeList = [[], [], []]
 
     def describeNextReport(self, simulation):
         """Get information about the next report this object will generate.
@@ -251,9 +251,9 @@ class StateDataReporter(object):
                     value = "0:%02d" % remainingSeconds
             values.append(value)
 
-        self._boxSizeList.append([box[0][0].value_in_unit(unit.nanometer),
-                                  box[1][1].value_in_unit(unit.nanometer),
-                                  box[2][2].value_in_unit(unit.nanometer)])
+        self._boxSizeList[0].append(box[0][0].value_in_unit(unit.nanometer)),
+        self._boxSizeList[1].append(box[1][1].value_in_unit(unit.nanometer)),
+        self._boxSizeList[2].append(box[2][2].value_in_unit(unit.nanometer)),
 
         return values
 
