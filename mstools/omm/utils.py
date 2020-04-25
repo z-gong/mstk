@@ -1,5 +1,6 @@
 import simtk.openmm as mm
-from simtk.unit import kelvin, bar, kilojoule_per_mole as kj_mol, nanometer as ns
+from simtk.unit import kelvin, bar, nanometer as ns, picosecond as ps
+from simtk.unit import kilojoule_per_mole as kj_mol, kilocalorie_per_mole as kcal_mol
 from .grofile import GroFile
 
 

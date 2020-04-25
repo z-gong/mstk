@@ -21,10 +21,10 @@ class StateDataReporter(object):
     written in comma-separated-value (CSV) format, but you can specify a different separator to use.
     """
 
-    def __init__(self, file, reportInterval, step=True, time=False, potentialEnergy=True,
+    def __init__(self, file, reportInterval, step=True, time=True, potentialEnergy=True,
                  kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
                  density=True, progress=False, remainingTime=False, speed=True, elapsedTime=True,
-                 separator=',', systemMass=None, totalSteps=None):
+                 separator='\t', systemMass=None, totalSteps=None):
         """Create a StateDataReporter.
 
         Parameters
@@ -119,6 +119,8 @@ class StateDataReporter(object):
         self._needsForces = False
         self._needEnergy = potentialEnergy or kineticEnergy or totalEnergy or temperature
 
+        self._boxSizeList = []
+
     def describeNextReport(self, simulation):
         """Get information about the next report this object will generate.
 
@@ -199,7 +201,7 @@ class StateDataReporter(object):
         if self._step:
             values.append(simulation.currentStep)
         if self._time:
-            values.append(state.getTime().value_in_unit(unit.picosecond))
+            values.append('%.4f' % state.getTime().value_in_unit(unit.picosecond))
         if self._potentialEnergy:
             values.append('%.4f' % state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole))
         if self._kineticEnergy:
@@ -248,6 +250,11 @@ class StateDataReporter(object):
                 else:
                     value = "0:%02d" % remainingSeconds
             values.append(value)
+
+        self._boxSizeList.append([box[0][0].value_in_unit(unit.nanometer),
+                                  box[1][1].value_in_unit(unit.nanometer),
+                                  box[2][2].value_in_unit(unit.nanometer)])
+
         return values
 
     def _initializeConstants(self, simulation):
@@ -329,3 +336,10 @@ class StateDataReporter(object):
     def __del__(self):
         if self._openedFile:
             self._out.close()
+
+    def getBoxSizeAverage(self, timeFraction=0.5):
+        n = math.ceil(len(self._boxSizeList[0]) * timeFraction)
+        lx = sum(self._boxSizeList[0][-n:]) / n
+        ly = sum(self._boxSizeList[1][-n:]) / n
+        lz = sum(self._boxSizeList[2][-n:]) / n
+        return (lx, ly, lz)
