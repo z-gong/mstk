@@ -7,7 +7,7 @@ class GroReporter(object):
     To use it, create a PDBReporter, then add it to the Simulation's list of reporters.
     """
 
-    def __init__(self, file, reportInterval, enforcePeriodicBox=False, subset=None, reportVelocity=False):
+    def __init__(self, file, reportInterval, enforcePeriodicBox=False, subset=None, reportVelocity=False, append=False):
         """Create a GroReporter.
 
         Parameters
@@ -29,7 +29,10 @@ class GroReporter(object):
             raise ValueError('reportInterval should be a integer or "logfreq"')
         self._reportInterval = reportInterval
         self._enforcePeriodicBox = enforcePeriodicBox
-        self._out = open(file, 'w')
+        if append:
+            self._out = open(file, 'a')
+        else:
+            self._out = open(file, 'w')
         self._reportVelocity = reportVelocity
 
         if subset is None:
