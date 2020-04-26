@@ -27,7 +27,7 @@ parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
 parser.add_argument('-i', '--input', nargs='+', required=True, type=str,
                     help='trajectory files for atomic positions and charges')
-parser.add_argument('-c', '--config', required=True, type=str, help='Config file for analysis')
+parser.add_argument('-c', '--config', type=str, help='Config file for analysis')
 parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
 parser.add_argument('-b', '--begin', default=0, type=int,
                     help='first frame to analyze. Index starts from 0')
@@ -61,12 +61,13 @@ print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 id_atoms = [atom.id for atom in top.atoms if atom.molecule.name not in args.ignore]
 
-ini = configparser.ConfigParser()
-if ini.read(args.config) == []:
-    raise Exception('config file not exist')
-mol_names = ini['molecules']['name'].split()
-if set(mol_names) - set((mol.name for mol in top.molecules)) != set():
-    raise Exception('Some molecules listed in config file not exist in topology')
+if args.cmd in ('dist', 'diffuse'):
+    ini = configparser.ConfigParser()
+    if args.config is None or ini.read(args.config) == []:
+        raise Exception('Config file not found')
+    mol_names = ini['molecules']['name'].split()
+    if set(mol_names) - set((mol.name for mol in top.molecules)) != set():
+        raise Exception('Not all molecules listed in config file found in topology')
 
 trj = Trajectory.open(args.input)
 print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
@@ -74,9 +75,16 @@ print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 if (top.n_atom != trj.n_atom):
     raise Exception('Number of atoms in topology and trajectory files do not match')
 
-_frame = trj.read_frame(0)
-area = _frame.cell.size[0] * _frame.cell.size[1]
-box_z = _frame.cell.size[2]
+frame0 = trj.read_frame(0)
+ids_cathode = [i for i in range(len(frame0.positions)) if
+               abs(frame0.positions[i][2] - args.cathode) < 0.05]
+ids_anode = [i for i in range(len(frame0.positions)) if
+             abs(frame0.positions[i][2] - args.anode) < 0.05]
+if len(ids_cathode) == 0 or len(ids_anode) == 0 or len(ids_cathode) != len(ids_anode):
+    print('WARNING: Cannot identify consistent atoms for cathode and anode. '
+          'Make sure positions of cathode and anode are correct')
+area = frame0.cell.size[0] * frame0.cell.size[1]
+box_z = frame0.cell.size[2]
 dz = args.dz
 # increase both the bottom and top by 0.4 nm to consider MoS2
 # add one extra bin and move edges by 0.5*dz so that the centers of bins are prettier
@@ -380,26 +388,24 @@ def voltage():
 
 def charge_2d():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
-    # TODO need to think about how to identify cathode
-    ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
+    print('%-6s %10s %10s' % ('step', 'density_q', 'q_atom'))
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         if not frame.has_charge:
             raise Exception('charge_2d function requires charge information in trajectory')
         qtot = sum(frame.charges[ids_cathode])
         qtot_list.append(qtot)
-        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode) * 3))
+        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode)))
 
-    print('\n%-6i %10.6f %10.6f %10.6f' % (
-        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode) * 3,
+    print('\n%-6s %10s %10s %10s' % ('n_step', 'density_q', 'q_atom', 'voltage'))
+    print('%-6i %10.6f %10.6f %10.6f' % (
+        len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode),
         np.mean(qtot_list) * _conv / 1000 * box_z * NANO / VACUUM_PERMITTIVITY))
 
 
 def charge_3d():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
-    # TODO need to think about how to identify cathode
-    ids_cathode = [atom.id for atom in top.atoms if atom.molecule.id == 1]
     qtot_list = []
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
