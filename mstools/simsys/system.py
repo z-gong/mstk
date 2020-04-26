@@ -488,4 +488,7 @@ class System():
             for f in custom_nb_forces:
                 f.addExclusion(a1.id, a2.id)
 
+        ### Remove COM motion ###################################################################
+        omm_system.addForce(mm.CMMotionRemover(10))
+
         return omm_system

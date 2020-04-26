@@ -1600,7 +1600,7 @@ class OplsPsfFile(object):
                     system.setParticleMass(atom1.idx, new_mass1)
         # See if we want to remove COM motion
         if removeCMMotion:
-            system.addForce(mm.CMMotionRemover())
+            system.addForce(mm.CMMotionRemover(10))
 
         # Cache our system for easy access
         self._system = system

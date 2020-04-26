@@ -15,25 +15,25 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, ewaldErrorTolerance=1E-5, nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True, verbose=True)
-    is_drude = any([isinstance(f, mm.DrudeForce) for f in system.getForces()])
+    is_drude = any(type(f) == mm.DrudeForce for f in system.getForces())
 
     print('Initializing simulation...')
     if tcoupl == 'langevin':
         if is_drude:
-            print('    Drude Langevin thermostat: 5.0 /ps, 20 /ps')
+            print('Drude Langevin thermostat: 5.0 /ps, 20 /ps')
             integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, 0.001 * ps)
             integrator.setMaxDrudeDistance(0.02 * nm)
         else:
-            print('    Langevin thermostat: 1.0 /ps')
+            print('Langevin thermostat: 1.0 /ps')
             integrator = mm.LangevinIntegrator(T * kelvin, 1.0 / ps, 0.001 * ps)
     elif tcoupl == 'nose-hoover':
         if is_drude:
-            print('    Drude Temperature-Grouped Nose-Hoover thermostat: 0.1 ps, 0.025 ps')
+            print('Drude temperature-grouped Nose-Hoover thermostat: 0.1 ps, 0.025 ps')
             from velocityverletplugin import VVIntegrator
             integrator = VVIntegrator(T * kelvin, 0.1 * ps, 1 * kelvin, 0.025 * ps, 0.001 * ps, 1, 3, True, True)
             integrator.setMaxDrudeDistance(0.02 * nm)
         else:
-            print('    Nose-Hoover thermostat: 10 /ps')
+            print('Nose-Hoover thermostat: 10 /ps')
             integrator = mm.NoseHooverIntegrator(T * kelvin, 10 / ps, 0.001 * ps)
     else:
         raise Exception('Available thermostat: langevin, nose-hoover')
@@ -55,7 +55,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
     state = sim.context.getState(getEnergy=True)
-    print('Initial Energy: ' + str(state.getPotentialEnergy()))
+    print('Initial energy: ' + str(state.getPotentialEnergy()))
     print('Minimizing...')
     minimize(sim, 500, gro_out='em.gro')
 

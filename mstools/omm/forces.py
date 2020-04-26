@@ -1,6 +1,6 @@
 import simtk.openmm as mm
 from simtk import unit
-from simtk.unit import elementary_charge as e, nanometer as nm, kilojoule_per_mole as kJ_mol
+from simtk.unit import elementary_charge as qe, nanometer as nm, kilojoule_per_mole as kJ_mol
 
 class _CONST:
     PI = 3.1415926535
@@ -21,7 +21,7 @@ def slab_correction(system: mm.System):
     nbforce = [f for f in system.getForces() if f.__class__ == mm.NonbondedForce][0]
     qsum = 0
     for i in range(nbforce.getNumParticles()):
-        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
+        q = nbforce.getParticleParameters(i)[0].value_in_unit(qe)
         muz.addParticle(i, [q])
         qsum += q
     if abs(qsum) > 1E-4:
@@ -30,7 +30,7 @@ def slab_correction(system: mm.System):
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
     # convert from e^2/nm to kJ/mol  # 138.93545915168772
-    _conv = (1 / (4 * _CONST.PI * _CONST.EPS0) * e ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
+    _conv = (1 / (4 * _CONST.PI * _CONST.EPS0) * qe ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
     prefactor = 2 * _CONST.PI / vol * _conv
     cvforce = mm.CustomCVForce(f'{prefactor}*muz*muz')
     cvforce.addCollectiveVariable('muz', muz)
@@ -143,12 +143,12 @@ def electric_field(system: mm.System, particles: [int], strength):
         efx, efy, efz = strength
 
     # convert from eV/nm to kJ/(mol*nm)  # 96.4853400990037
-    _conv = (1 * e * unit.volt / unit.item).value_in_unit(kJ_mol)
+    _conv = (1 * qe * unit.volt / unit.item).value_in_unit(kJ_mol)
     force = mm.CustomExternalForce(f'{_conv}*({efx}*q*x+{efy}*q*y+{efz}*q*z)')
     force.addPerParticleParameter('q')
     nbforce = [f for f in system.getForces() if f.__class__ == mm.NonbondedForce][0]
     for i in particles:
-        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
+        q = nbforce.getParticleParameters(i)[0].value_in_unit(qe)
         force.addParticle(i, [q])
     system.addForce(force)
 
