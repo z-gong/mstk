@@ -410,7 +410,7 @@ class Molecule():
             drude = Atom()
             drude.is_drude = True
             drude.type = type_drude
-            drude.symbol = 'D'
+            drude.symbol = 'DP'
             drude.mass = pterm.mass
             parent.mass -= drude.mass
             n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])

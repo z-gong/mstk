@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 from io import StringIO
@@ -6,8 +7,8 @@ from . import Trajectory, Frame
 
 class LammpsTrj(Trajectory):
     '''
-    Read step, box and atomic positions (and charges optionally) from dump file of LAMMPS
-    velocities will be ignored
+    Read step, box and atomic positions (and charges if provided) from dump file of LAMMPS.
+    Velocities will be ignored
     Because the topology information are detailed in data file, the mol, type, element in dump file will be ignored
     The length unit will be converted from A to nm
     '''
@@ -87,7 +88,7 @@ class LammpsTrj(Trajectory):
             xlo, xhi, bx = tuple(map(lambda x: float(x) / 10, lines[5].split()))
             ylo, yhi, cx = tuple(map(lambda x: float(x) / 10, lines[6].split()))
             zlo, zhi, cy = tuple(map(lambda x: float(x) / 10, lines[7].split()))
-            frame.cell.set_box([[xhi - xlo, 0, 0],[bx,  yhi - ylo, 0],[cx, cy ,zhi - zlo]])
+            frame.cell.set_box([[xhi - xlo, 0, 0], [bx, yhi - ylo, 0], [cx, cy, zhi - zlo]])
 
         tokens = lines[8].split()
         title = tokens[2:]
@@ -96,31 +97,31 @@ class LammpsTrj(Trajectory):
         df = pd.read_csv(StringIO(data), header=None, index_col=None, names=title, sep=r'\s+')
         wrapped = False
         if 'x' in df.columns:
-            df['x'] = df['x'] / 10 - xlo  # convert from A to nm
-            df['y'] = df['y'] / 10 - ylo
-            df['z'] = df['z'] / 10 - zlo
+            df['x'] = df['x'] / 10  # convert from A to nm
+            df['y'] = df['y'] / 10
+            df['z'] = df['z'] / 10
             wrapped = True
         elif 'xs' in df.columns:
-            df['x'] = df.xs * frame.cell.size[0]
-            df['y'] = df.ys * frame.cell.size[1]
-            df['z'] = df.zs * frame.cell.size[2]
+            df['x'] = df.xs * frame.cell.size[0] + xlo
+            df['y'] = df.ys * frame.cell.size[1] + ylo
+            df['z'] = df.zs * frame.cell.size[2] + zlo
             wrapped = True
         elif 'xu' in df.columns:
-            df['x'] = df.xu / 10 - xlo  # convert from A to nm
-            df['y'] = df.yu / 10 - ylo
-            df['z'] = df.zu / 10 - zlo
+            df['x'] = df.xu / 10  # convert from A to nm
+            df['y'] = df.yu / 10
+            df['z'] = df.zu / 10
         elif 'xsu' in df.columns:
-            df['x'] = df.xsu * frame.cell.size[0]
-            df['y'] = df.ysu * frame.cell.size[1]
-            df['z'] = df.zsu * frame.cell.size[2]
+            df['x'] = df.xsu * frame.cell.size[0] + xlo
+            df['y'] = df.ysu * frame.cell.size[1] + ylo
+            df['z'] = df.zsu * frame.cell.size[2] + zlo
         if wrapped:
             if 'ix' not in df.columns:
-                print('warning: image flag not found for wrapped positions')
+                warnings.warn('Image flag not found for wrapped positions')
             else:
                 # ix is revered words for pandas, so use df['ix'] instead of df.ix
-                df.x += df['ix'] * frame.cell.size[0]
-                df.y += df['iy'] * frame.cell.size[1]
-                df.z += df['iz'] * frame.cell.size[2]
+                df['x'] += df['ix'] * frame.cell.size[0]
+                df['y'] += df['iy'] * frame.cell.size[1]
+                df['z'] += df['iz'] * frame.cell.size[2]
 
         frame.has_charge = 'q' in df.columns
         for row in df.itertuples():
