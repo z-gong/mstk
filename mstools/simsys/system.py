@@ -159,6 +159,7 @@ class System():
         ### Set up bonds #######################################################################
         for bond_class in self.bond_classes:
             if bond_class == HarmonicBondTerm:
+                print('Setting up harmonic bonds...')
                 bforce = mm.HarmonicBondForce()
                 for bond in self._topology.bonds:
                     if bond.is_drude:
@@ -177,6 +178,7 @@ class System():
         ### Set up angles #######################################################################
         for angle_class in self.angle_classes:
             if angle_class == HarmonicAngleTerm:
+                print('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
                 for angle in self._topology.angles:
                     aterm = self._angle_terms[id(angle)]
@@ -184,6 +186,7 @@ class System():
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                                         aterm.theta * PI / 180, aterm.k * 2)
             elif angle_class == SDKAngleTerm:
+                print('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
                     3, 'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
                        'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
@@ -211,10 +214,12 @@ class System():
             omm_system.addForce(aforce)
 
         ### Set up constraints #################################################################
+        print(f'Setting up {len(self._constrain_bonds)} bond constraints...')
         for bond in self._topology.bonds:
             if id(bond) in self._constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
                                          self._constrain_bonds[id(bond)])
+        print(f'Setting up {len(self._constrain_angles)} angle constraints...')
         for angle in self._topology.angles:
             if id(angle) in self._constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
@@ -223,6 +228,7 @@ class System():
         ### Set up dihedrals ###################################################################
         for dihedral_class in self.dihedral_classes:
             if dihedral_class in (PeriodicDihedralTerm, OplsDihedralTerm):
+                print('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in self._topology.dihedrals:
                     dterm = self._dihedral_terms[id(dihedral)]
@@ -251,6 +257,7 @@ class System():
         ### Set up impropers ####################################################################
         for improper_class in self.improper_classes:
             if improper_class == PeriodicImproperTerm:
+                print('Setting up periodic impropers...')
                 iforce = mm.CustomTorsionForce('k*(1+cos(2*theta-phi0))')
                 iforce.addPerTorsionParameter('phi0')
                 iforce.addPerTorsionParameter('k')
@@ -261,6 +268,7 @@ class System():
                                           improper.atom3.id, improper.atom4.id,
                                           [iterm.phi * PI / 180, iterm.k])
             elif improper_class == HarmonicImproperTerm:
+                print('Setting up harmonic impropers...')
                 iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
                                                f'dtheta=abs(theta-phi0);'
                                                f'pi={PI}')
@@ -279,31 +287,29 @@ class System():
             iforce.setForceGroup(4)
             omm_system.addForce(iforce)
 
-        ### Set up coulomb interactions #########################################################
+        ### Set up non-bonded interactions #########################################################
+        # NonbonedForce is not flexible enough. Use it only for Coulomb interactions
+        # CustomNonbondedForce handles vdW interactions
+        cutoff = self._ff.vdw_cutoff
+        if any(atom.charge != 0 for atom in self._topology.atoms):
+            print('Setting up Coulomb interactions...')
+            nbforce = mm.NonbondedForce()
+            nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
+            nbforce.setEwaldErrorTolerance(1E-4)
+            nbforce.setCutoffDistance(cutoff)
+            nbforce.setUseDispersionCorrection(False)
+            nbforce.setForceGroup(5)
+            omm_system.addForce(nbforce)
+            for atom in self._topology.atoms:
+                nbforce.addParticle(atom.charge, 1.0, 0.0)
+
+        ### Set up vdW interactions #########################################################
         atom_types = list(self._ff.atom_types.values())
         type_names = list(self._ff.atom_types.keys())
         n_type = len(atom_types)
-        cutoff = self._ff.vdw_cutoff
-        # NonbonedForce is not flexible enough. Use it only for Coulomb interactions
-        # CustomNonbondedForce handles vdW interactions
-        nbforce = mm.NonbondedForce()
-        nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
-        nbforce.setEwaldErrorTolerance(1E-4)
-        nbforce.setCutoffDistance(cutoff)
-        nbforce.setUseDispersionCorrection(False)
-        try:
-            nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
-        except:
-            warnings.warn('Cannot apply PBC for vdW exceptions. '
-                          'Be careful if there\'s infinite structures in the system')
-        nbforce.setForceGroup(5)
-        omm_system.addForce(nbforce)
-        for atom in self._topology.atoms:
-            nbforce.addParticle(atom.charge, 1.0, 0.0)
-
-        ### Set up vdW interactions #########################################################
         for vdw_class in self.vdw_classes:
             if vdw_class == LJ126Term:
+                print('Setting up LJ-12-6 vdW interactions...')
                 if self._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
                     invRc6 = 1 / cutoff ** 6
                     cforce = mm.CustomNonbondedForce(
@@ -335,6 +341,7 @@ class System():
                     cforce.addParticle([id_type])
 
             elif vdw_class == MieTerm:
+                print('Setting up Mie vdW interactions...')
                 if self._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
                                                      'B(type1,type2)/r^ATT(type1,type2)-'
@@ -389,6 +396,7 @@ class System():
             omm_system.addForce(cforce)
 
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
+        print('Setting up 1-2, 1-3 and 1-4 vdW interactions...')
         custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
         pair12, pair13, pair14 = self._topology.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
@@ -434,61 +442,65 @@ class System():
                                     'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
-        if self.polarizable_classes - {DrudeTerm} > set():
-            raise Exception('Polarizable terms other that DrudePolarizableTerm '
-                            'haven\'t been implemented')
-        pforce = mm.DrudeForce()
-        pforce.setForceGroup(7)
-        omm_system.addForce(pforce)
-        parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
-        for parent, drude in self._drude_pairs.items():
-            pterm = self._polarizable_terms[parent]
-            n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
-            alpha = pterm.alpha + n_H * pterm.merge_alpha_H
-            idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1, drude.charge, alpha, 0, 0)
-            parent_idx_thole[parent] = (idx, pterm.thole)
+        for polar_class in self.polarizable_classes:
+            if polar_class == DrudeTerm:
+                print('Setting up Drude polarizations...')
+                pforce = mm.DrudeForce()
+                pforce.setForceGroup(7)
+                omm_system.addForce(pforce)
+                parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
+                for parent, drude in self._drude_pairs.items():
+                    pterm = self._polarizable_terms[parent]
+                    n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
+                    alpha = pterm.alpha + n_H * pterm.merge_alpha_H
+                    idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1,
+                                             drude.charge, alpha, 0, 0)
+                    parent_idx_thole[parent] = (idx, pterm.thole)
 
-        # exclude the non-boned interactions between Drude and parent
-        # and those concerning Drude particles in 1-2 and 1-3 pairs
-        # pairs formed by real atoms have already been handled above
-        # also apply thole screening between 1-2 and 1-3 Drude dipole pairs
-        drude_exclusions = list(self._drude_pairs.items())
-        for atom1, atom2 in pair12 + pair13:
-            drude1 = self._drude_pairs.get(atom1)
-            drude2 = self._drude_pairs.get(atom2)
-            if drude1 is not None:
-                drude_exclusions.append((drude1, atom2))
-            if drude2 is not None:
-                drude_exclusions.append((atom1, drude2))
-            if drude1 is not None and drude2 is not None:
-                drude_exclusions.append((drude1, drude2))
-                idx1, thole1 = parent_idx_thole[atom1]
-                idx2, thole2 = parent_idx_thole[atom2]
-                pforce.addScreenedPair(idx1, idx2, (thole1 + thole2) / 2)
-        for a1, a2 in drude_exclusions:
-            nbforce.addException(a1.id, a2.id, 0, 1.0, 0)
-            for f in custom_nb_forces:
-                f.addExclusion(a1.id, a2.id)
+                # exclude the non-boned interactions between Drude and parent
+                # and those concerning Drude particles in 1-2 and 1-3 pairs
+                # pairs formed by real atoms have already been handled above
+                # also apply thole screening between 1-2 and 1-3 Drude dipole pairs
+                drude_exclusions = list(self._drude_pairs.items())
+                for atom1, atom2 in pair12 + pair13:
+                    drude1 = self._drude_pairs.get(atom1)
+                    drude2 = self._drude_pairs.get(atom2)
+                    if drude1 is not None:
+                        drude_exclusions.append((drude1, atom2))
+                    if drude2 is not None:
+                        drude_exclusions.append((atom1, drude2))
+                    if drude1 is not None and drude2 is not None:
+                        drude_exclusions.append((drude1, drude2))
+                        idx1, thole1 = parent_idx_thole[atom1]
+                        idx2, thole2 = parent_idx_thole[atom2]
+                        pforce.addScreenedPair(idx1, idx2, (thole1 + thole2) / 2)
+                for a1, a2 in drude_exclusions:
+                    nbforce.addException(a1.id, a2.id, 0, 1.0, 0)
+                    for f in custom_nb_forces:
+                        f.addExclusion(a1.id, a2.id)
 
-        # scale the non-boned interactions concerning Drude particles in 1-4 pairs
-        # pairs formed by real atoms have already been handled above
-        drude_exclusions14 = []
-        for atom1, atom2 in pair14:
-            drude1 = self._drude_pairs.get(atom1)
-            drude2 = self._drude_pairs.get(atom2)
-            if drude1 is not None:
-                drude_exclusions14.append((drude1, atom2))
-            if drude2 is not None:
-                drude_exclusions14.append((atom1, drude2))
-            if drude1 is not None and drude2 is not None:
-                drude_exclusions14.append((drude1, drude2))
-        for a1, a2 in drude_exclusions14:
-            charge_prod = a1.charge * a2.charge * self._ff.scale_14_coulomb
-            nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
-            for f in custom_nb_forces:
-                f.addExclusion(a1.id, a2.id)
+                # scale the non-boned interactions concerning Drude particles in 1-4 pairs
+                # pairs formed by real atoms have already been handled above
+                drude_exclusions14 = []
+                for atom1, atom2 in pair14:
+                    drude1 = self._drude_pairs.get(atom1)
+                    drude2 = self._drude_pairs.get(atom2)
+                    if drude1 is not None:
+                        drude_exclusions14.append((drude1, atom2))
+                    if drude2 is not None:
+                        drude_exclusions14.append((atom1, drude2))
+                    if drude1 is not None and drude2 is not None:
+                        drude_exclusions14.append((drude1, drude2))
+                for a1, a2 in drude_exclusions14:
+                    charge_prod = a1.charge * a2.charge * self._ff.scale_14_coulomb
+                    nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
+                    for f in custom_nb_forces:
+                        f.addExclusion(a1.id, a2.id)
+            else:
+                raise Exception('Polarizable terms other that DrudeTerm haven\'t been implemented')
 
         ### Remove COM motion ###################################################################
+        print('Setting up COM motion remover...')
         omm_system.addForce(mm.CMMotionRemover(10))
 
         return omm_system
