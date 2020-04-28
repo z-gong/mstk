@@ -490,7 +490,7 @@ class OplsPsfFile(object):
             for a1 in a2.bond_partners:
                 for a4 in a3.bond_partners:
                     pair = (min(a1.idx, a4.idx), max(a1.idx, a4.idx),)
-                    if a1 != a4:
+                    if a1 != a3 and a2 != a4 and a1 != a4:
                         pair_14_set.add(pair)
 
         self.pair_12_list = list(sorted(pair_12_set))
@@ -758,11 +758,9 @@ class OplsPsfFile(object):
             if resid != last_residue:
                 last_residue = resid
                 residue = topology.addResidue(atom.residue.resname, chain, str(atom.residue.idx), atom.residue.inscode)
-            if atom.type is not None:
+            if atom.type is not None and atom.type.atomic_number != 0:
                 # This is the most reliable way of determining the element
-                atomic_num = atom.type.atomic_number
-                if atomic_num != 0:
-                    elem = element.Element.getByAtomicNumber(atomic_num)
+                elem = element.Element.getByAtomicNumber(atom.type.atomic_number)
             else:
                 # Figure it out from the mass
                 elem = element.Element.getByMass(atom.mass)
