@@ -179,8 +179,8 @@ class Psf(Topology):
 
         f.write('%8i !NATOM\n' % top.n_atom)
         for i, atom in enumerate(top.atoms):
-            line = '%8i S    %-4i %4s %-3s %-8s %10.6f %10.4f %6i %10.4f %10.4f\n' % (
-                atom.id + 1, atom.molecule.id + 1, atom.molecule.name, atom.symbol, atom.type,
+            line = '%7i  S  %4i %8s %8s %8s %10.6f %8.4f %4i %8.4f %8.4f\n' % (
+                atom.id + 1, atom.molecule.id + 1, atom.molecule.name, atom.name, atom.type,
                 atom.charge, atom.mass, 0, -atom._alpha * 1000, atom._thole / 2
             )
             f.write(line)
