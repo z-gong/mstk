@@ -39,6 +39,7 @@ class System():
             raise Exception('Periodic cell should be provided with topology or cell')
 
         self.extract_params(ff)
+        self.charged = any(atom.charge != 0 for atom in self._topology.atoms)
 
     @property
     def topology(self):
@@ -133,13 +134,19 @@ class System():
             self._polarizable_terms[parent] = pterm
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
-        self.vdw_classes.update({term.__class__
-                                 for term in self._ff.pairwise_vdw_terms.values()})
+        self.vdw_classes.update({term.__class__ for term in self._ff.pairwise_vdw_terms.values()})
         self.bond_classes = {term.__class__ for term in self._bond_terms.values()}
         self.angle_classes = {term.__class__ for term in self._angle_terms.values()}
         self.dihedral_classes = {term.__class__ for term in self._dihedral_terms.values()}
         self.improper_classes = {term.__class__ for term in self._improper_terms.values()}
         self.polarizable_classes = {term.__class__ for term in self._polarizable_terms.values()}
+
+        self.ff_classes = (self.vdw_classes
+                           .union(self.bond_classes)
+                           .union(self.angle_classes)
+                           .union(self.dihedral_classes)
+                           .union(self.improper_classes)
+                           .union(self.polarizable_classes))
 
     def export_lmp(self):
         pass
@@ -150,6 +157,17 @@ class System():
     def to_omm_system(self):
         if not OMM_EXIST:
             raise ImportError('Can not import OpenMM')
+
+        supported_terms = {LJ126Term, MieTerm,
+                           HarmonicBondTerm,
+                           HarmonicAngleTerm, SDKAngleTerm,
+                           PeriodicDihedralTerm,
+                           OplsImproperTerm, HarmonicImproperTerm,
+                           DrudeTerm}
+        unsupported = self.ff_classes - supported_terms
+        if unsupported != set():
+            raise Exception('Unsupported FF terms: %s'
+                            % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         omm_system = mm.System()
         omm_system.setDefaultPeriodicBoxVectors(*self._topology.cell.vectors)
@@ -227,7 +245,7 @@ class System():
 
         ### Set up dihedrals ###################################################################
         for dihedral_class in self.dihedral_classes:
-            if dihedral_class in (PeriodicDihedralTerm, OplsDihedralTerm):
+            if dihedral_class == PeriodicDihedralTerm:
                 print('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in self._topology.dihedrals:
@@ -236,37 +254,27 @@ class System():
                     if type(dterm) == PeriodicDihedralTerm:
                         for par in dterm.parameters:
                             dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi * PI / 180, par.k)
-                    elif type(dterm) == OplsDihedralTerm:
-                        if dterm.k1 != 0:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, 1, 0, dterm.k1)
-                        if dterm.k2 != 0:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, 2, PI, dterm.k2)
-                        if dterm.k3 != 0:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, 3, 0, dterm.k3)
-                        if dterm.k4 != 0:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, 4, PI, dterm.k4)
                     else:
                         continue
             else:
-                raise Exception('Dihedral terms other that PeriodicDihedralTerm and '
-                                'OplsDihedralTerm haven\'t been implemented')
+                raise Exception('Dihedral terms other that PeriodicDihedralTerm '
+                                'haven\'t been implemented')
             dforce.setUsesPeriodicBoundaryConditions(True)
             dforce.setForceGroup(3)
             omm_system.addForce(dforce)
 
         ### Set up impropers ####################################################################
         for improper_class in self.improper_classes:
-            if improper_class == PeriodicImproperTerm:
+            if improper_class == OplsImproperTerm:
                 print('Setting up periodic impropers...')
-                iforce = mm.CustomTorsionForce('k*(1+cos(2*theta-phi0))')
-                iforce.addPerTorsionParameter('phi0')
+                iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
                 for improper in self._topology.impropers:
                     iterm = self._improper_terms[id(improper)]
-                    if type(iterm) == PeriodicImproperTerm:
-                        iforce.addTorsion(improper.atom1.id, improper.atom2.id,
-                                          improper.atom3.id, improper.atom4.id,
-                                          [iterm.phi * PI / 180, iterm.k])
+                    if type(iterm) == OplsImproperTerm:
+                        # in OPLS convention, the third atom is the central atom
+                        iforce.addTorsion(improper.atom2.id, improper.atom3.id,
+                                          improper.atom1.id, improper.atom4.id, [iterm.k])
             elif improper_class == HarmonicImproperTerm:
                 print('Setting up harmonic impropers...')
                 iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
@@ -291,17 +299,16 @@ class System():
         # NonbonedForce is not flexible enough. Use it only for Coulomb interactions
         # CustomNonbondedForce handles vdW interactions
         cutoff = self._ff.vdw_cutoff
-        if any(atom.charge != 0 for atom in self._topology.atoms):
-            print('Setting up Coulomb interactions...')
-            nbforce = mm.NonbondedForce()
-            nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
-            nbforce.setEwaldErrorTolerance(1E-4)
-            nbforce.setCutoffDistance(cutoff)
-            nbforce.setUseDispersionCorrection(False)
-            nbforce.setForceGroup(5)
-            omm_system.addForce(nbforce)
-            for atom in self._topology.atoms:
-                nbforce.addParticle(atom.charge, 1.0, 0.0)
+        print('Setting up Coulomb interactions...')
+        nbforce = mm.NonbondedForce()
+        nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
+        nbforce.setEwaldErrorTolerance(1E-4)
+        nbforce.setCutoffDistance(cutoff)
+        nbforce.setUseDispersionCorrection(False)
+        nbforce.setForceGroup(5)
+        omm_system.addForce(nbforce)
+        for atom in self._topology.atoms:
+            nbforce.addParticle(atom.charge, 1.0, 0.0)
 
         ### Set up vdW interactions #########################################################
         atom_types = list(self._ff.atom_types.values())

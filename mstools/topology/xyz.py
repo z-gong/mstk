@@ -11,7 +11,7 @@ class XyzTopology(Topology):
     The first column is treated as atom type instead of name or symbol
     '''
 
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         super().__init__()
         self.parse(file)
 

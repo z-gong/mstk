@@ -16,7 +16,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 def test_team():
     ff = Ppf(cwd + '/files/10-benzene.ppf')
-    top = Topology.open(cwd + '/files/10-benzene.lmp')
+    top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
 
@@ -30,14 +30,14 @@ def test_team():
     print_energy_terms(sim)
 
     pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 488.6
+    assert pytest.approx(pe, rel=0.001) == 488.5
 
 
 def test_vdw_shift():
     ff = Ppf(cwd + '/files/10-benzene.ppf')
     ff.vdw_long_range = ff.VDW_LONGRANGE_SHIFT
 
-    top = Topology.open(cwd + '/files/10-benzene.lmp')
+    top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     # top.assign_charge_from_ff(ff)
     system = System(top, ff)
 
@@ -74,7 +74,7 @@ def test_drude():
     print_energy_terms(sim)
 
     pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 99.8
+    assert pytest.approx(pe, rel=0.001) == 100.8
 
 
 def test_sdk():

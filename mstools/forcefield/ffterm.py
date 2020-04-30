@@ -3,8 +3,10 @@ import math
 from distutils.util import strtobool
 from ..constant import *
 
+
 class FFTermNotFoundError(Exception):
     pass
+
 
 class FFTerm():
     def __init__(self):
@@ -395,7 +397,7 @@ class HarmonicAngleTerm(AngleTerm):
             'type3': str,
             'theta': float,
             'k'    : float,
-            'fixed' : lambda x: bool(strtobool(x))
+            'fixed': lambda x: bool(strtobool(x))
         }
 
 
@@ -416,11 +418,11 @@ class SDKAngleTerm(AngleTerm):
     @property
     def zfp_attrs(self):
         return {
-            'type1'  : str,
-            'type2'  : str,
-            'type3'  : str,
-            'theta'  : float,
-            'k'      : float,
+            'type1': str,
+            'type2': str,
+            'type3': str,
+            'theta': float,
+            'k'    : float,
         }
 
 
@@ -447,6 +449,7 @@ class PeriodicDihedralTerm(DihedralTerm):
             if para.n == n:
                 raise Exception('Duplicated multiplicity: %s' % self.name)
         self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
+        self.parameters.sort(key=lambda x: x.n)
 
     @staticmethod
     def singleton():
@@ -478,52 +481,66 @@ class PeriodicDihedralTerm(DihedralTerm):
                 k = float(d['k_%i' % n])
                 self.add_parameter(phi, k, n)
 
-
-class OplsDihedralTerm(DihedralTerm):
-    '''
-    OplsDihedral is a more convenient version of PeriodicDihedral
-    U = (k1*(1+cos(phi)) + k2*(1-cos(2*phi)) + k3*(1+cos(3*phi)) + k4*(1-cos(4*phi)))
-    '''
-
-    def __init__(self, type1, type2, type3, type4, k1, k2, k3, k4):
-        super().__init__(type1, type2, type3, type4)
-        self.k1 = k1
-        self.k2 = k2
-        self.k3 = k3
-        self.k4 = k4
-
-    @staticmethod
-    def singleton():
-        return OplsDihedralTerm('', '', '', '', 0., 0., 0., 0.)
-
     @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'type4': str,
-            'k1'   : float,
-            'k2'   : float,
-            'k3'   : float,
-            'k4'   : float,
-        }
+    def follow_opls_convention(self) -> bool:
+        for para in self.parameters:
+            if para.n == 1:
+                if para.phi != 0:
+                    return False
+            elif para.n == 2:
+                if para.phi != 180:
+                    return False
+            elif para.n == 3:
+                if para.phi != 0:
+                    return False
+            elif para.n == 4:
+                if para.phi != 180:
+                    return False
+            else:
+                if para.k != 0:
+                    return False
+        return True
+
+    def get_opls_parameters(self) -> (float,):
+        k1 = k2 = k3 = k4 = 0
+        for para in self.parameters:
+            if para.n == 1:
+                if para.phi != 0:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_1 != 0')
+                k1 = para.k
+            elif para.n == 2:
+                if para.phi != 180:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_2 != 180')
+                k2 = para.k
+            elif para.n == 3:
+                if para.phi != 0:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_3 != 0')
+                k3 = para.k
+            elif para.n == 4:
+                if para.phi != 180:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_4 != 180')
+                k4 = para.k
+            else:
+                raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
+        return k1, k2, k3, k4
 
 
-class PeriodicImproperTerm(ImproperTerm):
+class OplsImproperTerm(ImproperTerm):
     '''
-    Normally for keeping 3-coordinated structures in the same plane, in which case xi0=180
-    U = k * (1+cos(2*phi-phi0))
+    U = k * (1-cos(2*phi))
+
+    It is to keep 3-coordinated structures in the same plane
+    For improper a1-a2-a3-a4, a1 is the center atom
+    In OPLS convention, the improper is defined as the angle between plane a2-a3-a1 and a3-a1-a4
     '''
 
-    def __init__(self, type1, type2, type3, type4, phi, k):
+    def __init__(self, type1, type2, type3, type4, k):
         super().__init__(type1, type2, type3, type4)
-        self.phi = phi
         self.k = k
 
     @staticmethod
     def singleton():
-        return PeriodicImproperTerm('', '', '', '', 0., 0.)
+        return OplsImproperTerm('', '', '', '', 0.)
 
     @property
     def zfp_attrs(self):
@@ -532,7 +549,6 @@ class PeriodicImproperTerm(ImproperTerm):
             'type2': str,
             'type3': str,
             'type4': str,
-            'phi'  : float,
             'k'    : float,
         }
 
@@ -540,6 +556,9 @@ class PeriodicImproperTerm(ImproperTerm):
 class HarmonicImproperTerm(ImproperTerm):
     '''
     U = k * (phi-phi0)^2
+
+    For improper a1-a2-a3-a4, a1 is the center atom
+    In CHARMM convention, the improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4
     '''
 
     def __init__(self, type1, type2, type3, type4, phi, k):

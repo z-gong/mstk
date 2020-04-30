@@ -7,7 +7,7 @@ from .topology import Topology
 
 
 class Pdb(Topology):
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         super().__init__()
         self.parse(file)
 

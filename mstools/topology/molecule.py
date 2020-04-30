@@ -270,7 +270,7 @@ class Molecule():
         for atom in self._atoms:
             partners = [p for p in atom.bond_partners if not p.is_drude]
             if len(partners) == 3:
-                self.add_improper(atom, *partners)
+                self.add_improper(atom, *sorted(partners))
 
     def guess_connectivity_from_ff(self, params: FFSet, bond_length_limit=0.25,
                                    bond_tolerance=0.025, angle_tolerance=None,

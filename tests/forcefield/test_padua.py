@@ -36,19 +36,22 @@ def test_read():
     assert angle.k == 313.8 / 2
 
     dihedral = params.dihedral_terms['CT,CT,CT,HC']
-    assert dihedral.k1 == 0
-    assert dihedral.k2 == 0
-    assert dihedral.k3 == 1.2552 / 2
-    assert dihedral.k4 == 0
+    assert dihedral.follow_opls_convention
+    k1, k2, k3, k4 = dihedral.get_opls_parameters()
+    assert k1 == 0
+    assert k2 == 0
+    assert k3 == 1.2552 / 2
+    assert k4 == 0
 
     dihedral = params.dihedral_terms['CT,CT,CT,CT']
-    assert dihedral.k1 == 5.4392 / 2
-    assert dihedral.k2 == -0.2092 / 2
-    assert dihedral.k3 == 0.8368 / 2
-    assert dihedral.k4 == 0
+    assert dihedral.follow_opls_convention
+    k1, k2, k3, k4 = dihedral.get_opls_parameters()
+    assert k1 == 5.4392 / 2
+    assert k2 == -0.2092 / 2
+    assert k3 == 0.8368 / 2
+    assert k4 == 0
 
     improper = params.improper_terms['NA,CR,CT,CW']
-    assert improper.phi == 180
     assert improper.k == 8.368 / 2
 
     drude = params.polarizable_terms['CT']

@@ -140,7 +140,7 @@ class Topology():
         return any(atom.is_drude for atom in self._atoms)
 
     @staticmethod
-    def open(file):
+    def open(file, **kwargs):
         from .psf import Psf
         from .pdb import Pdb
         from .lammps import LammpsData
@@ -148,15 +148,15 @@ class Topology():
         from .zmat import Zmat
 
         if file.endswith('.psf'):
-            return Psf(file)
+            return Psf(file, **kwargs)
         if file.endswith('.pdb'):
-            return Pdb(file)
+            return Pdb(file, **kwargs)
         elif file.endswith('.lmp'):
-            return LammpsData(file)
+            return LammpsData(file, **kwargs)
         elif file.endswith('.xyz'):
-            return XyzTopology(file)
+            return XyzTopology(file, **kwargs)
         elif file.endswith('.zmat'):
-            return Zmat(file)
+            return Zmat(file, **kwargs)
         else:
             raise Exception('Unsupported format')
 

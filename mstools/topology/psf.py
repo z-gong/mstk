@@ -15,7 +15,7 @@ class Psf(Topology):
     but anisotroic polarizability are ignored
     '''
 
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         super(Psf, self).__init__()
         self.parse(file)
 

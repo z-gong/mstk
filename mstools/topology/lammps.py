@@ -13,11 +13,11 @@ class LammpsData(Topology):
     the velocities and force field parameters are ignored
     '''
 
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         super(LammpsData, self).__init__()
-        self.parse(file)
+        self.parse(file, **kwargs)
 
-    def parse(self, file):
+    def parse(self, file, improper_center=None):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -61,7 +61,7 @@ class LammpsData(Topology):
             if section == 'Dihedrals':
                 self.parse_dihedrals(lines[iline + 2: iline_next], n_dihedral)
             if section == 'Impropers':
-                self.parse_impropers(lines[iline + 2: iline_next], n_improper)
+                self.parse_impropers(lines[iline + 2: iline_next], n_improper, improper_center)
 
     def parse_header(self, lines):
         n_atom = n_bond = n_angle = n_dihedral = n_improper = n_atom_type = 0
@@ -192,12 +192,21 @@ class LammpsData(Topology):
             atom4 = atoms[int(words[5]) - 1]
             atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
-    def parse_impropers(self, lines, n_improper):
+    def parse_impropers(self, lines, n_improper, improper_center):
+        if improper_center is None:
+            improper_center = 1
+            warnings.warn('improper_center undefined, '
+                          'will treat the first atom as the central atom for impropers')
+        elif improper_center not in (1, 2, 3, 4):
+            raise Exception('improper_center should be a integer from 1 to 4')
+
         atoms = self.atoms
         for i in range(n_improper):
             words = lines[i].strip().split()
-            atom1 = atoms[int(words[2]) - 1]
-            atom2 = atoms[int(words[3]) - 1]
-            atom3 = atoms[int(words[4]) - 1]
-            atom4 = atoms[int(words[5]) - 1]
-            atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
+            sides = []
+            sides.append(atoms[int(words[2]) - 1])
+            sides.append(atoms[int(words[3]) - 1])
+            sides.append(atoms[int(words[4]) - 1])
+            sides.append(atoms[int(words[5]) - 1])
+            center = sides.pop(improper_center - 1)
+            sides[0].molecule.add_improper(center, *sides)

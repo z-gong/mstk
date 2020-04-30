@@ -120,22 +120,27 @@ class Padua(FFSet):
     def parse_dihedral(self, words):
         if words[4] not in ['opls']:
             raise Exception('Unsupported dihedral function: %s' % (words[4]))
-        term = OplsDihedralTerm(words[0], words[1], words[2], words[3],
-                                k1=float(words[5]) / 2, k2=float(words[6]) / 2,
-                                k3=float(words[7]) / 2, k4=float(words[8]) / 2
-                                )
+        term = PeriodicDihedralTerm(words[0], words[1], words[2], words[3])
+        k1, k2, k3, k4 = list(map(lambda x: float(x) / 2, words[5:9]))
+        if k1 != 0: term.add_parameter(0.0, k1, 1)
+        if k2 != 0: term.add_parameter(180, k2, 2)
+        if k3 != 0: term.add_parameter(0.0, k3, 3)
+        if k4 != 0: term.add_parameter(180, k4, 4)
         if term.name in self.dihedral_terms.keys():
             raise Exception('Duplicated dihedral term: %s' % str(term))
         self.dihedral_terms[term.name] = term
 
     def parse_improper(self, words):
         '''
-        in fftool database, the central atom is the third
+        For improper i-j-k-l
+        mstools always use CHARMM convention, i is the central atom
+        fftool use OPLS convention, k is the central atom
         '''
         if words[4] not in ['opls']:
             raise Exception('Unsupported improper function: %s' % (words[4]))
-        term = PeriodicImproperTerm(words[2], words[0], words[1], words[3],
-                                    phi=180, k=float(words[6]) / 2)
+        if {float(words[5]), float(words[7]), float(words[8])} != {0}:
+            raise Exception('k1, k3 and k4 for opls improper should equal to 0')
+        term = OplsImproperTerm(words[2], words[0], words[1], words[3], k=float(words[6]) / 2)
         if term.name in self.improper_terms.keys():
             raise Exception('Duplicated improper term: %s' % str(term))
         self.improper_terms[term.name] = term

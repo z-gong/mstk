@@ -13,7 +13,7 @@ class Zmat(Topology):
     the first column will be treated as atom type
     """
 
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         super().__init__()
         self.parse(file)
 

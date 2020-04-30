@@ -161,12 +161,15 @@ class Ppf(FFSet):
                 term.version = line.version
                 self.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':
-                # the third atom is the center atom in PPF
+                # the third atom is the center atom for IBCOS improper term
                 a1, a2, a3, a4 = line.get_names()
-                phi, k, n = line.get_float_values()
-                if n != 2:
-                    raise Exception('Multiplicity in IBCOS should equal to 2: %s' % line.key)
-                term = PeriodicImproperTerm(a3, a1, a2, a4, phi, k * 4.184)
+                try:
+                    phi, k, n = line.get_float_values()
+                except:
+                    raise Exception('IBCOS should contain three parameters')
+                if phi != 180 or n != 2:
+                    raise Exception('IBCOS should have phi=180 and n=2: %s' % line.key)
+                term = OplsImproperTerm(a3, a1, a2, a4, k * 4.184)
                 term.version = line.version
                 self.improper_terms[term.name] = term
 
@@ -222,24 +225,14 @@ class Ppf(FFSet):
                 for par in dihedral.parameters:
                     str_paras.append('%.1f, %.5f, %i' % (par.phi, par.k / 4.184, par.n))
                 line += ', '.join(str_paras) + ': \n'
-            elif isinstance(dihedral, OplsDihedralTerm):
-                line += 'TCOSP: %s, %s, %s, %s: ' % (
-                    dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
-                str_paras = []
-                if dihedral.k1 != 0: str_paras.append('%.1f, %.5f, 1' % (0.0, dihedral.k1 / 4.184))
-                if dihedral.k2 != 0: str_paras.append('%.1f, %.5f, 2' % (180, dihedral.k2 / 4.184))
-                if dihedral.k3 != 0: str_paras.append('%.1f, %.5f, 3' % (0.0, dihedral.k3 / 4.184))
-                if dihedral.k4 != 0: str_paras.append('%.1f, %.5f, 4' % (180, dihedral.k4 / 4.184))
-                if {dihedral.k1, dihedral.k2, dihedral.k3, dihedral.k4} == {0}:
-                    str_paras.append('0, 0 , 1')
-                line += ', '.join(str_paras) + ': \n'
             else:
-                raise Exception('Only PeriodicDihedralTerm and OplsDihedralTerm are implemented')
+                raise Exception('Only PeriodicDihedralTerm is implemented')
         for improper in params.improper_terms.values():
-            if isinstance(improper, PeriodicImproperTerm):
-                line += 'IBCOS: %s, %s, %s, %s: %.1f, %.5f, 2: \n' % (
+            if isinstance(improper, OplsImproperTerm):
+                # the third atom is the center atom for IBCOS improper term
+                line += 'IBCOS: %s, %s, %s, %s: 180, %.5f, 2: \n' % (
                     improper.type2, improper.type3, improper.type1, improper.type4,
-                    improper.phi, improper.k / 4.184)
+                    improper.k / 4.184)
             else:
                 raise Exception('Only PeriodicImproperTerm is implemented')
 
