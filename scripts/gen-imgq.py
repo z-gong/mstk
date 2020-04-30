@@ -29,9 +29,12 @@ print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 ignore_list = args.ignore.split(',')
 gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
-hvy_atoms = [atom for atom in gen_atoms if not atom.type.startswith('H')] if args.drude else []
+gen_drude_atoms = [atom for atom in gen_atoms if not atom.symbol == 'H'] if args.drude else []
+for atom in top.atoms:
+    atom._gen_img_ = atom in gen_atoms
+    atom._gen_img_drude_ = atom in gen_drude_atoms
 
-n_image = (len(gen_atoms) + len(hvy_atoms)) * ((args.cathode is not None) + (args.anode is not None))
+n_image = (len(gen_atoms) + len(gen_drude_atoms)) * ((args.cathode is not None) + (args.anode is not None))
 if n_image == 0:
     print('ERROR: at least one of cathode and anode is required')
     sys.exit()
@@ -46,14 +49,14 @@ with open(args.output, 'w') as f_out:
     if args.cathode is not None:
         for ii, atom in enumerate(top.atoms):
             pos = frame.positions[ii] * 10  # convert from nm to A
-            if atom in gen_atoms:
+            if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
-            if atom in hvy_atoms:
+            if atom._gen_img_drude_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
             pos = frame.positions[ii] * 10  # convert from nm to A
-            if atom in gen_atoms:
+            if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))
-            if atom in hvy_atoms:
+            if atom._gen_img_drude_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))

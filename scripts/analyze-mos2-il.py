@@ -201,7 +201,7 @@ def distribution():
     for name, z_list in z_atom_dict.items():
         x, y = histogram(z_list, bins=edges)
         ax.plot(x, y / area / dz / n_frame, label=name)
-        name_column_dict['particle density - ' + name] = y / area / dz / n_frame
+        name_column_dict['rho_atom-' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist.png')
@@ -209,13 +209,13 @@ def distribution():
     fig, ax = plt.subplots()
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='molecule density (/$nm^3$)')
     ax2 = ax.twinx()
-    ax2.set_ylabel('cumulative molecule number')
+    ax2.set_ylabel('cum_mol-')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
         ax.plot(x, y_com / area / dz / n_frame, label=name)
         ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name)
-        name_column_dict['molecule density - ' + name] = y_com / area / dz / n_frame
-        name_column_dict['cumulative molecule number - ' + name] = np.cumsum(y_com) / n_frame
+        name_column_dict['rho_mol-' + name] = y_com / area / dz / n_frame
+        name_column_dict['cum_mol-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
@@ -227,7 +227,7 @@ def distribution():
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
         ax.plot(x, y, label=name)
-        name_column_dict = {'theta': x, 'probability': y}
+        name_column_dict = {'theta': x, 'prob-' + name: y}
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-angle.png')
@@ -277,7 +277,6 @@ def diffusion():
                                 and com_position[2] <= residence_zrange_dict[name][1])
                 residence_dict[name][k].append(residence)
 
-    # TODO optimize the performance with multiprocessing
     for name, residence_series_list in residence_dict.items():
         acf_series_list = []
         # for series in residence_series_list:
@@ -313,7 +312,7 @@ def diffusion():
         _len = len(acf_dict[name])
         ax.plot(t_array[:_len], acf_dict[name], label=name)
         name_column_dict['time'] = t_array[:_len]
-        name_column_dict['acf - ' + name] = acf_dict[name]
+        name_column_dict['acf-' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.75], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
     ax.legend()
     fig.tight_layout()
@@ -362,9 +361,9 @@ def dipole():
     for name, z_dipole in name_z_dipole_dict.items():
         ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name)
         name_column_dict.update({
-            'dipoleX - ' + name: z_dipole[:, 0],
-            'dipoleY - ' + name: z_dipole[:, 1],
-            'dipoleZ - ' + name: z_dipole[:, 2],
+            'dipX-' + name: z_dipole[:, 0],
+            'dipY-' + name: z_dipole[:, 1],
+            'dipZ-' + name: z_dipole[:, 2],
         })
 
     ax.legend()
@@ -407,10 +406,10 @@ def voltage():
               * ELEMENTARY_CHARGE / NANO ** 2 / VACUUM_PERMITTIVITY
     voltage = -itg.cumtrapz(e_field, dx=dz, initial=0) * NANO
 
-    name_column_dict = {'z'                : z_array,
-                        'charge density'   : charges,
-                        'cumulative charge': charges_cumulative,
-                        'voltage'          : voltage}
+    name_column_dict = {'z'    : z_array,
+                        'rho_q': charges,
+                        'cum_q': charges_cumulative,
+                        'V'    : voltage}
     print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
     fig, ax = plt.subplots()
