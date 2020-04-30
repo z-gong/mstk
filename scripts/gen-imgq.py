@@ -31,8 +31,11 @@ ignore_list = args.ignore.split(',')
 gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
 gen_drude_atoms = [atom for atom in gen_atoms if not atom.symbol == 'H'] if args.drude else []
 for atom in top.atoms:
-    atom._gen_img_ = atom in gen_atoms
-    atom._gen_img_drude_ = atom in gen_drude_atoms
+    atom._gen_img_ = atom._gen_img_drude_ = False
+for atom in gen_atoms:
+    atom._gen_img_ = True
+for atom in gen_drude_atoms:
+    atom._gen_img_drude_ = True
 
 n_image = (len(gen_atoms) + len(gen_drude_atoms)) * ((args.cathode is not None) + (args.anode is not None))
 if n_image == 0:
