@@ -5,5 +5,6 @@ from .xmlstatereporter import XmlStateReporter
 from .drudetemperaturereporter import DrudeTemperatureReporter
 from .viscosityreporter import ViscosityReporter
 from .statedatareporter import StateDataReporter
+from .trjreporter import TrjReporter
 from .utils import *
 from .forces import *

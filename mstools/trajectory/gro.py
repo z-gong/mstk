@@ -12,11 +12,11 @@ class Gro(Trajectory):
 
     def __init__(self, trj_file, mode='r'):
         super().__init__()
+        if mode not in ('r', 'w', 'a'):
+            raise Exception('Invalid mode')
         self._file = open(trj_file, mode)
-        if mode == 'r':
+        if mode == 'r' or mode == 'a':
             self._get_info()
-        elif mode == 'w':
-            pass
 
     def _get_info(self):
         '''
@@ -101,7 +101,7 @@ class Gro(Trajectory):
 
         return frame
 
-    def write_frame(self, topology: Topology, frame: Frame, subset=None, write_velocity=False):
+    def write_frame(self, frame: Frame, topology: Topology, subset=None, write_velocity=False):
         if write_velocity and not frame.has_velocity:
             raise Exception('Velocities are requested but not exist in frame')
 

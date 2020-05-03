@@ -15,10 +15,10 @@ class LammpsTrj(Trajectory):
 
     def __init__(self, trj_file, mode='r'):
         super().__init__()
-        self._file = open(trj_file, mode)
         if mode == 'r':
+            self._file = open(trj_file, 'r')
             self._get_info()
-        elif mode == 'w':
+        else:
             raise Exception('Writing support for LammpsTrj haven\'t been implemented')
 
     def _get_info(self):

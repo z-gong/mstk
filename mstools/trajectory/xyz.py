@@ -10,11 +10,11 @@ class Xyz(Trajectory):
 
     def __init__(self, file, mode='r'):
         super().__init__()
+        if mode not in ('r', 'w', 'a'):
+            raise Exception('Invalid mode')
         self._file = open(file, mode)
-        if mode == 'r':
+        if mode == 'r' or mode == 'w':
             self._get_info()
-        elif mode == 'w':
-            pass
 
     def _get_info(self):
         '''
@@ -50,7 +50,7 @@ class Xyz(Trajectory):
 
         return frame
 
-    def write_frame(self, topology: Topology, frame: Frame, subset=None):
+    def write_frame(self, frame: Frame, topology: Topology, subset=None):
         self._file.write('%i\n' % topology.n_atom)
         self._file.write('\n')
 
@@ -59,5 +59,6 @@ class Xyz(Trajectory):
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
             pos = frame.positions[id] * 10  # convert from nm to A
-            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2])
+            # atom.symbol is more friendly than atom.type for visualizing trajectory
+            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.symbol, pos[0], pos[1], pos[2])
             self._file.write(line)

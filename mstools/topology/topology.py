@@ -161,9 +161,7 @@ class Topology():
             raise Exception('Unsupported format')
 
     def write(self, file):
-        from .psf import Psf
-        from .pdb import Pdb
-        from .xyz import XyzTopology
+        from . import Psf, Pdb, XyzTopology
 
         if file.endswith('.psf'):
             Psf.save_to(self, file)
@@ -199,12 +197,34 @@ class Topology():
                     omm_element = None
                 omm_top.addAtom(atom.name, omm_element, omm_residue)
 
-        omm_top.setPeriodicBoxVectors(self.cell.vectors)
+        if self.cell.volume != 0:
+            omm_top.setPeriodicBoxVectors(self.cell.vectors)
         omm_atoms = list(omm_top.atoms())
         for bond in self.bonds:
             omm_top.addBond(omm_atoms[bond.atom1.id], omm_atoms[bond.atom2.id])
 
         return omm_top
+
+    def init_from_omm_topology(self, omm_top):
+        '''
+        This is only used for write trajectory, therefore the connectivity in OpenMM topology are ignored
+        '''
+        from simtk.openmm.app import Topology as ommTopology, Residue as ommResidue, Atom as ommAtom
+        molecules = []
+        omm_top: ommTopology
+        omm_res: ommResidue
+        omm_atom: ommAtom
+        for omm_res in omm_top.residues():
+            mol = Molecule(omm_res.name)
+            for omm_atom in omm_res.atoms():
+                atom = Atom(omm_atom.name)
+                try:
+                    atom.symbol = omm_atom.element.symbol
+                except:
+                    pass
+                mol.add_atom(atom)
+            molecules.append(mol)
+        self.init_from_molecules(molecules)
 
     def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
         '''

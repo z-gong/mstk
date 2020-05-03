@@ -1,5 +1,4 @@
 import numpy as np
-from ..topology import Topology
 from . import Trajectory, Frame
 
 
@@ -18,12 +17,14 @@ class Dcd(Trajectory):
             raise ImportError(
                 'Currently mstools use mdtraj to parse DCD format. Cannot import mdtraj')
 
-        self._dcd = DCDTrajectoryFile(file, mode=mode)
-
         if mode == 'r':
+            self._dcd = DCDTrajectoryFile(file, mode='r')
             self._get_info()
         elif mode == 'w':
-            pass
+            self._dcd = DCDTrajectoryFile(file, mode='w')
+        else:
+            raise Exception('Appending not supported for DCD')
+
 
     def close(self):
         try:
@@ -36,30 +37,43 @@ class Dcd(Trajectory):
         Read the number of atoms and record the offset of lines and frames,
         so that we can read arbitrary frame later
         '''
-        self._mdtraj_positions, self._mdtraj_cell_lengths, self._mdtraj_cell_angles = self._dcd.read()
-        self.n_frame, self.n_atom, _ = self._mdtraj_positions.shape
+        self.n_frame = len(self._dcd)
+        if self.n_frame == 0:
+            raise Exception('Empty DCD file')
+        positions, lengths, angles = self._dcd.read(1)
+        _, self.n_atom, _ = positions.shape
         self._frame = Frame(self.n_atom)
 
     def read_frame(self, i_frame):
+        if i_frame >= self.n_frame:
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
         frame = self._frame
-        frame.positions = self._mdtraj_positions[i_frame] / 10  # convert A to nm
-        frame.cell.set_box([self._mdtraj_cell_lengths[i_frame] / 10,
-                            self._mdtraj_cell_angles[i_frame]])  # convert A to nm
+        self._dcd.seek(i_frame)
+        positions, box_lengths, box_angles = self._dcd.read(1)
+        angle = box_angles[0]
+        angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
+        frame.positions = positions[0] / 10  # convert A to nm
+        frame.cell.set_box(box_lengths[0] / 10, angle)  # convert A to nm
 
         return frame
 
     def read_frames(self, i_frames: [int]) -> [Frame]:
+        if any(i >= self.n_frame for i in i_frames):
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
         frames = []
         for i in i_frames:
             frame = Frame(self.n_atom)
-            frame.positions = self._mdtraj_positions[i] / 10  # convert A to nm
-            frame.cell.set_box([self._mdtraj_cell_lengths[i] / 10,
-                                self._mdtraj_cell_angles[i]])  # convert A to nm
+            self._dcd.seek(i)
+            positions, box_lengths, box_angles = self._dcd.read(1)
+            angle = box_angles[0]
+            angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
+            frame.positions = positions[0] / 10  # convert A to nm
+            frame.cell.set_box(box_lengths[0] / 10, angle)  # convert A to nm
             frames.append(frame)
 
         return frames
 
-    def write_frame(self, topology, frame, subset=None):
+    def write_frame(self, frame, topology=None, subset=None):
         if subset is None:
             positions = frame.positions
         else:

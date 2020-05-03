@@ -60,5 +60,5 @@ for i in range(args.begin, args.end, args.skip):
     frame.cell.set_box(box)
     if pos_shift is not None:
         frame.positions += pos_shift
-    trj_out.write_frame(top, frame, subset=subset)
+    trj_out.write_frame(frame, top, subset=subset)
 trj_out.close()

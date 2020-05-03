@@ -17,9 +17,11 @@ class Frame():
 
 class Trajectory():
     def __init__(self):
+        # TODO what if the number of atoms is different in each step
         self.n_atom = 0
         self.n_frame = 0
         self._file = IOBase()
+        # so that we don't need to create a new Frame object every time we call read_frame()
         self._frame: Frame = None
 
     def __del__(self):
@@ -44,20 +46,19 @@ class Trajectory():
         '''
         pass
 
-    def write_frame(self, topology: Topology, frame: Frame, subset: [int]):
+    def write_frame(self, frame: Frame, topology: Topology, subset: [int]):
         '''
         Write one frame to trajectory file
-        # TODO fix the performance of subset
         '''
         pass
 
     @staticmethod
     def open(file, mode='r'):
-        from .gro import Gro
-        from .xyz import Xyz
-        from .lammps import LammpsTrj
-        from .dcd import Dcd
-        from .combined_trajectory import CombinedTrajectory
+        modes_allowed = ('r', 'w', 'a')
+        if mode not in modes_allowed:
+            raise Exception('mode should be one of %s' % str(modes_allowed))
+
+        from . import Gro, Xyz, LammpsTrj, Dcd, Xtc, CombinedTrajectory
 
         if isinstance(file, list):
             return CombinedTrajectory(file, mode)
@@ -69,5 +70,7 @@ class Trajectory():
             return Xyz(file, mode)
         elif file.endswith('.dcd'):
             return Dcd(file, mode)
+        elif file.endswith('.xtc'):
+            return Xtc(file, mode)
         else:
             raise Exception('filename for trajectory not understand')
