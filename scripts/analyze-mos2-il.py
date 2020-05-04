@@ -21,7 +21,7 @@ from mstools.trajectory import Trajectory
 from mstools.constant import VACUUM_PERMITTIVITY, ELEMENTARY_CHARGE, NANO
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'dipole', 'charge2d'],
+parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'dipole', 'charge', 'chargeconp'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -47,7 +47,9 @@ parser.add_argument('--skip', default=1, type=int, help='skip frames in trajecto
 parser.add_argument('--ignore', nargs='+', default=[], type=str,
                     help='ignore these molecule types for voltage analysis')
 parser.add_argument('--voltage', default=0, type=float,
-                    help='pre-assigned voltage drop in 3d image charge simulation')
+                    help='pre-assigned voltage drop in image charge simulation for analyzing surface charge, '
+                         'or the evolved voltage drop between electrodes from surface charge for analyzing voltage. '
+                         'Required for voltage and charge analysis')
 
 args = parser.parse_args()
 
@@ -434,20 +436,51 @@ def voltage():
     fig.savefig(f'{args.output}-voltage.png')
 
 
-def charge_2d():
+def charge_petersen():
+    _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    frame_list = []
+    q_cathode_list = []
+    for i in range(args.begin, args.end, args.skip):
+        frame = trj.read_frame(i)
+        sys.stdout.write('\r    frame %i' % i)
+        z_to_cathode = frame.positions[:, 2] - args.cathode
+        ids_ils = np.where((z_to_cathode > 0) & (z_to_cathode < lz))
+        z_ils = z_to_cathode[ids_ils]
+        q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
+        q_cathode = np.sum(q_ils * z_ils) / lz \
+                    + args.voltage * area / lz * VACUUM_PERMITTIVITY / ELEMENTARY_CHARGE * NANO
+        frame_list.append(i)
+        q_cathode_list.append(q_cathode)
+
+    charge_densities = np.array(q_cathode_list) * _conv
+    voltages_surface = charge_densities / 1000 * lz * NANO / VACUUM_PERMITTIVITY
+
+    print('\n%-8s %10s %10s %10s %10s' % ('n_frame', 'rho_q', 'var_rho_q', 'q_atom', 'V_surface'))
+    print('%-8i %10.4f %10.4f %10.6f %10.4f' % (len(q_cathode_list), charge_densities.mean(),
+                                                charge_densities.var(),
+                                                charge_densities.mean() / _conv / len(ids_cathode),
+                                                voltages_surface.mean()))
+    name_column_dict = {'frame'    : frame_list,
+                        'rho_q'    : charge_densities,
+                        'V_surface': voltages_surface}
+    print_data_to_file(name_column_dict, f'{args.output}-surface_charge.txt')
+
+
+def charge_conp():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     qtot_list = []
-    print('%-6s %10s %10s' % ('step', 'density_q', 'q_atom'))
+    print('%-8s %10s %10s' % ('step', 'density_q', 'q_atom'))
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         if not frame.has_charge:
             raise Exception('charge_2d function requires charge information in trajectory')
         qtot = sum(frame.charges[ids_cathode])
         qtot_list.append(qtot)
-        print('%-6i %10.6f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode)))
+        print('%-8i %10.4f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode)))
 
-    print('\n%-6s %10s %10s %10s' % ('n_step', 'density_q', 'q_atom', 'voltage'))
-    print('%-6i %10.6f %10.6f %10.6f' % (
+    print('\n%-8s %10s %10s %10s' % ('n_step', 'rho_q', 'q_atom', 'V_surface'))
+    print('%-8i %10.4f %10.6f %10.4f' % (
         len(qtot_list), np.mean(qtot_list) * _conv, np.mean(qtot_list) / len(ids_cathode),
         np.mean(qtot_list) * _conv / 1000 * lz * NANO / VACUUM_PERMITTIVITY))
 
@@ -461,5 +494,7 @@ if __name__ == '__main__':
         voltage()
     elif args.cmd == 'dipole':
         dipole()
-    elif args.cmd == 'charge2d':
-        charge_2d()
+    elif args.cmd == 'charge':
+        charge_petersen()
+    elif args.cmd == 'chargeconp':
+        charge_conp()

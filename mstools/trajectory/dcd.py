@@ -25,7 +25,6 @@ class Dcd(Trajectory):
         else:
             raise Exception('Appending not supported for DCD')
 
-
     def close(self):
         try:
             self._dcd.close()
@@ -45,17 +44,8 @@ class Dcd(Trajectory):
         self._frame = Frame(self.n_atom)
 
     def read_frame(self, i_frame):
-        if i_frame >= self.n_frame:
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        frame = self._frame
-        self._dcd.seek(i_frame)
-        positions, box_lengths, box_angles = self._dcd.read(1)
-        angle = box_angles[0]
-        angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
-        frame.positions = positions[0] / 10  # convert A to nm
-        frame.cell.set_box(box_lengths[0] / 10, angle)  # convert A to nm
-
-        return frame
+        self._read_frame(i_frame, self._frame)
+        return self._frame
 
     def read_frames(self, i_frames: [int]) -> [Frame]:
         if any(i >= self.n_frame for i in i_frames):
@@ -63,15 +53,20 @@ class Dcd(Trajectory):
         frames = []
         for i in i_frames:
             frame = Frame(self.n_atom)
-            self._dcd.seek(i)
-            positions, box_lengths, box_angles = self._dcd.read(1)
-            angle = box_angles[0]
-            angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
-            frame.positions = positions[0] / 10  # convert A to nm
-            frame.cell.set_box(box_lengths[0] / 10, angle)  # convert A to nm
+            self._read_frame(i, frame)
             frames.append(frame)
 
         return frames
+
+    def _read_frame(self, i_frame, frame):
+        if i_frame >= self.n_frame:
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+        self._dcd.seek(i_frame)
+        positions, box_lengths, box_angles = self._dcd.read(1)
+        angle = box_angles[0]
+        angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
+        frame.positions = positions[0] / 10  # convert A to nm
+        frame.cell.set_box([box_lengths[0] / 10, angle])  # convert A to nm
 
     def write_frame(self, frame, topology=None, subset=None):
         if subset is None:

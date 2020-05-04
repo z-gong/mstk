@@ -43,9 +43,23 @@ class Xtc(Trajectory):
         self._frame = Frame(self.n_atom)
 
     def read_frame(self, i_frame):
+        self._read_frame(i_frame, self._frame)
+        return self._frame
+
+    def read_frames(self, i_frames: [int]) -> [Frame]:
+        if any(i >= self.n_frame for i in i_frames):
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+        frames = []
+        for i in i_frames:
+            frame = Frame(self.n_atom)
+            self._read_frame(i, frame)
+            frames.append(frame)
+
+        return frames
+
+    def _read_frame(self, i_frame, frame):
         if i_frame >= self.n_frame:
             raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        frame = self._frame
         self._xtc.seek(i_frame)
         positions, times, steps, box_vectors = self._xtc.read(1)
         vector = box_vectors[0]
@@ -54,24 +68,6 @@ class Xtc(Trajectory):
         frame.cell.set_box(vector)
         frame.time = times[0]
         frame.step = steps[0]
-
-        return frame
-
-    def read_frames(self, i_frames: [int]) -> [Frame]:
-        if any(i >= self.n_frame for i in i_frames):
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        frames = []
-        for i in i_frames:
-            frame = Frame(self.n_atom)
-            self._xtc.seek(i)
-            positions, times, steps, box_vectors = self._xtc.read(1)
-            box_vector = box_vectors[0]
-            box_vector[np.abs(box_vector) < 1E-4] = 0  # in case precision issue
-            frame.positions = positions[0]
-            frame.cell.set_box(box_vector)
-            frames.append(frame)
-
-        return frames
 
     def write_frame(self, frame, topology=None, subset=None):
         if subset is None:
