@@ -14,15 +14,15 @@ top.init_from_omm_topology(omm_top)
 
 
 def test_read():
-    xtc = Trajectory.open(cwd + '/files/100-SPCE.xtc')
-    assert xtc.n_atom == 300
-    assert xtc.n_frame == 4
+    dcd = Trajectory.open(cwd + '/files/100-SPCE.dcd')
+    assert dcd.n_atom == 300
+    assert dcd.n_frame == 3
 
 
 def test_write():
     gro = Trajectory.open(cwd + '/files/100-SPCE.gro')
-    xtc = Trajectory.open(cwd + '/files/gro-out.xtc', 'w')
+    dcd = Trajectory.open(cwd + '/files/gro-out.dcd', 'w')
 
     for i in range(gro.n_frame):
         frame = gro.read_frame(i)
-        xtc.write_frame(frame)
+        dcd.write_frame(frame)

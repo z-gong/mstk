@@ -13,7 +13,7 @@ class Xyz(Trajectory):
         if mode not in ('r', 'w', 'a'):
             raise Exception('Invalid mode')
         self._file = open(file, mode)
-        if mode == 'r' or mode == 'w':
+        if mode == 'r' or mode == 'a':
             self._get_info()
 
     def _get_info(self):
@@ -51,11 +51,12 @@ class Xyz(Trajectory):
         return frame
 
     def write_frame(self, frame: Frame, topology: Topology, subset=None):
-        self._file.write('%i\n' % topology.n_atom)
-        self._file.write('\n')
-
         if subset is None:
             subset = list(range(topology.n_atom))
+
+        self._file.write('%i\n' % len(subset))
+        self._file.write('Created by mstools: step= %i, t= %f ps\n' % (frame.step, frame.time))
+
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
             pos = frame.positions[id] * 10  # convert from nm to A
