@@ -3,8 +3,6 @@ from .grofile import GroFile
 
 class GroReporter(object):
     """GroReporter outputs a series of frames from a Simulation to a GRO file.
-
-    To use it, create a PDBReporter, then add it to the Simulation's list of reporters.
     """
 
     def __init__(self, file, reportInterval, enforcePeriodicBox=False, subset=None, reportVelocity=False, append=False):
@@ -24,6 +22,10 @@ class GroReporter(object):
             conditions.
         subset : list(int)=None
             If not None, only the selected atoms will be written
+        reportVelocity: bool
+            If set to True, velocities will be reported
+        append: bool
+            If set to True, will append to file
         """
         if not (type(reportInterval) is int or reportInterval=='logfreq'):
             raise ValueError('reportInterval should be a integer or "logfreq"')

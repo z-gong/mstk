@@ -18,13 +18,15 @@ class TrjReporter(object):
             The file to write to
         reportInterval : int
             The interval (in time steps) at which to write frames
-        append : bool=False
-            If True, open an existing DCD file to append to.  If False, create a new file.
         enforcePeriodicBox: bool
             Specifies whether particle positions should be translated so the center of every molecule
             lies in the same periodic box.  If None (the default), it will automatically decide whether
             to translate molecules based on whether the system being simulated uses periodic boundary
             conditions.
+        subset : list(int)=None
+            If not None, only the selected atoms will be written
+        append : bool=False
+            If True, open an existing DCD file to append to.  If False, create a new file.
         """
         self._reportInterval = reportInterval
         self._append = append
