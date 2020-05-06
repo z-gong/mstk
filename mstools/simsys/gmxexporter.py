@@ -25,6 +25,15 @@ class GromacsExporter():
             raise Exception('Unsupported FF terms: %s'
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        if MieTerm in system.ff_classes:
+            warnings.warn('MieTerm not supported by GROMACS. '
+                          'The exported files should only be used for analyzing trajectory')
+        if SDKAngleTerm in system.ff_classes:
+            warnings.warn('SDKAngleTerm not supported by GROMACS, '
+                          'replaced by harmonic function')
+        if DrudeTerm in system.ff_classes:
+            raise Exception('DurdeTerm havn\'t been implemented for GROMACS exporting')
+
         frame = Frame(system._topology.n_atom)
         frame.cell = system._topology.cell
         frame.positions = system._topology.positions
@@ -46,22 +55,22 @@ class GromacsExporter():
         string += '; name        mass      charge   ptype         sigma           epsilon\n'
         for atype in system.ff.atom_types.values():
             vdw = system.ff.get_vdw_term(atype, atype)
-            if vdw.__class__ == LJ126Term:
+            if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10.4f %12.6f %6s %12.6f %12.6f\n' % (
                     atype.name, 0.0, 0.0, 'A', vdw.sigma, vdw.epsilon)
             else:
-                raise Exception('Invalid vdW term')
+                raise Exception('Unsupported vdW term')
 
         string += '\n[ nonbond_params ]\n'
         string += ';       i        j        func        sigma        epsilon\n'
         for at1, at2 in itertools.combinations(system.ff.atom_types.values(), 2):
             vdw = system.ff.pairwise_vdw_terms.get(VdwTerm(at1.eqt_vdw, at2.eqt_vdw).name)
             if vdw is not None:
-                if vdw.__class__ == LJ126Term:
+                if vdw.__class__ in (LJ126Term, MieTerm):
                     string += '%10s %10s %6i %12.6f %12.6f\n' % (
                         at1.name, at2.name, 1, vdw.sigma, vdw.epsilon)
                 else:
-                    raise Exception('Invalid vdW term')
+                    raise Exception('Unsupported vdW term')
 
         for i, mol in enumerate(mols_unique.keys()):
             mol: Molecule
@@ -104,18 +113,18 @@ class GromacsExporter():
                         a1._id_in_molecule + 1, a2._id_in_molecule + 1,
                         1, bterm.length, bterm.k * 2)
                 else:
-                    raise Exception('Invalid bond term')
+                    raise Exception('Unsupported bond term')
 
             string += '\n[ angles ]\n'
             for angle in mol.angles:
                 aterm = system._angle_terms[id(angle)]
                 a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
-                if aterm.__class__ == HarmonicAngleTerm:
+                if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
                         a1._id_in_molecule + 1, a2._id_in_molecule + 1, a3._id_in_molecule + 1,
                         1, aterm.theta, aterm.k * 2)
                 else:
-                    raise Exception('Invalid angle term')
+                    raise Exception('Unsupported angle term')
 
             string += '\n[ dihedrals ]\n'
             for dihedral in mol.dihedrals:
@@ -128,7 +137,7 @@ class GromacsExporter():
                             a3._id_in_molecule + 1, a4._id_in_molecule + 1,
                             9, para.phi, para.k, para.n)
                 else:
-                    raise Exception('Invalid dihedral term')
+                    raise Exception('Unsupported dihedral term')
 
             string += '\n[ dihedrals ]\n'
             for improper in mol.impropers:
@@ -145,7 +154,7 @@ class GromacsExporter():
                         a1._id_in_molecule + 1, a4._id_in_molecule + 1,
                         2, iterm.phi, iterm.k * 2)
                 else:
-                    raise Exception('Invalid improper term')
+                    raise Exception('Unsupported improper term')
 
         string += '\n[ system ]\n'
 
@@ -157,7 +166,7 @@ class GromacsExporter():
             f.write(string)
 
         with open(mdp_out, 'w')  as f:
-            f.write(''';Created by mstools
+            f.write('''; Created by mstools
 integrator      = sd
 dt              = 0.002 ; ps
 nsteps          = 1000000
@@ -165,9 +174,10 @@ nsteps          = 1000000
 nstxout         = 0
 nstvout         = 0
 nstfout         = 0
-nstxtcout       = 1000
-xtc-grps        = System
+nstxout-compressed = 1000
+compressed-x-grps  = System
 
+cutoff-scheme   = Verlet
 rlist           = 1.2
 coulombtype     = PME
 rcoulomb        = 1.2

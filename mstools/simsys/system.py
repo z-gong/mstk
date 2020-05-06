@@ -154,7 +154,7 @@ class System():
 
     def export_gmx(self):
         from .gmxexporter import GromacsExporter
-        GromacsExporter.export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='run.mdp')
+        GromacsExporter.export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp')
 
     def to_omm_system(self):
         from .ommexporter import OpenMMExporter
