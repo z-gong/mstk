@@ -144,14 +144,15 @@ class GromacsExporter():
                 iterm = system._improper_terms[id(improper)]
                 a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
                 if iterm.__class__ == OplsImproperTerm:
+                    # be careful about the sequence of atoms in OPLS improper definition
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f %4i\n' % (
                         a2._id_in_molecule + 1, a3._id_in_molecule + 1,
                         a1._id_in_molecule + 1, a4._id_in_molecule + 1,
                         4, 180, iterm.k, 2)
                 elif iterm.__class__ == HarmonicImproperTerm:
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f\n' % (
-                        a2._id_in_molecule + 1, a3._id_in_molecule + 1,
-                        a1._id_in_molecule + 1, a4._id_in_molecule + 1,
+                        a1._id_in_molecule + 1, a2._id_in_molecule + 1,
+                        a3._id_in_molecule + 1, a4._id_in_molecule + 1,
                         2, iterm.phi, iterm.k * 2)
                 else:
                     raise Exception('Unsupported improper term')
