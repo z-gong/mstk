@@ -76,6 +76,27 @@ class Topology():
             atom.position = np.array(positions[i])
             atom.has_position = True
 
+    def get_unique_molecules(self) -> {Molecule: int}:
+        '''
+        Get the unique molecules and the number of molecules that are similar to these unique molecules.
+        This is mainly used for exporting GROMACS topol file.
+        '''
+        mols_unique = []
+        flags = [-1] * self.n_molecule
+        for i, mol in enumerate(self._molecules):
+            if i == 0:
+                mols_unique.append(mol)
+                flags[mol.id] = mol.id
+                continue
+            last = self._molecules[i - 1]
+            if mol.similar_to(last):
+                flags[mol.id] = flags[last.id]
+            else:
+                mols_unique.append(mol)
+                flags[mol.id] = mol.id
+
+        return {mol: flags.count(mol.id) for mol in mols_unique}
+
     @property
     def n_molecule(self):
         return len(self._molecules)
@@ -230,32 +251,14 @@ class Topology():
         '''
         The pairs only concerns real atoms. Drude particles  will be ignored.
         '''
-        pair_12_set = set()
-        pair_13_set = set()
-        pair_14_set = set()
-        for bond in filter(lambda x: not x.is_drude, self.bonds):
-            a2, a3 = bond.atom1, bond.atom2
-            pair = tuple(sorted([a2, a3]))
-            pair_12_set.add(pair)
-
-            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
-                if a1 != a3:
-                    pair = tuple(sorted([a1, a3]))
-                    pair_13_set.add(pair)
-            for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
-                if a2 != a4:
-                    pair = tuple(sorted([a2, a4]))
-                    pair_13_set.add(pair)
-
-            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
-                for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
-                    if a1 != a3 and a2 != a4 and a1 != a4:
-                        pair = tuple(sorted([a1, a4]))
-                        pair_14_set.add(pair)
-
-        pair_12_list = list(sorted(pair_12_set))
-        pair_13_list = list(sorted(pair_13_set - pair_12_set))
-        pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
+        pair_12_list = []
+        pair_13_list = []
+        pair_14_list = []
+        for mol in self._molecules:
+            pairs_12, pairs_13, pairs_14 = mol.get_12_13_14_pairs()
+            pair_12_list += pairs_12
+            pair_13_list += pairs_13
+            pair_14_list += pairs_14
         return pair_12_list, pair_13_list, pair_14_list
 
     def get_drude_pairs(self) -> [(Atom, Atom)]:

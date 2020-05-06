@@ -186,6 +186,31 @@ class Molecule():
     def remove_improper(self, improper: Improper):
         self._impropers.remove(improper)
 
+    def similar_to(self, other) -> bool:
+        '''
+        See if this molecule is similar to other molecule.
+        It requires two molecules contains the same number of atoms.
+        The correspond atoms should have same atom type and charge.
+        The bonds should also be the same.
+        But it doesn't consider angles, dihedrals and impropers.
+        '''
+        other: Molecule
+        if self.n_atom != other.n_atom:
+            return False
+        if self.n_bond != other.n_bond:
+            return False
+        for i in range(self.n_atom):
+            atom1 = self._atoms[i]
+            atom2 = other._atoms[i]
+            if atom1.type != atom2.type or atom1.charge != atom2.charge:
+                return False
+            if len(atom1._bonds) != len(atom2._bonds):
+                return False
+            if set(p._id_in_molecule for p in atom1.bond_partners) != \
+                    set(p._id_in_molecule for p in atom2.bond_partners):
+                return False
+        return True
+
     @property
     def n_atom(self):
         return len(self._atoms)
@@ -241,6 +266,38 @@ class Molecule():
             elif bond.atom2.is_drude:
                 pairs.append((bond.atom1, bond.atom2))
         return pairs
+
+    def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
+        '''
+        The pairs only concerns real atoms. Drude particles  will be ignored.
+        '''
+        pair_12_set = set()
+        pair_13_set = set()
+        pair_14_set = set()
+        for bond in filter(lambda x: not x.is_drude, self.bonds):
+            a2, a3 = bond.atom1, bond.atom2
+            pair = tuple(sorted([a2, a3]))
+            pair_12_set.add(pair)
+
+            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
+                if a1 != a3:
+                    pair = tuple(sorted([a1, a3]))
+                    pair_13_set.add(pair)
+            for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
+                if a2 != a4:
+                    pair = tuple(sorted([a2, a4]))
+                    pair_13_set.add(pair)
+
+            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
+                for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
+                    if a1 != a3 and a2 != a4 and a1 != a4:
+                        pair = tuple(sorted([a1, a4]))
+                        pair_14_set.add(pair)
+
+        pair_12_list = list(sorted(pair_12_set))
+        pair_13_list = list(sorted(pair_13_set - pair_12_set))
+        pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
+        return pair_12_list, pair_13_list, pair_14_list
 
     def generate_angle_dihedral_improper(self):
         '''
