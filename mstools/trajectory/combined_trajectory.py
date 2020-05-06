@@ -24,9 +24,13 @@ class CombinedTrajectory(Trajectory):
         self.n_frame = len(self._i_frame_offset)
         self.n_atom = self._trajectories[0].n_atom
 
+        self._mode = mode
+        self._opened = True
+
     def close(self):
         for trj in self._trajectories:
             trj.close()
+        self._opened = False
 
     def _read_frame(self, i_frame: int, frame):
         trj = self._i_frame_in_trj[i_frame]

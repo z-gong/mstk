@@ -1,5 +1,6 @@
-from io import IOBase
+import warnings
 import numpy as np
+from io import IOBase
 from ..topology import Topology, UnitCell
 
 
@@ -13,6 +14,14 @@ class Frame():
         self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_charge = False
         self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
+
+    def resize(self, n_atom):
+        if n_atom < len(self.positions):
+            warnings.warn('n_atom is smaller than original. '
+                          'The positions, velocities and charges at the end will be lost')
+        self.positions.resize((n_atom, 3), refcheck=False)
+        self.velocities.resize((n_atom, 3), refcheck=False)
+        self.charges.resize((n_atom, 3), refcheck=False)
 
 
 class Trajectory():
