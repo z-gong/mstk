@@ -17,11 +17,13 @@ class Frame():
 
 class Trajectory():
     def __init__(self):
-        # TODO what if the number of atoms is different in each step
-        self.n_atom = 0
-        self.n_frame = 0
+        # assume all frames have the same number of atoms, but n_atom can only be determined later
+        self.n_atom = -1  # -1 means unknown yet
+        self.n_frame = -1  # -1 means unknown yet
         self._file = IOBase()
-        # so that we don't need to create a new Frame object every time we call read_frame()
+        self._mode = 'r'
+        self._opened = False
+        # we don't have to create a new Frame object every time we call read_frame()
         self._frame: Frame = None
 
     def __del__(self):
@@ -29,6 +31,7 @@ class Trajectory():
 
     def close(self):
         self._file.close()
+        self._opened = False
 
     def read_frame(self, i_frame: int):
         '''
@@ -36,7 +39,19 @@ class Trajectory():
         @param i_frame:
         @return:
         '''
-        pass
+        if self._mode != 'r' or not self._opened:
+            raise Exception('mode != "r" or closed trajectory')
+
+        if i_frame >= self.n_frame:
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+
+        if self._frame is None:
+            if self.n_atom == -1:
+                raise Exception('Invalid number of atoms')
+            self._frame = Frame(self.n_atom)
+
+        self._read_frame(i_frame, self._frame)
+        return self._frame
 
     def read_frames(self, i_frames: [int]):
         '''
@@ -44,13 +59,31 @@ class Trajectory():
         @param i_frames:
         @return:
         '''
-        pass
+        if self._mode != 'r' or not self._opened:
+            raise Exception('mode != "r" or closed trajectory')
 
-    def write_frame(self, frame: Frame, topology: Topology, subset: [int]):
+        if any(i >= self.n_frame for i in i_frames):
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+
+        frames = [Frame(self.n_atom) for _ in i_frames]
+        for ii, i_frame in enumerate(i_frames):
+            self._read_frame(i_frame, frames[ii])
+        return frames
+
+    def write_frame(self, frame: Frame, topology: Topology = None, subset: [int] = None, **kwargs):
         '''
         Write one frame to trajectory file
         '''
-        pass
+        if self._mode not in ('w', 'a') or not self._opened:
+            raise Exception('mode not in ("w", "a") or closed trajectory')
+
+        self._write_frame(frame, topology, subset, **kwargs)
+
+    def _read_frame(self, i_frame, frame):
+        raise NotImplementedError('Method not implemented')
+
+    def _write_frame(self, frame, topology, subset, **kwargs):
+        raise NotImplementedError('Method not implemented')
 
     @staticmethod
     def open(file, mode='r'):

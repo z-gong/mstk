@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from ..topology import Topology
 from . import Trajectory, Frame
@@ -12,9 +13,18 @@ class Xyz(Trajectory):
         super().__init__()
         if mode not in ('r', 'w', 'a'):
             raise Exception('Invalid mode')
-        self._file = open(file, mode)
-        if mode == 'r' or mode == 'a':
+
+        if mode == 'r':
+            # open it in binary mode so that we can correctly seek despite of line ending
+            self._file = open(file, 'rb')
             self._get_info()
+        elif mode == 'a':
+            self._file = open(file, 'ab')
+        elif mode == 'w':
+            self._file = open(file, 'wb')
+
+        self._mode = mode
+        self._opened = True
 
     def _get_info(self):
         '''
@@ -24,42 +34,50 @@ class Xyz(Trajectory):
         try:
             self.n_atom = int(self._file.readline())
         except:
-            print('Invalid XYZ file')
-            raise
+            raise Exception('Invalid XYZ file')
         self._file.seek(0)
 
-        self.n_frame = 1
+        # read in the file once and build a list of line offsets
+        # the last element is the length of whole file
+        self._line_offset = [0]
+        offset = 0
+        for line in self._file:
+            offset += len(line)
+            self._line_offset.append(offset)
+        self._file.seek(0)
+
+        # build a list of frame offsets
+        self.n_frame = len(self._line_offset) // (2 + self.n_atom)
+        self._frame_offset = []
+        for i in range(self.n_frame + 1):
+            line_start = (2 + self.n_atom) * i
+            self._frame_offset.append(self._line_offset[line_start])
+
         self._frame = Frame(self.n_atom)
 
-    def read_frame(self, i_frame):
-        if i_frame != 0:
-            raise Exception('Can only read the first frame')
-
-        return self._read_frame_from_string(self._file.read())
-
-    def read_frames(self, i_frames: [int]):
-        raise Exception('Can only read the first frame, use read_frame(0)')
-
-    def _read_frame_from_string(self, string: str):
-        frame = self._frame
-        lines = string.splitlines()
-
+    def _read_frame(self, i_frame, frame):
+        # skip to frame i and read only this frame
+        self._file.seek(self._frame_offset[i_frame])
+        lines = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame]) \
+            .decode().splitlines()
         for i in range(self.n_atom):
             words = lines[i + 2].split()
-            frame.positions[i] = np.array(list(map(float, words[1:4]))) / 10  # convert from A to nm
+            x = float(words[1]) / 10  # convert A to nm
+            y = float(words[2]) / 10
+            z = float(words[3]) / 10
+            frame.positions[i][:] = x, y, z
 
-        return frame
-
-    def write_frame(self, frame: Frame, topology: Topology, subset=None):
+    def _write_frame(self, frame: Frame, topology: Topology, subset=None, **kwargs):
         if subset is None:
-            subset = list(range(topology.n_atom))
+            subset = list(range(len(frame.positions)))
 
-        self._file.write('%i\n' % len(subset))
-        self._file.write('Created by mstools: step= %i, t= %f ps\n' % (frame.step, frame.time))
+        string = '%i\n' % len(subset)
+        string += 'Created by mstools: step= %i, t= %f ps\n' % (frame.step, frame.time)
 
         for ii, id in enumerate(subset):
             atom = topology.atoms[id]
             pos = frame.positions[id] * 10  # convert from nm to A
             # atom.symbol is more friendly than atom.type for visualizing trajectory
-            line = '%-8s %10.5f %10.5f %10.5f\n' % (atom.symbol, pos[0], pos[1], pos[2])
-            self._file.write(line)
+            string += '%-8s %10.5f %10.5f %10.5f\n' % (atom.symbol, pos[0], pos[1], pos[2])
+
+        self._file.write(string.encode())

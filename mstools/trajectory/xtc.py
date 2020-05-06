@@ -1,6 +1,13 @@
 import numpy as np
 from . import Trajectory, Frame
 
+try:
+    import chemfiles
+except ImportError:
+    _CHEMFILES_FOUND = False
+else:
+    _CHEMFILES_FOUND = True
+
 
 class Xtc(Trajectory):
     '''
@@ -10,68 +17,58 @@ class Xtc(Trajectory):
     def __init__(self, file, mode='r'):
         super().__init__()
 
-        try:
-            from mdtraj.formats import XTCTrajectoryFile
-        except:
+        if not _CHEMFILES_FOUND:
             raise ImportError(
-                'Currently mstools use mdtraj to parse XTC format. Cannot import mdtraj')
+                'Currently mstools use chemfiles to parse XTC format. Cannot import chemfiles')
 
+        if mode not in ('r', 'w', 'a'):
+            raise Exception('Invalid mode')
+
+        self._xtc = chemfiles.Trajectory(file, mode)
         if mode == 'r':
-            self._xtc = XTCTrajectoryFile(file, mode='r')
             self._get_info()
-        elif mode == 'w':
-            self._xtc = XTCTrajectoryFile(file, mode='w')
-        else:
-            raise Exception('Appending not supported for XTC')
+
+        self._mode = mode
+        self._opened = True
 
     def close(self):
         try:
             self._xtc.close()
         except:
             pass
+        self._opened = False
 
     def _get_info(self):
         '''
         Read the number of atoms and record the offset of lines and frames,
         so that we can read arbitrary frame later
         '''
-        self.n_frame = len(self._xtc)
+        self.n_frame = self._xtc.nsteps
         if self.n_frame == 0:
             raise Exception('Empty XTC file')
-        positions, times, steps, box_vectors = self._xtc.read(1)
-        _, self.n_atom, _ = positions.shape
+        cf_frame = self._xtc.read()
+        self.n_atom = len(cf_frame.atoms)
         self._frame = Frame(self.n_atom)
 
-    def read_frame(self, i_frame):
-        self._read_frame(i_frame, self._frame)
-        return self._frame
-
-    def read_frames(self, i_frames: [int]) -> [Frame]:
-        if any(i >= self.n_frame for i in i_frames):
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        frames = []
-        for i in i_frames:
-            frame = Frame(self.n_atom)
-            self._read_frame(i, frame)
-            frames.append(frame)
-
-        return frames
-
     def _read_frame(self, i_frame, frame):
-        if i_frame >= self.n_frame:
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        self._xtc.seek(i_frame)
-        positions, times, steps, box_vectors = self._xtc.read(1)
-        vector = box_vectors[0]
-        vector[np.abs(vector) < 1E-4] = 0  # in case precision issue
-        frame.positions = positions[0]
-        frame.cell.set_box(vector)
-        frame.time = times[0]
-        frame.step = steps[0]
+        cf_frame = self._xtc.read_step(i_frame)
+        cf_cell = cf_frame.cell
+        lengths = [i / 10 for i in cf_cell.lengths]
+        angles = cf_cell.angles
+        frame.positions = cf_frame.positions.astype(np.float32) / 10
+        frame.cell.set_box([lengths, angles])
+        frame.step = frame.step
 
-    def write_frame(self, frame, topology=None, subset=None):
+    def _write_frame(self, frame, topology=None, subset=None, **kwargs):
         if subset is None:
             positions = frame.positions
         else:
             positions = frame.positions[subset]
-        self._xtc.write(positions, frame.time, frame.step, frame.cell.vectors)
+
+        cf_frame = chemfiles.Frame()
+        cf_frame.resize(len(positions))
+        cf_frame.positions[:] = positions * 10
+        cf_frame.cell = chemfiles.UnitCell(*(frame.cell.lengths * 10), *frame.cell.angles)
+        cf_frame.step = frame.step
+
+        self._xtc.write(cf_frame)

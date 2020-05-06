@@ -10,13 +10,22 @@ class Gro(Trajectory):
     When writing to gro file, the residue name will get truncated with max length of 4
     '''
 
-    def __init__(self, trj_file, mode='r'):
+    def __init__(self, file, mode='r'):
         super().__init__()
         if mode not in ('r', 'w', 'a'):
             raise Exception('Invalid mode')
-        self._file = open(trj_file, mode)
-        if mode == 'r' or mode == 'a':
+
+        if mode == 'r':
+            # open it in binary mode so that we can correctly seek despite of line ending
+            self._file = open(file, 'rb')
             self._get_info()
+        elif mode == 'a':
+            self._file = open(file, 'ab')
+        elif mode == 'w':
+            self._file = open(file, 'wb')
+
+        self._mode = mode
+        self._opened = True
 
     def _get_info(self):
         '''
@@ -32,13 +41,12 @@ class Gro(Trajectory):
         self._file.seek(0)
 
         # read in the file once and build a list of line offsets
-        self._line_offset = []
+        # the last element is the length of whole file
+        self._line_offset = [0]
         offset = 0
         for line in self._file:
-            self._line_offset.append(offset)
             offset += len(line)
-        # the last element is the length of whole file
-        self._line_offset.append(offset)
+            self._line_offset.append(offset)
         self._file.seek(0)
 
         # build a list of frame offsets
@@ -50,28 +58,11 @@ class Gro(Trajectory):
 
         self._frame = Frame(self.n_atom)
 
-    def read_frame(self, i_frame):
+    def _read_frame(self, i_frame, frame):
         # skip to frame i and read only this frame
         self._file.seek(self._frame_offset[i_frame])
-        string = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame])
-        self._read_frame_from_string(string, self._frame)
-
-        return self._frame
-
-    def read_frames(self, i_frames: [int]) -> [Frame]:
-        frames = []
-        for i in i_frames:
-            frame = Frame(self.n_atom)
-            # skip to frame i and read only this frame
-            self._file.seek(self._frame_offset[i])
-            string = self._file.read(self._frame_offset[i + 1] - self._frame_offset[i])
-            self._read_frame_from_string(string, frame)
-            frames.append(frame)
-
-        return frames
-
-    def _read_frame_from_string(self, string: str, frame: Frame):
-        lines = string.splitlines()
+        lines = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame]) \
+            .decode().splitlines()
         # assume there are velocities. we'll see later
         frame.has_velocity = True
         for i in range(self.n_atom):
@@ -79,7 +70,7 @@ class Gro(Trajectory):
             x = float(line[20:28])
             y = float(line[28:36])
             z = float(line[36:44])
-            frame.positions[i] = np.array([x, y, z])
+            frame.positions[i][:] = x, y, z
 
             if frame.has_velocity:
                 try:
@@ -89,7 +80,7 @@ class Gro(Trajectory):
                 except:
                     frame.has_velocity = False
                 else:
-                    frame.velocities[i] = np.array([vx, vy, vz])
+                    frame.velocities[i][:] = vx, vy, vz
         _box = tuple(map(float, lines[self.n_atom + 2].split()))
         if len(_box) == 3:
             frame.cell.set_box(_box)
@@ -99,31 +90,30 @@ class Gro(Trajectory):
         else:
             raise ValueError('Invalid box')
 
-        return frame
-
-    def write_frame(self, frame: Frame, topology: Topology, subset=None, write_velocity=False):
+    def _write_frame(self, frame: Frame, topology: Topology, subset=None, write_velocity=False):
+        if subset is None:
+            subset = list(range(len(frame.positions)))
         if write_velocity and not frame.has_velocity:
             raise Exception('Velocities are requested but not exist in frame')
 
-        self._file.write('Created by mstools: step= %i, t= %f ps\n' % (frame.step, frame.time))
-        if subset is None:
-            subset = list(range(topology.n_atom))
-        self._file.write('%i\n' % len(subset))
+        string = 'Created by mstools: step= %i, t= %f ps\n' % (frame.step, frame.time)
+        string += '%i\n' % len(subset)
 
         for id in subset:
             atom = topology.atoms[id]
             mol = atom.molecule
             pos = frame.positions[id]
-            line = '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
+            string += '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
                 (mol.id + 1) % 100000, mol.name[:5], atom.symbol[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2])
             if write_velocity:
                 vel = frame.velocities[id]
-                line += '%8.4f%8.4f%8.4f' % (vel[0], vel[1], vel[2])
-            self._file.write(line + '\n')
+                string += '%8.4f%8.4f%8.4f' % (vel[0], vel[1], vel[2])
+            string += '\n'
 
         a, b, c = frame.cell.vectors
-        self._file.write(' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n' %
-                         (a[0], b[1], c[2], a[1], a[2], b[0], b[2], c[0], c[1]))
+        string += ' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n' % (
+            a[0], b[1], c[2], a[1], a[2], b[0], b[2], c[0], c[1])
 
+        self._file.write(string.encode())
         self._file.flush()

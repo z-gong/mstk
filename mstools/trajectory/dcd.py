@@ -25,11 +25,15 @@ class Dcd(Trajectory):
         else:
             raise Exception('Appending not supported for DCD')
 
+        self._mode = mode
+        self._opened = True
+
     def close(self):
         try:
             self._dcd.close()
         except:
             pass
+        self._opened = False
 
     def _get_info(self):
         '''
@@ -43,24 +47,7 @@ class Dcd(Trajectory):
         _, self.n_atom, _ = positions.shape
         self._frame = Frame(self.n_atom)
 
-    def read_frame(self, i_frame):
-        self._read_frame(i_frame, self._frame)
-        return self._frame
-
-    def read_frames(self, i_frames: [int]) -> [Frame]:
-        if any(i >= self.n_frame for i in i_frames):
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
-        frames = []
-        for i in i_frames:
-            frame = Frame(self.n_atom)
-            self._read_frame(i, frame)
-            frames.append(frame)
-
-        return frames
-
     def _read_frame(self, i_frame, frame):
-        if i_frame >= self.n_frame:
-            raise Exception('i_frame should be smaller than %i' % self.n_frame)
         self._dcd.seek(i_frame)
         positions, box_lengths, box_angles = self._dcd.read(1)
         angle = box_angles[0]
@@ -68,7 +55,7 @@ class Dcd(Trajectory):
         frame.positions = positions[0] / 10  # convert A to nm
         frame.cell.set_box([box_lengths[0] / 10, angle])  # convert A to nm
 
-    def write_frame(self, frame, topology=None, subset=None):
+    def write_frame(self, frame, topology=None, subset=None, **kwargs):
         if subset is None:
             positions = frame.positions
         else:

@@ -28,10 +28,7 @@ class CombinedTrajectory(Trajectory):
         for trj in self._trajectories:
             trj.close()
 
-    def read_frame(self, i_frame: int):
+    def _read_frame(self, i_frame: int, frame):
         trj = self._i_frame_in_trj[i_frame]
         i = self._i_frame_offset[i_frame]
-        return trj.read_frame(i)
-
-    def read_frames(self, i_frames: [int]):
-        raise Exception('Reading multiple frames from CombinedTrajectory haven\'t been implemented')
+        return trj._read_frame(i, frame)
