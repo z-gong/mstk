@@ -148,13 +148,13 @@ class System():
                            .union(self.improper_classes)
                            .union(self.polarizable_classes))
 
-    def export_lmp(self):
+    def export_lmp(self, data_out='data.lmp', in_out='in.lmp'):
         from .lmpexporter import LammpsExporter
-        LammpsExporter.export(self, data_out='data.lmp', in_out='in.lmp')
+        LammpsExporter.export(self, data_out, in_out)
 
-    def export_gmx(self):
+    def export_gmx(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp'):
         from .gmxexporter import GromacsExporter
-        GromacsExporter.export(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp')
+        GromacsExporter.export(self, gro_out, top_out, mdp_out)
 
     def to_omm_system(self):
         from .ommexporter import OpenMMExporter
