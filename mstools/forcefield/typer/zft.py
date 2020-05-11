@@ -1,5 +1,4 @@
-import json
-from .typer import Typer
+from .typer import *
 
 try:
     import openbabel as ob
@@ -36,7 +35,7 @@ class ZftTyper(Typer):
     def __init__(self, file):
         super().__init__()
         self.defines: {str: TypeDefine} = {}
-        self.define_root = TypeDefine('Root', None, 0)
+        self.define_root = TypeDefine('UNDEFINED', None, 0)
         self._file = file
         self._parse(file)
 
@@ -50,44 +49,54 @@ class ZftTyper(Typer):
         with open(file)  as f:
             lines = f.read().splitlines()
 
-        string_tree = ''
         section = ''
+        tree_lines = []
         for line in lines:
-            line = line.split('##')[0].strip()
-            if line == '':
+            line = line.split('##')[0]
+            if line.strip() == '':
                 continue
-            if line == 'TypeDefinition':
-                section = line
+            if line.strip() == 'TypeDefinition':
+                section = 'TypeDefinition'
                 continue
-            if line == 'HierarchicalTree':
-                section = line
+            if line.strip() == 'HierarchicalTree':
+                section = 'HierarchicalTree'
                 continue
             if section == 'TypeDefinition':
-                name, smarts, charge = line.strip().split()
+                try:
+                    name, smarts, charge = line.strip().split()
+                except:
+                    raise Exception('smarts and charge should be provided')
                 self.defines[name] = TypeDefine(name, smarts, charge)
             if section == 'HierarchicalTree':
-                string_tree += line
+                tree_lines.append(line.rstrip())
 
-        try:
-            tree = json.loads(string_tree)
-        except Exception as e:
-            raise Exception('Cannot parse HierarchicalTree, make sure it\'s valid json: %s' % e)
-
-        self._parse_tree(self.define_root, tree)
-
-    def _parse_tree(self, parent: TypeDefine, d: {}):
-        for k, v in d.items():
-            define = self.defines[k]
-            parent.add_child(define)
-            if v is None:
-                continue
+        last_level = 0
+        last_define = self.define_root
+        for line in tree_lines:
+            name = line.lstrip()
+            indent = len(line) - len(name)
+            if indent % 4 != 0:
+                raise Exception('Indentation for HierarchicalTree should be 4 spaces: %s' % line)
+            level = (indent) // 4 + 1
+            if level == last_level + 1:
+                parent = last_define
+            elif level <= last_level:
+                parent = last_define
+                for i in range(last_level - level + 1):
+                    parent = parent.parent
             else:
-                self._parse_tree(define, v)
+                raise Exception('Invalid indentation: %s' % line)
+            last_level = level
+            try:
+                last_define = self.defines[name]
+            except:
+                raise Exception('Atom type not found in TypeDefinition section: %s' % line)
+            parent.add_child(last_define)
 
     def type_molecule(self, molecule):
         obmol = molecule._obmol
         if obmol is None:
-            raise Exception('Cannot type this molecule: obmol not found')
+            raise TypingNotSupportedError('obmol attribute not found')
 
         possible_defines = {i: [] for i in range(molecule.n_atom)}
         for define in self.defines.values():
@@ -98,12 +107,17 @@ class ZftTyper(Typer):
                 idx = indexes[0] - 1
                 possible_defines[idx].append(define)
 
-        for k, v in possible_defines.items():
-            print(molecule.atoms[k], v)
-
+        atoms_undefined = []
         for i in range(molecule.n_atom):
+            atom = molecule.atoms[i]
             define = self._get_deepest_define(possible_defines[i], self.define_root)
-            molecule.atoms[i].type = define.name
+            if define == self.define_root:
+                atoms_undefined.append(atom)
+            else:
+                molecule.atoms[i].type = define.name
+        if atoms_undefined != []:
+            raise TypingUndefinedError('atoms cannot be defined: %s' %
+                                       ', '.join([str(a) for a in atoms_undefined]))
 
     def _get_deepest_define(self, defines, parent: TypeDefine):
         for define in parent.children:

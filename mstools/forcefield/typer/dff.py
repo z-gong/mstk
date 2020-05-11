@@ -5,27 +5,22 @@ class DffDefaultTyper(Typer):
     def __init__(self):
         super().__init__()
 
-    def type_molecule(self, mol):
-        pass
-
 
 class DffDefTyper(Typer):
     def __init__(self, file):
         super().__init__()
-        self._file = open(file)
-        self.parse_tree()
-        self._file.close()
+        self._file = file
+        self._parse(file)
 
-    def parse_tree(self):
+    def _parse(self, file):
         pass
 
 
 class DffExtTyper(Typer):
     def __init__(self, file):
         super().__init__()
-        self._file = open(file)
-        self.parse_tree()
-        self._file.close()
+        self._file = file
+        self._parse(file)
 
-    def parse_tree(self):
+    def _parse(self, file):
         pass

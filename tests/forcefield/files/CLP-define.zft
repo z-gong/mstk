@@ -10,11 +10,12 @@ N_3 [#7X3] 0
 O_1 [#8X1] 0
 O_2 [#8X2] 0
 F_1 [#9X1] 0
+S_4 [#16X4] 0
 
 ## alkane
-HC [H]C 0
-CT [CH3]C 0
-CS [CH2](C)C 0
+HC [H][CX4] 0
+CT [CX4;H3] 0
+CS [CX4;H2] 0
 
 ## imidazolium
 NA n1cncc1 1
@@ -22,20 +23,23 @@ CR c1nccn1 1
 CW c1cncn1 1
 HCR [H]c1nccn1 1
 HCW [H]c1cncn1 1
-C1 [CH2,CH3]n1cncc1 1
-H1 [H]Cn1cncc1 1
-C2 [CH2][CH2]n1cncc1 1
+C1 [CX4;H2,H3]n1cncc1 1
+H1 [H][CX4]n1cncc1 1
+C2 [CX4;H2][CX4]n1cncc1 1
+CE [CX4;H3][CX4]n1cncc1 1
 
 ## benzene
 CA c1ccccc1 0
-HAT [H]c1ccccc1 0
+HA [H]c1ccccc1 0
 
 ## ethylbenzene-imidazolium
 CAT c1(C)ccccc1 0
 CAO [cH]1c(C)cccc1 0
 CAM [cH]1cc(C)ccc1 0
 CAP [cH]1ccc(C)cc1 0
+HAT [H][$(c1c(C)cccc1),$(c1cc(C)ccc1),$(c1ccc(C)cc1)] 0
 C_4H2_CA Cc1ccccc1 0
+HT [H][CX4]c1ccccc1 0
 C_4H2_NA [CH2](n1cncc1)Cc1ccccc1 1
 
 ## dicyanoimide
@@ -43,16 +47,54 @@ N3A [N-]C#N -1
 CZA C([N-])#N -1
 NZA N#C[N-] -1
 
+# FSI TFSI
+NBT [N-](S(=O)(=O))S(=O)(=O) -1
+SBT S(=O)(=O)[N-] -1
+OBT O=S(=O)[N-] -1
+FSI FS(=O)(=O)[N-] -1
+CBT C(F)(F)(F)S(=O)(=O)[N-] -1
+F1 F[CX4] 0
+
 HierarchicalTree
-{
-"H_1": {"HCR": null, "HCW": null, "HC": {"H1": null}, "HAT":null},
-"C_2": {"CZA": null},
-"C_3": {"CR": null, "CW": null, "CA": {"CAT": null, "CAO": null, "CAM": null, "CAP": null}},
-"C_4": {"C1": {"C_4H2_NA": null}, "C2": {"C_4H2_CA": null}, "CT": null, "CS": null},
-"N_1": {"NZA": null},
-"N_2": {"N3A": null},
-"N_3": {"NA": null},
-"O_1": null,
-"O_2": null,
-"F_1": null
-}
+H_1
+    HCR
+    HCW
+    HC
+        H1
+        HT
+    HA
+        HAT
+C_2
+    CZA
+C_3
+    CR
+    CW
+    CA
+        CAT
+        CAO
+        CAM
+        CAP
+C_4
+    C1
+        C_4H2_NA
+    CT
+        CE
+    CS
+        C_4H2_CA
+        C2
+    CBT
+N_1
+    NZA
+N_2
+    N3A
+    NBT
+N_3
+    NA
+O_1
+    OBT
+O_2
+F_1
+    FSI
+    F1
+S_4
+    SBT

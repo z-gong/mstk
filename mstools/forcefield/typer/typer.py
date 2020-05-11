@@ -1,10 +1,28 @@
+import warnings
+
+
+class TypingNotSupportedError(Exception):
+    pass
+
+
+class TypingUndefinedError(Exception):
+    pass
+
+
 class Typer():
     def __init__(self):
         pass
 
     def type(self, topology):
         for mol in topology.molecules:
-            self.type_molecule(mol)
+            try:
+                self.type_molecule(mol)
+            except TypingNotSupportedError as e:
+                warnings.warn('%s not supported by %s: %s' % (
+                    str(mol), self.__class__.__name__, str(e)))
+            except TypingUndefinedError as e:
+                warnings.warn('%s not fully typed by %s: %s' % (
+                    str(mol), self.__class__.__name__, str(e)))
 
     def type_molecule(self, molecule):
         '''
