@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import tempfile
 from .atom import Atom
 from .connectivity import *
 from .molecule import Molecule
@@ -8,26 +9,31 @@ from ..forcefield import FFSet
 
 
 class Topology():
-    def __init__(self):
+    def __init__(self, molecules=None):
         self.remark = ''
-        # TODO Better to set the default cell to None
         self.cell = UnitCell([0, 0, 0])
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
+        if molecules is not None:
+            self.update_molecules(molecules)
 
     def __deepcopy__(self, memodict={}):
         top = Topology()
         top.remark = self.remark
         top.cell = UnitCell(self.cell.vectors)
-        top.init_from_molecules(self._molecules, deepcopy=True)
+        top.update_molecules(self._molecules, deepcopy=True)
         return top
 
-    def init_from_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
+    def update_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
         '''
         Initialize a topology from a bunch of molecule.
         The molecules and atoms are deep copied if numbers is not None or deepcopy is True.
         This method should be called as long as atoms or molecules are added to or removed from topology.
         '''
+        if not isinstance(molecules, (list, tuple)) \
+                or any(type(mol) is not Molecule for mol in molecules):
+            raise Exception('A list of molecules should be provided')
+
         if len(set(molecules)) < len(molecules):
             raise Exception('There are duplicated molecules, consider set the number of molecule')
         if numbers is None and not deepcopy:
@@ -46,9 +52,9 @@ class Topology():
             mol._topology = self
         self._atoms = [atom for mol in self._molecules for atom in mol.atoms]
 
-        self.assign_id()
+        self._assign_id()
 
-    def assign_id(self):
+    def _assign_id(self):
         '''
         Assign the id of molecules and atoms belongs to this topology
         '''
@@ -96,6 +102,51 @@ class Topology():
                 flags[mol.id] = mol.id
 
         return {mol: flags.count(mol.id) for mol in mols_unique}
+
+    def scale_with_packmol(self, numbers, packmol):
+        if type(numbers) is int:
+            numbers = [numbers] * self.n_molecule
+        else:
+            if len(numbers) != self.n_molecule:
+                raise Exception('Length of numbers should equal to molecules')
+            if any(type(n) is not int for n in numbers):
+                raise Exception('Numbers should be list of integers')
+
+        if self.cell.volume == 0:
+            raise Exception('unitcell should be defined first')
+
+        if not self.cell.is_rectangular:
+            raise Exception('triclinic unitcell haven\'t been implemented')
+
+        from ..wrapper.packmol import Packmol
+        packmol: Packmol
+
+        xyz_files = []
+        for mol in self._molecules:
+            t = Topology([mol])
+            f = tempfile.NamedTemporaryFile(suffix='.xyz').name
+            t.write(f)
+            xyz_files.append(f)
+        tmp_xyz = tempfile.NamedTemporaryFile(suffix='.xyz').name
+        tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp').name
+
+        print(xyz_files)
+        print(tmp_xyz)
+        print(tmp_inp)
+        print('Build with Packmol ...')
+        packmol.build_box(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
+                          inp_file=tmp_inp, silent=True)
+        try:
+            xyz = Topology.open(tmp_xyz)
+        except:
+            raise Exception('Building failed. xyz not found')
+
+        if xyz.n_atom != sum(mol.n_atom * numbers[i] for i, mol in enumerate(self._molecules)) \
+                or not xyz.has_position:
+            raise Exception('Building failed. incorrectly information in xyz')
+
+        self.update_molecules(self._molecules, numbers)
+        self.set_positions(xyz.positions)
 
     @property
     def n_molecule(self):
@@ -245,7 +296,7 @@ class Topology():
                     pass
                 mol.add_atom(atom)
             molecules.append(mol)
-        self.init_from_molecules(molecules)
+        self.update_molecules(molecules)
 
     def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
         '''

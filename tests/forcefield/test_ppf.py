@@ -94,5 +94,5 @@ def test_read():
 
 
 def test_write():
-    params = Padua(cwd + '/files/clp.ff', cwd + '/files/clp-alpha.ff')
-    Ppf.save_to(params, cwd + '/files/out-clp.ppf')
+    params = Padua(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    Ppf.save_to(params, cwd + '/files/out-CLP.ppf')

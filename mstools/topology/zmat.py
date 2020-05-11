@@ -217,4 +217,4 @@ class Zmat(Topology):
                 mol.atoms[i].position = vA
 
         mol.generate_angle_dihedral_improper()
-        self.init_from_molecules([mol])
+        self.update_molecules([mol])

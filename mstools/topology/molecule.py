@@ -19,6 +19,7 @@ class Molecule():
         self._angles: [Angle] = []
         self._dihedrals: [Dihedral] = []
         self._impropers: [Improper] = []
+        self._obmol = None # this is for typing based on SMARTS
 
     def __str__(self):
         return f'<Molecule: {self.name} {self.id}>'
@@ -30,6 +31,7 @@ class Molecule():
         mol = Molecule()
         mol.id = self.id
         mol.name = self.name
+        mol._obmol = self._obmol
         for atom in self._atoms:
             atom_new = copy.deepcopy(atom)
             mol.add_atom(atom_new)
@@ -95,7 +97,15 @@ class Molecule():
             atom2 = mol.atoms[b.GetEndAtomIdx() - 1]
             mol.add_bond(atom1, atom2)
         mol.generate_angle_dihedral_improper()
+        mol._obmol = py_mol.OBMol
         return mol
+
+    @property
+    def obmol(self):
+        if self._obmol is not None:
+            return self._obmol
+        else:
+            raise Exception('obmol not assigned for this molecule')
 
     @property
     def topology(self):
@@ -118,7 +128,7 @@ class Molecule():
             for i, at in enumerate(self._atoms):
                 at._id_in_molecule = i
         if self._topology is not None and update_topology:
-            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom: Atom, update_topology=True):
         '''
@@ -134,7 +144,7 @@ class Molecule():
         for i, at in enumerate(self._atoms):
             at._id_in_molecule = i
         if self._topology is not None and update_topology:
-            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def add_bond(self, atom1: Atom, atom2: Atom, check_existence=False):
         bond = Bond(atom1, atom2)
@@ -487,7 +497,7 @@ class Molecule():
             self.add_bond(parent, drude)
 
         if self._topology is not None:
-            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
         dtype = params.atom_types.get(type_drude)
         if dtype is None:
@@ -514,7 +524,7 @@ class Molecule():
             self.remove_bond(drude._bonds[0])
             self.remove_atom(drude, update_topology=False)
         if self._topology is not None:
-            self._topology.init_from_molecules(self._topology.molecules, deepcopy=False)
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def assign_mass_from_ff(self, params: FFSet):
         '''

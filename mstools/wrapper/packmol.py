@@ -38,12 +38,12 @@ class Packmol:
             raise PackmolError('All file types should be the same')
         filetype = extensions.pop()
 
-        if size != None:
+        if size is not None:
             if len(size) != 3:
                 raise PackmolError('Invalid box size')
             else:
                 self.size = size
-        elif length != None:
+        elif length is not None:
             self.size = [length, length, length]
         else:
             raise PackmolError('Box size needed')
@@ -58,7 +58,7 @@ class Packmol:
         )
 
         # liquid-gas interface
-        if slab != None:
+        if slab is not None:
             box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], slab)
             box_gas = '0 0 %f %f %f %f' % (slab, self.size[0], self.size[1], self.size[2])
             for i, filename in enumerate(files):

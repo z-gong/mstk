@@ -16,5 +16,5 @@ def test_write():
     zmat.write(cwd + '/files/zmat-out.pdb')
     mol = Molecule.from_smiles('C[n+]1cn(cc1)CCCC[B-](F)(F)F')
     top = Topology()
-    top.init_from_molecules([mol])
+    top.update_molecules([mol])
     top.write(cwd + '/files/smi-out.pdb')

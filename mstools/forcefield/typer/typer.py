@@ -10,4 +10,4 @@ class Typer():
         '''
         Should be implemented by inheritor
         '''
-        pass
+        raise Exception('This method haven\'t been implemented')

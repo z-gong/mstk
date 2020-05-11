@@ -107,7 +107,7 @@ class Psf(Topology):
             mol = molecules[atom._mol_id - 1]
             mol.add_atom(atom)
 
-        self.init_from_molecules(molecules)
+        self.update_molecules(molecules)
 
     def parse_bonds(self, lines):
         n_bond = int(lines[0].strip().split()[0])

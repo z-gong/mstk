@@ -50,7 +50,7 @@ args = parser.parse_args()
 top = Topology.open(args.topology)
 if args.topignore != []:
     molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
-    top.init_from_molecules(molecules)
+    top.update_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 if args.cmd in ():

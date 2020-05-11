@@ -1,0 +1,170 @@
+MONOMERS
+# monomer charge dipole_moment polarizability
+# polarizability is not necessary for fragments without charge and dipole
+#  +/- in name is not necessary
+# cations
+c2c1im+      1      1.1558    12.38
+c2c1c1im+    1      1.4010
+c1c1pyrr+    1      1.6413
+c2py+        1      0.5329
+N1111+       1      0.0015
+P1111+       1      0.0015
+N1110+       1      0.8461
+ch+          1      3.4533
+# anions
+dca-        -1      0.8874     8.268
+bf4-        -1      0.0000
+fsi-        -1      0.4245    10.63
+ntf2-       -1      4.0070
+mso-        -1      3.5663     6.97
+oac-        -1      3.1851
+otf-        -1      4.1463
+pf6-        -1      0.0000
+tfa-        -1      4.6481
+cns-        -1      1.0133
+ch3so4-     -1      4.0557
+ccn3-       -1      0.0078
+cl-         -1      0.0000
+# neutral
+C4H10        0      0.0000
+C4F10        0      0.0236
+C6H14        0      0.0000
+dme          0      1.2442
+tol          0      0.2802
+bz           0      0.0000
+an           0      3.7467
+dmso         0      3.8514
+etoh         0      1.5459
+nmp          0      3.7301
+
+# added
+
+DIMERS
+# monomer1 monomer2 COM_distance/Å
+# cation-anion
+c2c1im	    dca	    2.935
+c2c1im	    ntf2	4.314
+c2c1im	    bf4	    3.088
+c1c1pyrr	bf4	    3.724
+c1c1pyrr	dca	    4.094
+c1c1pyrr	ntf2	4.725
+c2c1im	    mso	    3.546
+c2py	    bf4	    3.143
+c2py	    ntf2	4.206
+N1111	    bf4	    3.819
+N1111	    ntf2	4.576
+c2c1im	    oac	    4.073
+c2c1im	    otf	    4.290
+ch          cl      3.499
+# cation-neutral
+c2c1im	    C4H10	3.613
+c2c1im	    C6H14	3.992
+c1c1pyrr	C4H10	4.429
+c2c1im	    tol	    3.894
+c2c1im	    dmso	5.021
+c1c1pyrr    dme	    5.023
+c2py	    C4H10	3.761
+N1111	    C4H10	4.453
+c2c1im      bz  	4.049
+# neutral-anion
+C4H10	    dca	    3.542
+C6H14	    dca	    3.608
+C4H10	    ntf2	4.436
+C6H14	    ntf2	4.117
+C4H10	    bf4	    3.531
+C6H14	    bf4	    3.476
+dmso	    ntf2	4.355
+dme	        fsi	    4.583
+tol	        mso	    4.898
+C4H10	    mso	    3.737
+an	        ntf2	4.950
+dmso        oac 	3.844
+bz	        oac	    4.879
+bz	        otf	    5.858
+# neutral-neutral
+C4H10	    C4H10	4.170
+C4H10	    tol	    3.618
+dmso	    dmso	3.912
+dmso	    tol	    4.183
+dmso	    C4H10	3.822
+dme	        dme	    3.856
+dme	        C4H10	3.663
+an	        C4H10	3.880
+an	        an	    3.403
+bz	        bz	    3.800
+bz	        nmp     5.010
+nmp         nmp     3.518
+
+# added
+c2c1im      fsi	    3.50
+C4H10       fsi	    4.02
+c2c1im      c2c1im  3.056
+dca         dca     2.914
+
+K_SAPT2
+# monomer1 monomer2 k_SAPT2+
+# cation-anion
+c2c1im	    dca	    0.61
+c2c1im	    ntf2	0.65
+c2c1im	    bf4	    0.52
+c1c1pyrr	bf4	    0.46
+c1c1pyrr	dca	    0.53
+c1c1pyrr	ntf2	0.54
+c2c1im	    mso	    0.44
+c2py	    bf4	    0.51
+c2py	    ntf2	0.60
+N1111	    bf4	    0.43
+N1111	    ntf2	0.55
+c2c1im	    oac	    0.27
+c2c1im	    otf	    0.49
+ch          cl      0.35
+# cation-neutral
+c2c1im	    C4H10	0.76
+c2c1im	    C6H14	0.74
+c1c1pyrr	C4H10	0.67
+c2c1im	    tol	    0.63
+c2c1im	    dmso	0.42
+c1c1pyrr    dme	    0.59
+c2py	    C4H10	0.76
+N1111	    C4H10	0.60
+c2c1im      bz  	0.62
+# neutral-anion
+C4H10	    dca	    0.69
+C6H14	    dca	    0.61
+C4H10	    ntf2	0.77
+C6H14	    ntf2	0.77
+C4H10	    bf4	    0.51
+C6H14	    bf4	    0.51
+dmso	    ntf2	0.69
+dme	        fsi	    0.73
+tol	        mso	    0.50
+C4H10	    mso	    0.56
+an	        ntf2	0.71
+dmso        oac 	0.42
+bz	        oac	    0.37
+bz	        otf	    0.64
+# neutral-neutral
+C4H10	    C4H10	0.94
+C4H10	    tol	    0.90
+dmso	    dmso	0.70
+dmso	    tol	    0.75
+dmso	    C4H10	0.79
+dme	        dme	    0.89
+dme	        C4H10	0.93
+an	        C4H10	0.87
+an	        an	    0.69
+bz	        bz	    0.95
+bz	        nmp     0.89
+nmp         nmp     0.79
+
+ATOMS
+# cation
+c2c1im   NA CR CW C1 HCR HCW CE C2 H1
+# anion
+dca      N3A CZA NZA
+fsi      FSI SBT NBT OBT
+#c1so4    HS4 CS4 OC4 SO  OS4
+#use mso (c1so3) to represent c1so4
+mso      HS4 CS4 OC4 SO  OS4
+# netural
+C4H10    CT  CS  HC MoS SMo IMG

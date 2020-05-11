@@ -55,7 +55,7 @@ def test_vdw_shift():
 
 
 def test_drude():
-    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLP-alpha.ff')
+    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
     top.generate_angle_dihedral_improper()
     # top.remove_drude_particles()

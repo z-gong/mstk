@@ -11,6 +11,7 @@ class FFTermNotFoundError(Exception):
 class FFTerm():
     def __init__(self):
         self.version = None
+        self.comments: [str] = []
 
     @property
     def name(self):

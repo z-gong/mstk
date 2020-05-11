@@ -21,7 +21,8 @@ from mstools.trajectory import Trajectory
 from mstools.constant import VACUUM_PERMITTIVITY, ELEMENTARY_CHARGE, NANO
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'dipole', 'charge', 'chargeconp'],
+parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',
+                                    'chargeconp'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -38,14 +39,12 @@ parser.add_argument('--cathode', default=0, type=float, help='z coordinate (in n
 parser.add_argument('--anode', default=6.5, type=float, help='z coordinate (in nm) of anode')
 parser.add_argument('--dz', default=0.01, type=float,
                     help='bin size (nm) for numerical calculation of distribution and voltage')
-parser.add_argument('--topignore', nargs='+', default=[], type=str,
-                    help='ignore these molecule types in topology in case topology and trajectory do not match')
+parser.add_argument('--ignore', nargs='+', default=[], type=str,
+                    help='ignore these molecules in topology in case topology and trajectory do not match')
 parser.add_argument('--dt', default=10, type=float,
                     help='time interval (ps) between frames if not presented in trajectory. '
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames in trajectory')
-parser.add_argument('--ignore', nargs='+', default=[], type=str,
-                    help='ignore these molecule types for voltage analysis')
 parser.add_argument('--voltage', default=0, type=float,
                     help='pre-assigned voltage drop in image charge simulation for analyzing surface charge, '
                          'or the evolved voltage drop between electrodes from surface charge for analyzing voltage. '
@@ -54,9 +53,9 @@ parser.add_argument('--voltage', default=0, type=float,
 args = parser.parse_args()
 
 top = Topology.open(args.topology)
-if args.topignore != []:
-    molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
-    top.init_from_molecules(molecules)
+if args.ignore != []:
+    molecules = [mol for mol in top.molecules if mol.name not in args.ignore]
+    top.update_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 if args.cmd in ('dist', 'diffuse', 'dipole'):
@@ -197,43 +196,43 @@ def distribution():
     print('')
 
     name_column_dict = {'z': z_array}
-
     fig, ax = plt.subplots()
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
     for name, z_list in z_atom_dict.items():
         x, y = histogram(z_list, bins=edges)
         ax.plot(x, y / area / dz / n_frame, label=name)
-        name_column_dict['rho_atom-' + name] = y / area / dz / n_frame
+        name_column_dict['rho-' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist.png')
+    print_data_to_file(name_column_dict, f'{args.output}-dist.txt')
 
+    name_column_dict = {'z': z_array}
     fig, ax = plt.subplots()
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='molecule density (/$nm^3$)')
     ax2 = ax.twinx()
-    ax2.set_ylabel('cum_mol-')
+    ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
         ax.plot(x, y_com / area / dz / n_frame, label=name)
         ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name)
-        name_column_dict['rho_mol-' + name] = y_com / area / dz / n_frame
-        name_column_dict['cum_mol-' + name] = np.cumsum(y_com) / n_frame
+        name_column_dict['rho-' + name] = y_com / area / dz / n_frame
+        name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-dist-com.png')
+    print_data_to_file(name_column_dict, f'{args.output}-dist-com.txt')
 
-    print_data_to_file(name_column_dict, f'{args.output}-dist.txt')
-
+    name_column_dict = {}
     fig, ax = plt.subplots()
     ax.set(xlim=[0, 90], ylim=[0, 0.1], xlabel='theta', ylabel='probability')
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
         ax.plot(x, y, label=name)
-        name_column_dict = {'theta': x, 'prob-' + name: y}
+        name_column_dict.update({'theta': x, 'prob-' + name: y})
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-angle.png')
-
     print_data_to_file(name_column_dict, f'{args.output}-angle.txt')
 
 
@@ -323,7 +322,63 @@ def diffusion():
     print_data_to_file(name_column_dict, f'{args.output}-residence.txt')
 
 
+def drude_dipole():
+    '''
+    Calculate the distribution of Drude induced dipoles
+    '''
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    drude_ids = [atom.id for atom in top.atoms if atom.is_drude]
+    parent_ids = [atom.bond_partners[0].id for atom in top.atoms if atom.is_drude]
+    drude_charges = top_atom_charges[drude_ids]
+    z_dipoles = [[] for z in z_array]
+    z_abs_dipoles = [[] for z in z_array]
+    z_distances = [[] for z in z_array]
+    n_frame = 0
+    for i in range(args.begin, args.end, args.skip):
+        n_frame += 1
+        frame = trj.read_frame(i)
+        sys.stdout.write('\r    frame %i' % i)
+        drude_positions = frame.positions[drude_ids]
+        parent_positions = frame.positions[parent_ids]
+        deltas = drude_positions - parent_positions
+        dipoles = deltas * drude_charges[:, np.newaxis]
+        distances = np.array([np.sqrt(np.dot(d, d)) for d in deltas])
+        abs_dipoles = -distances * drude_charges[: np.newaxis]
+        z_indexes = ((parent_positions[:, 2] - edges[0]) / dz).astype(int)
+        for idx, dipole, abs_dipole, dist in zip(z_indexes, dipoles, abs_dipoles, distances):
+            z_dipoles[idx].append(dipole)
+            z_abs_dipoles[idx].append(abs_dipole)
+            z_distances[idx].append(dist)
+
+    z_dipole = np.array([np.sum(dipoles, axis=0) / n_frame if len(dipoles) > 0 else np.array([0., 0., 0.])
+                         for dipoles in z_dipoles])
+    z_distance = np.array([np.mean(distances) if len(distances) > 0 else 0
+                           for distances in z_distances])
+    z_abs_dipole = np.array([np.sum(abs_dipoles) / n_frame if len(abs_dipoles) > 0 else 0
+                             for abs_dipoles in z_abs_dipoles])
+
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='induced dipole (e*nm)')
+    ax.plot(z_array, z_abs_dipole, label='|dipole|')
+    ax.plot(z_array, z_dipole[:, 2], label='dipoleZ')
+    # ax.plot(z_array, z_dipole[:, 0], label='dipoleX')
+    # ax.plot(z_array, z_dipole[:, 1], label='dipoleY')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-induced.png')
+
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='induced dipole distance (nm)')
+    ax.plot(z_array, z_distance, label='distance')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-induced_distance.png')
+
+
 def dipole():
+    '''
+    Calculate the distribution of molecular dipoles
+    '''
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
     name_z_dipoles_dict = {}  # {'ring': [[array, array, ...], [array, array, ...] , ...]}
     name_z_dipole_dict = {}  # {'ring': array([array, array , ...])}
@@ -378,19 +433,19 @@ def dipole():
 def voltage():
     charges = np.zeros(n_bin)
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
-    id_atoms = [atom.id for atom in top.atoms if atom.molecule.name not in args.ignore]
-
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
         n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        atom_z_coors = frame.positions[id_atoms][:, 2]
-        atom_charges = frame.charges[id_atoms] if frame.has_charge else top_atom_charges[id_atoms]
-        atom_i_bin = ((atom_z_coors - edges[0]) / dz).astype(int)
-        for i, i_bin in enumerate(atom_i_bin):
-            charges[i_bin] += atom_charges[i]
+        z_to_cathode = frame.positions[:, 2] - args.cathode
+        ids_ils = np.where((z_to_cathode > 0) & (z_to_cathode < lz))
+        z_ils = z_to_cathode[ids_ils]
+        q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
+        i_bin_ils = ((z_ils - edges[0]) / dz).astype(int)
+        for i, i_bin in enumerate(i_bin_ils):
+            charges[i_bin] += q_ils[i]
 
     charges /= n_frame
     ### add back charges on electrodes
@@ -492,6 +547,8 @@ if __name__ == '__main__':
         diffusion()
     elif args.cmd == 'voltage':
         voltage()
+    elif args.cmd == 'drude':
+        drude_dipole()
     elif args.cmd == 'dipole':
         dipole()
     elif args.cmd == 'charge':

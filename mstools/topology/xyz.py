@@ -33,7 +33,7 @@ class XyzTopology(Topology):
                 atom.has_position = True
                 mol.add_atom(atom)
 
-        self.init_from_molecules([mol])
+        self.update_molecules([mol])
 
     @staticmethod
     def save_to(top, file):

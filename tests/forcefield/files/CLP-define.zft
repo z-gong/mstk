@@ -1,0 +1,58 @@
+TypeDefinition
+## basic
+H_1 [H] 0
+C_2 [#6X2] 0
+C_3 [#6X3] 0
+C_4 [#6X4] 0
+N_1 [#7X1] 0
+N_2 [#7X2] 0
+N_3 [#7X3] 0
+O_1 [#8X1] 0
+O_2 [#8X2] 0
+F_1 [#9X1] 0
+
+## alkane
+HC [H]C 0
+CT [CH3]C 0
+CS [CH2](C)C 0
+
+## imidazolium
+NA n1cncc1 1
+CR c1nccn1 1
+CW c1cncn1 1
+HCR [H]c1nccn1 1
+HCW [H]c1cncn1 1
+C1 [CH2,CH3]n1cncc1 1
+H1 [H]Cn1cncc1 1
+C2 [CH2][CH2]n1cncc1 1
+
+## benzene
+CA c1ccccc1 0
+HAT [H]c1ccccc1 0
+
+## ethylbenzene-imidazolium
+CAT c1(C)ccccc1 0
+CAO [cH]1c(C)cccc1 0
+CAM [cH]1cc(C)ccc1 0
+CAP [cH]1ccc(C)cc1 0
+C_4H2_CA Cc1ccccc1 0
+C_4H2_NA [CH2](n1cncc1)Cc1ccccc1 1
+
+## dicyanoimide
+N3A [N-]C#N -1
+CZA C([N-])#N -1
+NZA N#C[N-] -1
+
+HierarchicalTree
+{
+"H_1": {"HCR": null, "HCW": null, "HC": {"H1": null}, "HAT":null},
+"C_2": {"CZA": null},
+"C_3": {"CR": null, "CW": null, "CA": {"CAT": null, "CAO": null, "CAM": null, "CAP": null}},
+"C_4": {"C1": {"C_4H2_NA": null}, "C2": {"C_4H2_CA": null}, "CT": null, "CS": null},
+"N_1": {"NZA": null},
+"N_2": {"N3A": null},
+"N_3": {"NA": null},
+"O_1": null,
+"O_2": null,
+"F_1": null
+}

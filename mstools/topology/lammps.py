@@ -163,7 +163,7 @@ class LammpsData(Topology):
                 # atomic symbol + index inside mol starting from 1
                 atom.name = atom.symbol + str(i + 1)
 
-        self.init_from_molecules(molecules)
+        self.update_molecules(molecules)
 
     def parse_bonds(self, lines, n_bond):
         atoms = self.atoms

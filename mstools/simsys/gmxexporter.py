@@ -46,29 +46,29 @@ class GromacsExporter():
         string = '; GROMACS topol file created by mstools\n'
 
         string += '\n[ defaults ]\n'
-        string += '; nbfunc   comb-rule   gen-pairs   fudgeLJ   fudgeQQ\n'
+        string += '; nbfunc  comb-rule  gen-pairs  fudgeLJ  fudgeQQ\n'
         _comb = 2 if system.ff.lj_mixing_rule == FFSet.LJ_MIXING_LB else 3
-        string += '%6i %6i %6s %10.4f %10.4f\n' % (
+        string += '%6i %6i %12s %10.4f %10.4f\n' % (
             1, _comb, 'yes', system.ff.scale_14_vdw, system.ff.scale_14_coulomb)
 
         string += '\n[ atomtypes ]\n'
-        string += '; name        mass      charge   ptype         sigma           epsilon\n'
+        string += ';     name       mass     charge      ptype      sigma      epsilon\n'
         for atype in system.ff.atom_types.values():
             vdw = system.ff.get_vdw_term(atype, atype)
             if vdw.__class__ in (LJ126Term, MieTerm):
-                string += '%10s %10.4f %12.6f %6s %12.6f %12.6f\n' % (
-                    atype.name, 0.0, 0.0, 'A', vdw.sigma, vdw.epsilon)
+                string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
+                    atype.name, 0.0, 0.0, 'A', vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
             else:
                 raise Exception('Unsupported vdW term')
 
         string += '\n[ nonbond_params ]\n'
-        string += ';       i        j        func        sigma        epsilon\n'
+        string += ';       i        j        func      sigma      epsilon\n'
         for at1, at2 in itertools.combinations(system.ff.atom_types.values(), 2):
             vdw = system.ff.pairwise_vdw_terms.get(VdwTerm(at1.eqt_vdw, at2.eqt_vdw).name)
             if vdw is not None:
                 if vdw.__class__ in (LJ126Term, MieTerm):
-                    string += '%10s %10s %6i %12.6f %12.6f\n' % (
-                        at1.name, at2.name, 1, vdw.sigma, vdw.epsilon)
+                    string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
+                        at1.name, at2.name, 1, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
                 else:
                     raise Exception('Unsupported vdW term')
 
