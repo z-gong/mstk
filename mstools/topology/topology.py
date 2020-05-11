@@ -305,6 +305,7 @@ class Topology():
         pair_12_list = []
         pair_13_list = []
         pair_14_list = []
+        mol: Molecule
         for mol in self._molecules:
             pairs_12, pairs_13, pairs_14 = mol.get_12_13_14_pairs()
             pair_12_list += pairs_12
@@ -322,9 +323,12 @@ class Topology():
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper()
 
-    def guess_connectivity_from_ff(self, params: FFSet, **kwargs):
+    def guess_connectivity_from_ff(self, params: FFSet, bond_limit=0.25, bond_tolerance=0.025,
+                                   angle_tolerance=None, pbc=''):
+        mol: Molecule
         for mol in self._molecules:
-            mol.guess_connectivity_from_ff(params, **kwargs)
+            mol.guess_connectivity_from_ff(params, bond_limit, bond_tolerance,
+                                           angle_tolerance, pbc, self.cell)
 
     def generate_drude_particles(self, params: FFSet, **kwargs):
         for mol in self._molecules:

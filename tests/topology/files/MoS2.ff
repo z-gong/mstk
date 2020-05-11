@@ -1,0 +1,31 @@
+# oplsaa.ff, version 2017/06/19
+# units: kJ/mol, A, deg
+# bond and angle force constants are in the form k/2 (x - x0)^2
+# use cons for constrained bonds and angles
+# improper dihedrals are relative to the third atom in the list
+
+ATOMS
+#   type   m/u     q/e    pot   pars
+# MoS2
+MoS  MoS  95.937  +0.5    lj    4.43   0.485
+SMo  SMo  32.064  -0.25   lj    3.34   2.085
+
+BONDS
+# i j    pot    re/A    kr/kJmol-1
+# MoS2
+MoS SMo   harm   2.41   430.3
+
+ANGLES
+# i  j  k    pot    th/deg  ka/kjmol-1
+# MoS2
+SMo MoS SMo  harm   83.8   1187.7
+MoS SMo MoS  harm   83.8   2050.0
+
+DIHEDRALS
+# i j   k   l    pot     v1        v2        v3        v4
+# alkanes JACS 118(1996)11225, JPC 100(1996)18010
+#HC  CT  CT  HC   opls    0.0000    0.0000    1.2552    0.0000
+
+IMPROPER
+# improper C aromatics AMBER JACS 117(1995)5179
+#CA  CA  CA  HA   opls    0.0000    9.2048    0.0000    0.0000

@@ -8,14 +8,6 @@ from ..forcefield import FFSet
 from ..forcefield.ffterm import *
 from ..constant import *
 
-try:
-    from simtk import openmm as mm
-    from simtk.openmm import app
-except ImportError:
-    OMM_EXIST = False
-else:
-    OMM_EXIST = True
-
 
 class System():
     '''

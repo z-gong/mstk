@@ -1,10 +1,12 @@
 import math
+import itertools
 import random
 import copy
 import warnings
 import numpy as np
 from .atom import Atom
 from .connectivity import *
+from .unitcell import UnitCell
 from ..forcefield import FFSet, Element
 from ..forcefield.ffterm import *
 
@@ -19,7 +21,7 @@ class Molecule():
         self._angles: [Angle] = []
         self._dihedrals: [Dihedral] = []
         self._impropers: [Improper] = []
-        self._obmol = None # this is for typing based on SMARTS
+        self._obmol = None  # this is for typing based on SMARTS
 
     def __str__(self):
         return f'<Molecule: {self.name} {self.id}>'
@@ -284,22 +286,19 @@ class Molecule():
         pair_12_set = set()
         pair_13_set = set()
         pair_14_set = set()
+
+        for atom in [a for a in self._atoms if not a.is_drude]:
+            partners = [p for p in atom.bond_partners if not p.is_drude]
+            for a1, a3 in itertools.combinations(partners, 2):
+                pair = tuple(sorted([a1, a3]))
+                pair_13_set.add(pair)
+
         for bond in filter(lambda x: not x.is_drude, self.bonds):
             a2, a3 = bond.atom1, bond.atom2
             pair = tuple(sorted([a2, a3]))
             pair_12_set.add(pair)
-
-            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
-                if a1 != a3:
-                    pair = tuple(sorted([a1, a3]))
-                    pair_13_set.add(pair)
-            for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
-                if a2 != a4:
-                    pair = tuple(sorted([a2, a4]))
-                    pair_13_set.add(pair)
-
-            for a1 in filter(lambda x: not x.is_drude, a2.bond_partners):
-                for a4 in filter(lambda x: not x.is_drude, a3.bond_partners):
+            for a1 in [p for p in a2.bond_partners if not p.is_drude]:
+                for a4 in [p for p in a3.bond_partners if not p.is_drude]:
                     if a1 != a3 and a2 != a4 and a1 != a4:
                         pair = tuple(sorted([a1, a4]))
                         pair_14_set.add(pair)
@@ -319,29 +318,25 @@ class Molecule():
         self._dihedrals = []
         self._impropers = []
 
-        for bond in filter(lambda x: not x.is_drude, self._bonds):
-            atom2 = bond.atom1
-            atom3 = bond.atom2
-            for atom1 in filter(lambda x: not x.is_drude, atom2.bond_partners):
-                if atom1 != atom3:
-                    self.add_angle(atom1, atom2, atom3, check_existence=True)
-            for atom4 in filter(lambda x: not x.is_drude, atom3.bond_partners):
-                if atom2 != atom4:
-                    self.add_angle(atom2, atom3, atom4, check_existence=True)
-
-            for atom1 in filter(lambda x: not x.is_drude, atom2.bond_partners):
-                for atom4 in filter(lambda x: not x.is_drude, atom3.bond_partners):
-                    if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
-                        self.add_dihedral(atom1, atom2, atom3, atom4, check_existence=True)
-
-        for atom in self._atoms:
+        for atom in [a for a in self._atoms if not a.is_drude]:
             partners = [p for p in atom.bond_partners if not p.is_drude]
+            for p1, p2 in itertools.combinations(partners, 2):
+                self.add_angle(p1, atom, p2)
             if len(partners) == 3:
                 self.add_improper(atom, *sorted(partners))
 
-    def guess_connectivity_from_ff(self, params: FFSet, bond_length_limit=0.25,
+        for bond in filter(lambda x: not x.is_drude, self._bonds):
+            atom2 = bond.atom1
+            atom3 = bond.atom2
+            partners2 = [p for p in atom2.bond_partners if not p.is_drude]
+            partners3 = [p for p in atom3.bond_partners if not p.is_drude]
+            for atom1, atom4 in itertools.product(partners2, partners3):
+                if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
+                    self.add_dihedral(atom1, atom2, atom3, atom4)
+
+    def guess_connectivity_from_ff(self, params: FFSet, bond_limit=0.25,
                                    bond_tolerance=0.025, angle_tolerance=None,
-                                   pbc='xyz', box=None):
+                                   pbc='', cell: UnitCell = None):
         '''
         Guess bonds, angles, dihedrals and impropers from force field.
         It requires that atoms types are defined and positions are available.
@@ -352,6 +347,11 @@ class Molecule():
         If angle_tolerance is set (as degree), then AngleTerm must be provided for these angles.
         The angle will be added only if the deviation between angle and equilibrium value in FF is smaller than angle_tolerance.
         Dihedrals and impropers will be constructed form bonds and be added if relevant terms are presented in FF.
+
+        PBC is supported for determining bonds across the periodic cell
+        This is useful for simulating infinite structures
+        pbc can be '', 'x', 'y', 'xy', 'xz', 'xyz', which means check bonds cross specific boundaries
+        cell should also be provided if pbc is not ''
         TODO Add support for triclinic cell
         '''
         if not self.has_position:
@@ -360,29 +360,44 @@ class Molecule():
         if any(atom.is_drude for atom in self._atoms):
             raise Exception('Drude particles should be removed before guess connectivity')
 
+        if pbc != '':
+            if cell is None or cell.volume == 0:
+                raise Exception('PBC required but valid cell not provided')
+            elif not cell.is_rectangular:
+                raise Exception('Triclinic cell haven\'t been implemented')
+            else:
+                box = cell.size
+
         self._bonds = []
         self._angles = []
         self._dihedrals = []
         self._impropers = []
 
         for i in range(self.n_atom):
+            atom1 = self.atoms[i]
+            try:
+                at1 = params.atom_types[atom1.type].eqt_bond
+            except:
+                raise Exception(f'AtomType {atom1.type} not found in FF')
+
             for j in range(i, self.n_atom):
-                atom1 = self.atoms[i]
                 atom2 = self.atoms[j]
                 try:
-                    at1 = params.atom_types[atom1.type].eqt_bond
                     at2 = params.atom_types[atom2.type].eqt_bond
                 except:
-                    raise Exception(f'AtomType {atom1.type} or {atom2.type} not found in FF')
+                    raise Exception(f'AtomType {atom2.type} not found in FF')
 
                 delta = atom2.position - atom1.position
-                if 'x' in pbc and box is not None:
-                    delta[0] -= math.ceil(delta[0] / box[0] - 0.5) * box[0]
-                if 'y' in pbc and box is not None:
-                    delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
-                if 'z' in pbc and box is not None:
-                    delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
-                if any(delta > bond_length_limit):
+                if pbc != '':
+                    if any((delta > bond_limit) & (delta < box - bond_limit)):
+                        continue
+                    if 'x' in pbc:
+                        delta[0] -= math.ceil(delta[0] / box[0] - 0.5) * box[0]
+                    if 'y' in pbc:
+                        delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
+                    if 'z' in pbc:
+                        delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
+                if any(delta > bond_limit):
                     continue
 
                 bterm = BondTerm(at1, at2, 0)
@@ -399,6 +414,9 @@ class Molecule():
         # generate angles etc..., and then remove them if requirements are not satisfied
         self.generate_angle_dihedral_improper()
 
+        angles_removed = []
+        dihedrals_removed = []
+        impropers_removed = []
         if angle_tolerance is not None:
             for angle in self._angles[:]:
                 at1 = params.atom_types[angle.atom1.type].eqt_ang_s
@@ -406,26 +424,26 @@ class Molecule():
                 at3 = params.atom_types[angle.atom3.type].eqt_ang_s
                 aterm = AngleTerm(at1, at2, at3, 0)
                 if aterm.name not in params.angle_terms.keys():
-                    raise Exception(f'{str(angle)} constructed but {str(aterm)} not found in FF')
+                    raise Exception(
+                        f'{str(angle)} constructed but {str(aterm)} not found in FF')
 
                 aterm: AngleTerm = params.angle_terms[aterm.name]
                 delta21 = angle.atom1.position - angle.atom2.position
                 delta23 = angle.atom3.position - angle.atom2.position
-                if 'x' in pbc and box is not None:
+                if 'x' in pbc:
                     delta21[0] -= math.ceil(delta21[0] / box[0] - 0.5) * box[0]
                     delta23[0] -= math.ceil(delta23[0] / box[0] - 0.5) * box[0]
-                if 'y' in pbc and box is not None:
+                if 'y' in pbc:
                     delta21[1] -= math.ceil(delta21[1] / box[1] - 0.5) * box[1]
                     delta23[1] -= math.ceil(delta23[1] / box[1] - 0.5) * box[1]
-                if 'z' in pbc and box is not None:
+                if 'z' in pbc:
                     delta21[2] -= math.ceil(delta21[2] / box[2] - 0.5) * box[2]
                     delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
-                cos = delta21.dot(delta23) / delta21.dot(delta21) / delta23.dot(delta23)
+                cos = delta21.dot(delta23) / math.sqrt(delta21.dot(delta21) * delta23.dot(delta23))
                 theta = np.arccos(np.clip(cos, -1, 1))
                 if abs(theta * 180 / math.pi - aterm.theta) > angle_tolerance:
                     self.remove_angle(angle)
-                    warnings.warn(f'{str(angle)} not added because '
-                                  f'its value {theta} is far from equilibrium {aterm.theta}')
+                    angles_removed.append(angle)
 
         for dihedral in self._dihedrals[:]:
             at1 = params.atom_types[dihedral.atom1.type].eqt_dih_s
@@ -435,7 +453,7 @@ class Molecule():
             dterm = DihedralTerm(at1, at2, at3, at4)
             if dterm.name not in params.dihedral_terms.keys():
                 self.remove_dihedral(dihedral)
-                warnings.warn(f'{str(dihedral)} not added because {str(dterm)} not found in FF')
+                dihedrals_removed.append(dihedral)
 
         for improper in self._impropers[:]:
             at1 = params.atom_types[improper.atom1.type].eqt_imp_c
@@ -445,7 +463,19 @@ class Molecule():
             iterm = ImproperTerm(at1, at2, at3, at4)
             if iterm.name not in params.improper_terms.keys():
                 self.remove_improper(improper)
-                warnings.warn(f'{str(improper)} not added because {str(iterm)} not foundn in FF')
+                impropers_removed.append(improper)
+
+        if angles_removed != []:
+            warnings.warn('some angles not added because value far from equilibrium: '
+                          + ', '.join([str(i) for i in angles_removed]))
+
+        if dihedrals_removed != []:
+            warnings.warn('some dihedrals not added because parameters not found in FF: '
+                          + ', '.join([str(i) for i in dihedrals_removed]))
+
+        if impropers_removed != []:
+            warnings.warn('some impropers not added because parameters not found in FF: '
+                          + ', '.join([str(i) for i in impropers_removed]))
 
     def generate_drude_particles(self, params: FFSet, type_drude='DRUDE', seed=1):
         '''
