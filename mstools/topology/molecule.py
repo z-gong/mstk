@@ -468,24 +468,24 @@ class Molecule():
         if angles_removed != []:
             string = '%i angles not added because value far from equilibrium: ' \
                      % len(angles_removed) \
-                     + ', '.join([str(i) for i in angles_removed[:20]])
-            if len(angles_removed) > 20:
+                     + ' '.join([str(i) for i in angles_removed[:10]])
+            if len(angles_removed) > 10:
                 string += ' and more ...'
             warnings.warn(string)
 
         if dihedrals_removed != []:
             string = '%i dihedrals not added because parameters not found in FF: ' \
                      % len(dihedrals_removed) \
-                     + ', '.join([str(i) for i in dihedrals_removed[:20]])
-            if len(dihedrals_removed) > 20:
+                     + ' '.join([str(i) for i in dihedrals_removed[:10]])
+            if len(dihedrals_removed) > 10:
                 string += ' and more ...'
             warnings.warn(string)
 
         if impropers_removed != []:
             string = '%i impropers not added because parameters not found in FF: ' \
                      % len(impropers_removed) \
-                     + ', '.join([str(i) for i in impropers_removed[:20]])
-            if len(impropers_removed) > 20:
+                     + ' '.join([str(i) for i in impropers_removed[:10]])
+            if len(impropers_removed) > 10:
                 string += ' and more ...'
             warnings.warn(string)
 
