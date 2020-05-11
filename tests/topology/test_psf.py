@@ -51,5 +51,5 @@ def test_read():
 def test_write():
     lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp')
     lmp.write(cwd + '/files/lmp-out.psf')
-    zmat = Topology.open(cwd + '/files/im11.zmat')
+    zmat = Topology.open(cwd + '/files/Im11.zmat')
     zmat.write(cwd + '/files/zmat-out.psf')

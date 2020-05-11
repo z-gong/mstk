@@ -8,7 +8,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_read():
-    zmat = Topology.open(cwd + '/files/im11.zmat')
+    zmat = Topology.open(cwd + '/files/Im11.zmat')
     assert zmat.n_atom == 16
     assert zmat.n_bond == 16
     assert zmat.n_angle == 27
