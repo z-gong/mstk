@@ -466,16 +466,28 @@ class Molecule():
                 impropers_removed.append(improper)
 
         if angles_removed != []:
-            warnings.warn('some angles not added because value far from equilibrium: '
-                          + ', '.join([str(i) for i in angles_removed]))
+            string = '%i angles not added because value far from equilibrium: ' \
+                     % len(angles_removed) \
+                     + ', '.join([str(i) for i in angles_removed[:20]])
+            if len(angles_removed) > 20:
+                string += ' and more ...'
+            warnings.warn(string)
 
         if dihedrals_removed != []:
-            warnings.warn('some dihedrals not added because parameters not found in FF: '
-                          + ', '.join([str(i) for i in dihedrals_removed]))
+            string = '%i dihedrals not added because parameters not found in FF: ' \
+                     % len(dihedrals_removed) \
+                     + ', '.join([str(i) for i in dihedrals_removed[:20]])
+            if len(dihedrals_removed) > 20:
+                string += ' and more ...'
+            warnings.warn(string)
 
         if impropers_removed != []:
-            warnings.warn('some impropers not added because parameters not found in FF: '
-                          + ', '.join([str(i) for i in impropers_removed]))
+            string = '%i impropers not added because parameters not found in FF: ' \
+                     % len(impropers_removed) \
+                     + ', '.join([str(i) for i in impropers_removed[:20]])
+            if len(impropers_removed) > 20:
+                string += ' and more ...'
+            warnings.warn(string)
 
     def generate_drude_particles(self, params: FFSet, type_drude='DRUDE', seed=1):
         '''
