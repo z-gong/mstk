@@ -19,47 +19,57 @@ class Padua(FFSet):
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
+        self.ljscaler: PaduaLJScaler = None
+
         for file in files:
             self._parse(file)
+
+        if self.ljscaler is not None:
+            self.ljscaler.scale(self)
 
     def _parse(self, file):
         with open(file) as f:
             lines = f.read().splitlines()
+
+        _section = ''
         for line in lines:
             if line.startswith('#') or line.strip() == '':
                 continue
 
             if line.lower().startswith('atom'):
-                section = 'atoms'
+                _section = 'atoms'
                 continue
             elif line.lower().startswith('bond'):
-                section = 'bonds'
+                _section = 'bonds'
                 continue
             elif line.lower().startswith('angl'):
-                section = 'angles'
+                _section = 'angles'
                 continue
             elif line.lower().startswith('dihe'):
-                section = 'dihedrals'
+                _section = 'dihedrals'
                 continue
             elif line.lower().startswith('impro'):
-                section = 'impropers'
+                _section = 'impropers'
                 continue
             elif line.lower().startswith('polar'):
-                section = 'polarizations'
+                _section = 'polarizations'
                 continue
+            elif line.lower().startswith('scale_sigma') or line.lower().startswith('monomer'):
+                self.ljscaler = PaduaLJScaler(file)
+                return
 
             words = line.strip().split()
-            if section == 'atoms':
+            if _section == 'atoms':
                 self._parse_atom(words)
-            elif section == 'bonds':
+            elif _section == 'bonds':
                 self._parse_bond(words)
-            elif section == 'angles':
+            elif _section == 'angles':
                 self._parse_angle(words)
-            elif section == 'dihedrals':
+            elif _section == 'dihedrals':
                 self._parse_dihedral(words)
-            elif section == 'impropers':
+            elif _section == 'impropers':
                 self._parse_improper(words)
-            elif section == 'polarizations':
+            elif _section == 'polarizations':
                 self._parse_polarization(words)
 
         # TODO not robust enough
@@ -185,7 +195,7 @@ class Dimer():
     def __repr__(self):
         return '<Dimer: %s %s>' % (self.monomer1.name, self.monomer2.name)
 
-    def predict_scale_factor(self):
+    def predict_scale_epsilon(self):
         m1, m2 = self.monomer1, self.monomer2
         if (m1.charge != 0 or m1.dipole != 0) and m1.alpha == -1:
             raise Exception(
@@ -200,13 +210,12 @@ class Dimer():
 
 
 class PaduaLJScaler():
-    def __init__(self, file, scale_sigma=1.0):
+    def __init__(self, file):
         self.monomers = []
         self.dimers = []
+        self.scale_sigma = 1.0
         self._file = file
         self._parse(file)
-
-        self.scale_factor_sigma = scale_sigma
 
     def __repr__(self):
         return '<PaduaLJScaler: %s>' % self._file
@@ -235,32 +244,36 @@ class PaduaLJScaler():
         with open(file) as f:
             lines = f.read().splitlines()
 
+        _section = ''
         for line in lines:
             if line.strip() == '' or line.startswith('#'):
                 continue
 
             words = line.strip().split()
             if words[0] == 'MONOMERS':
-                section = 'MONOMERS'
+                _section = 'MONOMERS'
                 continue
             elif words[0] == 'DIMERS':
-                section = 'DIMERS'
+                _section = 'DIMERS'
                 continue
             elif words[0] == 'K_SAPT2':
-                section = 'K_SAPT2'
+                _section = 'K_SAPT2'
                 continue
             elif words[0] == 'ATOMS':
-                section = 'ATOMS'
+                _section = 'ATOMS'
+                continue
+            elif words[0] == 'SCALE_SIGMA':
+                self.scale_sigma = float(words[1])
                 continue
 
-            if section == 'MONOMERS':
+            if _section == 'MONOMERS':
                 name = words[0].strip('+').strip('-')
                 alpha = None
                 if len(words) > 3:
                     alpha = float(words[3])
                 self.monomers.append(Monomer(name, float(words[1]), float(words[2]), alpha))
 
-            elif section == 'DIMERS':
+            elif _section == 'DIMERS':
                 m1 = next(m for m in self.monomers if m.name == words[0])
                 m2 = next(m for m in self.monomers if m.name == words[1])
                 scale = None
@@ -268,11 +281,11 @@ class PaduaLJScaler():
                     scale = float(words[3])
                 self.dimers.append(Dimer(m1, m2, float(words[2]), scale))
 
-            elif section == 'ATOMS':
+            elif _section == 'ATOMS':
                 monomer = next(m for m in self.monomers if m.name == words[0])
                 monomer.atoms = words[1:]
 
-    def predict_scale_factor(self, atom1, atom2):
+    def predict_scale_epsilon(self, atom1, atom2):
         '''
         :param atom1:
         :param atom2:
@@ -297,19 +310,19 @@ class PaduaLJScaler():
             return None
 
         if dimer.scale_factor is None:
-            dimer.predict_scale_factor()
+            dimer.predict_scale_epsilon()
 
         return dimer.scale_factor
 
     def scale_vdw(self, term: LJ126Term):
-        k = self.predict_scale_factor(term.type1, term.type2)
+        k = self.predict_scale_epsilon(term.type1, term.type2)
         if k is None:
             return
 
         term.epsilon *= k
         term.comments.append('eps*%.3f' % k)
 
-        factor = self.scale_factor_sigma
+        factor = self.scale_sigma
         if factor == 1.0:
             return
         term.sigma *= factor

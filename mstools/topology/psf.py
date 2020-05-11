@@ -93,7 +93,7 @@ class Psf(Topology):
             atom.charge = charge
             atom.mass = mass
             atom.type = atom_type
-            atom._mol_id = mol_id
+            atom._mol_id = mol_id  # temporary attribute for identifying molecules
             atom._alpha = -alpha / 1000  # convert A^3 to nm^3
             atom._thole = thole * 2
             if parse_drude and atom.type.startswith('D'):

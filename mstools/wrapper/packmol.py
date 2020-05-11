@@ -11,12 +11,9 @@ class Packmol:
     '''
     wrappers for Packmol
     '''
-    pass
 
     def __init__(self, packmol_bin):
         self.PACKMOL_BIN = packmol_bin
-        self.numbers: [int]
-        self.size: [float]
 
     def build_box(self, files: [str], numbers: [int], output: str,
                   size: [float] = None, length: float = None,
@@ -26,12 +23,33 @@ class Packmol:
         '''
         Build box directly from files
         '''
+        Packmol.gen_inp(files, numbers,
+                        output, size, length, slab, slab_multiple,
+                        tolerance, seed, inp_file)
 
+        # TODO subprocess PIPE not work for Packmol new version, do not know why
+        if silent:
+            if os.name == 'nt':
+                os.system(self.PACKMOL_BIN + ' < %s > nul' % inp_file)
+            else:
+                os.system(self.PACKMOL_BIN + ' < %s > /dev/null' % inp_file)
+        else:
+            os.system(self.PACKMOL_BIN + ' < %s' % inp_file)
+
+            # (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
+            # sp = subprocess.Popen([self.PACKMOL_BIN], stdin=PIPE, stdout=stdout, stderr=stderr)
+            # sp.communicate(input=inp.encode())
+
+    @staticmethod
+    def gen_inp(files: [str], numbers: [int], output: str,
+                size: [float] = None, length: float = None,
+                slab=None, slab_multiple=False,
+                tolerance: float = 1.8, seed: int = None,
+                inp_file='build.inp'):
         if len(files) == 0:
             raise PackmolError('No files provided')
         if len(files) != len(numbers):
             raise PackmolError('Invalid numbers')
-        self.numbers = numbers
 
         extensions = {filename.split('.')[-1].lower() for filename in files}
         if len(extensions) > 1:
@@ -42,9 +60,9 @@ class Packmol:
             if len(size) != 3:
                 raise PackmolError('Invalid box size')
             else:
-                self.size = size
+                size = size[:]
         elif length is not None:
-            self.size = [length, length, length]
+            size = [length, length, length]
         else:
             raise PackmolError('Box size needed')
 
@@ -59,8 +77,8 @@ class Packmol:
 
         # liquid-gas interface
         if slab is not None:
-            box_liq = '0 0 0 %f %f %f' % (self.size[0], self.size[1], slab)
-            box_gas = '0 0 %f %f %f %f' % (slab, self.size[0], self.size[1], self.size[2])
+            box_liq = '0 0 0 %f %f %f' % (size[0], size[1], slab)
+            box_gas = '0 0 %f %f %f %f' % (slab, size[0], size[1], size[2])
             for i, filename in enumerate(files):
                 # put 1/50 molecules in gas phase. Do not put too many in case of nucleation in gas phase
                 n_gas = numbers[i] // 50
@@ -82,10 +100,11 @@ class Packmol:
                 number = numbers[i]
                 # slab model for multiple components
                 if slab_multiple:
-                    lz_per_slab = self.size[3] / len(numbers)
-                    box = '0 0 %f %f %f %f' % (i * lz_per_slab, self.size[0], self.size[1], (i + 1) * lz_per_slab)
+                    lz_per_slab = size[3] / len(numbers)
+                    box = '0 0 %f %f %f %f' % (
+                        i * lz_per_slab, size[0], size[1], (i + 1) * lz_per_slab)
                 else:
-                    box = '0 0 0 %f %f %f' % tuple(self.size)
+                    box = '0 0 0 %f %f %f' % tuple(size)
 
                 inp += (
                     'structure {filename}\n'
@@ -96,16 +115,3 @@ class Packmol:
 
         with open(inp_file, 'w') as f:
             f.write(inp)
-
-        # TODO subprocess PIPE not work for Packmol new version, do not know why
-        if silent:
-            if os.name == 'nt':
-                os.system(self.PACKMOL_BIN + ' < %s > nul' % inp_file)
-            else:
-                os.system(self.PACKMOL_BIN + ' < %s > /dev/null' % inp_file)
-        else:
-            os.system(self.PACKMOL_BIN + ' < %s' % inp_file)
-
-            # (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
-            # sp = subprocess.Popen([self.PACKMOL_BIN], stdin=PIPE, stdout=stdout, stderr=stderr)
-            # sp.communicate(input=inp.encode())

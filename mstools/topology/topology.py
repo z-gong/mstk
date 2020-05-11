@@ -1,3 +1,4 @@
+import shutil
 import numpy as np
 import copy
 import tempfile
@@ -103,7 +104,7 @@ class Topology():
 
         return {mol: flags.count(mol.id) for mol in mols_unique}
 
-    def scale_with_packmol(self, numbers, packmol):
+    def scale_with_packmol(self, numbers, packmol=None):
         if type(numbers) is int:
             numbers = [numbers] * self.n_molecule
         else:
@@ -124,29 +125,35 @@ class Topology():
         xyz_files = []
         for mol in self._molecules:
             t = Topology([mol])
-            f = tempfile.NamedTemporaryFile(suffix='.xyz').name
+            f = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='in').name
             t.write(f)
             xyz_files.append(f)
-        tmp_xyz = tempfile.NamedTemporaryFile(suffix='.xyz').name
-        tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp').name
+        tmp_xyz = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out').name
+        tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack').name
 
-        print(xyz_files)
-        print(tmp_xyz)
-        print(tmp_inp)
-        print('Build with Packmol ...')
-        packmol.build_box(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
-                          inp_file=tmp_inp, silent=True)
-        try:
-            xyz = Topology.open(tmp_xyz)
-        except:
-            raise Exception('Building failed. xyz not found')
+        if packmol is not None:
+            print('Build with Packmol ...')
+            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
+                              inp_file=tmp_inp, silent=True)
+            try:
+                xyz = Topology.open(tmp_xyz)
+            except:
+                raise Exception('Building failed. xyz not found')
 
-        if xyz.n_atom != sum(mol.n_atom * numbers[i] for i, mol in enumerate(self._molecules)) \
-                or not xyz.has_position:
-            raise Exception('Building failed. incorrectly information in xyz')
+            if xyz.n_atom != sum(mol.n_atom * numbers[i] for i, mol in enumerate(self._molecules)) \
+                    or not xyz.has_position:
+                raise Exception('Building failed. incorrectly information in xyz')
 
-        self.update_molecules(self._molecules, numbers)
-        self.set_positions(xyz.positions)
+            self.update_molecules(self._molecules, numbers)
+            self.set_positions(xyz.positions)
+
+        else:
+            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
+                            inp_file=tmp_inp)
+            for f in xyz_files:
+                shutil.copy(f, '.')
+            shutil.copy(tmp_xyz, '.')
+            shutil.copy(tmp_inp, '.')
 
     @property
     def n_molecule(self):
@@ -219,9 +226,12 @@ class Topology():
         from .xyz import XyzTopology
         from .zmat import Zmat
 
-        if file.endswith('.psf'):
+        if file.startswith(':'):
+            mol = Molecule.from_smiles(file[1:])
+            return Topology(mol)
+        elif file.endswith('.psf'):
             return Psf(file, **kwargs)
-        if file.endswith('.pdb'):
+        elif file.endswith('.pdb'):
             return Pdb(file, **kwargs)
         elif file.endswith('.lmp'):
             return LammpsData(file, **kwargs)

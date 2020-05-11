@@ -27,6 +27,20 @@ class FFSet():
         self.scale_14_vdw = 1.0
         self.scale_14_coulomb = 1.0
 
+    @staticmethod
+    def open(*files: [str]):
+        from .padua import Padua
+        from .ppf import Ppf
+        from .zfp import Zfp
+
+        file = files[0]
+        if file.endswith('.ff'):
+            return Padua(*files)
+        elif file.endswith('.ppf'):
+            return Ppf(*files)
+        elif file.endswith('.zfp'):
+            return Zfp(*files)
+
     def get_settings(self):
         d = {}
         for i in ('vdw_cutoff', 'vdw_long_range', 'lj_mixing_rule',

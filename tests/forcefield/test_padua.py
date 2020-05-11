@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import Padua, PaduaLJScaler
+from mstools.forcefield import FFSet, Padua, PaduaLJScaler
 
 import os
 
@@ -62,9 +62,23 @@ def test_read():
 
 
 def test_ljscaler():
-    ff = Padua(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
-    scaler = PaduaLJScaler(cwd + '/files/CLPol-ljscale.inp', scale_sigma=0.985)
+    ff = FFSet.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    scaler = PaduaLJScaler(cwd + '/files/CLPol-ljscale.ff')
     scaler.scale(ff)
+
+    vdw = ff.get_vdw_term('C1', 'C1')
+    assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.047123 * 4.184
+    assert pytest.approx(vdw.sigma, abs=1E-5) == 3.869688 / 10 / 2 ** (1 / 6)
+    assert vdw.comments == ['eps*0.714', 'sig*0.985']
+
+    vdw = ff.get_vdw_term('CR', 'CZA')
+    assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.046627 * 4.184
+    assert pytest.approx(vdw.sigma, abs=1E-5) == 3.784243 / 10 / 2 ** (1 / 6)
+    assert vdw.comments == ['eps*0.686', 'sig*0.985']
+
+    # another way of parsing lj scaling
+    ff = FFSet.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff',
+                    cwd + '/files/CLPol-ljscale.ff')
 
     vdw = ff.get_vdw_term('C1', 'C1')
     assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.047123 * 4.184

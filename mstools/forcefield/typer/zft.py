@@ -65,7 +65,7 @@ class ZftTyper(Typer):
                 try:
                     name, smarts, charge = line.strip().split()
                 except:
-                    raise Exception('smarts and charge should be provided')
+                    raise Exception('smarts and charge should be provided: %s' % line)
                 self.defines[name] = TypeDefine(name, smarts, charge)
             if section == 'HierarchicalTree':
                 tree_lines.append(line.rstrip())

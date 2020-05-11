@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import Ppf, Padua
+from mstools.forcefield import FFSet, Ppf, Padua
 
 import os
 
@@ -9,7 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_read():
-    params = Ppf(cwd + '/files/TEAM_IL.ppf', cwd + '/files/SPCE.ppf')
+    params = FFSet.open(cwd + '/files/TEAM_IL.ppf', cwd + '/files/SPCE.ppf')
     assert len(params.atom_types) == 65
 
     c_4pp = params.atom_types.get('c_4pp')

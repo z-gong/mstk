@@ -42,7 +42,7 @@ class XyzTopology(Topology):
 
         with open(file, 'w')as f:
             f.write('%i\n' % top.n_atom)
-            f.write('Created by mstools\n')
+            f.write('%s\n' % top.molecules[0].name)
             for atom in top.atoms:
                 pos = atom.position * 10
                 f.write('%-8s %11.5f %11.5f %11.5f\n' % (
