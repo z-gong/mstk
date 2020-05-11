@@ -20,10 +20,17 @@ for k, v in j['topo'].items():
         atype.charge = round(v['charge'][i] * math.sqrt(80), 4)
         atype.mass = round(v['mass'][i], 4)
         ff.add_term(atype)
+        ### fix charge of COO bead
+        if typ == 'COO':
+            atype.charge = -1.0
+        ##########################
+
+#### add SO4 bead
 aterm = AtomType('SO4')
 aterm.charge = -1.0
 aterm.mass = 96.062
 ff.add_term(aterm)
+#################
 
 with open('files/spica_par.json') as f:
     j = json.load(f)
