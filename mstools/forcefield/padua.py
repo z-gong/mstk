@@ -84,13 +84,13 @@ class Padua(FFSet):
                 self.add_term(dtype)
                 self.add_term(vdw)
 
-        # If H* is defined in polarizable term, its alpha will be merged into parent atoms and the term will be removed
+        # If H* is defined in polarizable term, alpha of H will be merged into attached heavy atoms and the term will be removed
         if 'H*' in self.polarizable_terms:
             hterm = self.polarizable_terms.pop('H*')
             for pterm in self.polarizable_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
             logger.warning(f'{str(hterm)} found in polarizable term. '
-                           f'Its polarizability will be merged into parent atoms')
+                           f'Polarizability of H will be merged into attached heavy atoms')
 
     def _parse_atom(self, words):
         atype = AtomType(words[0])

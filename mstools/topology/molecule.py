@@ -522,6 +522,7 @@ class Molecule():
         random.seed(seed)
 
         self.remove_drude_particles()
+        drude_pairs = []
         for parent in self._atoms[:]:
             atype = ff.atom_types.get(parent.type)
             if atype is None:
@@ -535,6 +536,8 @@ class Molecule():
             drude = Atom()
             drude.is_drude = True
             drude.type = type_drude
+            # add Drude particles after all been generated so the name of them are in sequence
+            drude.name = 'DP' + str(parent._id_in_molecule + 1)
             drude.symbol = 'DP'
             drude.mass = pterm.mass
             parent.mass -= drude.mass
@@ -551,6 +554,10 @@ class Molecule():
                 deviation = random.random() / 1000
                 drude.position = parent.position + [deviation, deviation, deviation]
                 drude.has_position = True
+
+            drude_pairs.append((parent, drude))
+
+        for parent, drude in drude_pairs:
             self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
             self.add_bond(parent, drude)
 

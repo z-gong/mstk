@@ -1,7 +1,7 @@
 import numpy as np
 from .system import System
 from ..forcefield.ffterm import *
-from ..forcefield.ffset import FFSet
+from ..forcefield import FFSet
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
 from .. import logger
@@ -37,7 +37,7 @@ class OpenMMExporter():
         ### Set up bonds #######################################################################
         for bond_class in system.bond_classes:
             if bond_class == HarmonicBondTerm:
-                print('Setting up harmonic bonds...')
+                logger.info('Setting up harmonic bonds...')
                 bforce = mm.HarmonicBondForce()
                 for bond in system._topology.bonds:
                     if bond.is_drude:
@@ -56,7 +56,7 @@ class OpenMMExporter():
         ### Set up angles #######################################################################
         for angle_class in system.angle_classes:
             if angle_class == HarmonicAngleTerm:
-                print('Setting up harmonic angles...')
+                logger.info('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
                 for angle in system._topology.angles:
                     aterm = system._angle_terms[id(angle)]
@@ -64,7 +64,7 @@ class OpenMMExporter():
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                                         aterm.theta * PI / 180, aterm.k * 2)
             elif angle_class == SDKAngleTerm:
-                print('Setting up SDK angles...')
+                logger.info('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
                     3, 'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
                        'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
@@ -92,12 +92,12 @@ class OpenMMExporter():
             omm_system.addForce(aforce)
 
         ### Set up constraints #################################################################
-        print(f'Setting up {len(system._constrain_bonds)} bond constraints...')
+        logger.info(f'Setting up {len(system._constrain_bonds)} bond constraints...')
         for bond in system._topology.bonds:
             if id(bond) in system._constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
                                          system._constrain_bonds[id(bond)])
-        print(f'Setting up {len(system._constrain_angles)} angle constraints...')
+        logger.info(f'Setting up {len(system._constrain_angles)} angle constraints...')
         for angle in system._topology.angles:
             if id(angle) in system._constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
@@ -106,7 +106,7 @@ class OpenMMExporter():
         ### Set up dihedrals ###################################################################
         for dihedral_class in system.dihedral_classes:
             if dihedral_class == PeriodicDihedralTerm:
-                print('Setting up periodic dihedrals...')
+                logger.info('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in system._topology.dihedrals:
                     dterm = system._dihedral_terms[id(dihedral)]
@@ -126,7 +126,7 @@ class OpenMMExporter():
         ### Set up impropers ####################################################################
         for improper_class in system.improper_classes:
             if improper_class == OplsImproperTerm:
-                print('Setting up periodic impropers...')
+                logger.info('Setting up periodic impropers...')
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
                 for improper in system._topology.impropers:
@@ -136,7 +136,7 @@ class OpenMMExporter():
                         iforce.addTorsion(improper.atom2.id, improper.atom3.id,
                                           improper.atom1.id, improper.atom4.id, [iterm.k])
             elif improper_class == HarmonicImproperTerm:
-                print('Setting up harmonic impropers...')
+                logger.info('Setting up harmonic impropers...')
                 iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
                                                f'dtheta=abs(theta-phi0);'
                                                f'pi={PI}')
@@ -159,7 +159,7 @@ class OpenMMExporter():
         # NonbonedForce is not flexible enough. Use it only for Coulomb interactions
         # CustomNonbondedForce handles vdW interactions
         cutoff = system._ff.vdw_cutoff
-        print('Setting up Coulomb interactions...')
+        logger.info('Setting up Coulomb interactions...')
         nbforce = mm.NonbondedForce()
         nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
         nbforce.setEwaldErrorTolerance(1E-4)
@@ -176,7 +176,7 @@ class OpenMMExporter():
         n_type = len(atom_types)
         for vdw_class in system.vdw_classes:
             if vdw_class == LJ126Term:
-                print('Setting up LJ-12-6 vdW interactions...')
+                logger.info('Setting up LJ-12-6 vdW interactions...')
                 if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
                     invRc6 = 1 / cutoff ** 6
                     cforce = mm.CustomNonbondedForce(
@@ -208,7 +208,7 @@ class OpenMMExporter():
                     cforce.addParticle([id_type])
 
             elif vdw_class == MieTerm:
-                print('Setting up Mie vdW interactions...')
+                logger.info('Setting up Mie vdW interactions...')
                 if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
                                                      'B(type1,type2)/r^ATT(type1,type2)-'
@@ -263,7 +263,7 @@ class OpenMMExporter():
             omm_system.addForce(cforce)
 
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
-        print('Setting up 1-2, 1-3 and 1-4 vdW interactions...')
+        logger.info('Setting up 1-2, 1-3 and 1-4 vdW interactions...')
         custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
         pair12, pair13, pair14 = system._topology.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
@@ -311,7 +311,7 @@ class OpenMMExporter():
         ### Set up Drude particles ##############################################################
         for polar_class in system.polarizable_classes:
             if polar_class == DrudeTerm:
-                print('Setting up Drude polarizations...')
+                logger.info('Setting up Drude polarizations...')
                 pforce = mm.DrudeForce()
                 pforce.setForceGroup(7)
                 omm_system.addForce(pforce)
@@ -367,7 +367,7 @@ class OpenMMExporter():
                 raise Exception('Polarizable terms other that DrudeTerm haven\'t been implemented')
 
         ### Remove COM motion ###################################################################
-        print('Setting up COM motion remover...')
+        logger.info('Setting up COM motion remover...')
         omm_system.addForce(mm.CMMotionRemover(10))
 
         return omm_system

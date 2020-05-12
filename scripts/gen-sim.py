@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from mstools.topology import Topology
+from mstools.topology import Topology, UnitCell
 from mstools.trajectory import Trajectory
 from mstools.forcefield import FFSet, ZftTyper
 from mstools.simsys import System
@@ -17,7 +17,7 @@ parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molec
 parser.add_argument('--typer', type=str,
                     help='Typing file. Required if SMILES provided for topology')
 parser.add_argument('--trj', type=str,
-                    help='Trajectory file for positions and box')
+                    help='Trajectory file for positions and box. The last frame will be used')
 parser.add_argument('--box', nargs=3, type=float,
                     help='Periodic box size if not provided by topology or trajectory')
 parser.add_argument('--packmol', action='store_true',
@@ -45,18 +45,18 @@ for inp, n in zip(args.input, args.number):
     molecules += top.molecules * n
 top = Topology(molecules)
 
-ff = FFSet.open(*args.forcefield)
-if len(ff.polarizable_terms) > 0:
-    top.generate_drude_particles(ff)
-top.assign_mass_from_ff(ff)
-top.assign_charge_from_ff(ff)
-
 if args.trj is not None:
     trj = Trajectory.open(args.trj)
     frame = trj.read_frame(trj.n_frame - 1)
     top.set_positions(frame.positions)
     if frame.cell.volume != 0:
         top.cell.set_box(frame.cell.vectors)
+
+ff = FFSet.open(*args.forcefield)
+if ff.is_polarizable:
+    top.generate_drude_particles(ff)
+top.assign_mass_from_ff(ff)
+top.assign_charge_from_ff(ff)
 
 if args.box is not None:
     top.cell.set_box(args.box)

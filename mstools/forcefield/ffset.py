@@ -41,6 +41,10 @@ class FFSet():
         elif file.endswith('.zfp'):
             return Zfp(*files)
 
+    @property
+    def is_polarizable(self) -> bool:
+        return len(self.polarizable_terms) != 0
+
     def get_settings(self):
         d = {}
         for i in ('vdw_cutoff', 'vdw_long_range', 'lj_mixing_rule',
