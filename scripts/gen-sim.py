@@ -8,7 +8,7 @@ from mstools.simsys import System
 from mstools import logger
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input', nargs='+', required=True, type=str,
+parser.add_argument('input', nargs='+', type=str,
                     help='Topology files for molecules. '
                          'String starts with : will be treated as SMILES')
 parser.add_argument('-f', '--forcefield', nargs='+', required=True, type=str,

@@ -7,7 +7,7 @@ import math
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input', type=str, required=True, help='Data file')
+parser.add_argument('input', type=str, help='Data file')
 parser.add_argument('-b', '--begin', default=-1, type=float, help='Begin from this step')
 parser.add_argument('-e', '--end', default=-1, type=float, help='End at this step')
 parser.add_argument('--noplot', default=False, action='store_true', help='Do not plot')

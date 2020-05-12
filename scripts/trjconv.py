@@ -8,7 +8,7 @@ from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input', nargs='+', required=True, type=str,
+parser.add_argument('input', nargs='+', type=str,
                     help='trajectory file for atomic positions')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
