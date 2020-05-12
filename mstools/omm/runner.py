@@ -55,10 +55,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
     state = sim.context.getState(getEnergy=True)
-    print('Initial energy: ', state.getPotentialEnergy())
+    print('Initial energy:', state.getPotentialEnergy())
     sim.minimizeEnergy(100 * kJ_mol)
     state = sim.context.getState(getEnergy=True, getPositions=True)
-    print('Minimized energy: ' + state.getPotentialEnergy())
+    print('Minimized energy:', state.getPotentialEnergy())
     GroFile.writeFile(psf.topology, state.getPositions(), state.getPeriodicBoxVectors(), 'em.gro')
 
     print('Running...')
