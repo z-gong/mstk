@@ -11,6 +11,18 @@ def print_omm_info():
     print(mm.Platform.getPluginLoadFailures())
 
 
+def minimize(sim, tolerance, gro_out=None):
+    state = sim.context.getState(getEnergy=True)
+    print('Initial energy:', state.getPotentialEnergy())
+    sim.minimizeEnergy(tolerance=tolerance * kj_mol)
+    state = sim.context.getState(getPositions=True, getEnergy=True)
+    print('Minimized energy:', state.getPotentialEnergy())
+
+    if gro_out is not None:
+        GroFile.writeFile(sim.topology, state.getPositions(), state.getPeriodicBoxVectors(),
+                          gro_out)
+
+
 def apply_mc_barostat(system, pcoupl, P, T, nsteps=100):
     if pcoupl == 'iso':
         print('Isotropic barostat')

@@ -30,7 +30,7 @@ class GroFile(GromacsGroFile):
             A file to write the file to
         """
         if time is None:
-            time = -1
+            time = 0.0
         elif is_quantity(time):
             time = time.value_in_unit(picosecond)
 
