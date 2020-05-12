@@ -51,7 +51,8 @@ class CharmmExporter():
 
         string += '\nATOMS\n'
         for i, atype in enumerate(system._ff.atom_types.values()):
-            string += '  MASS %6i %10s\n' % (i + 1, atype.name)
+            # set mass to 0 in case not defined in FF
+            string += '  MASS %6i %10s %10.4f\n' % (i + 1, atype.name, max(atype.mass, 0))
 
         unique_bonds: {(str): BondTerm} = {}
         for bond in system._topology.bonds:
@@ -88,7 +89,7 @@ class CharmmExporter():
 !Kb: kcal/mole/A**2
 !b0: A
 !
-!atom type Kb          b0
+!      atom type Kb          b0
 '''
         for (at1, at2), bterm in unique_bonds.items():
             string += '%10s %10s %16.6f %10.4f\n' % (
@@ -102,7 +103,7 @@ class CharmmExporter():
 !Kub: kcal/mole/A**2 (Urey-Bradley)
 !S0: A
 !
-!atom types     Ktheta    Theta0   Kub     S0
+!      atom types     Ktheta    Theta0   Kub     S0
 '''
         for (at1, at2, at3), aterm in unique_angles.items():
             string += '%10s %10s %10s %12.6f %12.4f\n' % (
@@ -120,13 +121,16 @@ class CharmmExporter():
             for para in dterm.parameters:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
                     at1, at2, at3, at4, para.k / 4.184, para.n, para.phi)
+            if len(dterm.parameters) == 0:
+                string += '%10s %10s %10s %10s %12.6f %4i %8.2f  ; no dihedral parameters\n' % (
+                    at1, at2, at3, at4, 0.0, 1, 0.0)
 
         string += '\nIMPROPERS\n'
         string += '''!V(improper) = Kpsi(psi - psi0)**2
 !Kpsi: kcal/mole/rad**2
 !psi0: degrees
 !
-!atom types           Kpsi      ignored         psi0
+!      atom types           Kpsi      ignored         psi0
 '''
         for (at1, at2, at3, at4), iterm in unique_impropers.items():
             if type(iterm) == HarmonicImproperTerm:
@@ -143,7 +147,7 @@ class CharmmExporter():
 !epsilon: kcal/mole, Eps,i,j = sqrt(eps,i * eps,j)
 !Rmin/2: A, Rmin,i,j = Rmin/2,i + Rmin/2,j
 !
-!atom  ignored    epsilon      Rmin/2   ignored   eps,1-4       Rmin/2,1-4
+!      atom  ignored    epsilon      Rmin/2   ignored   eps,1-4       Rmin/2,1-4
 '''
         for atype in system._ff.atom_types.values():
             vdw = system._ff.get_vdw_term(atype, atype)
@@ -155,7 +159,7 @@ class CharmmExporter():
 
         if len(system._ff.pairwise_vdw_terms) != 0:
             string += '\nNBFIX\n'
-            string += '!atom  atom  epsilon      Rmin   eps,1-4       Rmin,1-4\n'
+            string += '!      atom  atom  epsilon      Rmin   eps,1-4       Rmin,1-4\n'
             for atype1, atype2 in itertools.combinations(system._ff.atom_types.values(), 2):
                 vdw = system._ff.get_vdw_term(atype1, atype2, mixing=False)
                 if vdw is None:

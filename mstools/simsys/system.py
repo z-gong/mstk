@@ -1,6 +1,7 @@
 import copy
 import itertools
 import numpy as np
+import sys
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
 from ..forcefield import FFSet
@@ -30,8 +31,19 @@ class System():
         if self._topology.cell.volume == 0:
             raise Exception('Periodic cell should be provided with topology or cell')
 
+        if all(atom.mass <= 0 for atom in topology.atoms):
+            logger.error('All atoms have non-positive mass. '
+                         'You may need to call topology.assign_mass_from_ff(ff)')
+            sys.exit(1)
+
+        if all(atom.charge == 0 for atom in topology.atoms):
+            self.charged = False
+            logger.warning('All atoms have zero charge. '
+                           'You may need to call topology.assign_charge_from_ff(ff)')
+        else:
+            self.charged = True
+
         self.extract_params(ff)
-        self.charged = any(atom.charge != 0 for atom in self._topology.atoms)
 
     @property
     def topology(self):

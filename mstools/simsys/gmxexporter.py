@@ -147,10 +147,15 @@ class GromacsExporter():
                 a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
-                        string += '%6i %6i %6i %6i %6i %.2f %12.4f %4i\n' % (
+                        string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
                             a1._id_in_molecule + 1, a2._id_in_molecule + 1,
                             a3._id_in_molecule + 1, a4._id_in_molecule + 1,
                             9, para.phi, para.k, para.n)
+                    if len(dterm.parameters) == 0:
+                        string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
+                            a1._id_in_molecule + 1, a2._id_in_molecule + 1,
+                            a3._id_in_molecule + 1, a4._id_in_molecule + 1,
+                            9, 0.0, 0.0, 1)
                 else:
                     raise Exception('Unsupported dihedral term')
 

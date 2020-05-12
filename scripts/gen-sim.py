@@ -75,4 +75,4 @@ else:
         logger.warn('Trajectory file not provided, '
                     'will use the positions and cell from the topology')
     system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
-    system.export_charmm(pdb_out=None, psf_out='_psf.psf', prm_out='_ff.prm')
+    system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')

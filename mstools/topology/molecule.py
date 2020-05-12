@@ -628,23 +628,35 @@ class Molecule():
         and the the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
         '''
+        _assigned = [False] * self.n_atom
         for atom in self._atoms:
             if atom.is_drude:
                 continue
             try:
-                atom.charge = params.atom_types[atom.type].charge
+                charge = params.atom_types[atom.type].charge
             except:
                 raise Exception(f'Atom type {atom.type} not found in FF')
+            atom.charge = charge
+            if charge != 0:
+                _assigned[atom._id_in_molecule] = True
 
         if len(params.charge_increment_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
                 try:
                     increment = params.get_charge_increment(bond)
                 except FFTermNotFoundError:
-                    logger.warning(f'Charge increment for {bond} not found in FF')
+                    pass
                 else:
                     bond.atom1.charge += increment
                     bond.atom2.charge -= increment
+                    if increment != 0:
+                        _assigned[bond.atom1._id_in_molecule] = True
+                        _assigned[bond.atom2._id_in_molecule] = True
+
+        for i, atom in enumerate(self.atoms):
+            if not atom.is_drude and not _assigned[i]:
+                logger.warning(f'Charge not assigned for {str(atom)} '
+                               f'because both charge and increment in the FF are zero or not found')
 
         for parent, drude in self.get_drude_pairs():
             atype = params.atom_types[parent.type]
