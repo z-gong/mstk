@@ -32,7 +32,7 @@ class GromacsExporter():
             logger.warning('SDKAngleTerm not supported by GROMACS, '
                            'replaced by harmonic function')
         if DrudeTerm in system.ff_classes:
-            logger.warning('DurdeTerm havn\'t been implemented. '
+            logger.warning('DurdeTerm havn\'t been implemented for GROMACS. '
                            'Will treat Drude particles as normal atoms')
 
         frame = Frame(system._topology.n_atom)

@@ -80,9 +80,9 @@ class Padua(FFSet):
             type_drude = 'DP_'
             if type_drude not in self.atom_types:
                 dtype = AtomType(type_drude)
-                self.atom_types[type_drude] = dtype
-                vdw = LJ126Term(type_drude, type_drude, 0, 1.0)
-                self.vdw_terms[vdw.name] = vdw
+                vdw = LJ126Term(type_drude, type_drude, 0.0, 0.0)
+                self.add_term(dtype)
+                self.add_term(vdw)
 
         # If H* is defined in polarizable term, its alpha will be merged into parent atoms and the term will be removed
         if 'H*' in self.polarizable_terms:
@@ -90,7 +90,7 @@ class Padua(FFSet):
             for pterm in self.polarizable_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
             logger.warning(f'{str(hterm)} found in polarizable term. '
-                           f'Its polarizability will be merged into parent atoms.')
+                           f'Its polarizability will be merged into parent atoms')
 
     def _parse_atom(self, words):
         atype = AtomType(words[0])

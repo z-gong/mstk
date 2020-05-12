@@ -505,7 +505,7 @@ class Molecule():
                 string += ' and more ...'
             logger.warning(string)
 
-    def generate_drude_particles(self, params: FFSet, type_drude='DP_', seed=1):
+    def generate_drude_particles(self, ff: FFSet, type_drude='DP_', seed=1):
         '''
         Generate Drude particles from DrudeTerms in force field.
         The atom types should have been defined already.
@@ -516,18 +516,18 @@ class Molecule():
         Bonds between parent-Drude will be generated and added to the topology.
         If AtomType and VdwTerm for generated Drude particles are not found in FF, these terms will be created and added to the FF.
         '''
-        if len(params.polarizable_terms) == 0:
+        if len(ff.polarizable_terms) == 0:
             raise Exception('Polarizable terms not found in force field')
 
         random.seed(seed)
 
         self.remove_drude_particles()
         for parent in self._atoms[:]:
-            atype = params.atom_types.get(parent.type)
+            atype = ff.atom_types.get(parent.type)
             if atype is None:
                 raise Exception(f'Atom type {parent.type} not found in FF')
 
-            pterm = params.polarizable_terms.get(atype.eqt_polar)
+            pterm = ff.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 continue
             if type(pterm) != DrudeTerm:
@@ -557,16 +557,16 @@ class Molecule():
         if self._topology is not None:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-        dtype = params.atom_types.get(type_drude)
+        dtype = ff.atom_types.get(type_drude)
         if dtype is None:
             dtype = AtomType(type_drude)
-            params.atom_types[dtype.name] = dtype
+            ff.add_term(dtype)
             logger.warning(f'AtomType for Drude particle not found in FF. '
                            f'{str(dtype)} is added to the FF')
-        vdw = params.vdw_terms.get(dtype.eqt_vdw)
+        vdw = LJ126Term(dtype.eqt_vdw, dtype.eqt_vdw, 0.0, 0.0)
+        vdw = ff.vdw_terms.get(vdw.name)
         if vdw is None:
-            vdw = LJ126Term(dtype.eqt_vdw, dtype.eqt_vdw, 0.0, 1.0)
-            params.vdw_terms[vdw.name] = vdw
+            ff.add_term(vdw)
             logger.warning(f'VdwTerm for Drude particle not found in FF. '
                            f'{str(vdw)} with zero interactions is added to the FF')
 
