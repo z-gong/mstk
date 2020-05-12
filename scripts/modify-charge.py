@@ -6,7 +6,7 @@ from mstools.trajectory import Trajectory
 from mstools.constant import ELEMENTARY_CHARGE, NANO, VACUUM_PERMITTIVITY
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('-i', '--input', required=True, type=str, help='input topology file')
+parser.add_argument('input', required=True, type=str, help='input topology file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output topology file')
 parser.add_argument('-q', '--charge', required=True, type=float, help='charge density (in mC/m^2)')
 parser.add_argument('--trj', type=str, help='trajectory file used to identify electrode atoms')

@@ -12,7 +12,7 @@ from mstools.topology import XyzTopology
 from mstools.trajectory import Xyz
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('-i', '--input', required=True, type=str, help='input xyz file')
+parser.add_argument('input', required=True, type=str, help='input xyz file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output xyz file')
 parser.add_argument('--cathode', type=float, help='z coordinate (in nm) of cathode (left electrode)')
 parser.add_argument('--anode', type=float, help='z coordinate (in nm) of anode (right electrode)')

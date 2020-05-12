@@ -8,7 +8,7 @@ from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', '--input', required=True, type=str, help='topology file')
+parser.add_argument('input', required=True, type=str, help='topology file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
 parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
 parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
