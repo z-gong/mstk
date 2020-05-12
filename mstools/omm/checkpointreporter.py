@@ -1,43 +1,5 @@
-"""
-checkpointreporter.py: Saves checkpoint files for a simulation
-
-This is part of the OpenMM molecular simulation toolkit originating from
-Simbios, the NIH National Center for Physics-Based Simulation of
-Biological Structures at Stanford, funded under the NIH Roadmap for
-Medical Research, grant U54 GM072970. See https://simtk.org.
-
-Portions copyright (c) 2014-2016 Stanford University and the Authors.
-Authors: Robert McGibbon
-Contributors:
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
-from __future__ import absolute_import
-
-__author__ = "Robert McGibbon"
-__version__ = "1.0"
-
-import simtk.openmm as mm
 import os
-import os.path
-
-__all__ = ['CheckpointReporter']
+import shutil
 
 
 class CheckpointReporter(object):
@@ -86,7 +48,6 @@ class CheckpointReporter(object):
 
         self._reportInterval = reportInterval
         self._file = file
-        self._file_prev = file + '_prev'
 
         if type(file) is not str:
             raise Exception('file should be str')
@@ -123,12 +84,11 @@ class CheckpointReporter(object):
 
         # Do a safe save.
 
-        tempFilename = self._file + "_temp_"
-        with open(tempFilename, 'w+b', 0) as out:
+        with open(self._file, 'w+b', 0) as out:
             out.write(simulation.context.createCheckpoint())
 
         filename = self._file + '_%i' % simulation.currentStep
-        filename_last = self._file + '_%i' % (simulation.currentStep - self._reportInterval)
-        if os.path.exists(filename_last):
-            os.replace(filename_last, self._file_prev)
-        os.rename(tempFilename, filename)
+        file_prev_prev = self._file + '_%i' % (simulation.currentStep - 2 * self._reportInterval)
+        if os.path.exists(file_prev_prev):
+            os.remove(file_prev_prev)
+        shutil.copy(self._file, filename)

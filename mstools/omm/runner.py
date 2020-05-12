@@ -49,7 +49,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.context.setVelocitiesToTemperature(T * kelvin)
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
     sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(GroReporter('dump.gro', 'logfreq', enforcePeriodicBox=False))
+    sim.reporters.append(GroReporter('dump.gro', 'logfreq'))
     sim.reporters.append(StateDataReporter(sys.stdout, 1000, box=False, volume=True))
     if is_drude:
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
@@ -59,7 +59,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.minimizeEnergy(100 * kJ_mol)
     state = sim.context.getState(getEnergy=True, getPositions=True)
     print('Minimized energy: ' + state.getPotentialEnergy())
-    GroFile.writeFile(psf.topology, state.getPositions, state.getPeriodicBoxVectors(), 'em.gro')
+    GroFile.writeFile(psf.topology, state.getPositions(), state.getPeriodicBoxVectors(), 'em.gro')
 
     print('Running...')
     sim.step(nstep)
