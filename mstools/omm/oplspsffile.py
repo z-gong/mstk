@@ -156,13 +156,13 @@ class OplsPsfFile(object):
     # to be turned on and off selectively. This is a way to implement per-term
     # energy decomposition to compare individual components
 
-    BOND_FORCE_GROUP = 0
-    ANGLE_FORCE_GROUP = 1
-    DIHEDRAL_FORCE_GROUP = 2
-    UREY_BRADLEY_FORCE_GROUP = 3
+    BOND_FORCE_GROUP = 1
+    ANGLE_FORCE_GROUP = 2
+    UREY_BRADLEY_FORCE_GROUP = 2
+    DIHEDRAL_FORCE_GROUP = 3
+    CMAP_FORCE_GROUP = 3
     IMPROPER_FORCE_GROUP = 4
-    CMAP_FORCE_GROUP = 5
-    NONBONDED_FORCE_GROUP = 6
+    NONBONDED_FORCE_GROUP = 5
     GB_FORCE_GROUP = 6
     DRUDE_FORCE_GROUP = 7
 
@@ -906,17 +906,7 @@ class OplsPsfFile(object):
         # LJ force will be handled by CustomNonbondedForce
         # Coulomb and 1-4 LJ will be handled by NonbondedForce
         ############################################################
-        has_nbfix_terms = True
         typenames = list(typenames)
-        try:
-            for i, typename in enumerate(typenames):
-                typ = params.atom_types_str[typename]
-                for j in range(i, len(typenames)):
-                    if typenames[j] in typ.nbfix:
-                        has_nbfix_terms = True
-                        raise StopIteration
-        except StopIteration:
-            pass
         has_nbthole_terms = False
         try:
             for i, typename in enumerate(typenames):
@@ -1099,23 +1089,37 @@ class OplsPsfFile(object):
         if verbose: print('Adding impropers...')
         # Ick. OpenMM does not have an improper torsion class. Need to
         # construct one from CustomTorsionForce that respects toroidal boundaries
-        energy_function = 'k*min(dtheta, 2*pi-dtheta)^2; dtheta = abs(theta-theta0);'
-        energy_function += 'pi = %f;' % pi
-        force = mm.CustomTorsionForce(energy_function)
-        #####################################################################
-        # Should always use periodic boundary conditions for all forces
-        #####################################################################
-        force.setUsesPeriodicBoundaryConditions(True)
-        force.addPerTorsionParameter('k')
-        force.addPerTorsionParameter('theta0')
-        force.setForceGroup(self.IMPROPER_FORCE_GROUP)
+
+        # energy_function = 'k*min(dtheta, 2*pi-dtheta)^2; dtheta = abs(theta-theta0);'
+        # energy_function += 'pi = %f;' % pi
+        # force = mm.CustomTorsionForce(energy_function)
+        # #####################################################################
+        # # Should always use periodic boundary conditions for all forces
+        # #####################################################################
+        # force.setUsesPeriodicBoundaryConditions(True)
+        # force.addPerTorsionParameter('k')
+        # force.addPerTorsionParameter('theta0')
+        # force.setForceGroup(self.IMPROPER_FORCE_GROUP)
+        # for imp in self.improper_list:
+        #     force.addTorsion(imp.atom1.idx, imp.atom2.idx,
+        #                      imp.atom3.idx, imp.atom4.idx,
+        #                      (imp.improper_type.k*dihe_frc_conv,
+        #                       imp.improper_type.phieq*pi/180)
+        #     )
+        # system.addForce(force)
+
+        ### OPLS improper #######################################################
+        # in OPLS convention, the third atom is the central atom
+        iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
+        iforce.addPerTorsionParameter('k')
+        iforce.setUsesPeriodicBoundaryConditions(True)
+        iforce.setForceGroup(self.IMPROPER_FORCE_GROUP)
         for imp in self.improper_list:
-            force.addTorsion(imp.atom1.idx, imp.atom2.idx,
-                             imp.atom3.idx, imp.atom4.idx,
-                             (imp.improper_type.k*dihe_frc_conv,
-                              imp.improper_type.phieq*pi/180)
-            )
-        system.addForce(force)
+            iforce.addTorsion(imp.atom2.idx, imp.atom3.idx,
+                              imp.atom1.idx, imp.atom4.idx,
+                              [imp.improper_type.k * dihe_frc_conv])
+        system.addForce(iforce)
+        #########################################################################
 
         if hasattr(self, 'cmap_list'):
             if verbose: print('Adding CMAP coupled torsions...')
@@ -1246,97 +1250,91 @@ class OplsPsfFile(object):
             if ewaldErrorTolerance is not None:
                 force.setEwaldErrorTolerance(ewaldErrorTolerance)
 
-        # Add per-particle nonbonded parameters (LJ params)
-        sigma_scale = 2**(-1/6) * 2
-        if not has_nbfix_terms:
-            for atm in self.atom_list:
-                force.addParticle(atm.charge, sigma_scale*atm.type.rmin*length_conv,
-                                  abs(atm.type.epsilon*ene_conv))
-        else:
-            for atm in self.atom_list:
-                force.addParticle(atm.charge, 1.0, 0.0)
-            # Now add the custom nonbonded force that implements NBFIX. First
-            # thing we need to do is condense our number of types
-            lj_idx_list = [0 for atom in self.atom_list]
-            lj_radii, lj_depths = [], []
-            num_lj_types = 0
-            lj_type_list = []
-            for i, atom in enumerate(self.atom_list):
-                atom = atom.type
-                if lj_idx_list[i]: continue # already assigned
-                num_lj_types += 1
-                lj_idx_list[i] = num_lj_types
-                ljtype = (atom.rmin, atom.epsilon)
-                lj_type_list.append(atom)
-                lj_radii.append(atom.rmin)
-                lj_depths.append(atom.epsilon)
-                for j in range(i+1, len(self.atom_list)):
-                    atom2 = self.atom_list[j].type
-                    if lj_idx_list[j] > 0: continue # already assigned
-                    if atom2 is atom:
+        # Add per-particle nonbonded parameters (coulomb params)
+        for atm in self.atom_list:
+            force.addParticle(atm.charge, 1.0, 0.0)
+        # Now add the custom nonbonded force that implements LJ. First
+        # thing we need to do is condense our number of types
+        lj_idx_list = [0 for atom in self.atom_list]
+        lj_radii, lj_depths = [], []
+        num_lj_types = 0
+        lj_type_list = []
+        for i, atom in enumerate(self.atom_list):
+            atom = atom.type
+            if lj_idx_list[i]: continue # already assigned
+            num_lj_types += 1
+            lj_idx_list[i] = num_lj_types
+            ljtype = (atom.rmin, atom.epsilon)
+            lj_type_list.append(atom)
+            lj_radii.append(atom.rmin)
+            lj_depths.append(atom.epsilon)
+            for j in range(i+1, len(self.atom_list)):
+                atom2 = self.atom_list[j].type
+                if lj_idx_list[j] > 0: continue # already assigned
+                if atom2 is atom:
+                    lj_idx_list[j] = num_lj_types
+                elif not atom.nbfix and not atom.nbthole:
+                    # Only non-NBFIXed and non-NBTholed atom types can be compressed
+                    ljtype2 = (atom2.rmin, atom2.epsilon)
+                    if ljtype == ljtype2:
                         lj_idx_list[j] = num_lj_types
-                    elif not atom.nbfix and not atom.nbthole:
-                        # Only non-NBFIXed and non-NBTholed atom types can be compressed
-                        ljtype2 = (atom2.rmin, atom2.epsilon)
-                        if ljtype == ljtype2:
-                            lj_idx_list[j] = num_lj_types
-            # Now everything is assigned. Create the A-coefficient and
-            # B-coefficient arrays
-            acoef = [0 for i in range(num_lj_types*num_lj_types)]
-            bcoef = acoef[:]
-            for i in range(num_lj_types):
-                for j in range(num_lj_types):
-                    namej = lj_type_list[j].name
-                    try:
-                        rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
-                    except KeyError:
-                        # rij = (lj_radii[i] + lj_radii[j]) * length_conv
-                        ##################################################################
-                        # OPLS use geometric combination rule for both epsilon and sigma
-                        ##################################################################
-                        rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
-                        wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
-                    else:
-                        rij *= length_conv
-                        wdij *= ene_conv
-                    acoef[i+num_lj_types*j] = sqrt(wdij) * rij**6
-                    bcoef[i+num_lj_types*j] = 2 * wdij * rij**6
-            cforce = mm.CustomNonbondedForce('(a/r6)^2-b/r6; r6=r^6;'
-                                             'a=acoef(type1, type2);'
-                                             'b=bcoef(type1, type2)')
-            ##################################################################
-            # Dispersion correction for LJ force
-            ##################################################################
-            cforce.setUseLongRangeCorrection(True)
-            cforce.addTabulatedFunction('acoef',
-                    mm.Discrete2DFunction(num_lj_types, num_lj_types, acoef))
-            cforce.addTabulatedFunction('bcoef',
-                    mm.Discrete2DFunction(num_lj_types, num_lj_types, bcoef))
-            cforce.addPerParticleParameter('type')
-            cforce.setForceGroup(self.NONBONDED_FORCE_GROUP)
-            if (nonbondedMethod in (ff.PME, ff.LJPME, ff.Ewald, ff.CutoffPeriodic)):
-                cforce.setNonbondedMethod(cforce.CutoffPeriodic)
-                cforce.setCutoffDistance(nonbondedCutoff)
-            elif nonbondedMethod is ff.NoCutoff:
-                cforce.setNonbondedMethod(cforce.NoCutoff)
-            elif nonbondedMethod is ff.CutoffNonPeriodic:
-                cforce.setNonbondedMethod(cforce.CutoffNonPeriodic)
-                cforce.setCutoffDistance(nonbondedCutoff)
-            else:
-                raise ValueError('Unrecognized nonbonded method')
-            if switchDistance and nonbondedMethod is not ff.NoCutoff:
-                # make sure it's legal
-                if (_strip_optunit(switchDistance, u.nanometer) >=
-                        _strip_optunit(nonbondedCutoff, u.nanometer)):
-                    raise ValueError('switchDistance is too large compared '
-                                     'to the cutoff!')
-                if _strip_optunit(switchDistance, u.nanometer) < 0:
-                    # Detects negatives for both Quantity and float
-                    raise ValueError('switchDistance must be non-negative!')
-                cforce.setUseSwitchingFunction(True)
-                cforce.setSwitchingDistance(switchDistance)
-            for i in lj_idx_list:
-                cforce.addParticle((i - 1,)) # adjust for indexing from 0
+        # Now everything is assigned. Create the A-coefficient and
+        # B-coefficient arrays
+        acoef = [0 for i in range(num_lj_types*num_lj_types)]
+        bcoef = acoef[:]
+        for i in range(num_lj_types):
+            for j in range(num_lj_types):
+                namej = lj_type_list[j].name
+                try:
+                    rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
+                except KeyError:
+                    # rij = (lj_radii[i] + lj_radii[j]) * length_conv
+                    ##################################################################
+                    # OPLS use geometric combination rule for both epsilon and sigma
+                    ##################################################################
+                    rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
+                    wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
+                else:
+                    rij *= length_conv
+                    wdij *= ene_conv
+                acoef[i+num_lj_types*j] = sqrt(wdij) * rij**6
+                bcoef[i+num_lj_types*j] = 2 * wdij * rij**6
+        cforce = mm.CustomNonbondedForce('(a/r6)^2-b/r6; r6=r^6;'
+                                         'a=acoef(type1, type2);'
+                                         'b=bcoef(type1, type2)')
+        ##################################################################
+        # Dispersion correction for LJ force
+        ##################################################################
+        cforce.setUseLongRangeCorrection(True)
+        cforce.addTabulatedFunction('acoef',
+                mm.Discrete2DFunction(num_lj_types, num_lj_types, acoef))
+        cforce.addTabulatedFunction('bcoef',
+                mm.Discrete2DFunction(num_lj_types, num_lj_types, bcoef))
+        cforce.addPerParticleParameter('type')
+        cforce.setForceGroup(self.NONBONDED_FORCE_GROUP)
+        if (nonbondedMethod in (ff.PME, ff.LJPME, ff.Ewald, ff.CutoffPeriodic)):
+            cforce.setNonbondedMethod(cforce.CutoffPeriodic)
+            cforce.setCutoffDistance(nonbondedCutoff)
+        elif nonbondedMethod is ff.NoCutoff:
+            cforce.setNonbondedMethod(cforce.NoCutoff)
+        elif nonbondedMethod is ff.CutoffNonPeriodic:
+            cforce.setNonbondedMethod(cforce.CutoffNonPeriodic)
+            cforce.setCutoffDistance(nonbondedCutoff)
+        else:
+            raise ValueError('Unrecognized nonbonded method')
+        if switchDistance and nonbondedMethod is not ff.NoCutoff:
+            # make sure it's legal
+            if (_strip_optunit(switchDistance, u.nanometer) >=
+                    _strip_optunit(nonbondedCutoff, u.nanometer)):
+                raise ValueError('switchDistance is too large compared '
+                                 'to the cutoff!')
+            if _strip_optunit(switchDistance, u.nanometer) < 0:
+                # Detects negatives for both Quantity and float
+                raise ValueError('switchDistance must be non-negative!')
+            cforce.setUseSwitchingFunction(True)
+            cforce.setSwitchingDistance(switchDistance)
+        for i in lj_idx_list:
+            cforce.addParticle((i - 1,)) # adjust for indexing from 0
 
         # Add NBTHOLE terms
         if has_drude_particle and has_nbthole_terms:
@@ -1510,11 +1508,11 @@ class OplsPsfFile(object):
 
         # If we needed a CustomNonbondedForce, map all of the exceptions from
         # the NonbondedForce to the CustomNonbondedForce
-        if has_nbfix_terms:
-            for i in range(force.getNumExceptions()):
-                ii, jj, q, eps, sig = force.getExceptionParameters(i)
-                cforce.addExclusion(ii, jj)
-            system.addForce(cforce)
+        for i in range(force.getNumExceptions()):
+            ii, jj, q, eps, sig = force.getExceptionParameters(i)
+            cforce.addExclusion(ii, jj)
+        system.addForce(cforce)
+
         if has_drude_particle and has_nbthole_terms:
             for i in range(force.getNumExceptions()):
                 ii, jj, q, eps, sig = force.getExceptionParameters(i)

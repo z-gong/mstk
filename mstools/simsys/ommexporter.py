@@ -1,3 +1,4 @@
+from enum import IntEnum
 import numpy as np
 from .system import System
 from ..forcefield.ffterm import *
@@ -6,6 +7,14 @@ from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Imp
 from ..trajectory import Frame, Trajectory, Gro
 from .. import logger
 
+class ForceGroup(IntEnum):
+    BOND = 1
+    ANGLE = 2
+    DIHEDRAL = 3
+    IMPROPER = 4
+    VDW = 5
+    COULOMB = 6
+    DRUDE = 7
 
 class OpenMMExporter():
     def __init__(self):
@@ -50,7 +59,7 @@ class OpenMMExporter():
                 raise Exception('Bond terms other that HarmonicBondTerm '
                                 'haven\'t been implemented')
             bforce.setUsesPeriodicBoundaryConditions(True)
-            bforce.setForceGroup(1)
+            bforce.setForceGroup(ForceGroup.BOND)
             omm_system.addForce(bforce)
 
         ### Set up angles #######################################################################
@@ -88,7 +97,7 @@ class OpenMMExporter():
                 raise Exception('Angle terms other that HarmonicAngleTerm and SDKAngleTerm '
                                 'haven\'t been implemented')
             aforce.setUsesPeriodicBoundaryConditions(True)
-            aforce.setForceGroup(2)
+            aforce.setForceGroup(ForceGroup.ANGLE)
             omm_system.addForce(aforce)
 
         ### Set up constraints #################################################################
@@ -120,7 +129,7 @@ class OpenMMExporter():
                 raise Exception('Dihedral terms other that PeriodicDihedralTerm '
                                 'haven\'t been implemented')
             dforce.setUsesPeriodicBoundaryConditions(True)
-            dforce.setForceGroup(3)
+            dforce.setForceGroup(ForceGroup.DIHEDRAL)
             omm_system.addForce(dforce)
 
         ### Set up impropers ####################################################################
@@ -152,7 +161,7 @@ class OpenMMExporter():
                 raise Exception('Improper terms other that PeriodicImproperTerm and '
                                 'HarmonicImproperTerm haven\'t been implemented')
             iforce.setUsesPeriodicBoundaryConditions(True)
-            iforce.setForceGroup(4)
+            iforce.setForceGroup(ForceGroup.IMPROPER)
             omm_system.addForce(iforce)
 
         ### Set up non-bonded interactions #########################################################
@@ -165,7 +174,7 @@ class OpenMMExporter():
         nbforce.setEwaldErrorTolerance(1E-4)
         nbforce.setCutoffDistance(cutoff)
         nbforce.setUseDispersionCorrection(False)
-        nbforce.setForceGroup(5)
+        nbforce.setForceGroup(ForceGroup.COULOMB)
         omm_system.addForce(nbforce)
         for atom in system._topology.atoms:
             nbforce.addParticle(atom.charge, 1.0, 0.0)
@@ -259,7 +268,7 @@ class OpenMMExporter():
                 cforce.setUseLongRangeCorrection(True)
             else:
                 cforce.setUseLongRangeCorrection(False)
-            cforce.setForceGroup(6)
+            cforce.setForceGroup(ForceGroup.VDW)
             omm_system.addForce(cforce)
 
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
@@ -295,7 +304,7 @@ class OpenMMExporter():
                         cbforce.addPerBondParameter('n')
                         cbforce.addPerBondParameter('m')
                         cbforce.setUsesPeriodicBoundaryConditions(True)
-                        cbforce.setForceGroup(6)
+                        cbforce.setForceGroup(ForceGroup.VDW)
                         omm_system.addForce(cbforce)
                         pair14_forces[MieTerm] = cbforce
                     epsilon = vdw.epsilon * system._ff.scale_14_vdw
@@ -313,7 +322,7 @@ class OpenMMExporter():
             if polar_class == DrudeTerm:
                 logger.info('Setting up Drude polarizations...')
                 pforce = mm.DrudeForce()
-                pforce.setForceGroup(7)
+                pforce.setForceGroup(ForceGroup.DRUDE)
                 omm_system.addForce(pforce)
                 parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
                 for parent, drude in system._drude_pairs.items():
