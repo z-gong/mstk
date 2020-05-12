@@ -71,11 +71,13 @@ class Padua(FFSet):
                 self._parse_improper(words)
             elif _section == 'polarizations':
                 self._parse_polarization(words)
+            else:
+                raise Exception('Invalid header for fftool: %s' % line)
 
         # TODO not robust enough
         # If this is a polarizable FF, add an AtomType and VdwTerm for Drude particles
         if len(self.polarizable_terms) > 0:
-            type_drude = 'DRUDE'
+            type_drude = 'DP_'
             if type_drude not in self.atom_types:
                 dtype = AtomType(type_drude)
                 self.atom_types[type_drude] = dtype

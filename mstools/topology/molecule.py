@@ -33,7 +33,9 @@ class Molecule():
         mol = Molecule()
         mol.id = self.id
         mol.name = self.name
-        mol._obmol = self._obmol
+        if self._obmol is not None:
+            import openbabel
+            mol._obmol = openbabel.OBMol(self._obmol)
         for atom in self._atoms:
             atom_new = copy.deepcopy(atom)
             mol.add_atom(atom_new)
@@ -67,6 +69,13 @@ class Molecule():
         except ImportError:
             raise Exception('OpenBabel is required for parsing SMIELS')
 
+        words = smiles.strip().split()
+        smiles = words[0]
+        if len(words) > 1:
+            name = words[1]
+        else:
+            name = None
+
         try:
             py_mol = pybel.readstring('smi', smiles)
         except:
@@ -74,7 +83,14 @@ class Molecule():
 
         py_mol.addh()
         py_mol.make3D()
-        return Molecule.from_pybel(py_mol)
+        mol = Molecule.from_pybel(py_mol)
+
+        if name is not None:
+            mol.name = name
+        else:
+            mol.name = py_mol.formula
+
+        return mol
 
     @staticmethod
     def from_pybel(py_mol):
@@ -489,7 +505,7 @@ class Molecule():
                 string += ' and more ...'
             warnings.warn(string)
 
-    def generate_drude_particles(self, params: FFSet, type_drude='DRUDE', seed=1):
+    def generate_drude_particles(self, params: FFSet, type_drude='DP_', seed=1):
         '''
         Generate Drude particles from DrudeTerms in force field.
         The atom types should have been defined already.

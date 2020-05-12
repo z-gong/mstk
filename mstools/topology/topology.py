@@ -1,3 +1,4 @@
+import warnings
 import shutil
 import numpy as np
 import copy
@@ -29,14 +30,16 @@ class Topology():
         '''
         Initialize a topology from a bunch of molecule.
         The molecules and atoms are deep copied if numbers is not None or deepcopy is True.
+        The molecules and atoms are deep copied if there are duplicated molecules.
         This method should be called as long as atoms or molecules are added to or removed from topology.
         '''
         if not isinstance(molecules, (list, tuple)) \
                 or any(type(mol) is not Molecule for mol in molecules):
             raise Exception('A list of molecules should be provided')
 
-        if len(set(molecules)) < len(molecules):
-            raise Exception('There are duplicated molecules, consider set the number of molecule')
+        if len(set(molecules)) < len(molecules) and numbers is None:
+            numbers = [1] * len(molecules)
+
         if numbers is None and not deepcopy:
             self._molecules = molecules[:]
         else:
@@ -123,20 +126,23 @@ class Topology():
         packmol: Packmol
 
         xyz_files = []
-        for mol in self._molecules:
-            t = Topology([mol])
-            f = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='in').name
-            t.write(f)
-            xyz_files.append(f)
-        tmp_xyz = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out').name
-        tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack').name
+        for i, mol in enumerate(self._molecules):
+            _top = Topology([mol])
+            if packmol is None:
+                xyz = '_MO_%i.xyz' % i
+            else:
+                xyz = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='in-').name
+            _top.write(xyz)
+            xyz_files.append(xyz)
 
         if packmol is not None:
             print('Build with Packmol ...')
-            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
+            tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack-').name
+            tmp_out = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out-').name
+            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out,
                               inp_file=tmp_inp, silent=True)
             try:
-                xyz = Topology.open(tmp_xyz)
+                xyz = Topology.open(tmp_out)
             except:
                 raise Exception('Building failed. xyz not found')
 
@@ -148,12 +154,10 @@ class Topology():
             self.set_positions(xyz.positions)
 
         else:
-            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10, output=tmp_xyz,
+            tmp_inp = '_pack.inp'
+            tmp_out = '_out.xyz'
+            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out,
                             inp_file=tmp_inp)
-            for f in xyz_files:
-                shutil.copy(f, '.')
-            shutil.copy(tmp_xyz, '.')
-            shutil.copy(tmp_inp, '.')
 
     @property
     def n_molecule(self):
@@ -228,7 +232,7 @@ class Topology():
 
         if file.startswith(':'):
             mol = Molecule.from_smiles(file[1:])
-            return Topology(mol)
+            return Topology([mol])
         elif file.endswith('.psf'):
             return Psf(file, **kwargs)
         elif file.endswith('.pdb'):

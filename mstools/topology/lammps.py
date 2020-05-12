@@ -108,7 +108,7 @@ class LammpsData(Topology):
             # TODO This is not robust but there's no better way
             if len(words) > 3 and words[2] == '#':
                 if words[-1].startswith('D') and mass < 1:
-                    self._type_names[type_id] = 'DRUDE'
+                    self._type_names[type_id] = 'DP_'
                     warnings.warn(f'Atom type {type_id} is considered to be Drude particle')
                 else:
                     self._type_names[type_id] = words[3]
@@ -144,7 +144,7 @@ class LammpsData(Topology):
             atom.charge = charge
             atom.mass = self._type_masses[type_id]
             atom.type = self._type_names[type_id]
-            if atom.type == 'DRUDE':
+            if atom.type == 'DP_':
                 atom.is_drude = True
                 atom.symbol = 'DP'
             else:
