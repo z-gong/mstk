@@ -1,9 +1,9 @@
-import warnings
 import numpy as np
 from .atom import Atom
 from .molecule import Molecule
 from .topology import Topology
 from ..forcefield import Element
+from .. import logger
 
 
 class LammpsData(Topology):
@@ -109,7 +109,7 @@ class LammpsData(Topology):
             if len(words) > 3 and words[2] == '#':
                 if words[-1].startswith('D') and mass < 1:
                     self._type_names[type_id] = 'DP_'
-                    warnings.warn(f'Atom type {type_id} is considered to be Drude particle')
+                    logger.warning(f'Atom type {type_id} is considered to be Drude particle')
                 else:
                     self._type_names[type_id] = words[3]
             else:
@@ -195,8 +195,8 @@ class LammpsData(Topology):
     def parse_impropers(self, lines, n_improper, improper_center):
         if improper_center is None:
             improper_center = 1
-            warnings.warn('improper_center undefined, '
-                          'will treat the first atom as the central atom for impropers')
+            logger.warning('improper_center undefined, '
+                           'will treat the first atom as the central atom for impropers')
         elif improper_center not in (1, 2, 3, 4):
             raise Exception('improper_center should be a integer from 1 to 4')
 

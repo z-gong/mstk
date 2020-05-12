@@ -1,4 +1,3 @@
-import warnings
 import shutil
 import numpy as np
 import copy
@@ -8,6 +7,7 @@ from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
 from ..forcefield import FFSet
+from .. import logger
 
 
 class Topology():

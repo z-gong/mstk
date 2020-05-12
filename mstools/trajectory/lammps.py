@@ -1,8 +1,8 @@
-import warnings
 import numpy as np
 import pandas as pd
 from io import StringIO
 from . import Trajectory, Frame
+from .. import logger
 
 
 class LammpsTrj(Trajectory):
@@ -103,7 +103,7 @@ class LammpsTrj(Trajectory):
             df['z'] = df.zsu * frame.cell.size[2] + zlo
         if wrapped:
             if 'ix' not in df.columns:
-                warnings.warn('Image flag not found for wrapped positions')
+                logger.warning('Image flag not found for wrapped positions')
             else:
                 # ix is revered words for pandas, so use df['ix'] instead of df.ix
                 df['x'] += df['ix'] * frame.cell.size[0]

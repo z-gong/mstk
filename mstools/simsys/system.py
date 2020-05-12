@@ -1,12 +1,12 @@
 import copy
 import itertools
 import numpy as np
-import warnings
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
 from ..forcefield import FFSet
 from ..forcefield.ffterm import *
 from ..constant import *
+from .. import logger
 
 
 class System():

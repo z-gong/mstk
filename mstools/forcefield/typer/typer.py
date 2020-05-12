@@ -1,4 +1,4 @@
-import warnings
+from ... import logger
 
 
 class TypingNotSupportedError(Exception):
@@ -18,10 +18,10 @@ class Typer():
             try:
                 self.type_molecule(mol)
             except TypingNotSupportedError as e:
-                warnings.warn('%s not supported by %s: %s' % (
+                logger.warning('%s not supported by %s: %s' % (
                     str(mol), self.__class__.__name__, str(e)))
             except TypingUndefinedError as e:
-                warnings.warn('%s not fully typed by %s: %s' % (
+                logger.warning('%s not fully typed by %s: %s' % (
                     str(mol), self.__class__.__name__, str(e)))
 
     def type_molecule(self, molecule):

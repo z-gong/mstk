@@ -1,8 +1,8 @@
 import itertools
-import warnings
 from .ffset import FFSet
 from .ffterm import *
 from .element import Element
+from .. import logger
 
 
 class Padua(FFSet):
@@ -89,8 +89,8 @@ class Padua(FFSet):
             hterm = self.polarizable_terms.pop('H*')
             for pterm in self.polarizable_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
-            warnings.warn(f'{str(hterm)} found in polarizable term. '
-                          f'Its polarizability will be merged into parent atoms.')
+            logger.warning(f'{str(hterm)} found in polarizable term. '
+                           f'Its polarizability will be merged into parent atoms.')
 
     def _parse_atom(self, words):
         atype = AtomType(words[0])

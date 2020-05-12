@@ -1,7 +1,7 @@
-import warnings
 from .ffset import FFSet
 from .ffterm import *
 from .element import Element
+from .. import logger
 
 
 class PpfLine():
@@ -237,7 +237,7 @@ class Ppf(FFSet):
                 raise Exception('Only PeriodicImproperTerm is implemented')
 
         if len(params.polarizable_terms) > 0:
-            warnings.warn('Polarizable parameters are ignored because PPF does not support them')
+            logger.warning('Polarizable parameters are ignored because PPF does not support them')
 
         with open(file, 'w') as f:
             f.write(line)

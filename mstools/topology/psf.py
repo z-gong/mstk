@@ -1,9 +1,9 @@
-import warnings
 import math
 from ..forcefield import Element
 from .atom import Atom
 from .molecule import Molecule
 from .topology import Topology
+from .. import logger
 
 
 class Psf(Topology):

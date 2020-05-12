@@ -1,7 +1,7 @@
-import warnings
 import numpy as np
 from io import IOBase
 from ..topology import Topology, UnitCell
+from .. import logger
 
 
 class Frame():
@@ -17,8 +17,8 @@ class Frame():
 
     def resize(self, n_atom):
         if n_atom < len(self.positions):
-            warnings.warn('n_atom is smaller than original. '
-                          'The positions, velocities and charges at the end will be lost')
+            logger.warning('n_atom is smaller than original. '
+                           'The positions, velocities and charges at the end will be lost')
         self.positions.resize((n_atom, 3), refcheck=False)
         self.velocities.resize((n_atom, 3), refcheck=False)
         self.charges.resize((n_atom, 3), refcheck=False)

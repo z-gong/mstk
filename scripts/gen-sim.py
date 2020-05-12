@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
-import warnings
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 from mstools.forcefield import FFSet, ZftTyper
 from mstools.simsys import System
+from mstools import logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', nargs='+', required=True, type=str,
@@ -45,6 +45,12 @@ for inp, n in zip(args.input, args.number):
     molecules += top.molecules * n
 top = Topology(molecules)
 
+ff = FFSet.open(*args.forcefield)
+if len(ff.polarizable_terms) > 0:
+    top.generate_drude_particles(ff)
+top.assign_mass_from_ff(ff)
+top.assign_charge_from_ff(ff)
+
 if args.trj is not None:
     trj = Trajectory.open(args.trj)
     frame = trj.read_frame(trj.n_frame - 1)
@@ -55,12 +61,6 @@ if args.trj is not None:
 if args.box is not None:
     top.cell.set_box(args.box)
 
-ff = FFSet.open(*args.forcefield)
-if len(ff.polarizable_terms) > 0:
-    top.generate_drude_particles(ff)
-top.assign_mass_from_ff(ff)
-top.assign_charge_from_ff(ff)
-
 system = System(top, ff)
 if args.packmol:
     mol_numbers = top.get_unique_molecules()
@@ -68,10 +68,7 @@ if args.packmol:
     top.scale_with_packmol(list(mol_numbers.values()))
 else:
     if args.trj is None:
-        warnings.warn('Trajectory file not provided, '
-                      'will use the positions and cell from the topology')
-    try:
-        system.export_gmx(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
-    except Exception as e:
-        print(repr(e))
+        logger.warn('Trajectory file not provided, '
+                    'will use the positions and cell from the topology')
+    system.export_gmx(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
     top.write('_topol.psf')

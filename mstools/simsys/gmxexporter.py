@@ -1,11 +1,11 @@
 import itertools
 import numpy as np
-import warnings
 from .system import System
 from ..forcefield.ffterm import *
 from ..forcefield import FFSet
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper, Molecule
 from ..trajectory import Frame, Trajectory, Gro
+from .. import logger
 
 
 class GromacsExporter():
@@ -26,13 +26,14 @@ class GromacsExporter():
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if MieTerm in system.ff_classes:
-            warnings.warn('MieTerm not supported by GROMACS. '
-                          'The exported files should only be used for analyzing trajectory')
+            logger.warning('MieTerm not supported by GROMACS. '
+                           'The exported files should only be used for analyzing trajectory')
         if SDKAngleTerm in system.ff_classes:
-            warnings.warn('SDKAngleTerm not supported by GROMACS, '
-                          'replaced by harmonic function')
+            logger.warning('SDKAngleTerm not supported by GROMACS, '
+                           'replaced by harmonic function')
         if DrudeTerm in system.ff_classes:
-            raise Exception('DurdeTerm havn\'t been implemented for GROMACS exporting')
+            logger.warning('DurdeTerm havn\'t been implemented. '
+                           'Will treat Drude particles as normal atoms')
 
         frame = Frame(system._topology.n_atom)
         frame.cell = system._topology.cell
@@ -106,6 +107,9 @@ class GromacsExporter():
 
             string += '\n[ bonds ]\n'
             for bond in mol.bonds:
+                if bond.is_drude:
+                    # TODO
+                    continue
                 bterm = system._bond_terms[id(bond)]
                 if bterm.__class__ == HarmonicBondTerm:
                     a1, a2 = bond.atom1, bond.atom2

@@ -1,9 +1,9 @@
 import numpy as np
-import warnings
 from .system import System
 from ..forcefield.ffterm import *
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
+from .. import logger
 
 
 class LammpsExporter():

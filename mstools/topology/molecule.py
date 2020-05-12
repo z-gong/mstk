@@ -2,13 +2,13 @@ import math
 import itertools
 import random
 import copy
-import warnings
 import numpy as np
 from .atom import Atom
 from .connectivity import *
 from .unitcell import UnitCell
 from ..forcefield import FFSet, Element
 from ..forcefield.ffterm import *
+from .. import logger
 
 
 class Molecule():
@@ -487,7 +487,7 @@ class Molecule():
                      + ' '.join([str(i) for i in angles_removed[:10]])
             if len(angles_removed) > 10:
                 string += ' and more ...'
-            warnings.warn(string)
+            logger.warning(string)
 
         if dihedrals_removed != []:
             string = '%i dihedrals not added because parameters not found in FF: ' \
@@ -495,7 +495,7 @@ class Molecule():
                      + ' '.join([str(i) for i in dihedrals_removed[:10]])
             if len(dihedrals_removed) > 10:
                 string += ' and more ...'
-            warnings.warn(string)
+            logger.warning(string)
 
         if impropers_removed != []:
             string = '%i impropers not added because parameters not found in FF: ' \
@@ -503,7 +503,7 @@ class Molecule():
                      + ' '.join([str(i) for i in impropers_removed[:10]])
             if len(impropers_removed) > 10:
                 string += ' and more ...'
-            warnings.warn(string)
+            logger.warning(string)
 
     def generate_drude_particles(self, params: FFSet, type_drude='DP_', seed=1):
         '''
@@ -561,14 +561,14 @@ class Molecule():
         if dtype is None:
             dtype = AtomType(type_drude)
             params.atom_types[dtype.name] = dtype
-            warnings.warn(f'AtomType for Drude particle not found in FF. '
-                          f'{str(dtype)} is added to the FF')
+            logger.warning(f'AtomType for Drude particle not found in FF. '
+                           f'{str(dtype)} is added to the FF')
         vdw = params.vdw_terms.get(dtype.eqt_vdw)
         if vdw is None:
             vdw = LJ126Term(dtype.eqt_vdw, dtype.eqt_vdw, 0.0, 1.0)
             params.vdw_terms[vdw.name] = vdw
-            warnings.warn(f'VdwTerm for Drude particle not found in FF. '
-                          f'{str(vdw)} with zero interactions is added to the FF')
+            logger.warning(f'VdwTerm for Drude particle not found in FF. '
+                           f'{str(vdw)} with zero interactions is added to the FF')
 
     def remove_drude_particles(self):
         '''
@@ -601,7 +601,7 @@ class Molecule():
             if atype.mass == -1:
                 raise Exception(f'{atype} does not carry mass information')
             if atype.mass == 0:
-                warnings.warn(f'{atype} carries zero mass. You should make sure it is correct')
+                logger.warning(f'{atype} carries zero mass. You should make sure it is correct')
             atom.mass = atype.mass
 
         for parent, drude in self.get_drude_pairs():
@@ -637,7 +637,7 @@ class Molecule():
                 try:
                     increment = params.get_charge_increment(bond)
                 except FFTermNotFoundError:
-                    warnings.warn(f'Charge increment for {bond} not found in FF')
+                    logger.warning(f'Charge increment for {bond} not found in FF')
                 else:
                     bond.atom1.charge += increment
                     bond.atom2.charge -= increment
