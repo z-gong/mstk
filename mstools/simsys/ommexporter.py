@@ -171,7 +171,7 @@ class OpenMMExporter():
         logger.info('Setting up Coulomb interactions...')
         nbforce = mm.NonbondedForce()
         nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
-        nbforce.setEwaldErrorTolerance(1E-4)
+        nbforce.setEwaldErrorTolerance(5E-4)
         nbforce.setCutoffDistance(cutoff)
         nbforce.setUseDispersionCorrection(False)
         nbforce.setForceGroup(ForceGroup.COULOMB)

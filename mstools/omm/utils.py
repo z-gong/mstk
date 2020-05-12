@@ -1,4 +1,5 @@
 import simtk.openmm as mm
+from simtk.openmm import app
 from simtk.unit import kelvin, bar, nanometer as nm, picosecond as ps
 from simtk.unit import kilojoule_per_mole as kj_mol, kilocalorie_per_mole as kcal_mol
 from .grofile import GroFile
@@ -46,3 +47,9 @@ def apply_mc_barostat(system, pcoupl, P, T, nsteps=100):
             mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, nsteps))
     else:
         raise Exception('Available pressure coupling types: iso, semi-iso, xyz, xy, z')
+
+
+def energy_decomposition(sim: app.Simulation, groups):
+    for group in groups:
+        state = sim.context.getState(getEnergy=True, groups={group})
+        print('E_%i:' % group, state.getPotentialEnergy())
