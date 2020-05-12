@@ -224,19 +224,16 @@ class PaduaLJScaler():
 
     def scale(self, ffset: FFSet):
         # must scale pairwise vdW terms first
-        # because they are generated from self vdW terms by combination rule
+        # because they may be generated from self vdW terms by combination rule
         # the scaled pairwise terms must be added into the ff set
         for type1, type2 in itertools.combinations(ffset.atom_types.values(), 2):
             vdw = ffset.get_vdw_term(type1, type2)
             if type(vdw) == LJ126Term:
-                if vdw.epsilon == 0:
-                    continue
-                self.scale_vdw(vdw)
-                if vdw.name not in ffset.pairwise_vdw_terms:
-                    ffset.add_term(vdw)
+                self.scale_lj(vdw)
+                ffset.add_term(vdw, replace=True)
         for vdw in ffset.vdw_terms.values():
             if type(vdw) == LJ126Term:
-                self.scale_vdw(vdw)
+                self.scale_lj(vdw)
 
     def _parse(self, file):
         '''
@@ -318,16 +315,13 @@ class PaduaLJScaler():
 
         return dimer.scale_factor
 
-    def scale_vdw(self, term: LJ126Term):
-        k = self.predict_scale_epsilon(term.type1, term.type2)
-        if k is None:
-            return
+    def scale_lj(self, term: LJ126Term):
+        k_eps = self.predict_scale_epsilon(term.type1, term.type2)
+        if k_eps is not None:
+            term.epsilon *= k_eps
+            term.comments.append('eps*%.3f' % k_eps)
 
-        term.epsilon *= k
-        term.comments.append('eps*%.3f' % k)
-
-        factor = self.scale_sigma
-        if factor == 1.0:
-            return
-        term.sigma *= factor
-        term.comments.append('sig*%.3f' % factor)
+        k_sig = self.scale_sigma
+        if k_sig != 1.0:
+            term.sigma *= k_sig
+            term.comments.append('sig*%.3f' % k_sig)

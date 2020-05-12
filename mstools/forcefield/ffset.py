@@ -57,53 +57,53 @@ class FFSet():
                   'scale_14_vdw', 'scale_14_coulomb'):
             setattr(self, i, d[i])
 
-    def add_term(self, term, ignore_duplicated=False):
+    def add_term(self, term, replace=False):
         _duplicated = False
         if isinstance(term, AtomType):
-            if term.name not in self.atom_types:
+            if term.name not in self.atom_types or replace:
                 self.atom_types[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, BondTerm):
-            if term.name not in self.bond_terms:
+            if term.name not in self.bond_terms or replace:
                 self.bond_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, AngleTerm):
-            if term.name not in self.angle_terms:
+            if term.name not in self.angle_terms or replace:
                 self.angle_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, DihedralTerm):
-            if term.name not in self.dihedral_terms:
+            if term.name not in self.dihedral_terms or replace:
                 self.dihedral_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, ImproperTerm):
-            if term.name not in self.improper_terms:
+            if term.name not in self.improper_terms or replace:
                 self.improper_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, VdwTerm):
             if term.type1 == term.type2:
-                if term.name not in self.vdw_terms:
+                if term.name not in self.vdw_terms or replace:
                     self.vdw_terms[term.name] = term
                 else:
                     _duplicated = True
             else:
-                if term.name not in self.pairwise_vdw_terms:
+                if term.name not in self.pairwise_vdw_terms or replace:
                     self.pairwise_vdw_terms[term.name] = term
                 else:
                     _duplicated = True
         elif isinstance(term, PolarizableTerm):
-            if term.name not in self.polarizable_terms:
+            if term.name not in self.polarizable_terms or replace:
                 self.polarizable_terms[term.name] = term
             else:
                 _duplicated = True
         else:
             raise Exception('Invalid term to add')
 
-        if _duplicated and not ignore_duplicated:
+        if _duplicated:
             raise Exception(f'{str(term)} already exist in FF')
 
     def get_vdw_term(self, type1: AtomType, type2: AtomType, mixing=True):

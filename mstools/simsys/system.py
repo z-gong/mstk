@@ -64,12 +64,12 @@ class System():
                     vdw = params.get_vdw_term(atype, atype)
                 except Exception as e:
                     raise Exception(f'Error assigning vdW parameters for {str(atom)}: {str(e)}')
-                self._ff.add_term(vdw, ignore_duplicated=True)
+                self._ff.add_term(vdw, replace=True)
 
         for atype1, atype2 in itertools.combinations(self._ff.atom_types.values(), 2):
             vdw = params.pairwise_vdw_terms.get(VdwTerm(atype1.eqt_vdw, atype2.eqt_vdw).name)
             if vdw is not None:
-                self._ff.add_term(vdw, ignore_duplicated=True)
+                self._ff.add_term(vdw, replace=True)
 
         for bond in self._topology.bonds:
             if bond.is_drude:
@@ -79,7 +79,7 @@ class System():
                 bterm = params.get_bond_term(bond)
             except Exception as e:
                 raise Exception(f'Error assigning parameters for {str(bond)}: {str(e)}')
-            self._ff.add_term(bterm, ignore_duplicated=True)
+            self._ff.add_term(bterm, replace=True)
             self._bond_terms[id(bond)] = bterm
             if bterm.fixed:
                 self._constrain_bonds[id(bond)] = bterm.length
@@ -89,7 +89,7 @@ class System():
                 aterm = params.get_angle_term(angle)
             except Exception as e:
                 raise Exception(f'Error assigning parameters for {str(angle)}: {str(e)}')
-            self._ff.add_term(aterm, ignore_duplicated=True)
+            self._ff.add_term(aterm, replace=True)
             self._angle_terms[id(angle)] = aterm
             if aterm.fixed:
                 bond1 = next(b for b in self._topology.bonds if b == Bond(angle.atom1, angle.atom2))
@@ -105,7 +105,7 @@ class System():
                 dterm = params.get_dihedral_term(dihedral)
             except Exception as e:
                 raise Exception(f'Error assign parameters for {str(dihedral)}: {str(e)}')
-            self._ff.add_term(dterm, ignore_duplicated=True)
+            self._ff.add_term(dterm, replace=True)
             self._dihedral_terms[id(dihedral)] = dterm
 
         for improper in self._topology.impropers:
@@ -113,7 +113,7 @@ class System():
                 iterm = params.get_improper_term(improper)
             except Exception as e:
                 raise Exception(f'Error assign parameters for {str(improper)}: {str(e)}')
-            self._ff.add_term(iterm, ignore_duplicated=True)
+            self._ff.add_term(iterm, replace=True)
             self._improper_terms[id(improper)] = iterm
 
         for parent in self._drude_pairs.keys():
@@ -122,7 +122,7 @@ class System():
                 pterm = params.polarizable_terms[pterm.name]
             except:
                 raise Exception(f'{str(pterm)} for {str(parent)} not found')
-            self._ff.add_term(pterm, ignore_duplicated=True)
+            self._ff.add_term(pterm, replace=True)
             self._polarizable_terms[parent] = pterm
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
