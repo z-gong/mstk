@@ -5,13 +5,21 @@ from simtk.unit import nanometer, picosecond, norm, is_quantity
 
 class GroFile(GromacsGroFile):
     @staticmethod
-    def writeFile(topology, time, positions, vectors, file, subset=None, velocities=None):
-        GroFile.writeHeader(time, file)
-        GroFile.writeModel(topology, positions, file, subset, velocities)
-        GroFile.writeFooter(vectors, file)
+    def writeFile(topology, positions, vectors, file, time=None, subset=None, velocities=None):
+        if type(file) is str:
+            _file = open(file, 'w')
+        else:
+            _file = file
+
+        GroFile.writeHeader(time, _file)
+        GroFile.writeModel(topology, positions, _file, subset, velocities)
+        GroFile.writeFooter(vectors, _file)
+
+        if type(file) is str:
+            _file.close()
 
     @staticmethod
-    def writeHeader(time, file=sys.stdout):
+    def writeHeader(time=None, file=sys.stdout):
         """Write out the header for a PDB file.
 
         Parameters
@@ -21,7 +29,12 @@ class GroFile(GromacsGroFile):
         file : file=stdout
             A file to write the file to
         """
-        print("written by openmm t = %.3f ps" % time.value_in_unit(picosecond), file=file)
+        if time is None:
+            time = -1
+        elif is_quantity(time):
+            time = time.value_in_unit(picosecond)
+
+        print("written by openmm t = %.3f ps" % time, file=file)
 
     @staticmethod
     def writeModel(topology, positions, file=sys.stdout, subset=None, velocities=None):

@@ -84,7 +84,7 @@ class GroReporter(object):
         positions = state.getPositions(asNumpy=True)
         velocities = state.getVelocities(asNumpy=True) if self._reportVelocity else None
         vectors = state.getPeriodicBoxVectors()
-        GroFile.writeFile(simulation.topology, time, positions, vectors, self._out, self._subset, velocities)
+        GroFile.writeFile(simulation.topology, positions, vectors, self._out, time, self._subset, velocities)
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()
