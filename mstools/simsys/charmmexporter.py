@@ -42,6 +42,10 @@ class CharmmExporter():
             raise Exception('Unsupported FF terms: %s'
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        if OplsImproperTerm in system.ff_classes:
+            logger.warning('CHARMM only supports harmonic form for impropers. '
+                           'OPLS impropers will be exported as harmonic')
+
         string = '* Created by mstools\n'
         string += '*\n'
 
@@ -80,47 +84,37 @@ class CharmmExporter():
                 unique_impropers[name] = system._improper_terms[id(improper)]
 
         string += '\nBONDS\n'
-        string += '''!
-!V(bond) = Kb(b - b0)**2
-!
+        string += '''!V(bond) = Kb(b - b0)**2
 !Kb: kcal/mole/A**2
 !b0: A
 !
 !atom type Kb          b0
-!
 '''
         for (at1, at2), bterm in unique_bonds.items():
             string += '%10s %10s %16.6f %10.4f\n' % (
                 at1, at2, bterm.k / 4.184 / 100, bterm.length * 10)
 
         string += '\nANGLES\n'
-        string += '''!
-!V(angle) = Ktheta(Theta - Theta0)**2
-!
+        string += '''!V(angle) = Ktheta(Theta - Theta0)**2
 !V(Urey-Bradley) = Kub(S - S0)**2
-!
 !Ktheta: kcal/mole/rad**2
 !Theta0: degrees
 !Kub: kcal/mole/A**2 (Urey-Bradley)
 !S0: A
 !
 !atom types     Ktheta    Theta0   Kub     S0
-!
 '''
         for (at1, at2, at3), aterm in unique_angles.items():
             string += '%10s %10s %10s %12.6f %12.4f\n' % (
                 at1, at2, at3, aterm.k / 4.184, aterm.theta)
 
         string += '\nDIHEDRALS\n'
-        string += '''!
-!V(dihedral) = Kchi(1 + cos(n(chi) - delta))
-!
+        string += '''!V(dihedral) = Kchi(1 + cos(n(chi) - delta))
 !Kchi: kcal/mole
 !n: multiplicity
 !delta: degrees
 !
 !atom types             Kchi    n   delta
-!
 '''
         for (at1, at2, at3, at4), dterm in unique_dihedrals.items():
             for para in dterm.parameters:
@@ -128,37 +122,28 @@ class CharmmExporter():
                     at1, at2, at3, at4, para.k / 4.184, para.n, para.phi)
 
         string += '\nIMPROPERS\n'
-        string += '''!
-!V(improper) = Kpsi(psi - psi0)**2
-!
+        string += '''!V(improper) = Kpsi(psi - psi0)**2
 !Kpsi: kcal/mole/rad**2
 !psi0: degrees
-!note that the second column of numbers (0) is ignored
 !
-!atom types           Kpsi                   psi0
-!
+!atom types           Kpsi      ignored         psi0
 '''
         for (at1, at2, at3, at4), iterm in unique_impropers.items():
             if type(iterm) == HarmonicImproperTerm:
                 phi = iterm.phi
             elif type(iterm) == OplsImproperTerm:
                 phi = 0.0
-                logger.warning('CHARMM use harmonic function for improper, '
-                               'and the center atom is the first atom')
             else:
                 raise Exception('Only HarmonicImproperTerm and OplsImproperTerm are supported')
             string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
                 at1, at2, at3, at4, iterm.k / 4.184, 0, phi)
 
         string += '\nNONBONDED\n'
-        string += '''!
-!V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]
-!
+        string += '''!V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]
 !epsilon: kcal/mole, Eps,i,j = sqrt(eps,i * eps,j)
 !Rmin/2: A, Rmin,i,j = Rmin/2,i + Rmin/2,j
 !
 !atom  ignored    epsilon      Rmin/2   ignored   eps,1-4       Rmin/2,1-4
-!
 '''
         for atype in system._ff.atom_types.values():
             vdw = system._ff.get_vdw_term(atype, atype)
@@ -170,10 +155,7 @@ class CharmmExporter():
 
         if len(system._ff.pairwise_vdw_terms) != 0:
             string += '\nNBFIX\n'
-            string += '''!
-!atom  ignored    epsilon      Rmin/2   ignored   eps,1-4       Rmin/2,1-4
-!
-'''
+            string += '!atom  atom  epsilon      Rmin   eps,1-4       Rmin,1-4\n'
             for atype1, atype2 in itertools.combinations(system._ff.atom_types.values(), 2):
                 vdw = system._ff.get_vdw_term(atype1, atype2, mixing=False)
                 if vdw is None:
