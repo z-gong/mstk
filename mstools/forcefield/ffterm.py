@@ -17,11 +17,8 @@ class FFTerm():
     def name(self):
         raise NotImplementedError('This property should be implemented by subclasses')
 
-    def __str__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.name)
-
     def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
+        return '<%s: %s>' % (self.__class__.__name__, self.name)
 
     def to_zfp(self) -> {str: str}:
         d = {}

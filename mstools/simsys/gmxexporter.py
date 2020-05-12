@@ -14,6 +14,24 @@ class GromacsExporter():
 
     @staticmethod
     def export(system: System, gro_out, top_out, mdp_out):
+        if gro_out is not None:
+            GromacsExporter.export_gro(system, gro_out)
+        if top_out is not None:
+            GromacsExporter.export_top(system, top_out)
+        if mdp_out is not None:
+            GromacsExporter.export_mdp(mdp_out)
+
+    @staticmethod
+    def export_gro(system, gro_out='conf.gro'):
+        frame = Frame(system._topology.n_atom)
+        frame.cell = system._topology.cell
+        frame.positions = system._topology.positions
+        gro = Gro(gro_out, 'w')
+        gro.write_frame(frame, system._topology)
+        gro.close()
+
+    @staticmethod
+    def export_top(system, top_out='topol.top'):
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm,
@@ -34,13 +52,6 @@ class GromacsExporter():
         if DrudeTerm in system.ff_classes:
             logger.warning('DurdeTerm havn\'t been implemented for GROMACS. '
                            'Will treat Drude particles as normal atoms')
-
-        frame = Frame(system._topology.n_atom)
-        frame.cell = system._topology.cell
-        frame.positions = system._topology.positions
-        gro = Trajectory.open(gro_out, 'w')
-        gro.write_frame(frame, system._topology)
-        gro.close()
 
         mols_unique = system._topology.get_unique_molecules()
 
@@ -65,7 +76,7 @@ class GromacsExporter():
         string += '\n[ nonbond_params ]\n'
         string += ';       i        j        func      sigma      epsilon\n'
         for at1, at2 in itertools.combinations(system.ff.atom_types.values(), 2):
-            vdw = system.ff.pairwise_vdw_terms.get(VdwTerm(at1.eqt_vdw, at2.eqt_vdw).name)
+            vdw = system.ff.get_vdw_term(at1, at2, mixing=False)
             if vdw is not None:
                 if vdw.__class__ in (LJ126Term, MieTerm):
                     string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
@@ -170,6 +181,8 @@ class GromacsExporter():
         with open(top_out, 'w') as f:
             f.write(string)
 
+    @staticmethod
+    def export_mdp(mdp_out='grompp.mdp'):
         with open(mdp_out, 'w')  as f:
             f.write('''; Created by mstools
 integrator      = sd

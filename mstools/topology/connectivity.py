@@ -11,11 +11,8 @@ class Bond():
         self.atom1 = atom1
         self.atom2 = atom2
 
-    def __str__(self):
-        return '<Bond: %s-%s>' % (self.atom1.name, self.atom2.name)
-
     def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
+        return '<Bond: %s-%s>' % (self.atom1.name, self.atom2.name)
 
     def __eq__(self, other):
         if type(other) != Bond:
@@ -33,11 +30,8 @@ class Angle():
         self.atom2 = atom2
         self.atom3 = atom3
 
-    def __str__(self):
-        return '<Angle: %s-%s-%s>' % (self.atom1.name, self.atom2.name, self.atom3.name)
-
     def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
+        return '<Angle: %s-%s-%s>' % (self.atom1.name, self.atom2.name, self.atom3.name)
 
     def __eq__(self, other):
         if type(other) != Angle:
@@ -54,12 +48,9 @@ class Dihedral():
         self.atom3 = atom3
         self.atom4 = atom4
 
-    def __str__(self):
+    def __repr__(self):
         return '<Dihedral: %s-%s-%s-%s>' \
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         if type(other) != Dihedral:
@@ -81,12 +72,9 @@ class Improper():
         self.atom3 = atom3
         self.atom4 = atom4
 
-    def __str__(self):
+    def __repr__(self):
         return '<Improper: %s-%s-%s-%s>' \
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
-
-    def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
 
     def __eq__(self, other):
         if type(other) != Improper:

@@ -15,10 +15,20 @@ def test_gmx():
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
-    system.export_gmx(gro_out=cwd + '/files/conf.gro',
-                      top_out=cwd + '/files/topol.top',
-                      mdp_out=cwd + '/files/grompp.mdp')
+    system.export_gromacs(gro_out=cwd + '/files/conf.gro',
+                          top_out=cwd + '/files/topol.top',
+                          mdp_out=cwd + '/files/grompp.mdp')
 
 
 def test_gmx_drude():
     pass
+
+
+def test_charmm():
+    ff = Ppf(cwd + '/files/10-benzene.ppf')
+    top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
+    top.assign_charge_from_ff(ff)
+    system = System(top, ff)
+    system.export_charmm(pdb_out=cwd + '/files/conf.pdb',
+                         psf_out=cwd + '/files/psf.psf',
+                         prm_out=cwd + '/files/ff.prm')

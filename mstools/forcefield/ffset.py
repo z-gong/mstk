@@ -106,10 +106,10 @@ class FFSet():
         if _duplicated and not ignore_duplicated:
             raise Exception(f'{str(term)} already exist in FF')
 
-    def get_vdw_term(self, type1: AtomType, type2: AtomType):
+    def get_vdw_term(self, type1: AtomType, type2: AtomType, mixing=True):
         '''
         Get vdW term between two atom types
-        If not exist and it's LJ126 form, then generate it using mixing rule
+        If not exist and mixing=True and it's LJ126 form, then generate it using mixing rule
         '''
         at1 = type1.eqt_vdw if type(type1) is AtomType else type1
         at2 = type2.eqt_vdw if type(type2) is AtomType else type2
@@ -119,7 +119,7 @@ class FFSet():
         else:
             vdw = self.pairwise_vdw_terms.get(vdw.name)
 
-        if vdw is not None:
+        if vdw is not None or not mixing:
             return vdw
 
         lj1 = self.vdw_terms.get(VdwTerm(at1, at1).name)

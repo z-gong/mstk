@@ -23,11 +23,8 @@ class Molecule():
         self._impropers: [Improper] = []
         self._obmol = None  # this is for typing based on SMARTS
 
-    def __str__(self):
-        return f'<Molecule: {self.name} {self.id}>'
-
     def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
+        return f'<Molecule: {self.name} {self.id}>'
 
     def __deepcopy__(self, memodict={}):
         mol = Molecule()

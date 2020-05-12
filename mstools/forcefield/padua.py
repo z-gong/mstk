@@ -229,6 +229,8 @@ class PaduaLJScaler():
         for type1, type2 in itertools.combinations(ffset.atom_types.values(), 2):
             vdw = ffset.get_vdw_term(type1, type2)
             if type(vdw) == LJ126Term:
+                if vdw.epsilon == 0:
+                    continue
                 self.scale_vdw(vdw)
                 if vdw.name not in ffset.pairwise_vdw_terms:
                     ffset.add_term(vdw)

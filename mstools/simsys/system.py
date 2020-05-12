@@ -44,7 +44,7 @@ class System():
     def extract_params(self, params: FFSet):
         self._ff.restore_settings(params.get_settings())
 
-        self._bond_terms: {int: BondTerm} = {}  # key is id(Bond)
+        self._bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included
         self._angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
         self._dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
         self._improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
@@ -140,13 +140,17 @@ class System():
                            .union(self.improper_classes)
                            .union(self.polarizable_classes))
 
-    def export_lmp(self, data_out='data.lmp', in_out='in.lmp'):
+    def export_lammps(self, data_out='data.lmp', in_out='in.lmp'):
         from .lmpexporter import LammpsExporter
         LammpsExporter.export(self, data_out, in_out)
 
-    def export_gmx(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp'):
+    def export_gromacs(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp'):
         from .gmxexporter import GromacsExporter
         GromacsExporter.export(self, gro_out, top_out, mdp_out)
+
+    def export_charmm(self, pdb_out='conf.pdb', psf_out='topol.psf', prm_out='ff.prm'):
+        from .charmmexporter import CharmmExporter
+        CharmmExporter.export(self, pdb_out, psf_out, prm_out)
 
     def to_omm_system(self):
         from .ommexporter import OpenMMExporter

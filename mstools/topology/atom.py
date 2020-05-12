@@ -19,11 +19,8 @@ class Atom():
         self._alpha = 0.  # only for PSF export if this is a parent atom for Drude model
         self._thole = 0.  # only for PSF export if this is a parent atom for Drude model
 
-    def __str__(self):
-        return f'<Atom: {self.name} {self.id} {self.type}>'
-
     def __repr__(self):
-        return str(self) + ' at 0x' + str(hex(id(self))[2:].upper())
+        return f'<Atom: {self.name} {self.id} {self.type}>'
 
     def __lt__(self, other):
         return self.id < other.id
