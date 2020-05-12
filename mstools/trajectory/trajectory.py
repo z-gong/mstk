@@ -116,3 +116,12 @@ class Trajectory():
             return Xtc(file, mode)
         else:
             raise Exception('filename for trajectory not understand')
+
+    @staticmethod
+    def read_frame_from_file(file, i_frame=0) -> Frame:
+        trj = Trajectory.open(file, 'r')
+        if i_frame == -1:
+            i_frame = trj.n_frame - 1
+        frame = trj.read_frame(i_frame)
+        trj.close()
+        return frame

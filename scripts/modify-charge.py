@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('input', type=str, help='input topology file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output topology file')
 parser.add_argument('-q', '--charge', required=True, type=float, help='charge density (in mC/m^2)')
-parser.add_argument('--trj', type=str, help='trajectory file used to identify electrode atoms')
+parser.add_argument('--trj', type=str, help='trajectory file for positions and cell')
 parser.add_argument('--atom', default='SMo', type=str, help='type of electrode atoms')
 parser.add_argument('--cathode', default=0.0, type=float, help='z coordinate (in nm) of cathode')
 parser.add_argument('--anode', default=6.5, type=float, help='z coordinate (in nm) of anode')
@@ -25,8 +25,7 @@ if not top.has_position or top.cell.volume == 0:
     if args.trj is None:
         raise Exception('Position or box not found in topology file, trajectory should be provided')
 
-    trj = Trajectory.open(args.trj)
-    frame = trj.read_frame(0)
+    frame = Trajectory.read_frame_from_file(args.trj, 0)
     top.set_positions(frame.positions)
     top.cell.set_box(frame.cell.vectors)
 

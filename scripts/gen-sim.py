@@ -46,9 +46,8 @@ for inp, n in zip(args.input, args.number):
 top = Topology(molecules)
 
 if args.trj is not None:
-    trj = Trajectory.open(args.trj)
-    frame = trj.read_frame(trj.n_frame - 1)
-    if trj.n_atom == top.n_atom:
+    frame = Trajectory.read_frame_from_file(args.trj, -1)
+    if len(frame.positions) == top.n_atom:
         top.set_positions(frame.positions)
     if frame.cell.volume != 0:
         top.cell.set_box(frame.cell.vectors)
@@ -59,7 +58,7 @@ if ff.is_polarizable:
 top.assign_mass_from_ff(ff)
 top.assign_charge_from_ff(ff)
 
-if args.trj is not None and trj.n_atom == top.n_atom:
+if args.trj is not None and len(frame.positions) == top.n_atom:
     top.set_positions(frame.positions)
 
 if args.box is not None:

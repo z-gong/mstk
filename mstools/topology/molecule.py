@@ -215,7 +215,7 @@ class Molecule():
         '''
         See if this molecule is similar to other molecule.
         It requires two molecules contains the same number of atoms.
-        The correspond atoms should have same atom type and charge.
+        The correspond atoms should have same atom symbol, type and charge.
         The bonds should also be the same.
         But it doesn't consider angles, dihedrals and impropers.
         '''
@@ -227,7 +227,7 @@ class Molecule():
         for i in range(self.n_atom):
             atom1 = self._atoms[i]
             atom2 = other._atoms[i]
-            if atom1.type != atom2.type or atom1.charge != atom2.charge:
+            if atom1.symbol != atom2.symbol or atom1.type != atom2.type or atom1.charge != atom2.charge:
                 return False
             if len(atom1._bonds) != len(atom2._bonds):
                 return False

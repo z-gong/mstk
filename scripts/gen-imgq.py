@@ -9,7 +9,6 @@ The positions of images will be determined by treating electrodes as mirrors
 import sys
 import argparse
 from mstools.topology import XyzTopology
-from mstools.trajectory import Xyz
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('input', type=str, help='input xyz file')
@@ -21,11 +20,8 @@ parser.add_argument('--drude', action='store_true', help='generate image for dru
 args = parser.parse_args()
 
 top = XyzTopology(args.input)
-trj = Xyz(args.input)
-frame = trj.read_frame(0)
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
-print('Trajectory info: ', trj.n_atom, 'atoms;', trj.n_frame, 'frames')
 
 ignore_list = args.ignore.split(',')
 gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
@@ -47,18 +43,18 @@ with open(args.output, 'w') as f_out:
     f_out.write('%i\n' % (top.n_atom + n_image))
     f_out.write('simulation box with image charges\n')
     for ii, atom in enumerate(top.atoms):
-        pos = frame.positions[ii] * 10  # convert from nm to A
+        pos = top.positions[ii] * 10  # convert from nm to A
         f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
     if args.cathode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = frame.positions[ii] * 10  # convert from nm to A
+            pos = top.positions[ii] * 10  # convert from nm to A
             if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
             if atom._gen_img_drude_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = frame.positions[ii] * 10  # convert from nm to A
+            pos = top.positions[ii] * 10  # convert from nm to A
             if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))
             if atom._gen_img_drude_:
