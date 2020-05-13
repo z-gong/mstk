@@ -10,20 +10,22 @@ from mstools import logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str,
-                    help='Topology files for molecules. '
+                    help='topology files for molecules. '
                          'String starts with : will be treated as SMILES')
 parser.add_argument('-f', '--forcefield', nargs='+', required=True, type=str,
-                    help='Forcefield files')
+                    help='forcefield files')
 parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
 parser.add_argument('--typer', type=str,
-                    help='Typing file. Required if SMILES provided for topology')
-parser.add_argument('--ljscale', type=str, help='Input files for empirical LJ scaling')
+                    help='typing file. Required if SMILES provided for topology')
+parser.add_argument('--ljscale', type=str, help='input files for empirical LJ scaling')
+parser.add_argument('--nodrude', action='store_true',
+                    help='disable Drude particles even if it is polarizable force field')
 parser.add_argument('--trj', type=str,
-                    help='Trajectory file for positions and box. The last frame will be used')
+                    help='trajectory file for positions and box. The last frame will be used')
 parser.add_argument('--box', nargs=3, type=float,
-                    help='Periodic box size if not provided by topology or trajectory')
+                    help='periodic box size if not provided by topology or trajectory')
 parser.add_argument('--packmol', action='store_true',
-                    help='Generate Packmol input files for building coordinates')
+                    help='generate Packmol input files for building coordinates')
 args = parser.parse_args()
 
 if args.number is None:
@@ -60,6 +62,8 @@ if args.trj is not None:
         top.cell.set_box(frame.cell.vectors)
 
 ff = ForceField.open(*args.forcefield)
+if args.nodrude:
+    ff.polarizable_terms = {}
 if args.ljscale is not None:
     scaler = PaduaLJScaler(args.ljscale)
     scaler.scale(ff)
@@ -67,6 +71,8 @@ if args.ljscale is not None:
 
 if ff.is_polarizable:
     top.generate_drude_particles(ff)
+if args.nodrude:
+    top.remove_drude_particles()
 top.assign_mass_from_ff(ff)
 top.assign_charge_from_ff(ff)
 

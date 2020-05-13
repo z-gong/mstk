@@ -36,12 +36,15 @@ class System():
                          'You may need to call topology.assign_mass_from_ff(ff)')
             sys.exit(1)
 
+        self.charged = True
         if all(atom.charge == 0 for atom in topology.atoms):
             self.charged = False
             logger.warning('All atoms have zero charge. '
                            'You may need to call topology.assign_charge_from_ff(ff)')
-        else:
-            self.charged = True
+
+        charge_total = sum(atom.charge for atom in topology.atoms)
+        if abs(charge_total) > 1E-8:
+            logger.warning('System is not charge neutral. Charge = %.6f' % charge_total)
 
         self.extract_params(ff)
 
