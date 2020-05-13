@@ -1,11 +1,11 @@
 import itertools
-from .ffset import FFSet
+from .forcefield import ForceField
 from .ffterm import *
 from .element import Element
 from .. import logger
 
 
-class Padua(FFSet):
+class Padua(ForceField):
     '''
     fftool of Padua use OPLS convention. Length are in A, energy are in kJ/mol
     The energy term is in k/2 form for bond, angle, dihedral and improper
@@ -26,7 +26,8 @@ class Padua(FFSet):
 
         if self.ljscaler is not None:
             if not self.ljscaler.scale(self):
-                logger.warning('Some LJ terms are not scaled. Check the generated FF carefully')
+                logger.warning('LJ scaling file provided but incomplete. '
+                               'Check the generated FF carefully')
 
     def _parse(self, file):
         with open(file) as f:
@@ -226,20 +227,20 @@ class PaduaLJScaler():
     def __repr__(self):
         return '<PaduaLJScaler: %s>' % self._file
 
-    def scale(self, ffset: FFSet) -> bool:
+    def scale(self, ff: ForceField) -> bool:
         # must scale pairwise vdW terms first
         # because they may be generated from self vdW terms by combination rule
         # the scaled pairwise terms must be added into the ff set
         _all_scaled = True
-        for type1, type2 in itertools.combinations(ffset.atom_types.values(), 2):
-            vdw = ffset.get_vdw_term(type1, type2)
+        for type1, type2 in itertools.combinations(ff.atom_types.values(), 2):
+            vdw = ff.get_vdw_term(type1, type2)
             if type(vdw) == LJ126Term:
                 if vdw.epsilon == 0:
                     continue
                 if not self.scale_lj(vdw):
                     _all_scaled = False
-                ffset.add_term(vdw, replace=True)
-        for vdw in ffset.vdw_terms.values():
+                ff.add_term(vdw, replace=True)
+        for vdw in ff.vdw_terms.values():
             if type(vdw) == LJ126Term:
                 if vdw.epsilon == 0:
                     continue

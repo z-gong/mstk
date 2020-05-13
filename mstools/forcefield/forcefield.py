@@ -1,8 +1,9 @@
 import math
 from .ffterm import *
+from .errors import *
 
 
-class FFSet():
+class ForceField():
     VDW_LONGRANGE_CORRECT = 'correct'
     VDW_LONGRANGE_SHIFT = 'shift'
 
@@ -22,8 +23,8 @@ class FFSet():
         self.polarizable_terms: {str: PolarizableTerm} = {}
 
         self.vdw_cutoff = 1.2  # nm
-        self.vdw_long_range = FFSet.VDW_LONGRANGE_CORRECT
-        self.lj_mixing_rule = FFSet.LJ_MIXING_NONE
+        self.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
+        self.lj_mixing_rule = ForceField.LJ_MIXING_NONE
         self.scale_14_vdw = 1.0
         self.scale_14_coulomb = 1.0
 

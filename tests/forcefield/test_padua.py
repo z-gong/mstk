@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import FFSet, Padua, PaduaLJScaler
+from mstools.forcefield import ForceField, Padua, PaduaLJScaler
 
 import os
 
@@ -62,7 +62,7 @@ def test_read():
 
 
 def test_ljscaler():
-    ff = FFSet.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     scaler = PaduaLJScaler(cwd + '/files/CLPol-ljscale.ff')
     scaler.scale(ff)
 
@@ -77,8 +77,8 @@ def test_ljscaler():
     assert vdw.comments == ['eps*0.686', 'sig*0.985']
 
     # another way of parsing lj scaling
-    ff = FFSet.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff',
-                    cwd + '/files/CLPol-ljscale.ff')
+    ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff',
+                         cwd + '/files/CLPol-ljscale.ff')
 
     vdw = ff.get_vdw_term('C1', 'C1')
     assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.047123 * 4.184

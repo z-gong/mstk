@@ -1,18 +1,18 @@
 import sys
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from .ffset import FFSet
+from .forcefield import ForceField
 from .ffterm import *
 
 
-class Zfp(FFSet):
+class Zfp(ForceField):
     def __init__(self, *files):
         super().__init__()
 
         for file in files:
-            self.parse(file)
+            self._parse(file)
 
-    def parse(self, file):
+    def _parse(self, file):
         try:
             tree = ET.ElementTree(file=file)
         except:
@@ -55,7 +55,7 @@ class Zfp(FFSet):
                 d[term.name] = term
 
     @staticmethod
-    def save_to(params: FFSet, file):
+    def save_to(params: ForceField, file):
         root = ET.Element('ForceFieldTerms')
 
         attrib = {

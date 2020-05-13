@@ -3,7 +3,8 @@
 import argparse
 from mstools.topology import Topology, UnitCell
 from mstools.trajectory import Trajectory
-from mstools.forcefield import FFSet, ZftTyper
+from mstools.forcefield import ForceField, ZftTyper
+from mstools.forcefield.errors import *
 from mstools.simsys import System
 from mstools import logger
 
@@ -41,7 +42,12 @@ for inp, n in zip(args.input, args.number):
     if inp.startswith(':'):
         if typer is None:
             raise Exception('--typer is required for SMILES input')
-        typer.type(top)
+        try:
+            typer.type(top)
+        except TypingNotSupportedError as e:
+            logger.error('Typing failed %s: %s' % (typer.__class__.__name__, str(e)))
+        except TypingUndefinedError as e:
+            logger.error('Typing failed %s: %s' % (typer.__class__.__name__, str(e)))
     molecules += top.molecules * n
 top = Topology(molecules)
 
@@ -52,7 +58,7 @@ if args.trj is not None:
     if frame.cell.volume != 0:
         top.cell.set_box(frame.cell.vectors)
 
-ff = FFSet.open(*args.forcefield)
+ff = ForceField.open(*args.forcefield)
 if ff.is_polarizable:
     top.generate_drude_particles(ff)
 top.assign_mass_from_ff(ff)
@@ -70,8 +76,8 @@ if args.packmol:
     top.scale_with_packmol(list(mol_numbers.values()))
 else:
     if args.trj is None:
-        logger.warning('Trajectory file not provided, '
-                    'will use the positions and cell from the topology')
+        logger.warning('Trajectory file not provided. '
+                       'Will use positions and cell from the topology')
     system = System(top, ff)
     system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
     system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')

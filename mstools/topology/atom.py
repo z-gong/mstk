@@ -49,6 +49,10 @@ class Atom():
         return self._molecule
 
     @property
+    def id_in_molecule(self):
+        return self._id_in_molecule
+
+    @property
     def bonds(self):
         return self._bonds
 

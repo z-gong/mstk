@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 from .system import System
 from ..forcefield.ffterm import *
-from ..forcefield import FFSet
+from ..forcefield import ForceField
 from ..topology import Pdb, Psf
 from ..trajectory import Frame, Trajectory, Gro
 from .. import logger

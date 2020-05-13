@@ -3,10 +3,10 @@
 import json
 from mstools.forcefield import *
 
-ff = FFSet()
+ff = ForceField()
 ff.vdw_cutoff = 1.5
-ff.vdw_long_range = FFSet.VDW_LONGRANGE_SHIFT
-ff.lj_mixing_rule = FFSet.LJ_MIXING_NONE
+ff.vdw_long_range = ForceField.VDW_LONGRANGE_SHIFT
+ff.lj_mixing_rule = ForceField.LJ_MIXING_NONE
 ff.scale_14_vdw = 1
 ff.scale_14_coulomb = 1
 

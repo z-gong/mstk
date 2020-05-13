@@ -1,4 +1,5 @@
 from .typer import *
+from ..errors import *
 
 try:
     import openbabel as ob
@@ -96,7 +97,7 @@ class ZftTyper(Typer):
     def type_molecule(self, molecule):
         obmol = molecule._obmol
         if obmol is None:
-            raise TypingNotSupportedError('obmol attribute not found')
+            raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
 
         possible_defines = {i: [] for i in range(molecule.n_atom)}
         for define in self.defines.values():
@@ -116,7 +117,7 @@ class ZftTyper(Typer):
             else:
                 molecule.atoms[i].type = define.name
         if atoms_undefined != []:
-            raise TypingUndefinedError('atoms cannot be defined: %s' %
+            raise TypingUndefinedError('Definition not found for %s' %
                                        ', '.join([str(a) for a in atoms_undefined]))
 
     def _get_deepest_define(self, defines, parent: TypeDefine):

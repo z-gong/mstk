@@ -6,7 +6,7 @@ from .atom import Atom
 from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
-from ..forcefield import FFSet
+from ..forcefield import ForceField
 from .. import logger
 
 
@@ -86,26 +86,27 @@ class Topology():
             atom.position = np.array(positions[i])
             atom.has_position = True
 
-    def get_unique_molecules(self) -> {Molecule: int}:
+    def get_unique_molecules(self, deepcopy=True) -> {Molecule: int}:
         '''
         Get the unique molecules and the number of molecules that are similar to these unique molecules.
         This is mainly used for exporting GROMACS topol file.
+        By default, the unique molecules are deep copied
         '''
         mols_unique = []
         flags = [-1] * self.n_molecule
+        mol_last: Molecule = None
         for i, mol in enumerate(self._molecules):
-            if i == 0:
-                mols_unique.append(mol)
-                flags[mol.id] = mol.id
-                continue
-            last = self._molecules[i - 1]
-            if mol.similar_to(last):
-                flags[mol.id] = flags[last.id]
+            if mol_last is not None and mol.similar_to(mol_last):
+                flags[mol.id] = flags[mol_last.id]
             else:
                 mols_unique.append(mol)
                 flags[mol.id] = mol.id
+            mol_last = mol
 
-        return {mol: flags.count(mol.id) for mol in mols_unique}
+        if deepcopy:
+            return {copy.deepcopy(mol): flags.count(mol.id) for mol in mols_unique}
+        else:
+            return {mol: flags.count(mol.id) for mol in mols_unique}
 
     def scale_with_packmol(self, numbers, packmol=None):
         if type(numbers) is int:
@@ -337,25 +338,25 @@ class Topology():
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper()
 
-    def guess_connectivity_from_ff(self, params: FFSet, bond_limit=0.25, bond_tolerance=0.025,
+    def guess_connectivity_from_ff(self, ff: ForceField, bond_limit=0.25, bond_tolerance=0.025,
                                    angle_tolerance=None, pbc=''):
         mol: Molecule
         for mol in self._molecules:
-            mol.guess_connectivity_from_ff(params, bond_limit, bond_tolerance,
+            mol.guess_connectivity_from_ff(ff, bond_limit, bond_tolerance,
                                            angle_tolerance, pbc, self.cell)
 
-    def generate_drude_particles(self, params: FFSet, **kwargs):
+    def generate_drude_particles(self, ff: ForceField, **kwargs):
         for mol in self._molecules:
-            mol.generate_drude_particles(params, **kwargs)
+            mol.generate_drude_particles(ff, **kwargs)
 
     def remove_drude_particles(self):
         for mol in self._molecules:
             mol.remove_drude_particles()
 
-    def assign_mass_from_ff(self, params: FFSet):
+    def assign_mass_from_ff(self, ff: ForceField):
         for mol in self._molecules:
-            mol.assign_mass_from_ff(params)
+            mol.assign_mass_from_ff(ff)
 
-    def assign_charge_from_ff(self, params: FFSet):
+    def assign_charge_from_ff(self, ff: ForceField):
         for mol in self._molecules:
-            mol.assign_charge_from_ff(params)
+            mol.assign_charge_from_ff(ff)

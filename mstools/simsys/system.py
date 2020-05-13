@@ -4,7 +4,7 @@ import numpy as np
 import sys
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
-from ..forcefield import FFSet
+from ..forcefield import ForceField
 from ..forcefield.ffterm import *
 from ..constant import *
 from .. import logger
@@ -17,9 +17,9 @@ class System():
     Any modification to topology and ff after that will have no effect on the system.
     '''
 
-    def __init__(self, topology: Topology, ff: FFSet, positions=None, cell=None):
+    def __init__(self, topology: Topology, ff: ForceField, positions=None, cell=None):
         self._topology = copy.deepcopy(topology)
-        self._ff = FFSet()
+        self._ff = ForceField()
 
         if positions is not None:
             self._topology.set_positions(positions)
@@ -53,7 +53,7 @@ class System():
     def ff(self):
         return self._ff
 
-    def extract_params(self, params: FFSet):
+    def extract_params(self, params: ForceField):
         self._ff.restore_settings(params.get_settings())
 
         self._bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included

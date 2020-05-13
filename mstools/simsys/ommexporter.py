@@ -2,7 +2,7 @@ from enum import IntEnum
 import numpy as np
 from .system import System
 from ..forcefield.ffterm import *
-from ..forcefield import FFSet
+from ..forcefield import ForceField
 from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
 from ..trajectory import Frame, Trajectory, Gro
 from .. import logger
@@ -186,7 +186,7 @@ class OpenMMExporter():
         for vdw_class in system.vdw_classes:
             if vdw_class == LJ126Term:
                 logger.info('Setting up LJ-12-6 vdW interactions...')
-                if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                if system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     invRc6 = 1 / cutoff ** 6
                     cforce = mm.CustomNonbondedForce(
                         f'A(type1,type2)*(invR6*invR6-{invRc6 * invRc6})-'
@@ -218,7 +218,7 @@ class OpenMMExporter():
 
             elif vdw_class == MieTerm:
                 logger.info('Setting up Mie vdW interactions...')
-                if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                if system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
                                                      'B(type1,type2)/r^ATT(type1,type2)-'
                                                      'SHIFT(type1,type2)')
@@ -251,7 +251,7 @@ class OpenMMExporter():
                 cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
                 cforce.addTabulatedFunction('REP', mm.Discrete2DFunction(n_type, n_type, REP_list))
                 cforce.addTabulatedFunction('ATT', mm.Discrete2DFunction(n_type, n_type, ATT_list))
-                if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_SHIFT:
+                if system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce.addTabulatedFunction('SHIFT',
                                                 mm.Discrete2DFunction(n_type, n_type, SHIFT_list))
 
@@ -264,7 +264,7 @@ class OpenMMExporter():
                                 'haven\'t been implemented')
             cforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
             cforce.setCutoffDistance(cutoff)
-            if system._ff.vdw_long_range == FFSet.VDW_LONGRANGE_CORRECT:
+            if system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT:
                 cforce.setUseLongRangeCorrection(True)
             else:
                 cforce.setUseLongRangeCorrection(False)

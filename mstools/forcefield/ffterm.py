@@ -4,23 +4,22 @@ from distutils.util import strtobool
 from ..constant import *
 
 
-class FFTermNotFoundError(Exception):
-    pass
-
-
 class FFTerm():
     def __init__(self):
         self.version = None
         self.comments: [str] = []
 
+    def __repr__(self):
+        return '<%s: %s>' % (self.__class__.__name__, self.name)
+
     @property
     def name(self):
         raise NotImplementedError('This property should be implemented by subclasses')
 
-    def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.name)
-
     def to_zfp(self) -> {str: str}:
+        '''
+        Pack the attributes of FFTerm into a dict so that can be saved into ZFP xml file
+        '''
         d = {}
         for attr, func in self.zfp_attrs.items():
             d[attr] = str(getattr(self, attr))
@@ -28,10 +27,17 @@ class FFTerm():
         return d
 
     def to_zfp_extra(self) -> {str: str}:
+        '''
+        Some terms can have extra information to be packed
+        e.g. PeriodicDihedralTerm can contain arbitrary numbers of dihedral parameters
+        '''
         return {}
 
     @classmethod
     def from_zfp(cls, d: {str: str}):
+        '''
+        Reconstruct a FFTerm using attribute dict read from ZFP xml file
+        '''
         term = cls.singleton()
         for attr, func in term.zfp_attrs.items():
             setattr(term, attr, func(d[attr]))
@@ -39,15 +45,32 @@ class FFTerm():
         return term
 
     def from_zfp_extra(self, d: {str: str}):
+        '''
+        Some terms need to handle data exceptionally
+        e.g. PeriodicDihedralTerm need to rebuild its own storage of multiple dihedral parameters
+        '''
         pass
-
-    @staticmethod
-    def singleton():
-        raise NotImplementedError('This method should be implemented by subclasses')
 
     @property
     def zfp_attrs(self):
+        '''
+        This dict records which attributes should be saved into and read from ZFP xml file
+        It also tell the data type of these attributes
+        '''
         raise NotImplementedError('This property should be implemented by subclasses')
+
+    @staticmethod
+    def singleton():
+        '''
+        Init a FFTerm so that data can be feed into
+        '''
+        raise NotImplementedError('This method should be implemented by subclasses')
+
+    def evaluate_energy(self, val):
+        '''
+        Evaluate the energy for bond, angle, vdw etc...
+        '''
+        raise NotImplementedError('This method should be implemented by subclasses')
 
 
 class AtomType(FFTerm):
@@ -154,9 +177,6 @@ class VdwTerm(FFTerm):
 
     def __gt__(self, other):
         return [self.type1, self.type2] > [other.type1, other.type2]
-
-    def evaluate_energy(self, r):
-        raise NotImplementedError('This method should be implemented by subclasses')
 
 
 class BondTerm(FFTerm):

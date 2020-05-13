@@ -10,8 +10,10 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 def test_read():
     xyz = Topology.open(cwd + '/files/urea.xyz')
     assert xyz.n_atom == 8
-    assert xyz.remark == 'urea'
     assert xyz.cell.volume == 0
+
+    mol = xyz.molecules[0]
+    assert mol.name == 'urea'
 
     atom = xyz.atoms[-1]
     assert atom.name == 'H8'

@@ -6,8 +6,9 @@ import numpy as np
 from .atom import Atom
 from .connectivity import *
 from .unitcell import UnitCell
-from ..forcefield import FFSet, Element
+from ..forcefield import ForceField, Element
 from ..forcefield.ffterm import *
+from ..forcefield.errors import *
 from .. import logger
 
 
@@ -348,7 +349,7 @@ class Molecule():
                 if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
                     self.add_dihedral(atom1, atom2, atom3, atom4)
 
-    def guess_connectivity_from_ff(self, params: FFSet, bond_limit=0.25,
+    def guess_connectivity_from_ff(self, ff: ForceField, bond_limit=0.25,
                                    bond_tolerance=0.025, angle_tolerance=None,
                                    pbc='', cell: UnitCell = None):
         '''
@@ -390,14 +391,14 @@ class Molecule():
         for i in range(self.n_atom):
             atom1 = self.atoms[i]
             try:
-                at1 = params.atom_types[atom1.type].eqt_bond
+                at1 = ff.atom_types[atom1.type].eqt_bond
             except:
                 raise Exception(f'AtomType {atom1.type} not found in FF')
 
             for j in range(i, self.n_atom):
                 atom2 = self.atoms[j]
                 try:
-                    at2 = params.atom_types[atom2.type].eqt_bond
+                    at2 = ff.atom_types[atom2.type].eqt_bond
                 except:
                     raise Exception(f'AtomType {atom2.type} not found in FF')
 
@@ -415,10 +416,10 @@ class Molecule():
                     continue
 
                 bterm = BondTerm(at1, at2, 0)
-                if bterm.name not in params.bond_terms.keys():
+                if bterm.name not in ff.bond_terms.keys():
                     continue
 
-                bterm: BondTerm = params.bond_terms[bterm.name]
+                bterm: BondTerm = ff.bond_terms[bterm.name]
                 if any(delta - bterm.length > bond_tolerance):
                     continue
 
@@ -433,15 +434,15 @@ class Molecule():
         impropers_removed = []
         if angle_tolerance is not None:
             for angle in self._angles[:]:
-                at1 = params.atom_types[angle.atom1.type].eqt_ang_s
-                at2 = params.atom_types[angle.atom2.type].eqt_ang_c
-                at3 = params.atom_types[angle.atom3.type].eqt_ang_s
+                at1 = ff.atom_types[angle.atom1.type].eqt_ang_s
+                at2 = ff.atom_types[angle.atom2.type].eqt_ang_c
+                at3 = ff.atom_types[angle.atom3.type].eqt_ang_s
                 aterm = AngleTerm(at1, at2, at3, 0)
-                if aterm.name not in params.angle_terms.keys():
+                if aterm.name not in ff.angle_terms.keys():
                     raise Exception(
                         f'{str(angle)} constructed but {str(aterm)} not found in FF')
 
-                aterm: AngleTerm = params.angle_terms[aterm.name]
+                aterm: AngleTerm = ff.angle_terms[aterm.name]
                 delta21 = angle.atom1.position - angle.atom2.position
                 delta23 = angle.atom3.position - angle.atom2.position
                 if 'x' in pbc:
@@ -460,22 +461,22 @@ class Molecule():
                     angles_removed.append(angle)
 
         for dihedral in self._dihedrals[:]:
-            at1 = params.atom_types[dihedral.atom1.type].eqt_dih_s
-            at2 = params.atom_types[dihedral.atom2.type].eqt_dih_c
-            at3 = params.atom_types[dihedral.atom3.type].eqt_dih_c
-            at4 = params.atom_types[dihedral.atom4.type].eqt_dih_s
+            at1 = ff.atom_types[dihedral.atom1.type].eqt_dih_s
+            at2 = ff.atom_types[dihedral.atom2.type].eqt_dih_c
+            at3 = ff.atom_types[dihedral.atom3.type].eqt_dih_c
+            at4 = ff.atom_types[dihedral.atom4.type].eqt_dih_s
             dterm = DihedralTerm(at1, at2, at3, at4)
-            if dterm.name not in params.dihedral_terms.keys():
+            if dterm.name not in ff.dihedral_terms.keys():
                 self.remove_dihedral(dihedral)
                 dihedrals_removed.append(dihedral)
 
         for improper in self._impropers[:]:
-            at1 = params.atom_types[improper.atom1.type].eqt_imp_c
-            at2 = params.atom_types[improper.atom2.type].eqt_imp_s
-            at3 = params.atom_types[improper.atom3.type].eqt_imp_s
-            at4 = params.atom_types[improper.atom4.type].eqt_imp_s
+            at1 = ff.atom_types[improper.atom1.type].eqt_imp_c
+            at2 = ff.atom_types[improper.atom2.type].eqt_imp_s
+            at3 = ff.atom_types[improper.atom3.type].eqt_imp_s
+            at4 = ff.atom_types[improper.atom4.type].eqt_imp_s
             iterm = ImproperTerm(at1, at2, at3, at4)
-            if iterm.name not in params.improper_terms.keys():
+            if iterm.name not in ff.improper_terms.keys():
                 self.remove_improper(improper)
                 impropers_removed.append(improper)
 
@@ -503,7 +504,7 @@ class Molecule():
                 string += ' and more ...'
             logger.warning(string)
 
-    def generate_drude_particles(self, ff: FFSet, type_drude='DP_', seed=1):
+    def generate_drude_particles(self, ff: ForceField, type_drude='DP_', seed=1):
         '''
         Generate Drude particles from DrudeTerms in force field.
         The atom types should have been defined already.
@@ -589,7 +590,7 @@ class Molecule():
         if self._topology is not None:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def assign_mass_from_ff(self, params: FFSet):
+    def assign_mass_from_ff(self, ff: ForceField):
         '''
         Assign masses of all atoms from the force field.
         The atom types should have been defined, and the AtomType in FF should carry mass information.
@@ -600,7 +601,7 @@ class Molecule():
         for atom in self._atoms:
             if atom.is_drude:
                 continue
-            atype = params.atom_types.get(atom.type)
+            atype = ff.atom_types.get(atom.type)
             if atype is None:
                 raise Exception(f'Atom type {atom.type} not found in FF')
             if atype.mass == -1:
@@ -610,8 +611,8 @@ class Molecule():
             atom.mass = atype.mass
 
         for parent, drude in self.get_drude_pairs():
-            atype = params.atom_types[parent.type]
-            pterm = params.polarizable_terms.get(atype.eqt_polar)
+            atype = ff.atom_types[parent.type]
+            pterm = ff.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
             if type(pterm) != DrudeTerm:
@@ -619,7 +620,7 @@ class Molecule():
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge_from_ff(self, params: FFSet):
+    def assign_charge_from_ff(self, ff: ForceField):
         '''
         Assign charges of all atoms from the force field.
         The atom types should have been defined.
@@ -634,25 +635,24 @@ class Molecule():
             if atom.is_drude:
                 continue
             try:
-                charge = params.atom_types[atom.type].charge
+                charge = ff.atom_types[atom.type].charge
             except:
                 raise Exception(f'Atom type {atom.type} not found in FF')
             atom.charge = charge
             if charge != 0:
-                _assigned[atom._id_in_molecule] = True
+                _assigned[atom.id_in_molecule] = True
 
-        if len(params.charge_increment_terms) > 0:
+        if len(ff.charge_increment_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
                 try:
-                    increment = params.get_charge_increment(bond)
+                    increment = ff.get_charge_increment(bond)
                 except FFTermNotFoundError:
-                    pass
-                else:
-                    bond.atom1.charge += increment
-                    bond.atom2.charge -= increment
-                    if increment != 0:
-                        _assigned[bond.atom1._id_in_molecule] = True
-                        _assigned[bond.atom2._id_in_molecule] = True
+                    increment = 0
+                bond.atom1.charge += increment
+                bond.atom2.charge -= increment
+                if increment != 0:
+                    _assigned[bond.atom1.id_in_molecule] = True
+                    _assigned[bond.atom2.id_in_molecule] = True
 
         for i, atom in enumerate(self.atoms):
             if not atom.is_drude and not _assigned[i]:
@@ -660,8 +660,8 @@ class Molecule():
                                f'because both charge and increment in the FF are zero or not found')
 
         for parent, drude in self.get_drude_pairs():
-            atype = params.atom_types[parent.type]
-            pterm = params.polarizable_terms.get(atype.eqt_polar)
+            atype = ff.atom_types[parent.type]
+            pterm = ff.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 raise Exception(f'Polarizable term for {atype} not found in FF')
             if type(pterm) != DrudeTerm:

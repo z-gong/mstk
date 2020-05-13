@@ -1,4 +1,4 @@
-from .ffset import FFSet
+from .forcefield import ForceField
 from .ffterm import *
 from .element import Element
 from .. import logger
@@ -34,7 +34,7 @@ class PpfLine():
         return [float(x.strip().strip('*')) for x in self.value.split(',')]
 
 
-class Ppf(FFSet):
+class Ppf(ForceField):
     '''
     In PPF format, there is no 1/2 for all energy terms
     '''
@@ -50,9 +50,9 @@ class Ppf(FFSet):
         # save all lines to this so that we can keep only the latest version
         self._ppf_lines = {}
         for file in files:
-            self.parse(file)
+            self._parse(file)
 
-    def parse(self, file):
+    def _parse(self, file):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -174,7 +174,7 @@ class Ppf(FFSet):
                 self.improper_terms[term.name] = term
 
     @staticmethod
-    def save_to(params: FFSet, file):
+    def save_to(params: ForceField, file):
         line = '#DFF:EQT\n'
         line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
         for atype in params.atom_types.values():
