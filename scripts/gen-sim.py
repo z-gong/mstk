@@ -3,7 +3,7 @@
 import argparse
 from mstools.topology import Topology, UnitCell
 from mstools.trajectory import Trajectory
-from mstools.forcefield import ForceField, ZftTyper
+from mstools.forcefield import ForceField, ZftTyper, PaduaLJScaler
 from mstools.forcefield.errors import *
 from mstools.simsys import System
 from mstools import logger
@@ -17,6 +17,7 @@ parser.add_argument('-f', '--forcefield', nargs='+', required=True, type=str,
 parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
 parser.add_argument('--typer', type=str,
                     help='Typing file. Required if SMILES provided for topology')
+parser.add_argument('--ljscale', type=str, help='Input files for empirical LJ scaling')
 parser.add_argument('--trj', type=str,
                     help='Trajectory file for positions and box. The last frame will be used')
 parser.add_argument('--box', nargs=3, type=float,
@@ -59,6 +60,11 @@ if args.trj is not None:
         top.cell.set_box(frame.cell.vectors)
 
 ff = ForceField.open(*args.forcefield)
+if args.ljscale is not None:
+    scaler = PaduaLJScaler(args.ljscale)
+    scaler.scale(ff)
+    logger.info('LJ scaling file provided. Check the generated FF carefully')
+
 if ff.is_polarizable:
     top.generate_drude_particles(ff)
 top.assign_mass_from_ff(ff)

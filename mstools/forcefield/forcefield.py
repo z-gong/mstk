@@ -165,13 +165,18 @@ class ForceField():
 
         return LJ126Term(at1, at2, epsilon, sigma)
 
-    def get_bond_term(self, bond) -> BondTerm:
+    def get_eqt_for_bond(self, bond) -> (str, str):
         try:
             at1 = self.atom_types.get(bond.atom1.type).eqt_bond
             at2 = self.atom_types.get(bond.atom2.type).eqt_bond
         except:
             raise FFTermNotFoundError(
                 f'Atom type {bond.atom1.type} or {bond.atom2.type} not found in FF')
+        return at1, at2
+
+    def get_bond_term(self, type1, type2) -> BondTerm:
+        at1: str = type1.eqt_bond if type(type1) is AtomType else type1
+        at2: str = type2.eqt_bond if type(type2) is AtomType else type2
         bterm = BondTerm(at1, at2, 0)
         try:
             bterm = self.bond_terms[bterm.name]
@@ -180,7 +185,7 @@ class ForceField():
 
         return bterm
 
-    def get_angle_term(self, angle) -> AngleTerm:
+    def get_eqt_for_angle(self, angle) -> (str, str, str):
         try:
             at1 = self.atom_types.get(angle.atom1.type).eqt_ang_s
             at2 = self.atom_types.get(angle.atom2.type).eqt_ang_c
@@ -188,6 +193,12 @@ class ForceField():
         except:
             raise FFTermNotFoundError(f'Atom type {angle.atom1.type} or {angle.atom2.type} '
                                       f'or {angle.atom3.type} not found in FF')
+        return at1, at2, at3
+
+    def get_angle_term(self, type1, type2, type3) -> AngleTerm:
+        at1: str = type1.eqt_ang_s if type(type1) is AtomType else type1
+        at2: str = type2.eqt_ang_c if type(type2) is AtomType else type2
+        at3: str = type3.eqt_ang_s if type(type3) is AtomType else type3
         aterm = AngleTerm(at1, at2, at3, 0)
         try:
             aterm = self.angle_terms[aterm.name]
@@ -196,7 +207,7 @@ class ForceField():
 
         return aterm
 
-    def get_dihedral_term(self, dihedral) -> DihedralTerm:
+    def get_eqt_for_dihedral(self, dihedral) -> [(str, str, str, str)]:
         try:
             at1 = self.atom_types.get(dihedral.atom1.type).eqt_dih_s
             at2 = self.atom_types.get(dihedral.atom2.type).eqt_dih_c
@@ -205,19 +216,25 @@ class ForceField():
         except:
             raise FFTermNotFoundError(f'Atom type {dihedral.atom1.type} or {dihedral.atom2.type} '
                                       f'or {dihedral.atom3.type} or {dihedral.atom4.type} not found in FF')
+        return [(at1, at2, at3, at4),
+                (at1, at2, at3, '*'),
+                ('*', at2, at3, at4),
+                ('*', at2, at3, '*')]
 
-        for a1, a2, a3, a4 in [(at1, at2, at3, at4),
-                               (at1, at2, at3, '*'),
-                               ('*', at2, at3, at4),
-                               ('*', at2, at3, '*')]:
-            dterm = self.dihedral_terms.get(DihedralTerm(a1, a2, a3, a4).name)
-            if dterm is not None:
-                return dterm
-        else:
-            dterm = DihedralTerm(at1, at2, at3, at4)
+    def get_dihedral_term(self, type1, type2, type3, type4) -> DihedralTerm:
+        at1: str = type1.eqt_dih_s if type(type1) is AtomType else type1
+        at2: str = type2.eqt_dih_c if type(type2) is AtomType else type2
+        at3: str = type3.eqt_dih_c if type(type3) is AtomType else type3
+        at4: str = type4.eqt_dih_s if type(type4) is AtomType else type4
+        dterm = DihedralTerm(at1, at2, at3, at4)
+        try:
+            dterm = self.dihedral_terms[dterm.name]
+        except:
             raise FFTermNotFoundError(f'{str(dterm)} with or w/o wildcard not found in FF')
 
-    def get_improper_term(self, improper) -> ImproperTerm:
+        return dterm
+
+    def get_eqt_for_improper(self, improper) -> [(str, str, str, str)]:
         try:
             at1 = self.atom_types.get(improper.atom1.type).eqt_imp_c
             at2 = self.atom_types.get(improper.atom2.type).eqt_imp_s
@@ -226,20 +243,27 @@ class ForceField():
         except:
             raise FFTermNotFoundError(f'Atom type {improper.atom1.type} or {improper.atom2.type} '
                                       f'or {improper.atom3.type} or {improper.atom4.type} not found in FF')
-        for a2, a3, a4 in [(at2, at3, at4),
-                           (at2, at3, '*'),
-                           (at2, '*', at4),
-                           ('*', at3, at4),
-                           (at2, '*', '*'),
-                           ('*', at3, '*'),
-                           ('*', '*', at4),
-                           ('*', '*', '*')]:
-            iterm = self.improper_terms.get(ImproperTerm(at1, a2, a3, a4).name)
-            if iterm is not None:
-                return iterm
-        else:
-            iterm = ImproperTerm(at1, at2, at3, at4)
+        return [(at1, at2, at3, at4),
+                (at1, at2, at3, '*'),
+                (at1, at2, '*', at4),
+                (at1, '*', at3, at4),
+                (at1, at2, '*', '*'),
+                (at1, '*', at3, '*'),
+                (at1, '*', '*', at4),
+                (at1, '*', '*', '*')]
+
+    def get_improper_term(self, type1, type2, type3, type4) -> ImproperTerm:
+        at1: str = type1.eqt_imp_c if type(type1) is AtomType else type1
+        at2: str = type2.eqt_imp_s if type(type2) is AtomType else type2
+        at3: str = type3.eqt_imp_s if type(type3) is AtomType else type3
+        at4: str = type4.eqt_imp_s if type(type4) is AtomType else type4
+        iterm = ImproperTerm(at1, at2, at3, at4)
+        try:
+            iterm = self.improper_terms[iterm.name]
+        except:
             raise FFTermNotFoundError(f'{str(iterm)} with or w/o wildcard not found in FF')
+
+        return iterm
 
     def get_charge_increment(self, bond) -> float:
         try:

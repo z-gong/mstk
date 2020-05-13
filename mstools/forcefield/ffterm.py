@@ -51,7 +51,10 @@ class FFTerm():
         kwargs = {}
         for attr, func in cls.zfp_attrs.items():
             kwargs[attr] = func(d[attr])
-        term = cls(**kwargs)
+        try:
+            term = cls(**kwargs)
+        except:
+            raise Exception('Cannot init %s with kwargs %s' % (cls.__name__, d))
         term.from_zfp_extra(d)
         return term
 
@@ -552,12 +555,12 @@ class DrudeTerm(PolarizableTerm):
     TODO Implement anisotropic Drude polarization
     '''
 
-    def __init__(self, type: str, alpha, thole, merge_alpha_H=0.0):
+    def __init__(self, type: str, alpha, thole, k=4184 / 2 * 100, mass=0.4, merge_alpha_H=0.0):
         super().__init__(type)
         self.alpha = alpha  # nm^3
         self.thole = thole
-        self.k = 4184 / 2 * 100  # kJ/mol/nm^2
-        self.mass = 0.4
+        self.k = k  # kJ/mol/nm^2
+        self.mass = mass
         self.merge_alpha_H = merge_alpha_H
 
     zfp_attrs = {

@@ -65,77 +65,148 @@ class System():
         self._constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
         self._constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
 
+        _atype_not_found = set()
         for atom in self._topology.atoms:
-            atype = params.atom_types.get(atom.type)
-            if atype is None:
-                raise Exception(f'AtomType {atom.type} not found in FF')
+            try:
+                atype = params.atom_types[atom.type]
+            except:
+                _atype_not_found.add(atom.type)
+            else:
+                if atype.name not in self._ff.atom_types:
+                    self._ff.add_term(atype)
+        if _atype_not_found != set():
+            logger.error('%i atom types not found in FF\n'
+                         '    %s' % (len(_atype_not_found),
+                                     '\n    '.join(_atype_not_found)))
+            raise Exception('Parameters missing')
 
-            if atype.name not in self._ff.atom_types:
-                self._ff.add_term(atype)
-                try:
-                    vdw = params.get_vdw_term(atype, atype)
-                except Exception as e:
-                    raise Exception(f'Error assigning vdW parameters for {str(atom)}: {str(e)}')
+        _vdw_not_found = set()
+        for atype in self._ff.atom_types.values():
+            try:
+                vdw = params.get_vdw_term(atype, atype)
+            except Exception as e:
+                _vdw_not_found.add(atype.eqt_vdw)
+            else:
                 self._ff.add_term(vdw, replace=True)
 
         for atype1, atype2 in itertools.combinations(self._ff.atom_types.values(), 2):
-            vdw = params.pairwise_vdw_terms.get(VdwTerm(atype1.eqt_vdw, atype2.eqt_vdw).name)
+            vdw = params.get_vdw_term(atype1, atype2, mixing=False)
             if vdw is not None:
                 self._ff.add_term(vdw, replace=True)
 
+        _bterm_not_found = set()
         for bond in self._topology.bonds:
             if bond.is_drude:
                 # the Drude-parent bonds will be handled by DrudeForce below
                 continue
+            ats = params.get_eqt_for_bond(bond)
             try:
-                bterm = params.get_bond_term(bond)
-            except Exception as e:
-                raise Exception(f'Error assigning parameters for {str(bond)}: {str(e)}')
-            self._ff.add_term(bterm, replace=True)
-            self._bond_terms[id(bond)] = bterm
-            if bterm.fixed:
-                self._constrain_bonds[id(bond)] = bterm.length
+                bterm = params.get_bond_term(*ats)
+            except:
+                _bterm_not_found.add(BondTerm(*ats).name)
+            else:
+                self._ff.add_term(bterm, replace=True)
+                self._bond_terms[id(bond)] = bterm
+                if bterm.fixed:
+                    self._constrain_bonds[id(bond)] = bterm.length
 
+        _aterm_not_found = set()
         for angle in self._topology.angles:
+            ats = params.get_eqt_for_angle(angle)
             try:
-                aterm = params.get_angle_term(angle)
+                aterm = params.get_angle_term(*ats)
             except Exception as e:
-                raise Exception(f'Error assigning parameters for {str(angle)}: {str(e)}')
-            self._ff.add_term(aterm, replace=True)
-            self._angle_terms[id(angle)] = aterm
-            if aterm.fixed:
-                bond1 = next(b for b in self._topology.bonds if b == Bond(angle.atom1, angle.atom2))
-                bond2 = next(b for b in self._topology.bonds if b == Bond(angle.atom2, angle.atom3))
-                # constrain the angle only if two bonds are also constrained
-                if id(bond1) in self._constrain_bonds and id(bond2) in self._constrain_bonds:
-                    d1, d2 = self._constrain_bonds[id(bond1)], self._constrain_bonds[id(bond2)]
-                    self._constrain_angles[id(angle)] = math.sqrt(
-                        d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
+                _aterm_not_found.add(AngleTerm(*ats).name)
+            else:
+                self._ff.add_term(aterm, replace=True)
+                self._angle_terms[id(angle)] = aterm
+                if aterm.fixed:
+                    bond1 = next(b for b in self._topology.bonds
+                                 if b == Bond(angle.atom1, angle.atom2))
+                    bond2 = next(b for b in self._topology.bonds
+                                 if b == Bond(angle.atom2, angle.atom3))
+                    # constrain the angle only if two bonds are also constrained
+                    if id(bond1) in self._constrain_bonds and id(bond2) in self._constrain_bonds:
+                        d1, d2 = self._constrain_bonds[id(bond1)], self._constrain_bonds[id(bond2)]
+                        self._constrain_angles[id(angle)] = math.sqrt(
+                            d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
 
+        _dterm_not_found = set()
         for dihedral in self._topology.dihedrals:
-            try:
-                dterm = params.get_dihedral_term(dihedral)
-            except Exception as e:
-                raise Exception(f'Error assign parameters for {str(dihedral)}: {str(e)}')
-            self._ff.add_term(dterm, replace=True)
-            self._dihedral_terms[id(dihedral)] = dterm
+            ats_list = params.get_eqt_for_dihedral(dihedral)
+            for ats in ats_list:
+                try:
+                    dterm = params.get_dihedral_term(*ats)
+                except Exception as e:
+                    pass
+                else:
+                    self._ff.add_term(dterm, replace=True)
+                    self._dihedral_terms[id(dihedral)] = dterm
+                    break
+            else:
+                _dterm_not_found.add(DihedralTerm(*ats_list[0]).name)
 
+        _iterm_not_found = set()
         for improper in self._topology.impropers:
-            try:
-                iterm = params.get_improper_term(improper)
-            except Exception as e:
-                raise Exception(f'Error assign parameters for {str(improper)}: {str(e)}')
-            self._ff.add_term(iterm, replace=True)
-            self._improper_terms[id(improper)] = iterm
+            ats_list = params.get_eqt_for_improper(improper)
+            for ats in ats_list:
+                try:
+                    iterm = params.get_improper_term(*ats)
+                except Exception as e:
+                    pass
+                else:
+                    self._ff.add_term(iterm, replace=True)
+                    self._improper_terms[id(improper)] = iterm
+                    break
+            else:
+                _iterm_not_found.add(ImproperTerm(*ats_list[0]).name)
 
+        _pterm_not_found = set()
         for parent in self._drude_pairs.keys():
             pterm = PolarizableTerm(params.atom_types[parent.type].eqt_polar)
             try:
                 pterm = params.polarizable_terms[pterm.name]
             except:
-                raise Exception(f'{str(pterm)} for {str(parent)} not found')
-            self._ff.add_term(pterm, replace=True)
-            self._polarizable_terms[parent] = pterm
+                _pterm_not_found.add(pterm.name)
+            else:
+                self._ff.add_term(pterm, replace=True)
+                self._polarizable_terms[parent] = pterm
+
+        ### print all the missing terms
+        _not_found = False
+        if _vdw_not_found != set():
+            _not_found = True
+            logger.error('%i vdW parameters not found in FF\n'
+                         '    %s' % (len(_vdw_not_found),
+                                     '\n    '.join(_vdw_not_found)))
+        if _bterm_not_found != set():
+            _not_found = True
+            logger.error('%i bond parameters not found in FF\n'
+                         '    %s' % (len(_bterm_not_found),
+                                     '\n    '.join(_bterm_not_found)))
+        if _aterm_not_found != set():
+            _not_found = True
+            logger.error('%i angle parameters not found in FF\n'
+                         '    %s' % (len(_aterm_not_found),
+                                     '\n    '.join(_aterm_not_found)))
+        if _dterm_not_found != set():
+            _not_found = True
+            logger.error('%i dihedral parameters not found in FF\n'
+                         '    %s' % (len(_dterm_not_found),
+                                     '\n    '.join(_dterm_not_found)))
+        if _iterm_not_found != set():
+            _not_found = True
+            logger.error('%i improper parameters not found in FF\n'
+                         '    %s' % (len(_iterm_not_found),
+                                     '\n    '.join(_iterm_not_found)))
+        if _pterm_not_found != set():
+            _not_found = True
+            logger.error('%i polarizable parameters not found in FF\n'
+                         '    %s' % (len(_pterm_not_found),
+                                     '\n    '.join(_pterm_not_found)))
+
+        if _not_found:
+            raise Exception('Parameters missing')
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
         self.vdw_classes.update({term.__class__ for term in self._ff.pairwise_vdw_terms.values()})

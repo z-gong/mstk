@@ -94,8 +94,8 @@ class Padua(ForceField):
             hterm = self.polarizable_terms.pop('H*')
             for pterm in self.polarizable_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
-            logger.warning(f'{str(hterm)} found in polarizable term. '
-                           f'Polarizability of H will be merged into attached heavy atoms')
+            logger.info(f'H* found in polarizable term. '
+                        f'Polarizability of H will be merged into attached heavy atoms')
 
     def _parse_atom(self, words):
         atype = AtomType(words[0])
