@@ -48,7 +48,7 @@ class Zfp(ForceField):
                 try:
                     cls = getattr(sys.modules['mstools.forcefield.ffterm'], element.tag)
                 except:
-                    raise Exception('Invalid term under node %s: %s' % (node, element.tag))
+                    raise Exception('Invalid tag %s' % element.tag)
                 term = cls.from_zfp(element.attrib)
                 if term.name in d.keys():
                     raise Exception('Duplicated term: %s' % str(term))

@@ -221,33 +221,7 @@ class PaduaLJScaler():
         self.monomers = []
         self.dimers = []
         self.scale_sigma = 1.0
-        self._file = file
         self._parse(file)
-
-    def __repr__(self):
-        return '<PaduaLJScaler: %s>' % self._file
-
-    def scale(self, ff: ForceField) -> bool:
-        # must scale pairwise vdW terms first
-        # because they may be generated from self vdW terms by combination rule
-        # the scaled pairwise terms must be added into the ff set
-        _all_scaled = True
-        for type1, type2 in itertools.combinations(ff.atom_types.values(), 2):
-            vdw = ff.get_vdw_term(type1, type2)
-            if type(vdw) == LJ126Term:
-                if vdw.epsilon == 0:
-                    continue
-                if not self.scale_lj(vdw):
-                    _all_scaled = False
-                ff.add_term(vdw, replace=True)
-        for vdw in ff.vdw_terms.values():
-            if type(vdw) == LJ126Term:
-                if vdw.epsilon == 0:
-                    continue
-                if not self.scale_lj(vdw):
-                    _all_scaled = False
-
-        return _all_scaled
 
     def _parse(self, file):
         '''
@@ -299,6 +273,28 @@ class PaduaLJScaler():
             elif _section == 'ATOMS':
                 monomer = next(m for m in self.monomers if m.name == words[0])
                 monomer.atoms = words[1:]
+
+    def scale(self, ff: ForceField) -> bool:
+        # must scale pairwise vdW terms first
+        # because they may be generated from self vdW terms by combination rule
+        # the scaled pairwise terms must be added into the ff set
+        _all_scaled = True
+        for type1, type2 in itertools.combinations(ff.atom_types.values(), 2):
+            vdw = ff.get_vdw_term(type1, type2)
+            if type(vdw) == LJ126Term:
+                if vdw.epsilon == 0:
+                    continue
+                if not self.scale_lj(vdw):
+                    _all_scaled = False
+                ff.add_term(vdw, replace=True)
+        for vdw in ff.vdw_terms.values():
+            if type(vdw) == LJ126Term:
+                if vdw.epsilon == 0:
+                    continue
+                if not self.scale_lj(vdw):
+                    _all_scaled = False
+
+        return _all_scaled
 
     def predict_scale_epsilon(self, atom1, atom2):
         '''

@@ -56,10 +56,11 @@ class Ppf(ForceField):
         with open(file) as f:
             lines = f.read().splitlines()
 
+        _section = ''
         for line in lines:
             line = line.strip()
             if line.startswith('#DFF:EQT'):
-                section = 'EQT'
+                _section = 'EQT'
                 continue
             elif line.startswith('#PROTOCOL'):
                 protocol = line.split('=')[-1].strip()
@@ -67,12 +68,14 @@ class Ppf(ForceField):
                     raise NotImplementedError('Current only AMBER protocol is implemented for PPF')
                 continue
             elif line.startswith('#DFF:PPF'):
-                section = 'PPF'
+                _section = 'PPF'
                 continue
             elif line.startswith('#') or line == '':
                 continue
+            if _section == '':
+                raise Exception('Invalid PPF file')
 
-            self._parse_line(line, section)
+            self._parse_line(line, _section)
 
         self._setup()
 
@@ -102,8 +105,8 @@ class Ppf(ForceField):
             if line.term != 'EQT':
                 continue
             atype = AtomType(line.key)
-            # _eqt_charge is a temporary variable for matching charge
-            (atype.eqt_vdw, atype._eqt_charge, atype.eqt_q_inc, atype.eqt_bond,
+            # _eqt_charge_ is a temporary variable for matching charge
+            (atype.eqt_vdw, atype._eqt_charge_, atype.eqt_q_inc, atype.eqt_bond,
              atype.eqt_ang_c, atype.eqt_ang_s, atype.eqt_dih_c, atype.eqt_dih_s,
              atype.eqt_imp_c, atype.eqt_imp_s) = line.value.split()
             atype.version = line.version
@@ -118,7 +121,7 @@ class Ppf(ForceField):
                 atype.mass = mass
             elif line.term == 'ATC':
                 for atype in self.atom_types.values():
-                    if atype._eqt_charge == line.key:
+                    if atype._eqt_charge_ == line.key:
                         atype.charge = line.get_float_values()[0]
             elif line.term == 'BINC':
                 term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
@@ -172,6 +175,14 @@ class Ppf(ForceField):
                 term = OplsImproperTerm(a3, a1, a2, a4, k * 4.184)
                 term.version = line.version
                 self.improper_terms[term.name] = term
+
+        # update the mass based on eqt_vdw
+        for atype in self.atom_types.values():
+            if atype.eqt_vdw != atype.name:
+                atype_eq = self.atom_types.get(atype.eqt_vdw)
+                if atype_eq is None:
+                    raise Exception('vdW equivalent type for %s not found in PPF' % (str(atype)))
+                atype.mass = atype_eq.mass
 
     @staticmethod
     def save_to(params: ForceField, file):

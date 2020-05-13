@@ -1,4 +1,5 @@
 import math
+from typing import Union
 from .ffterm import *
 from .errors import *
 
@@ -30,9 +31,9 @@ class ForceField():
 
     @staticmethod
     def open(*files: [str]):
-        from .padua import Padua
-        from .ppf import Ppf
         from .zfp import Zfp
+        from .ppf import Ppf
+        from .padua import Padua
 
         file = files[0]
         if file.endswith('.ff'):
@@ -41,12 +42,33 @@ class ForceField():
             return Ppf(*files)
         elif file.endswith('.zfp'):
             return Zfp(*files)
+        else:
+            raise Exception('Unsupported format')
+
+    def write(self, file):
+        from .zfp import Zfp
+        from .ppf import Ppf
+        from .padua import Padua
+
+        if file.endswith('.zfp'):
+            Zfp.save_to(self, file)
+        elif file.endswith('.ppf'):
+            Ppf.save_to(self, file)
+        else:
+            raise Exception('Unsupported format for forcefield output')
+
+    @staticmethod
+    def save_to(ff, file):
+        '''
+        This method should be implemented by subclasses
+        '''
+        raise NotImplementedError('This method haven\'t been implemented')
 
     @property
     def is_polarizable(self) -> bool:
         return len(self.polarizable_terms) != 0
 
-    def get_settings(self):
+    def get_settings(self) -> {str: str}:
         d = {}
         for i in ('vdw_cutoff', 'vdw_long_range', 'lj_mixing_rule',
                   'scale_14_vdw', 'scale_14_coulomb'):
@@ -58,7 +80,7 @@ class ForceField():
                   'scale_14_vdw', 'scale_14_coulomb'):
             setattr(self, i, d[i])
 
-    def add_term(self, term, replace=False):
+    def add_term(self, term: FFTerm, replace=False):
         _duplicated = False
         if isinstance(term, AtomType):
             if term.name not in self.atom_types or replace:
@@ -107,13 +129,15 @@ class ForceField():
         if _duplicated:
             raise Exception(f'{str(term)} already exist in FF')
 
-    def get_vdw_term(self, type1: AtomType, type2: AtomType, mixing=True):
+    def get_vdw_term(self, type1: Union[AtomType, str], type2: Union[AtomType, str],
+                     mixing=True) -> VdwTerm:
         '''
         Get vdW term between two atom types
         If not exist and mixing=True and it's LJ126 form, then generate it using mixing rule
+        Return None for pairwise term if not found in self.pairwise_vdw_terms and  mixing=False
         '''
-        at1 = type1.eqt_vdw if type(type1) is AtomType else type1
-        at2 = type2.eqt_vdw if type(type2) is AtomType else type2
+        at1: str = type1.eqt_vdw if type(type1) is AtomType else type1
+        at2: str = type2.eqt_vdw if type(type2) is AtomType else type2
         vdw = VdwTerm(at1, at2)
         if at1 == at2:
             vdw = self.vdw_terms.get(vdw.name)
@@ -126,7 +150,7 @@ class ForceField():
         lj1 = self.vdw_terms.get(VdwTerm(at1, at1).name)
         lj2 = self.vdw_terms.get(VdwTerm(at2, at2).name)
         if lj1 is None or lj2 is None:
-            raise FFTermNotFoundError(f'VdwTerm for {str(at1)} or {str(at2)} not found')
+            raise FFTermNotFoundError(f'VdwTerm for {at1} or {at2} not found')
         if type(lj1) is not LJ126Term or type(lj2) is not LJ126Term:
             raise Exception(f'Cannot use mixing rule for vdW terms other than LJ126Term')
 
@@ -141,7 +165,7 @@ class ForceField():
 
         return LJ126Term(at1, at2, epsilon, sigma)
 
-    def get_bond_term(self, bond):
+    def get_bond_term(self, bond) -> BondTerm:
         try:
             at1 = self.atom_types.get(bond.atom1.type).eqt_bond
             at2 = self.atom_types.get(bond.atom2.type).eqt_bond
@@ -156,7 +180,7 @@ class ForceField():
 
         return bterm
 
-    def get_angle_term(self, angle):
+    def get_angle_term(self, angle) -> AngleTerm:
         try:
             at1 = self.atom_types.get(angle.atom1.type).eqt_ang_s
             at2 = self.atom_types.get(angle.atom2.type).eqt_ang_c
@@ -172,7 +196,7 @@ class ForceField():
 
         return aterm
 
-    def get_dihedral_term(self, dihedral):
+    def get_dihedral_term(self, dihedral) -> DihedralTerm:
         try:
             at1 = self.atom_types.get(dihedral.atom1.type).eqt_dih_s
             at2 = self.atom_types.get(dihedral.atom2.type).eqt_dih_c
@@ -193,7 +217,7 @@ class ForceField():
             dterm = DihedralTerm(at1, at2, at3, at4)
             raise FFTermNotFoundError(f'{str(dterm)} with or w/o wildcard not found in FF')
 
-    def get_improper_term(self, improper):
+    def get_improper_term(self, improper) -> ImproperTerm:
         try:
             at1 = self.atom_types.get(improper.atom1.type).eqt_imp_c
             at2 = self.atom_types.get(improper.atom2.type).eqt_imp_s
@@ -217,7 +241,7 @@ class ForceField():
             iterm = ImproperTerm(at1, at2, at3, at4)
             raise FFTermNotFoundError(f'{str(iterm)} with or w/o wildcard not found in FF')
 
-    def get_charge_increment(self, bond):
+    def get_charge_increment(self, bond) -> float:
         try:
             at1 = self.atom_types.get(bond.atom1.type).eqt_q_inc
             at2 = self.atom_types.get(bond.atom2.type).eqt_q_inc
@@ -232,10 +256,3 @@ class ForceField():
 
         direction = 1 if at1 == qterm.type1 else -1
         return qterm.value * direction
-
-    @staticmethod
-    def save_to(params, file):
-        '''
-        This method should be implemented by subclasses
-        '''
-        raise NotImplementedError('This method haven\'t been implemented')

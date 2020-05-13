@@ -19,6 +19,9 @@ class FFTerm():
     def to_zfp(self) -> {str: str}:
         '''
         Pack the attributes of FFTerm into a dict so that can be saved into ZFP xml file
+        Every class to be packed should have a class property zfp_attrs
+        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
+        It also tell the data type of these attributes
         '''
         d = {}
         for attr, func in self.zfp_attrs.items():
@@ -36,35 +39,31 @@ class FFTerm():
     @classmethod
     def from_zfp(cls, d: {str: str}):
         '''
-        Reconstruct a FFTerm using attribute dict read from ZFP xml file
+        Reconstruct a FFTerm using a dict of attributes read from ZFP xml file
+        Essentially it calls the __init__() of the class
+        Every class to be reconstructed should have a class property zfp_attrs
+        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
+        It also tell the data type of these attributes
+        This method should be overridden by subclass if the term cannot be reconstructed from simple init
         '''
-        term = cls.singleton()
-        for attr, func in term.zfp_attrs.items():
-            setattr(term, attr, func(d[attr]))
+        # must use kwargs instead of args to init the cls,
+        # in case there is mistake in the sequence of init arguments
+        kwargs = {}
+        for attr, func in cls.zfp_attrs.items():
+            kwargs[attr] = func(d[attr])
+        term = cls(**kwargs)
         term.from_zfp_extra(d)
         return term
 
     def from_zfp_extra(self, d: {str: str}):
         '''
-        Some terms need to handle data exceptionally
+        Some terms need to handle some data exceptionally
         e.g. PeriodicDihedralTerm need to rebuild its own storage of multiple dihedral parameters
         '''
         pass
 
-    @property
-    def zfp_attrs(self):
-        '''
-        This dict records which attributes should be saved into and read from ZFP xml file
-        It also tell the data type of these attributes
-        '''
-        raise NotImplementedError('This property should be implemented by subclasses')
-
-    @staticmethod
-    def singleton():
-        '''
-        Init a FFTerm so that data can be feed into
-        '''
-        raise NotImplementedError('This method should be implemented by subclasses')
+    # this dict must be overridden by every subclasses that can be saved into or reconstruced from ZFP xml file
+    zfp_attrs = {}
 
     def evaluate_energy(self, val):
         '''
@@ -74,23 +73,26 @@ class FFTerm():
 
 
 class AtomType(FFTerm):
-    def __init__(self, name):
+    def __init__(self, name, mass=-1, charge=0,
+                 eqt_vdw=None, eqt_q_inc=None, eqt_bond=None,
+                 eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
+                 eqt_imp_c=None, eqt_imp_s=None, eqt_polar=None):
         super().__init__()
         self._name = name
         # mass is only used for assign mass of topology in case mass not exist in topology
         # mass = -1 means unknown
-        self.mass = -1
-        self.charge = 0.
-        self.eqt_vdw = name
-        self.eqt_q_inc = name
-        self.eqt_bond = name
-        self.eqt_ang_c = name
-        self.eqt_ang_s = name
-        self.eqt_dih_c = name
-        self.eqt_dih_s = name
-        self.eqt_imp_c = name
-        self.eqt_imp_s = name
-        self.eqt_polar = name
+        self.mass = mass
+        self.charge = charge
+        self.eqt_vdw = eqt_vdw or name
+        self.eqt_q_inc = eqt_q_inc or name
+        self.eqt_bond = eqt_bond or name
+        self.eqt_ang_c = eqt_ang_c or name
+        self.eqt_ang_s = eqt_ang_s or name
+        self.eqt_dih_c = eqt_dih_c or name
+        self.eqt_dih_s = eqt_dih_s or name
+        self.eqt_imp_c = eqt_imp_c or name
+        self.eqt_imp_s = eqt_imp_s or name
+        self.eqt_polar = eqt_polar or name
 
     @property
     def name(self):
@@ -107,32 +109,29 @@ class AtomType(FFTerm):
     def __gt__(self, other):
         return self.name > other.name
 
-    @staticmethod
-    def singleton():
-        return AtomType('')
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'name'     : str,
-            'mass'     : float,
-            'charge'   : float,
-            'eqt_vdw'  : str,
-            'eqt_bond' : str,
-            'eqt_q_inc': str,
-            'eqt_ang_c': str,
-            'eqt_ang_s': str,
-            'eqt_dih_c': str,
-            'eqt_dih_s': str,
-            'eqt_imp_c': str,
-            'eqt_imp_s': str,
-            'eqt_polar': str,
-        }
+    zfp_attrs = {
+        'name'     : str,
+        'mass'     : float,
+        'charge'   : float,
+        'eqt_vdw'  : str,
+        'eqt_bond' : str,
+        'eqt_q_inc': str,
+        'eqt_ang_c': str,
+        'eqt_ang_s': str,
+        'eqt_dih_c': str,
+        'eqt_dih_s': str,
+        'eqt_imp_c': str,
+        'eqt_imp_s': str,
+        'eqt_polar': str,
+    }
 
 
 class ChargeIncrementTerm(FFTerm):
     def __init__(self, type1: str, type2: str, value: float):
         super().__init__()
+        if type1 == type2 and value != 0:
+            raise Exception('Non-zero charge increment between same atom types')
+
         at1, at2 = sorted([type1, type2])
         self.type1 = at1
         self.type2 = at2
@@ -148,17 +147,11 @@ class ChargeIncrementTerm(FFTerm):
     def __gt__(self, other):
         return [self.type1, self.type2] > [other.type1, other.type2]
 
-    @staticmethod
-    def singleton():
-        return ChargeIncrementTerm('', '', 0.0)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'value': float,
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'value': float,
+    }
 
 
 class VdwTerm(FFTerm):
@@ -310,18 +303,12 @@ class LJ126Term(VdwTerm):
         self.epsilon = epsilon
         self.sigma = sigma
 
-    @staticmethod
-    def singleton():
-        return LJ126Term('', '', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1'  : str,
-            'type2'  : str,
-            'epsilon': float,
-            'sigma'  : float,
-        }
+    zfp_attrs = {
+        'type1'  : str,
+        'type2'  : str,
+        'epsilon': float,
+        'sigma'  : float,
+    }
 
     def evaluate_energy(self, r):
         return 4 * self.epsilon * ((self.sigma / r) ** 12 - (self.sigma / r) ** 6)
@@ -354,20 +341,14 @@ class MieTerm(VdwTerm):
         rep, att = self.repulsion, self.attraction
         return (rep / att) ** (1 / (rep - att))
 
-    @staticmethod
-    def singleton():
-        return MieTerm('', '', 0., 0., 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1'     : str,
-            'type2'     : str,
-            'epsilon'   : float,
-            'sigma'     : float,
-            'repulsion' : float,
-            'attraction': float,
-        }
+    zfp_attrs = {
+        'type1'     : str,
+        'type2'     : str,
+        'epsilon'   : float,
+        'sigma'     : float,
+        'repulsion' : float,
+        'attraction': float,
+    }
 
 
 class HarmonicBondTerm(BondTerm):
@@ -379,19 +360,13 @@ class HarmonicBondTerm(BondTerm):
         super().__init__(type1, type2, length, fixed=fixed)
         self.k = k
 
-    @staticmethod
-    def singleton():
-        return HarmonicBondTerm('', '', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1' : str,
-            'type2' : str,
-            'length': float,
-            'k'     : float,
-            'fixed' : lambda x: bool(strtobool(x))
-        }
+    zfp_attrs = {
+        'type1' : str,
+        'type2' : str,
+        'length': float,
+        'k'     : float,
+        'fixed' : lambda x: bool(strtobool(x))
+    }
 
 
 class HarmonicAngleTerm(AngleTerm):
@@ -403,20 +378,14 @@ class HarmonicAngleTerm(AngleTerm):
         super().__init__(type1, type2, type3, theta, fixed=fixed)
         self.k = k
 
-    @staticmethod
-    def singleton():
-        return HarmonicAngleTerm('', '', '', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'theta': float,
-            'k'    : float,
-            'fixed': lambda x: bool(strtobool(x))
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k'    : float,
+        'fixed': lambda x: bool(strtobool(x))
+    }
 
 
 class SDKAngleTerm(AngleTerm):
@@ -429,19 +398,13 @@ class SDKAngleTerm(AngleTerm):
         super().__init__(type1, type2, type3, theta, fixed=False)
         self.k = k
 
-    @staticmethod
-    def singleton():
-        return SDKAngleTerm('', '', '', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'theta': float,
-            'k'    : float,
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k'    : float,
+    }
 
 
 class PeriodicDihedralTerm(DihedralTerm):
@@ -469,18 +432,12 @@ class PeriodicDihedralTerm(DihedralTerm):
         self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
         self.parameters.sort(key=lambda x: x.n)
 
-    @staticmethod
-    def singleton():
-        return PeriodicDihedralTerm('', '', '', '')
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'type4': str,
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+    }
 
     def to_zfp_extra(self) -> {str: str}:
         d = {}
@@ -556,19 +513,13 @@ class OplsImproperTerm(ImproperTerm):
         super().__init__(type1, type2, type3, type4)
         self.k = k
 
-    @staticmethod
-    def singleton():
-        return OplsImproperTerm('', '', '', '', 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'type4': str,
-            'k'    : float,
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+        'k'    : float,
+    }
 
 
 class HarmonicImproperTerm(ImproperTerm):
@@ -584,20 +535,14 @@ class HarmonicImproperTerm(ImproperTerm):
         self.phi = phi
         self.k = k
 
-    @staticmethod
-    def singleton():
-        return HarmonicImproperTerm('', '', '', '', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type1': str,
-            'type2': str,
-            'type3': str,
-            'type4': str,
-            'phi'  : float,
-            'k'    : float,
-        }
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+        'phi'  : float,
+        'k'    : float,
+    }
 
 
 class DrudeTerm(PolarizableTerm):
@@ -615,20 +560,14 @@ class DrudeTerm(PolarizableTerm):
         self.mass = 0.4
         self.merge_alpha_H = merge_alpha_H
 
-    @staticmethod
-    def singleton():
-        return DrudeTerm('', 0., 0.)
-
-    @property
-    def zfp_attrs(self):
-        return {
-            'type'         : str,
-            'alpha'        : float,
-            'thole'        : float,
-            'k'            : float,
-            'mass'         : float,
-            'merge_alpha_H': float,
-        }
+    zfp_attrs = {
+        'type'         : str,
+        'alpha'        : float,
+        'thole'        : float,
+        'k'            : float,
+        'mass'         : float,
+        'merge_alpha_H': float,
+    }
 
     def get_charge(self, alpha=None):
         if alpha is None:
