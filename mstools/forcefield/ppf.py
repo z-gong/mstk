@@ -159,8 +159,11 @@ class Ppf(ForceField):
                 count = len(values) // 3
                 term = PeriodicDihedralTerm(*line.get_names())
                 for i in range(count):
-                    term.add_parameter(
-                        values[i * 3], values[i * 3 + 1] * 4.184, int(values[i * 3 + 2]))
+                    phi, k, n = values[i * 3], values[i * 3 + 1] * 4.184, int(values[i * 3 + 2])
+                    # ignore nonsense values
+                    if n == 0 and k == 0:
+                        continue
+                    term.add_parameter(phi, k, n)
                 term.version = line.version
                 self.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':

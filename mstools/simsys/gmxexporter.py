@@ -76,13 +76,15 @@ class GromacsExporter():
         string += '\n[ nonbond_params ]\n'
         string += ';       i        j        func      sigma      epsilon\n'
         for at1, at2 in itertools.combinations(system.ff.atom_types.values(), 2):
-            vdw = system.ff.get_vdw_term(at1, at2, mixing=False)
-            if vdw is not None:
-                if vdw.__class__ in (LJ126Term, MieTerm):
-                    string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
-                        at1.name, at2.name, 1, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
-                else:
-                    raise Exception('Unsupported vdW term')
+            try:
+                vdw = system.ff.get_vdw_term(at1, at2, mixing=False)
+            except:
+                continue
+            if vdw.__class__ in (LJ126Term, MieTerm):
+                string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
+                    at1.name, at2.name, 1, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
+            else:
+                raise Exception('Unsupported vdW term')
 
         for i, mol in enumerate(mols_unique.keys()):
             mol: Molecule

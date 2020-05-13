@@ -161,8 +161,9 @@ class CharmmExporter():
             string += '\nNBFIX\n'
             string += '!      atom  atom  epsilon      Rmin   eps,1-4       Rmin,1-4\n'
             for atype1, atype2 in itertools.combinations(system._ff.atom_types.values(), 2):
-                vdw = system._ff.get_vdw_term(atype1, atype2, mixing=False)
-                if vdw is None:
+                try:
+                    vdw = system._ff.get_vdw_term(atype1, atype2, mixing=False)
+                except:
                     continue
                 rmin = vdw.sigma * 2 ** (1 / 6)
                 eps14 = vdw.epsilon * system._ff.scale_14_vdw

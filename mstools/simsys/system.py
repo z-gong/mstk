@@ -207,7 +207,7 @@ class System():
                                          '\n        '.join(_pterm_not_found)))
 
         if _not_found:
-            raise Exception('Parameters missing')
+            raise Exception('Parameter missing')
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
         self.vdw_classes.update({term.__class__ for term in self._ff.pairwise_vdw_terms.values()})

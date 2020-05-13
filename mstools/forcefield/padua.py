@@ -1,6 +1,7 @@
 import itertools
 from .forcefield import ForceField
 from .ffterm import *
+from .errors import *
 from .element import Element
 from .. import logger
 
@@ -280,8 +281,11 @@ class PaduaLJScaler():
         # the scaled pairwise terms must be added into the ff set
         _all_scaled = True
         for type1, type2 in itertools.combinations(ff.atom_types.values(), 2):
-            vdw = ff.get_vdw_term(type1, type2)
-            if type(vdw) == LJ126Term:
+            try:
+                vdw = ff.get_vdw_term(type1, type2)
+            except FFTermNotFoundError:
+                continue
+            if type(vdw) is LJ126Term:
                 if vdw.epsilon == 0:
                     continue
                 if not self.scale_lj(vdw):
