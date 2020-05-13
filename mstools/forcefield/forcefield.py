@@ -134,25 +134,30 @@ class ForceField():
         '''
         Get vdW term between two atom types
         If not exist and mixing=True and it's LJ126 form, then generate it using mixing rule
-        Return None for pairwise term if not found in self.pairwise_vdw_terms and  mixing=False
         '''
         at1: str = type1.eqt_vdw if type(type1) is AtomType else type1
         at2: str = type2.eqt_vdw if type(type2) is AtomType else type2
         vdw = VdwTerm(at1, at2)
         if at1 == at2:
             vdw = self.vdw_terms.get(vdw.name)
-        else:
-            vdw = self.pairwise_vdw_terms.get(vdw.name)
+            if vdw is not None:
+                return vdw
+            else:
+                raise FFTermNotFoundError(f'VdwTerm for {at1} not found')
 
-        if vdw is not None or not mixing:
+        vdw = self.pairwise_vdw_terms.get(vdw.name)
+
+        if vdw is not None:
             return vdw
+        elif not mixing:
+            raise FFTermNotFoundError(f'VdwTerm for {at1}-{at2} not found')
 
         lj1 = self.vdw_terms.get(VdwTerm(at1, at1).name)
         lj2 = self.vdw_terms.get(VdwTerm(at2, at2).name)
         if lj1 is None or lj2 is None:
             raise FFTermNotFoundError(f'VdwTerm for {at1} or {at2} not found')
         if type(lj1) is not LJ126Term or type(lj2) is not LJ126Term:
-            raise Exception(f'Cannot use mixing rule for vdW terms other than LJ126Term')
+            raise Exception('Cannot use mixing rule for vdW terms other than LJ126Term')
 
         if self.lj_mixing_rule == self.LJ_MIXING_LB:
             epsilon = math.sqrt(lj1.epsilon * lj2.epsilon)

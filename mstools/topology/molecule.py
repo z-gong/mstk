@@ -521,11 +521,14 @@ class Molecule():
         random.seed(seed)
 
         self.remove_drude_particles()
+
+        _atype_not_found = set()
         drude_pairs = []
         for parent in self._atoms[:]:
             atype = ff.atom_types.get(parent.type)
             if atype is None:
-                raise Exception(f'Atom type {parent.type} not found in FF')
+                _atype_not_found.add(parent.type)
+                continue
 
             pterm = ff.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
@@ -556,6 +559,11 @@ class Molecule():
 
             drude_pairs.append((parent, drude))
 
+        if _atype_not_found != set():
+            logger.error('%i atom types not found in FF: %s' % (
+                len(_atype_not_found), ' '.join(_atype_not_found)))
+            raise Exception('Atom types not found during generating Drude particles')
+
         for parent, drude in drude_pairs:
             self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
             self.add_bond(parent, drude)
@@ -570,8 +578,7 @@ class Molecule():
             logger.warning(f'AtomType for Drude particle not found in FF. '
                            f'{str(dtype)} is added to the FF')
         vdw = LJ126Term(dtype.eqt_vdw, dtype.eqt_vdw, 0.0, 0.0)
-        vdw = ff.vdw_terms.get(vdw.name)
-        if vdw is None:
+        if ff.vdw_terms.get(vdw.name) is None:
             ff.add_term(vdw)
             logger.warning(f'VdwTerm for Drude particle not found in FF. '
                            f'{str(vdw)} with zero interactions is added to the FF')

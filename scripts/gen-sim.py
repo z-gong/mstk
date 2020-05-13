@@ -63,7 +63,7 @@ ff = ForceField.open(*args.forcefield)
 if args.ljscale is not None:
     scaler = PaduaLJScaler(args.ljscale)
     scaler.scale(ff)
-    logger.info('LJ scaling file provided. Check the generated FF carefully')
+    logger.warning('LJ scaling file provided. Check the generated FF carefully')
 
 if ff.is_polarizable:
     top.generate_drude_particles(ff)
