@@ -584,7 +584,7 @@ class Molecule():
                            f'{str(vdw)} with zero interactions is added to the FF')
 
         for atom in self._atoms:
-            if atom.symbol != 'H' and atom not in drude_pairs:
+            if not atom.is_drude and atom.symbol != 'H' and atom not in drude_pairs:
                 logger.warning('Not all heavy atoms have Drude particles. '
                                'Check the generated topology carefully')
                 break
