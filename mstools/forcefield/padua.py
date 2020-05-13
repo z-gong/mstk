@@ -25,7 +25,8 @@ class Padua(FFSet):
             self._parse(file)
 
         if self.ljscaler is not None:
-            self.ljscaler.scale(self)
+            if not self.ljscaler.scale(self):
+                logger.warning('Some LJ terms are not scaled. Check the generated FF carefully')
 
     def _parse(self, file):
         with open(file) as f:
@@ -55,6 +56,9 @@ class Padua(FFSet):
                 _section = 'polarizations'
                 continue
             elif line.lower().startswith('scale_sigma') or line.lower().startswith('monomer'):
+                if self.ljscaler is not None:
+                    raise Exception('Only one ljscale file should be provided')
+
                 self.ljscaler = PaduaLJScaler(file)
                 return
 
@@ -222,18 +226,27 @@ class PaduaLJScaler():
     def __repr__(self):
         return '<PaduaLJScaler: %s>' % self._file
 
-    def scale(self, ffset: FFSet):
+    def scale(self, ffset: FFSet) -> bool:
         # must scale pairwise vdW terms first
         # because they may be generated from self vdW terms by combination rule
         # the scaled pairwise terms must be added into the ff set
+        _all_scaled = True
         for type1, type2 in itertools.combinations(ffset.atom_types.values(), 2):
             vdw = ffset.get_vdw_term(type1, type2)
             if type(vdw) == LJ126Term:
-                self.scale_lj(vdw)
+                if vdw.epsilon == 0:
+                    continue
+                if not self.scale_lj(vdw):
+                    _all_scaled = False
                 ffset.add_term(vdw, replace=True)
         for vdw in ffset.vdw_terms.values():
             if type(vdw) == LJ126Term:
-                self.scale_lj(vdw)
+                if vdw.epsilon == 0:
+                    continue
+                if not self.scale_lj(vdw):
+                    _all_scaled = False
+
+        return _all_scaled
 
     def _parse(self, file):
         '''
@@ -315,13 +328,18 @@ class PaduaLJScaler():
 
         return dimer.scale_factor
 
-    def scale_lj(self, term: LJ126Term):
+    def scale_lj(self, term: LJ126Term) -> bool:
+        _scaled = True
         k_eps = self.predict_scale_epsilon(term.type1, term.type2)
         if k_eps is not None:
             term.epsilon *= k_eps
             term.comments.append('eps*%.3f' % k_eps)
+        else:
+            _scaled = False
 
         k_sig = self.scale_sigma
         if k_sig != 1.0:
             term.sigma *= k_sig
             term.comments.append('sig*%.3f' % k_sig)
+
+        return _scaled

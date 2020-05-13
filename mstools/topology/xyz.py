@@ -18,9 +18,11 @@ class XyzTopology(Topology):
     def parse(self, file):
         with open(file) as f:
             n_atom = int(f.readline().strip())
-            self.remark = f.readline().strip()
-
             mol = Molecule()
+            try:
+                mol.name = f.readline().strip().split()[0]
+            except:
+                pass
             for i in range(n_atom):
                 words = f.readline().split()
                 atom = Atom()

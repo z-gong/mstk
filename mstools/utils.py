@@ -1,9 +1,8 @@
 import math
 import os
 import random
-
-from .errors import OpenBabelError
 import subprocess
+from .errors import OpenBabelError
 
 
 def greatest_common_divisor(numbers):
@@ -119,19 +118,22 @@ def get_TP_corner(TP_list: [tuple]) -> [tuple]:
     return TP_corner
 
 
-def TP_in_range(TP, TP_corner: [tuple]) -> bool:
-    ### TODO To implement
-    return False
+def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None,
+                           resname: str = None):
+    '''
+    resname only set for mol2_out
+    '''
+    try:
+        import pybel
+    except ImportError:
+        raise ImportError('OpenBabel is required for parsing SMILES')
 
-
-def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None, resname: str = None):
-    # TODO resname only set for mol2_out
-    import pybel
-    from .saved_mol2 import smiles_mol2_dict
     try:
         py_mol = pybel.readstring('smi', smiles)
     except:
-        raise OpenBabelError('Cannot create molecule from SMILES')
+        raise OpenBabelError('Invalid SMILES')
+
+    from .saved_mol2 import smiles_mol2_dict
 
     canSMILES = py_mol.write('can').strip()
     saved_mol2 = smiles_mol2_dict.get(canSMILES)
@@ -146,11 +148,6 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
     if resname is not None:
         obmol = py_mol.OBMol
         res = obmol.GetResidue(0)
-        # if res == None:
-        #     res  = obmol.NewResidue()
-        #     for i in range(obmol.NumAtoms()):
-        #         obatom = obmol.GetAtomById(i)
-        #         obatom.SetResidue(res)
         if res is not None:
             res.SetName('UNL')
 

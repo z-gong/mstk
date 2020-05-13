@@ -64,14 +64,14 @@ if args.trj is not None and len(frame.positions) == top.n_atom:
 if args.box is not None:
     top.cell.set_box(args.box)
 
-system = System(top, ff)
 if args.packmol:
     mol_numbers = top.get_unique_molecules()
     top.update_molecules(list(mol_numbers.keys()))
     top.scale_with_packmol(list(mol_numbers.values()))
 else:
     if args.trj is None:
-        logger.warn('Trajectory file not provided, '
+        logger.warning('Trajectory file not provided, '
                     'will use the positions and cell from the topology')
+    system = System(top, ff)
     system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
     system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')

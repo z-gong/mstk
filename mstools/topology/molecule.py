@@ -64,7 +64,7 @@ class Molecule():
         try:
             import pybel
         except ImportError:
-            raise Exception('OpenBabel is required for parsing SMIELS')
+            raise ImportError('OpenBabel is required for parsing SMILES')
 
         words = smiles.strip().split()
         smiles = words[0]
@@ -80,21 +80,16 @@ class Molecule():
 
         py_mol.addh()
         py_mol.make3D()
-        mol = Molecule.from_pybel(py_mol)
-
-        if name is not None:
-            mol.name = name
-        else:
-            mol.name = py_mol.formula
+        mol = Molecule.from_pybel(py_mol, name)
 
         return mol
 
     @staticmethod
-    def from_pybel(py_mol):
+    def from_pybel(py_mol, name=None):
         try:
             import openbabel
         except ImportError:
-            raise Exception('OpenBabel is required for parsing SMIELS')
+            raise ImportError('OpenBabel is required for parsing SMILES')
 
         mol = Molecule()
         for i, a in enumerate(py_mol.atoms):
@@ -113,6 +108,12 @@ class Molecule():
             mol.add_bond(atom1, atom2)
         mol.generate_angle_dihedral_improper()
         mol._obmol = py_mol.OBMol
+
+        if name is not None:
+            mol.name = name
+        else:
+            mol.name = py_mol.formula
+
         return mol
 
     @property
