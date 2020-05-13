@@ -587,6 +587,7 @@ class Molecule():
             if atom.symbol != 'H' and atom not in drude_pairs:
                 logger.warning('Not all heavy atoms have Drude particles. '
                                'Check the generated topology carefully')
+                break
 
     def remove_drude_particles(self):
         '''
