@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import argparse
 from mstools.topology import Topology, UnitCell
 from mstools.trajectory import Trajectory
@@ -47,17 +48,17 @@ for inp, n in zip(args.input, args.number):
             raise Exception('--typer is required for SMILES input')
         try:
             typer.type(top)
-        except TypingNotSupportedError as e:
-            logger.error('Typing failed %s: %s' % (typer.__class__.__name__, str(e)))
         except TypingUndefinedError as e:
             logger.error('Typing failed %s: %s' % (typer.__class__.__name__, str(e)))
     molecules += top.molecules * n
 top = Topology(molecules)
 
 if args.trj is not None:
+    _positions_set = False
     frame = Trajectory.read_frame_from_file(args.trj, -1)
     if len(frame.positions) == top.n_atom:
         top.set_positions(frame.positions)
+        _positions_set = True
     if frame.cell.volume != 0:
         top.cell.set_box(frame.cell.vectors)
 
@@ -76,8 +77,13 @@ if args.nodrude:
 top.assign_mass_from_ff(ff)
 top.assign_charge_from_ff(ff)
 
-if args.trj is not None and len(frame.positions) == top.n_atom:
-    top.set_positions(frame.positions)
+if args.trj is not None:
+    if len(frame.positions) == top.n_atom:
+        top.set_positions(frame.positions)
+        _positions_set = True
+    if not _positions_set:
+        logger.error('Number of atoms in trjectory and topology doesn\'t match')
+        sys.exit(1)
 
 if args.box is not None:
     top.cell.set_box(args.box)

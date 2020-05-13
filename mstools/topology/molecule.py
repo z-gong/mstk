@@ -523,8 +523,8 @@ class Molecule():
         self.remove_drude_particles()
 
         _atype_not_found = set()
-        drude_pairs = []
-        for parent in self._atoms[:]:
+        drude_pairs = {}
+        for parent in self._atoms:
             atype = ff.atom_types.get(parent.type)
             if atype is None:
                 _atype_not_found.add(parent.type)
@@ -557,14 +557,14 @@ class Molecule():
                 drude.position = parent.position + [deviation, deviation, deviation]
                 drude.has_position = True
 
-            drude_pairs.append((parent, drude))
+            drude_pairs[parent] = drude
 
         if _atype_not_found != set():
             logger.error('%i atom types not found in FF: %s' % (
                 len(_atype_not_found), ' '.join(_atype_not_found)))
             raise Exception('Atom types not found during generating Drude particles')
 
-        for parent, drude in drude_pairs:
+        for parent, drude in drude_pairs.items():
             self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
             self.add_bond(parent, drude)
 
@@ -582,6 +582,11 @@ class Molecule():
             ff.add_term(vdw)
             logger.warning(f'VdwTerm for Drude particle not found in FF. '
                            f'{str(vdw)} with zero interactions is added to the FF')
+
+        for atom in self._atoms:
+            if atom.symbol != 'H' and atom not in drude_pairs:
+                logger.warning('Not all heavy atoms have Drude particles. '
+                               'Check the generated topology carefully')
 
     def remove_drude_particles(self):
         '''
