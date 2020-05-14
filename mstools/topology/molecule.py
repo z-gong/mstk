@@ -668,10 +668,12 @@ class Molecule():
                     _assigned[bond.atom1.id_in_molecule] = True
                     _assigned[bond.atom2.id_in_molecule] = True
 
-        for i, atom in enumerate(self.atoms):
-            if not atom.is_drude and not _assigned[i]:
-                logger.warning(f'Charge not assigned for {str(atom)} '
-                               f'because both charge and increment in the FF are zero or not found')
+        _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
+                             if not atom.is_drude and not _assigned[i]]
+        if len(_atoms_unassigned) > 0:
+            logger.warning('Charge not assigned for %i atoms because both charge and increment '
+                           'in the FF are zero or not found: %s' % (
+                               len(_atoms_unassigned), ' '.join(_atoms_unassigned)))
 
         for parent, drude in self.get_drude_pairs():
             atype = ff.atom_types[parent.type]

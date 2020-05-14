@@ -60,7 +60,7 @@ if args.ljscale is not None:
 unique_mols = top.get_unique_molecules()
 for mol in unique_mols.keys():
     try:
-        typer.type(top)
+        typer.type(mol)
     except TypingNotSupportedError as e:
         logger.warning('Typing failed %s: %s' % (mol, str(e)))
     except TypingUndefinedError as e:
