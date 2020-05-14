@@ -100,7 +100,6 @@ class Molecule():
             atom.symbol = element.symbol
             atom.mass = element.mass
             atom.formal_charge = a.formalcharge
-            atom.has_position = True
             atom.position = [i / 10 for i in a.coords]  # convert A to nm
             mol.add_atom(atom)
         for b in openbabel.OBMolBondIter(py_mol.OBMol):
@@ -483,7 +482,7 @@ class Molecule():
         if angles_removed != []:
             msg = '%i angles not added because value far from equilibrium: ' \
                   % len(angles_removed) \
-                  + ' '.join([str(i) for i in angles_removed[:10]])
+                  + ' '.join([i.name for i in angles_removed[:10]])
             if len(angles_removed) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
@@ -491,7 +490,7 @@ class Molecule():
         if dihedrals_removed != []:
             msg = '%i dihedrals not added because parameters not found in FF: ' \
                   % len(dihedrals_removed) \
-                  + ' '.join([str(i) for i in dihedrals_removed[:10]])
+                  + ' '.join([i.name for i in dihedrals_removed[:10]])
             if len(dihedrals_removed) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
@@ -499,7 +498,7 @@ class Molecule():
         if impropers_removed != []:
             msg = '%i impropers not added because parameters not found in FF: ' \
                   % len(impropers_removed) \
-                  + ' '.join([str(i) for i in impropers_removed[:10]])
+                  + ' '.join([i.name for i in impropers_removed[:10]])
             if len(impropers_removed) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
@@ -554,9 +553,7 @@ class Molecule():
 
             if parent.has_position:
                 # make sure Drude and parent atom do not overlap. max deviation 0.001 nm
-                deviation = random.random() / 1000
-                drude.position = parent.position + [deviation, deviation, deviation]
-                drude.has_position = True
+                drude.position = parent.position + (np.random.random(3) - 0.5) / 500
 
             drude_pairs[parent] = drude
 
@@ -586,8 +583,7 @@ class Molecule():
 
         for atom in self._atoms:
             if not atom.is_drude and atom.symbol != 'H' and atom not in drude_pairs:
-                logger.warning(f'Not all heavy atoms in {str(self)} have Drude particles. '
-                               f'Check the generated topology carefully')
+                logger.warning(f'Not all heavy atoms in {str(self)} carry Drude particles')
                 break
 
     def remove_drude_particles(self, update_topology=True):
@@ -686,11 +682,11 @@ class Molecule():
         _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
                              if not atom.is_drude and not _assigned[i]]
         if len(_atoms_unassigned) > 0:
-            msg = f'Charge not assigned for %i atoms in {str(self)} ' \
+            msg = f'Charge not assigned for %i atoms in {str(self)}. ' \
                   'Make sure FF is correct: %s' % (
                       len(_atoms_unassigned), ' '.join(_atoms_unassigned[:10]))
             if len(_atoms_unassigned) > 10:
-                msg += ' add more ...'
+                msg += ' and more ...'
             logger.warning(msg)
 
         for parent, drude in self.get_drude_pairs():

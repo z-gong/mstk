@@ -84,7 +84,6 @@ class Topology():
             raise Exception('Length of positions should equal to the number of atoms')
         for i, atom in enumerate(self.atoms):
             atom.position = np.array(positions[i])
-            atom.has_position = True
 
     def get_unique_molecules(self, deepcopy=True) -> {Molecule: int}:
         '''

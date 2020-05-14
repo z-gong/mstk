@@ -69,3 +69,4 @@ class Atom():
         if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != 3:
             raise ValueError('position should has three elements')
         self._position[:] = value
+        self.has_position = True

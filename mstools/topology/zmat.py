@@ -51,7 +51,6 @@ class Zmat(Topology):
             atom.symbol = element.symbol
             atom.mass = element.mass
             atom.name = atom.symbol + str(mol.n_atom + 1)
-            atom.has_position = True
             mol.add_atom(atom)
 
             ir = ia = id = 0

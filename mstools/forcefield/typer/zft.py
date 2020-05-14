@@ -108,17 +108,16 @@ class ZftTyper(Typer):
                 idx = indexes[0] - 1
                 possible_defines[idx].append(define)
 
-        atoms_undefined = []
-        for i in range(molecule.n_atom):
-            atom = molecule.atoms[i]
+        _undefined = []
+        for i, atom in enumerate(molecule.atoms):
             define = self._get_deepest_define(possible_defines[i], self.define_root)
-            if define == self.define_root:
-                atoms_undefined.append(atom)
+            if define is self.define_root:
+                _undefined.append(atom.name)
             else:
-                molecule.atoms[i].type = define.name
-        if atoms_undefined != []:
-            raise TypingUndefinedError('Definition not found for %s' %
-                                       ', '.join([str(a) for a in atoms_undefined]))
+                atom.type = define.name
+        if _undefined != []:
+            raise TypingUndefinedError('Definition not found for %i atoms: %s' % (
+                len(_undefined), ' '.join(_undefined)))
 
     def _get_deepest_define(self, defines, parent: TypeDefine):
         for define in parent.children:

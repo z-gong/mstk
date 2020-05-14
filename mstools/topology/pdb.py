@@ -41,7 +41,6 @@ class Pdb(Topology):
                 y = float(line[38:46]) / 10
                 z = float(line[46:54]) / 10
                 atom.position = (x, y, z,)
-                atom.has_position = True
                 if len(line) > 76:
                     symbol = line[76:78].strip()
                     element = Element(symbol)

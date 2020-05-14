@@ -32,7 +32,6 @@ class XyzTopology(Topology):
                 atom.mass = element.mass
                 atom.name = atom.symbol + str(mol.n_atom + 1)
                 atom.position = tuple(map(lambda x: float(x) / 10, words[1:4]))
-                atom.has_position = True
                 mol.add_atom(atom)
 
         self.update_molecules([mol])

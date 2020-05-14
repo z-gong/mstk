@@ -149,7 +149,6 @@ class LammpsData(Topology):
                 atom.symbol = 'DP'
             else:
                 atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-            atom.has_position = True
             atom.position = np.array([x - self._xlo + ix * self.cell.size[0],
                                       y - self._ylo + iy * self.cell.size[1],
                                       z - self._zlo + iz * self.cell.size[2]])
