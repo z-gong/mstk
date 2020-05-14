@@ -586,8 +586,8 @@ class Molecule():
 
         for atom in self._atoms:
             if not atom.is_drude and atom.symbol != 'H' and atom not in drude_pairs:
-                logger.warning('Not all heavy atoms have Drude particles. '
-                               'Check the generated topology carefully')
+                logger.warning(f'Not all heavy atoms in {str(self)} have Drude particles. '
+                               f'Check the generated topology carefully')
                 break
 
     def remove_drude_particles(self, update_topology=True):
@@ -612,17 +612,32 @@ class Molecule():
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
         '''
+        _atype_not_found = []
+        _atype_no_mass = []
+        _zero_mass = []
         for atom in self._atoms:
             if atom.is_drude:
                 continue
             atype = ff.atom_types.get(atom.type)
             if atype is None:
-                raise Exception(f'Atom type {atom.type} not found in FF')
+                _atype_not_found.append(atom.type)
             if atype.mass == -1:
-                raise Exception(f'{atype} does not carry mass information')
+                _atype_no_mass.append(atype.name)
             if atype.mass == 0:
-                logger.warning(f'{atype} carries zero mass. You should make sure it is correct')
+                _zero_mass.append(atom.name)
             atom.mass = atype.mass
+
+        if _atype_not_found != []:
+            logger.error('%i atom types not found: %s' % (
+                len(_atype_not_found), ' '.join(_atype_not_found)))
+            raise Exception(f'Assign mass for {str(self)} failed')
+        if _atype_no_mass != []:
+            logger.error('%i atom types in FF do not carry mass information: %s' % (
+                len(_atype_no_mass), ' '.join(_atype_no_mass)))
+            raise Exception(f'Assign mass {str(self)}  failed')
+        if _zero_mass != []:
+            logger.warning(f'%i atoms carry in {str(self)} zero mass: %s' % (
+                len(_zero_mass), ' '.join(_zero_mass)))
 
         for parent, drude in self.get_drude_pairs():
             atype = ff.atom_types[parent.type]
@@ -671,8 +686,8 @@ class Molecule():
         _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
                              if not atom.is_drude and not _assigned[i]]
         if len(_atoms_unassigned) > 0:
-            logger.warning('Charge not assigned for %i atoms because both charge and increment '
-                           'in the FF are zero or not found: %s' % (
+            logger.warning(f'Charge not assigned for %i atoms in {str(self)} '
+                           'because charge and increment in FF are zero or not found: %s' % (
                                len(_atoms_unassigned), ' '.join(_atoms_unassigned)))
 
         for parent, drude in self.get_drude_pairs():

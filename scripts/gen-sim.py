@@ -60,7 +60,7 @@ if args.ljscale is not None:
 unique_mols = top.get_unique_molecules()
 for mol in unique_mols.keys():
     try:
-        typer.type(mol)
+        typer.type_molecule(mol)
     except TypingNotSupportedError as e:
         logger.warning('Typing failed %s: %s' % (mol, str(e)))
     except TypingUndefinedError as e:
@@ -73,7 +73,7 @@ for mol in unique_mols.keys():
     mol.assign_mass_from_ff(ff)
     mol.assign_charge_from_ff(ff)
 
-top.update_molecules(unique_mols.keys(), unique_mols.values())
+top.update_molecules(list(unique_mols.keys()), list(unique_mols.values()))
 
 if args.trj is not None:
     frame = Trajectory.read_frame_from_file(args.trj, -1)
