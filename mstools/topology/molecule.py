@@ -504,7 +504,8 @@ class Molecule():
                 string += ' and more ...'
             logger.warning(string)
 
-    def generate_drude_particles(self, ff: ForceField, type_drude='DP_', seed=1):
+    def generate_drude_particles(self, ff: ForceField, type_drude='DP_', seed=1,
+                                 update_topology=True):
         '''
         Generate Drude particles from DrudeTerms in force field.
         The atom types should have been defined already.
@@ -568,7 +569,7 @@ class Molecule():
             self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
             self.add_bond(parent, drude)
 
-        if self._topology is not None:
+        if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
         dtype = ff.atom_types.get(type_drude)
@@ -589,7 +590,7 @@ class Molecule():
                                'Check the generated topology carefully')
                 break
 
-    def remove_drude_particles(self):
+    def remove_drude_particles(self, update_topology=True):
         '''
         Remove all Drude particles and bonds belong to Drude particles
         The charges and masses carried by Drude particles will be transferred back to parent atoms
@@ -600,7 +601,7 @@ class Molecule():
             parent.charge += drude.charge
             self.remove_bond(drude._bonds[0])
             self.remove_atom(drude, update_topology=False)
-        if self._topology is not None:
+        if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def assign_mass_from_ff(self, ff: ForceField):

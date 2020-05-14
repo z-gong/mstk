@@ -42,25 +42,12 @@ else:
 
 molecules = []
 for inp, n in zip(args.input, args.number):
-    top = Topology.open(inp)
     if inp.startswith(':'):
         if typer is None:
             raise Exception('--typer is required for SMILES input')
-        try:
-            typer.type(top)
-        except TypingUndefinedError as e:
-            logger.error('Typing failed %s: %s' % (typer.__class__.__name__, str(e)))
+    top = Topology.open(inp)
     molecules += top.molecules * n
 top = Topology(molecules)
-
-if args.trj is not None:
-    _positions_set = False
-    frame = Trajectory.read_frame_from_file(args.trj, -1)
-    if len(frame.positions) == top.n_atom:
-        top.set_positions(frame.positions)
-        _positions_set = True
-    if frame.cell.volume != 0:
-        top.cell.set_box(frame.cell.vectors)
 
 ff = ForceField.open(*args.forcefield)
 if args.nodrude:
@@ -70,20 +57,33 @@ if args.ljscale is not None:
     scaler.scale(ff)
     logger.warning('LJ scaling file provided. Check the generated FF carefully')
 
-if ff.is_polarizable:
-    top.generate_drude_particles(ff)
-if args.nodrude:
-    top.remove_drude_particles()
-top.assign_mass_from_ff(ff)
-top.assign_charge_from_ff(ff)
+unique_mols = top.get_unique_molecules()
+for mol in unique_mols.keys():
+    try:
+        typer.type(top)
+    except TypingNotSupportedError as e:
+        logger.warning('Typing failed %s: %s' % (mol, str(e)))
+    except TypingUndefinedError as e:
+        logger.error('Typing failed %s: %s' % (mol, str(e)))
+
+    if ff.is_polarizable:
+        mol.generate_drude_particles(ff)
+    if args.nodrude:
+        mol.remove_drude_particles()
+    mol.assign_mass_from_ff(ff)
+    mol.assign_charge_from_ff(ff)
+
+top.update_molecules(unique_mols.keys(), unique_mols.values())
 
 if args.trj is not None:
-    if len(frame.positions) == top.n_atom:
-        top.set_positions(frame.positions)
-        _positions_set = True
-    if not _positions_set:
+    frame = Trajectory.read_frame_from_file(args.trj, -1)
+    if len(frame.positions) != top.n_atom:
         logger.error('Number of atoms in trjectory and topology doesn\'t match')
         sys.exit(1)
+
+    top.set_positions(frame.positions)
+    if frame.cell.volume != 0:
+        top.cell.set_box(frame.cell.vectors)
 
 if args.box is not None:
     top.cell.set_box(args.box)

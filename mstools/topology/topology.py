@@ -346,12 +346,16 @@ class Topology():
                                            angle_tolerance, pbc, self.cell)
 
     def generate_drude_particles(self, ff: ForceField, **kwargs):
+        mol: Molecule
         for mol in self._molecules:
-            mol.generate_drude_particles(ff, **kwargs)
+            mol.generate_drude_particles(ff, update_topology=False)
+        self.update_molecules(self._molecules, deepcopy=False)
 
     def remove_drude_particles(self):
+        mol: Molecule
         for mol in self._molecules:
-            mol.remove_drude_particles()
+            mol.remove_drude_particles(update_topology=False)
+        self.update_molecules(self._molecules, deepcopy=False)
 
     def assign_mass_from_ff(self, ff: ForceField):
         for mol in self._molecules:

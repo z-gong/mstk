@@ -400,10 +400,10 @@ def dipole():
                 atoms = _get_atoms(mol, atoms.split())
                 ids = [atom.id for atom in atoms]
                 charges = frame.charges[ids] if frame.has_charge else top_atom_charges[ids]
+                rel_charges = charges - charges.mean()
                 positions = frame.positions[ids]
-                com = _get_weighted_center(positions, [atom.mass for atom in atoms])
-                rel_charges = np.array(charges) - np.sum(charges) / len(atoms)
                 dipole = np.sum(positions * np.transpose(np.array([rel_charges] * 3)), axis=0)
+                com = _get_weighted_center(positions, [atom.mass for atom in atoms])
                 idx = int((com[2] - edges[0]) / dz)
                 name_z_dipoles_dict[name][idx].append(dipole)
 
