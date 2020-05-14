@@ -15,16 +15,16 @@ parser.add_argument('input', type=str, help='input xyz file')
 parser.add_argument('-o', '--output', required=True, type=str, help='output xyz file')
 parser.add_argument('--cathode', type=float, help='z coordinate (in nm) of cathode (left electrode)')
 parser.add_argument('--anode', type=float, help='z coordinate (in nm) of anode (right electrode)')
-parser.add_argument('--ignore', default='', type=str, help='ignore these atom types')
+parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these atom types')
 parser.add_argument('--drude', action='store_true', help='generate image for drude particles for heavy atoms')
 args = parser.parse_args()
 
 top = XyzTopology(args.input)
+positions = top.positions[:]
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
-ignore_list = args.ignore.split(',')
-gen_atoms = [atom for atom in top.atoms if atom.type not in ignore_list]
+gen_atoms = [atom for atom in top.atoms if atom.type not in args.ignore]
 gen_drude_atoms = [atom for atom in gen_atoms if not atom.symbol == 'H'] if args.drude else []
 for atom in top.atoms:
     atom._gen_img_ = atom._gen_img_drude_ = False
@@ -43,18 +43,18 @@ with open(args.output, 'w') as f_out:
     f_out.write('%i\n' % (top.n_atom + n_image))
     f_out.write('simulation box with image charges\n')
     for ii, atom in enumerate(top.atoms):
-        pos = top.positions[ii] * 10  # convert from nm to A
+        pos = positions[ii] * 10  # convert from nm to A
         f_out.write('%-8s %10.5f %10.5f %10.5f\n' % (atom.type, pos[0], pos[1], pos[2]))
     if args.cathode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = top.positions[ii] * 10  # convert from nm to A
+            pos = positions[ii] * 10  # convert from nm to A
             if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
             if atom._gen_img_drude_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], args.cathode * 10 - pos[2]))
     if args.anode is not None:
         for ii, atom in enumerate(top.atoms):
-            pos = top.positions[ii] * 10  # convert from nm to A
+            pos = positions[ii] * 10  # convert from nm to A
             if atom._gen_img_:
                 f_out.write('%-8s %10.5f %10.5f %10.5f\n' % ('IMG', pos[0], pos[1], 2 * args.anode * 10 - pos[2]))
             if atom._gen_img_drude_:

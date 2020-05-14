@@ -481,28 +481,28 @@ class Molecule():
                 impropers_removed.append(improper)
 
         if angles_removed != []:
-            string = '%i angles not added because value far from equilibrium: ' \
-                     % len(angles_removed) \
-                     + ' '.join([str(i) for i in angles_removed[:10]])
+            msg = '%i angles not added because value far from equilibrium: ' \
+                  % len(angles_removed) \
+                  + ' '.join([str(i) for i in angles_removed[:10]])
             if len(angles_removed) > 10:
-                string += ' and more ...'
-            logger.warning(string)
+                msg += ' and more ...'
+            logger.warning(msg)
 
         if dihedrals_removed != []:
-            string = '%i dihedrals not added because parameters not found in FF: ' \
-                     % len(dihedrals_removed) \
-                     + ' '.join([str(i) for i in dihedrals_removed[:10]])
+            msg = '%i dihedrals not added because parameters not found in FF: ' \
+                  % len(dihedrals_removed) \
+                  + ' '.join([str(i) for i in dihedrals_removed[:10]])
             if len(dihedrals_removed) > 10:
-                string += ' and more ...'
-            logger.warning(string)
+                msg += ' and more ...'
+            logger.warning(msg)
 
         if impropers_removed != []:
-            string = '%i impropers not added because parameters not found in FF: ' \
-                     % len(impropers_removed) \
-                     + ' '.join([str(i) for i in impropers_removed[:10]])
+            msg = '%i impropers not added because parameters not found in FF: ' \
+                  % len(impropers_removed) \
+                  + ' '.join([str(i) for i in impropers_removed[:10]])
             if len(impropers_removed) > 10:
-                string += ' and more ...'
-            logger.warning(string)
+                msg += ' and more ...'
+            logger.warning(msg)
 
     def generate_drude_particles(self, ff: ForceField, type_drude='DP_', seed=1,
                                  update_topology=True):
@@ -521,7 +521,7 @@ class Molecule():
 
         random.seed(seed)
 
-        self.remove_drude_particles()
+        self.remove_drude_particles(update_topology=False)
 
         _atype_not_found = set()
         drude_pairs = {}
@@ -534,7 +534,7 @@ class Molecule():
             pterm = ff.polarizable_terms.get(atype.eqt_polar)
             if pterm is None:
                 continue
-            if type(pterm) != DrudeTerm:
+            if type(pterm) is not DrudeTerm:
                 raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
             drude = Atom()
             drude.is_drude = True
@@ -563,7 +563,7 @@ class Molecule():
         if _atype_not_found != set():
             logger.error('%i atom types not found in FF: %s' % (
                 len(_atype_not_found), ' '.join(_atype_not_found)))
-            raise Exception('Atom types not found during generating Drude particles')
+            raise Exception(f'Generating Drude particles {str(self)} failed')
 
         for parent, drude in drude_pairs.items():
             self.add_atom(drude, index=self._atoms.index(parent) + 1, update_topology=False)
@@ -612,31 +612,31 @@ class Molecule():
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
         '''
-        _atype_not_found = []
-        _atype_no_mass = []
-        _zero_mass = []
+        _atype_not_found = set()
+        _atype_no_mass = set()
+        _zero_mass = set()
         for atom in self._atoms:
             if atom.is_drude:
                 continue
             atype = ff.atom_types.get(atom.type)
             if atype is None:
-                _atype_not_found.append(atom.type)
+                _atype_not_found.add(atom.type)
             if atype.mass == -1:
-                _atype_no_mass.append(atype.name)
+                _atype_no_mass.add(atom.type)
             if atype.mass == 0:
-                _zero_mass.append(atom.name)
+                _zero_mass.add(atom.type)
             atom.mass = atype.mass
 
-        if _atype_not_found != []:
+        if _atype_not_found != set():
             logger.error('%i atom types not found: %s' % (
                 len(_atype_not_found), ' '.join(_atype_not_found)))
             raise Exception(f'Assign mass for {str(self)} failed')
-        if _atype_no_mass != []:
+        if _atype_no_mass != set():
             logger.error('%i atom types in FF do not carry mass information: %s' % (
                 len(_atype_no_mass), ' '.join(_atype_no_mass)))
             raise Exception(f'Assign mass {str(self)}  failed')
-        if _zero_mass != []:
-            logger.warning(f'%i atoms carry in {str(self)} zero mass: %s' % (
+        if _zero_mass != set():
+            logger.warning(f'%i atoms in {str(self)} carry zero mass: %s' % (
                 len(_zero_mass), ' '.join(_zero_mass)))
 
         for parent, drude in self.get_drude_pairs():
@@ -686,9 +686,12 @@ class Molecule():
         _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
                              if not atom.is_drude and not _assigned[i]]
         if len(_atoms_unassigned) > 0:
-            logger.warning(f'Charge not assigned for %i atoms in {str(self)} '
-                           'because charge and increment in FF are zero or not found: %s' % (
-                               len(_atoms_unassigned), ' '.join(_atoms_unassigned)))
+            msg = f'Charge not assigned for %i atoms in {str(self)} ' \
+                  'Make sure FF is correct: %s' % (
+                      len(_atoms_unassigned), ' '.join(_atoms_unassigned[:10]))
+            if len(_atoms_unassigned) > 10:
+                msg += ' add more ...'
+            logger.warning(msg)
 
         for parent, drude in self.get_drude_pairs():
             atype = ff.atom_types[parent.type]

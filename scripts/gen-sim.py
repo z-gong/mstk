@@ -2,7 +2,7 @@
 
 import sys
 import argparse
-from mstools.topology import Topology, UnitCell
+from mstools.topology import Topology, UnitCell, Molecule
 from mstools.trajectory import Trajectory
 from mstools.forcefield import ForceField, ZftTyper, PaduaLJScaler
 from mstools.forcefield.errors import *
@@ -48,6 +48,10 @@ for inp, n in zip(args.input, args.number):
     top = Topology.open(inp)
     molecules += top.molecules * n
 top = Topology(molecules)
+if args.nodrude:
+    top.remove_drude_particles()
+if args.box is not None:
+    top.cell.set_box(args.box)
 
 ff = ForceField.open(*args.forcefield)
 if args.nodrude:
@@ -57,23 +61,27 @@ if args.ljscale is not None:
     scaler.scale(ff)
     logger.warning('LJ scaling file provided. Check the generated FF carefully')
 
-unique_mols = top.get_unique_molecules()
-for mol in unique_mols.keys():
+unique_molecules = top.get_unique_molecules()
+for mol in unique_molecules.keys():
+    mol: Molecule
+    logger.info('Processing %s ...' % str(mol))
     try:
         typer.type_molecule(mol)
     except TypingNotSupportedError as e:
-        logger.warning('Typing failed %s: %s' % (mol, str(e)))
+        pass
     except TypingUndefinedError as e:
         logger.error('Typing failed %s: %s' % (mol, str(e)))
 
+    if mol.n_bond == 0 and mol.has_position:
+        logger.warning(f'{str(mol)} carries no bond. Try to guess connectivity from forcefield')
+        mol.guess_connectivity_from_ff(ff, angle_tolerance=15, pbc='xyz', cell=top.cell)
+
     if ff.is_polarizable:
         mol.generate_drude_particles(ff)
-    if args.nodrude:
-        mol.remove_drude_particles()
     mol.assign_mass_from_ff(ff)
     mol.assign_charge_from_ff(ff)
 
-top.update_molecules(list(unique_mols.keys()), list(unique_mols.values()))
+top.update_molecules(list(unique_molecules.keys()), list(unique_molecules.values()))
 
 if args.trj is not None:
     frame = Trajectory.read_frame_from_file(args.trj, -1)
@@ -82,12 +90,10 @@ if args.trj is not None:
         sys.exit(1)
 
     top.set_positions(frame.positions)
-    if frame.cell.volume != 0:
+    if args.box is None and frame.cell.volume != 0:
         top.cell.set_box(frame.cell.vectors)
 
-if args.box is not None:
-    top.cell.set_box(args.box)
-
+logger.info('Exporting ...')
 if args.packmol:
     mol_numbers = top.get_unique_molecules()
     top.update_molecules(list(mol_numbers.keys()))
