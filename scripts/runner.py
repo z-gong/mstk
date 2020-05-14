@@ -5,7 +5,7 @@ from simtk.unit import kelvin, bar
 from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import StateDataReporter, GroReporter, CheckpointReporter, DrudeTemperatureReporter
-from mstools.omm import print_omm_info, apply_mc_barostat
+from mstools.omm import print_omm_info, apply_mc_barostat, minimize, energy_decomposition
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
@@ -54,12 +54,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     if is_drude:
         sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000))
 
-    state = sim.context.getState(getEnergy=True)
-    print('Initial energy:', state.getPotentialEnergy())
-    sim.minimizeEnergy(100 * kJ_mol)
-    state = sim.context.getState(getEnergy=True, getPositions=True)
-    print('Minimized energy:', state.getPotentialEnergy())
-    GroFile.writeFile(psf.topology, state.getPositions(), state.getPeriodicBoxVectors(), 'em.gro')
+    energy_decomposition(sim)
+    minimize(sim, 100, 'em.gro')
 
     print('Running...')
     sim.step(nstep)

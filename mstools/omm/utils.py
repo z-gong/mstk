@@ -1,7 +1,7 @@
 import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar, nanometer as nm, picosecond as ps
-from simtk.unit import kilojoule_per_mole as kj_mol, kilocalorie_per_mole as kcal_mol
+from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kcal_mol
 from .grofile import GroFile
 
 
@@ -15,7 +15,7 @@ def print_omm_info():
 def minimize(sim, tolerance, gro_out=None):
     state = sim.context.getState(getEnergy=True)
     print('Initial energy:', state.getPotentialEnergy())
-    sim.minimizeEnergy(tolerance=tolerance * kj_mol)
+    sim.minimizeEnergy(tolerance=tolerance * kJ_mol)
     state = sim.context.getState(getPositions=True, getEnergy=True)
     print('Minimized energy:', state.getPotentialEnergy())
 
@@ -49,7 +49,10 @@ def apply_mc_barostat(system, pcoupl, P, T, nsteps=100):
         raise Exception('Available pressure coupling types: iso, semi-iso, xyz, xy, z')
 
 
-def energy_decomposition(sim: app.Simulation, groups):
+def energy_decomposition(sim: app.Simulation, groups=None):
+    if groups is None:
+        groups = range(32)
     for group in groups:
-        state = sim.context.getState(getEnergy=True, groups={group})
-        print('E_%i:' % group, state.getPotentialEnergy())
+        energy = sim.context.getState(getEnergy=True, groups={group}).getPotentialEnergy()
+        if energy.value_in_unit(kJ_mol) != 0 or group < 10:
+            print('E_%i:' % group, energy)

@@ -268,7 +268,10 @@ class PaduaLJScaler():
                 m2 = next(m for m in self.monomers if m.name == words[1])
                 scale = None
                 if len(words) > 3:
-                    scale = float(words[3])
+                    try:
+                        scale = float(words[3])
+                    except:
+                        pass
                 self.dimers.append(Dimer(m1, m2, float(words[2]), scale))
 
             elif _section == 'ATOMS':
