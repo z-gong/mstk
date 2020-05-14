@@ -58,7 +58,7 @@ class Zmat(Topology):
             var_r = var_a = var_d = ''
             if (len(words) - shift) > 1:
                 ir = int(words[shift + 1]) - 1
-                mol.add_bond(atom, mol.atoms[ir])
+                mol.add_bond(mol.atoms[ir], atom)
 
                 if words[shift + 2][0].isalpha():
                     var_r = words[shift + 2]

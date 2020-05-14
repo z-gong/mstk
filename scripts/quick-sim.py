@@ -70,15 +70,16 @@ mol_count = top.get_unique_molecules(deepcopy=False)
 for mol in mol_count.keys():
     mol: Molecule
     logger.info('Processing %s ...' % str(mol))
-    try:
-        typer.type_molecule(mol)
-    except TypingNotSupportedError as e:
-        pass
-    except TypingUndefinedError as e:
-        xyz = '_typing_' + mol.name + '.xyz'
-        Topology([mol]).write(xyz)
-        logger.error('Failed typing %s: %s. Check %s' % (mol, str(e), xyz))
-        sys.exit(1)
+    if typer is not None:
+        try:
+            typer.type_molecule(mol)
+        except TypingNotSupportedError as e:
+            pass
+        except TypingUndefinedError as e:
+            xyz = '_typing_' + mol.name + '.xyz'
+            Topology([mol]).write(xyz)
+            logger.error('Failed typing %s: %s. Check %s' % (mol, str(e), xyz))
+            sys.exit(1)
 
     if mol.n_atom > 1 and mol.n_bond == 0:
         if mol.has_position:
