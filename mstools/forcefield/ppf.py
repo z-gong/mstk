@@ -52,6 +52,8 @@ class Ppf(ForceField):
         for file in files:
             self._parse(file)
 
+        self._setup()
+
     def _parse(self, file):
         with open(file) as f:
             lines = f.read().splitlines()
@@ -77,8 +79,6 @@ class Ppf(ForceField):
 
             self._parse_line(line, _section)
 
-        self._setup()
-
     def _parse_line(self, line, section):
         words = [x.strip() for x in line.strip().split(':')]
         if section == 'EQT':
@@ -91,14 +91,16 @@ class Ppf(ForceField):
         else:
             raise Exception('Invalid section: %s' % section)
 
-        ppfLine = PpfLine(term, key, value, comment)
-        _ppfLine = self._ppf_lines.get(ppfLine.name)
-        if _ppfLine is None:
-            self._ppf_lines[ppfLine.name] = ppfLine
+        ppf_line = PpfLine(term, key, value, comment)
+        # only keep the line of the latest version
+        old_line = self._ppf_lines.get(ppf_line.name)
+        if old_line is None:
+            self._ppf_lines[ppf_line.name] = ppf_line
         else:
-            if ppfLine.version is None or _ppfLine.version is None:
-                raise Exception('Duplicated line without version information: %s' % ppfLine.name)
-            self._ppf_lines[ppfLine.name] = ppfLine
+            if ppf_line.version is None or old_line.version is None:
+                raise Exception('Duplicated line without version information: %s' % ppf_line.name)
+            if float(ppf_line.version) > float(old_line.version):
+                self._ppf_lines[ppf_line.name] = ppf_line
 
     def _setup(self):
         for line in self._ppf_lines.values():
@@ -188,10 +190,10 @@ class Ppf(ForceField):
                 atype.mass = atype_eq.mass
 
     @staticmethod
-    def save_to(params: ForceField, file):
+    def save_to(ff: ForceField, file):
         line = '#DFF:EQT\n'
         line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
-        for atype in params.atom_types.values():
+        for atype in ff.atom_types.values():
             line += '%s: %s %s %s %s %s %s %s %s %s %s\n' % (
                 atype.name, atype.eqt_vdw, atype.name, atype.eqt_q_inc,
                 atype.eqt_bond, atype.eqt_ang_c, atype.eqt_ang_s,
@@ -200,38 +202,38 @@ class Ppf(ForceField):
         line += ('#DFF:PPF\n'
                  '#PROTOCOL = AMBER\n'
                  )
-        for atype in params.atom_types.values():
+        for atype in ff.atom_types.values():
             element = Element.guess_from_atom_type(atype.name)
             line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, atype.mass)
-        for atype in params.atom_types.values():
+        for atype in ff.atom_types.values():
             line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)
-        for binc in params.charge_increment_terms.values():
+        for binc in ff.charge_increment_terms.values():
             line += 'BINC: %s, %s: %.5f: ' % (binc.type1, binc.type2, binc.value)
-        for vdw in params.vdw_terms.values():
+        for vdw in ff.vdw_terms.values():
             if isinstance(vdw, LJ126Term):
                 line += 'N12_6: %s: %.5f, %.5f: \n' % (
                     vdw.type1, vdw.sigma * 10 * 2 ** (1 / 6), vdw.epsilon / 4.184)
             else:
                 raise Exception('Only LJ126Term is implemented')
-        for vdw in params.pairwise_vdw_terms.values():
+        for vdw in ff.pairwise_vdw_terms.values():
             if isinstance(vdw, LJ126Term):
                 line += 'P12_6: %s, %s: %.5f, %.5f: \n' % (
                     vdw.type1, vdw.type2, vdw.sigma * 10 * 2 ** (1 / 6), vdw.epsilon / 4.184)
             else:
                 raise Exception('Only LJ126Term is implemented for pairwise vdw terms')
-        for bond in params.bond_terms.values():
+        for bond in ff.bond_terms.values():
             if isinstance(bond, HarmonicBondTerm):
                 line += 'BHARM: %s, %s: %.5f, %.5f: \n' % (
                     bond.type1, bond.type2, bond.length * 10, bond.k / 4.184 / 100)
             else:
                 raise Exception('Only HarmonicBondTerm is implemented')
-        for angle in params.angle_terms.values():
+        for angle in ff.angle_terms.values():
             if isinstance(angle, HarmonicAngleTerm):
                 line += 'AHARM: %s, %s, %s: %.5f, %.5f: \n' % (
                     angle.type1, angle.type2, angle.type3, angle.theta, angle.k / 4.184)
             else:
                 raise Exception('Only HarmonicAngleTerm is implemented')
-        for dihedral in params.dihedral_terms.values():
+        for dihedral in ff.dihedral_terms.values():
             if isinstance(dihedral, PeriodicDihedralTerm):
                 line += 'TCOSP: %s, %s, %s, %s: ' % (
                     dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
@@ -241,7 +243,7 @@ class Ppf(ForceField):
                 line += ', '.join(str_paras) + ': \n'
             else:
                 raise Exception('Only PeriodicDihedralTerm is implemented')
-        for improper in params.improper_terms.values():
+        for improper in ff.improper_terms.values():
             if isinstance(improper, OplsImproperTerm):
                 # the third atom is the center atom for IBCOS improper term
                 line += 'IBCOS: %s, %s, %s, %s: 180, %.5f, 2: \n' % (
@@ -250,7 +252,7 @@ class Ppf(ForceField):
             else:
                 raise Exception('Only PeriodicImproperTerm is implemented')
 
-        if len(params.polarizable_terms) > 0:
+        if len(ff.polarizable_terms) > 0:
             logger.warning('Polarizable parameters are ignored because PPF does not support them')
 
         with open(file, 'w') as f:

@@ -25,10 +25,7 @@ class Padua(ForceField):
         for file in files:
             self._parse(file)
 
-        if self.ljscaler is not None:
-            if not self.ljscaler.scale(self):
-                logger.warning('LJ scaling file provided but incomplete. '
-                               'Check the generated FF carefully')
+        self._setup()
 
     def _parse(self, file):
         with open(file) as f:
@@ -59,7 +56,7 @@ class Padua(ForceField):
                 continue
             elif line.lower().startswith('scale_sigma') or line.lower().startswith('monomer'):
                 if self.ljscaler is not None:
-                    raise Exception('Only one ljscale file should be provided')
+                    raise Exception('Only one LJ scaling file should be provided')
 
                 self.ljscaler = PaduaLJScaler(file)
                 return
@@ -80,9 +77,9 @@ class Padua(ForceField):
             else:
                 raise Exception('Invalid header for fftool: %s' % line)
 
-        # TODO not robust enough
+    def _setup(self):
         # If this is a polarizable FF, add an AtomType and VdwTerm for Drude particles
-        if len(self.polarizable_terms) > 0:
+        if self.is_polarizable:
             type_drude = 'DP_'
             if type_drude not in self.atom_types:
                 dtype = AtomType(type_drude)
@@ -97,6 +94,12 @@ class Padua(ForceField):
                 pterm.merge_alpha_H = hterm.alpha
             logger.info(f'H* found in polarizable term. '
                         f'Polarizability of H will be merged into attached heavy atoms')
+
+        # Scale LJ terms if LJ scaling file provided
+        if self.ljscaler is not None:
+            if not self.ljscaler.scale(self):
+                logger.warning('LJ scaling file provided but incomplete. '
+                               'Check the generated FF carefully')
 
     def _parse_atom(self, words):
         atype = AtomType(words[0])
