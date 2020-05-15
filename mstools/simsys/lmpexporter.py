@@ -245,8 +245,8 @@ thermo 100
 '''
         else:
             cmd_pair = ''
-            for i, (typ_i, atom) in enumerate(lmp_types_real.items()):
-                for j, (typ_j, atom) in enumerate(lmp_types_real.items()):
+            for i, (typ_i, a1) in enumerate(lmp_types_real.items()):
+                for j, (typ_j, a2) in enumerate(lmp_types_real.items()):
                     if j < i:
                         continue
                     atype1 = lmp_types_atype[typ_i]
@@ -257,7 +257,7 @@ thermo 100
                         continue
                     cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %5.3f  # %8s %8s %s\n' % (
                         i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                        atom._alpha * 1000, atom._thole,
+                        math.sqrt(a1._alpha * a2._alpha) * 1000, (a1._thole + a2._thole) / 2,
                         lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
             for i, (typ, atom) in enumerate(lmp_types_parent.items()):
                 ii = i + len(lmp_types_real)
