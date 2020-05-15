@@ -59,6 +59,7 @@ class LammpsExporter():
 
         lmp_type_list = list(lmp_types_real.keys()) + list(lmp_types_drude.keys())
         lmp_symbol_list = [atom.symbol or 'UNK' for atom in lmp_types_real.values()]
+        lmp_symbol_list += [atom.symbol or 'UNK' for atom in lmp_types_drude.values()]
         fix_drude_list = ['C' if t in lmp_types_parent else 'D' if t in lmp_types_drude else 'N'
                           for t in lmp_type_list]
         lmp_shake_bonds = [i for i, bterm in enumerate(bond_types) if bterm.fixed]
@@ -68,12 +69,12 @@ class LammpsExporter():
         string = 'Created by mstools\n'
 
         string += '\n%i atoms\n' % top.n_atom
-        string += '%i bonds\n' % (top.n_bond + len(drude_pairs))
+        string += '%i bonds\n' % (top.n_bond)
         string += '%i angles\n' % top.n_angle
         string += '%i dihedrals\n' % top.n_dihedral
         string += '%i impropers\n' % top.n_improper
 
-        string += '\n%i atom types\n' % len(lmp_types_real)
+        string += '\n%i atom types\n' % len(lmp_type_list)
         string += '%i bond types\n' % (len(bond_types) + len(lmp_types_parent))
         string += '%i angle types\n' % len(angle_types)
         string += '%i dihedral types\n' % len(dihedral_types)
@@ -81,7 +82,7 @@ class LammpsExporter():
 
         if not top.cell.is_rectangular:
             raise Exception('Triclinic box haven\'t been implemented')
-        box = top.cell.size
+        box = top.cell.size * 10
         string += '\n0 %10.4f  xlo xhi\n' % box[0]
         string += '0 %10.4f  ylo yhi\n' % box[1]
         string += '0 %10.4f  zlo zhi\n' % box[2]
@@ -137,41 +138,40 @@ class LammpsExporter():
         string += '\nBonds\n\n'
 
         for i, bond in enumerate(top.bonds):
+            a1, a2 = bond.atom1, bond.atom2
             if not bond.is_drude:
                 btype = bond_types.index(system._bond_terms[id(bond)]) + 1
             else:
-                parent = bond.atom1 if bond.atom2.is_drude else bond.atom2
+                parent = a1 if a2.is_drude else a2
                 btype = list(lmp_types_parent.keys()).index(parent.type) + len(bond_types) + 1
             string += '%6i %6i %6i %6i  # %s-%s\n' % (
-                i + 1, btype, bond.atom1.id + 1, bond.atom2.id + 1, bond.atom1.name,
-                bond.atom2.name)
+                i + 1, btype, a1.id + 1, a2.id + 1, a1.name, a2.name)
 
         string += '\nAngles\n\n'
 
         for i, angle in enumerate(top.angles):
             atype = angle_types.index(system._angle_terms[id(angle)]) + 1
-            atype1, atype2, a3 = angle.atom1, angle.atom2, angle.atom3
+            a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
             string += '%6i %6i %6i %6i %6i  # %s-%s-%s\n' % (
-                i + 1, atype, atype1.id + 1, atype2.id + 1, a3.id + 1, atype1.name, atype2.name,
-                a3.name)
+                i + 1, atype, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
 
         string += '\nDihedrals\n\n'
 
         for i, dihedral in enumerate(top.dihedrals):
             dtype = dihedral_types.index(system._dihedral_terms[id(dihedral)]) + 1
-            atype1, atype2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
+            a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
-                i + 1, dtype, atype1.id + 1, atype2.id + 1, a3.id + 1, a4.id + 1,
-                atype1.name, atype2.name, a3.name, a4.name)
+                i + 1, dtype, a1.id + 1, a2.id + 1, a3.id + 1, a4.id + 1,
+                a1.name, a2.name, a3.name, a4.name)
 
         string += '\nImpropers\n\n'
 
         for i, improper in enumerate(top.impropers):
             itype = improper_types.index(system._improper_terms[id(improper)]) + 1
-            atype1, atype2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
+            a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
-                i + 1, itype, atype2.id + 1, a3.id + 1, atype1.id + 1, a4.id + 1,
-                atype2.name, a3.name, atype1.name, a4.name)
+                i + 1, itype, a2.id + 1, a3.id + 1, a1.id + 1, a4.id + 1,
+                a2.name, a3.name, a1.name, a4.name)
 
         with open(data_out, 'w')  as f:
             f.write(string)
@@ -193,7 +193,7 @@ special_bonds lj 0 0 {lj14} coul 0 0 {coul14}
 
         cmd_shake = ''
         if len(lmp_shake_bonds) > 0:
-            cmd_shake = 'fix SHAKE all shake b ' + ' '.join(map(str, lmp_shake_bonds))
+            cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
             if len(lmp_shake_angles) > 0:
                 cmd_shake += 'a ' + ' '.join(map(str, lmp_shake_angles))
 
@@ -283,7 +283,7 @@ fix DRUDE all drude {' '.join(fix_drude_list)}
 
 variable T equal 300
 variable P equal 1
-variable elec equal e_coul+e_long
+variable elec equal ecoul+elong
 
 # thermo_style custom step temp press pe evdwl v_elec emol
 # thermo 10
@@ -300,7 +300,7 @@ compute TDRUDE all temp/drude
 
 timestep 1.0
 
-fix SD  all langevin/drude $TK 200 12345 1 50 23456
+fix SD  all langevin/drude $T 200 12345 1 50 23456
 fix NPH all nph iso $P $P 1000
 # fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
 
