@@ -19,7 +19,7 @@ class GromacsExporter():
         if top_out is not None:
             GromacsExporter.export_top(system, top_out)
         if mdp_out is not None:
-            GromacsExporter.export_mdp(mdp_out)
+            GromacsExporter.export_mdp(system, mdp_out)
 
     @staticmethod
     def export_gro(system, gro_out='conf.gro'):
@@ -45,13 +45,10 @@ class GromacsExporter():
 
         if MieTerm in system.ff_classes:
             logger.warning('MieTerm not supported by GROMACS. '
-                           'The exported files should only be used for analyzing trajectory')
+                           'Will be exported in LJ-126 form')
         if SDKAngleTerm in system.ff_classes:
-            logger.warning('SDKAngleTerm not supported by GROMACS, '
-                           'replaced by harmonic function')
-        if DrudeTerm in system.ff_classes:
-            logger.warning('DurdeTerm havn\'t been implemented for GROMACS. '
-                           'Will treat Drude particles as normal atoms')
+            logger.warning('SDKAngleTerm not supported by GROMACS. '
+                           'Will be exported in harmonic form')
 
         mols_unique = system._topology.get_unique_molecules(deepcopy=False)
 
@@ -65,11 +62,17 @@ class GromacsExporter():
 
         string += '\n[ atomtypes ]\n'
         string += ';     name       mass     charge      ptype      sigma      epsilon\n'
+        drude_types = set()
+        if DrudeTerm in system.ff_classes:
+            for atom in system.topology.atoms:
+                if atom.is_drude:
+                    drude_types.add(atom.type)
         for atype in system.ff.atom_types.values():
+            ptype = 'S' if atype.name in drude_types else 'A'
             vdw = system.ff.get_vdw_term(atype, atype)
             if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
-                    atype.name, 0.0, 0.0, 'A', vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
+                    atype.name, 0.0, 0.0, ptype, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
             else:
                 raise Exception('Unsupported vdW term')
 
@@ -100,9 +103,61 @@ class GromacsExporter():
                     j + 1, atom.type, 1, mol.name, atom.symbol, 1, atom.charge, atom.mass)
 
             string += '\n[ pairs ]\n'
-            _, _, pair14 = mol.get_12_13_14_pairs()
-            for a1, a2 in pair14:
+            pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
+            for a1, a2 in pairs14:
                 string += '%6i %6i %6i\n' % (a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1)
+
+            if DrudeTerm in system.ff_classes:
+                drude_pairs = dict(mol.get_drude_pairs())
+                _pairs14_drude = []
+                for a1, a2 in pairs14:
+                    if a1 in drude_pairs:
+                        _pairs14_drude.append((drude_pairs[a1], a2))
+                    if a2 in drude_pairs:
+                        _pairs14_drude.append((a1, drude_pairs[a2]))
+                    if a1 in drude_pairs and a2 in drude_pairs:
+                        _pairs14_drude.append((drude_pairs[a1], drude_pairs[a2]))
+                for a1, a2 in _pairs14_drude:
+                    string += '%6i %6i %6i\n' % (a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1)
+
+                string += '\n[ polarization ]\n'
+                string += ';  ai    aj   func    alpha     delta     khyp\n'
+                for parent, drude in drude_pairs.items():
+                    string += '%5d %5d   %4d  %9.6f  %7.4f  %9.4e\n' % (
+                        parent.id_in_molecule + 1, drude.id_in_molecule + 1,
+                        2, parent._alpha, 0.02, 16.768e8)
+
+                string += '\n[ thole_polarization ]\n'
+                string += ';  ai    aj    ak    al   func   thole   alpha1   alpha2\n'
+                for a1, a2 in pairs12 + pairs13:
+                    if a1 in drude_pairs and a2 in drude_pairs:
+                        string += '%5i %5i %5i %5i   %4i   %9.5f  %9.6f  %9.6f\n' % (
+                            a1.id_in_molecule + 1, drude_pairs[a1].id_in_molecule + 1,
+                            a2.id_in_molecule + 1, drude_pairs[a2].id_in_molecule + 1,
+                            1, (a1._thole + a2._thole) / 2, a1._alpha, a2._alpha)
+
+                string += '\n[ exclusions ]\n'
+                string += ';  ai    aj    ...\n'
+                _exclusions_drude = {}  # {drude1: [atom2, drude2, atom3, drude3, ...]}
+                for a1, a2 in pairs12 + pairs13 + pairs14:
+                    if a1 in drude_pairs:
+                        d1 = drude_pairs[a1]
+                        if d1 not in _exclusions_drude:
+                            _exclusions_drude[d1] = []
+                        _exclusions_drude[d1].append(a2)
+                    if a2 in drude_pairs:
+                        d2 = drude_pairs[a2]
+                        if d2 not in _exclusions_drude:
+                            _exclusions_drude[d2] = []
+                        _exclusions_drude[d2].append(a1)
+                    if a1 in drude_pairs and a2 in drude_pairs:
+                        _exclusions_drude[d1].append(d2)
+                for d1 in _exclusions_drude.keys():
+                    string += '%5d' % (d1.id_in_molecule + 1)
+                    for d2 in _exclusions_drude[d1]:
+                        string += ' %5d' % (d2.id_in_molecule + 1)
+                    string += '\n'
+                string += '\n'
 
             string += '\n[ constraints ]\n'
             for bond in mol.bonds:
@@ -146,17 +201,17 @@ class GromacsExporter():
             string += '\n[ dihedrals ]\n'
             for dihedral in mol.dihedrals:
                 dterm = system._dihedral_terms[id(dihedral)]
-                a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
+                a1, a2, a3, a2 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
                             a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                            a3.id_in_molecule + 1, a2.id_in_molecule + 1,
                             9, para.phi, para.k, para.n)
                     if len(dterm.parameters) == 0:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
                             a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                            a3.id_in_molecule + 1, a2.id_in_molecule + 1,
                             9, 0.0, 0.0, 1)
                 else:
                     raise Exception('Unsupported dihedral term')
@@ -164,17 +219,17 @@ class GromacsExporter():
             string += '\n[ dihedrals ]\n'
             for improper in mol.impropers:
                 iterm = system._improper_terms[id(improper)]
-                a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
+                a1, a2, a3, a2 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
                 if iterm.__class__ == OplsImproperTerm:
                     # be careful about the sequence of atoms in OPLS improper definition
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f %4i\n' % (
                         a2.id_in_molecule + 1, a3.id_in_molecule + 1,
-                        a1.id_in_molecule + 1, a4.id_in_molecule + 1,
+                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
                         4, 180, iterm.k, 2)
                 elif iterm.__class__ == HarmonicImproperTerm:
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f\n' % (
                         a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                        a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                        a3.id_in_molecule + 1, a2.id_in_molecule + 1,
                         2, iterm.phi, iterm.k * 2)
                 else:
                     raise Exception('Unsupported improper term')
@@ -189,9 +244,10 @@ class GromacsExporter():
             f.write(string)
 
     @staticmethod
-    def export_mdp(mdp_out='grompp.mdp'):
+    def export_mdp(system, mdp_out='grompp.mdp'):
+        tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
         with open(mdp_out, 'w')  as f:
-            f.write('''; Created by mstools
+            f.write(f'''; Created by mstools
 integrator      = sd
 dt              = 0.002 ; ps
 nsteps          = 1000000
@@ -211,7 +267,7 @@ DispCorr        = EnerPres
 
 Tcoupl          = no; v-rescale
 tc_grps         = System
-tau_t           = 1.0
+tau_t           = {tau_t}
 ref_t           = 300
 
 Pcoupl          = berendsen ; parrinello-rahman

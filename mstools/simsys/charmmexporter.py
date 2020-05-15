@@ -43,8 +43,8 @@ class CharmmExporter():
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if OplsImproperTerm in system.ff_classes:
-            logger.warning('CHARMM only supports harmonic form for impropers. '
-                           'OPLS impropers will be exported as harmonic')
+            logger.warning('OplsImproperTerm not supported by CHARMM. '
+                           'Will be exported in harmonic form')
 
         string = '* Created by mstools\n'
         string += '*\n'

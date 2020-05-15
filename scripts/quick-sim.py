@@ -116,7 +116,7 @@ else:
             for i, atom in enumerate(atoms_real):
                 atom.position = frame.positions[i][:]
             for parent, drude in top.get_drude_pairs():
-                drude.position = parent.position + (np.random.random(3) - 0.5) / 500
+                drude.position = parent.position + (np.random.random(3) - 0.5) / 100
             _positions_set = True
 
     if not _positions_set:
