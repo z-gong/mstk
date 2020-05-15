@@ -116,7 +116,7 @@ else:
             for i, atom in enumerate(atoms_real):
                 atom.position = frame.positions[i][:]
             for parent, drude in top.get_drude_pairs():
-                drude.position = parent.position + (np.random.random(3) - 0.5) / 500
+                drude.position = parent.position + (np.random.random(3) - 0.5) / 100
             _positions_set = True
 
     if not _positions_set:
@@ -126,5 +126,6 @@ else:
         sys.exit(1)
 
 system = System(top, ff)
+system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')
 system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
 system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')

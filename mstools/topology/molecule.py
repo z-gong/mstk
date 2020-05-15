@@ -552,8 +552,8 @@ class Molecule():
             parent._thole = pterm.thole
 
             if parent.has_position:
-                # make sure Drude and parent atom do not overlap. max deviation 0.001 nm
-                drude.position = parent.position + (np.random.random(3) - 0.5) / 500
+                # make sure Drude and parent atom do not overlap. max deviation 0.005 nm
+                drude.position = parent.position + (np.random.random(3) - 0.5) / 100
 
             drude_pairs[parent] = drude
 

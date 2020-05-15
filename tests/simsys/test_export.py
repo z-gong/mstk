@@ -21,7 +21,28 @@ def test_gmx():
 
 
 def test_gmx_drude():
-    pass
+    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
+    top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
+    top.generate_angle_dihedral_improper()
+    top.generate_drude_particles(ff)
+    top.assign_charge_from_ff(ff)
+    system = System(top, ff)
+    system.export_gromacs(gro_out=cwd + '/files/conf-drude.gro',
+                          top_out=cwd + '/files/topol-drude.top',
+                          mdp_out=None)
+
+
+def test_lmp_drude():
+    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
+    top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
+    top.generate_angle_dihedral_improper()
+    top.generate_drude_particles(ff)
+    top.assign_charge_from_ff(ff)
+    system = System(top, ff)
+    system.export_lammps(data_out=cwd + '/files/data-drude.lmp',
+                         in_out=cwd + '/files/in-drude.lmp')
+
+test_lmp_drude()
 
 
 def test_charmm():
