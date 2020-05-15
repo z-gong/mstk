@@ -136,6 +136,36 @@ class GromacsExporter():
                             a2.id_in_molecule + 1, drude_pairs[a2].id_in_molecule + 1,
                             1, (a1._thole + a2._thole) / 2, a1._alpha, a2._alpha)
 
+            string += '\n[ constraints ]\n'
+            for bond in mol.bonds:
+                distance = system._constrain_bonds.get(id(bond))
+                if distance is not None:
+                    a1, a2 = bond.atom1, bond.atom2
+                    string += '%6i %6i %6i %12.6f\n' % (
+                        a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1, distance)
+            for angle in mol.angles:
+                distance = system._constrain_angles.get(id(angle))
+                if distance is not None:
+                    a1, a3 = angle.atom1, angle.atom3
+                    string += '%6i %6i %6i %12.6f\n' % (
+                        a1.id_in_molecule + 1, a3.id_in_molecule + 1, 2, distance)
+
+            string += '\n[ bonds ]\n'
+            for bond in mol.bonds:
+                if bond.is_drude:
+                    continue
+                if id(bond) in system._constrain_bonds:
+                    continue
+                bterm = system._bond_terms[id(bond)]
+                if bterm.__class__ == HarmonicBondTerm:
+                    a1, a2 = bond.atom1, bond.atom2
+                    string += '%6i %6i %6i %12.6f %12.4f\n' % (
+                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
+                        1, bterm.length, bterm.k * 2)
+                else:
+                    raise Exception('Unsupported bond term')
+
+            if DrudeTerm in system.ff_classes:
                 string += '\n[ exclusions ]\n'
                 string += ';  ai    aj    ...\n'
                 _exclusions_drude = {}  # {drude1: [atom2, drude2, atom3, drude3, ...]}
@@ -159,36 +189,10 @@ class GromacsExporter():
                     string += '\n'
                 string += '\n'
 
-            string += '\n[ constraints ]\n'
-            for bond in mol.bonds:
-                distance = system._constrain_bonds.get(id(bond))
-                if distance is not None:
-                    a1, a2 = bond.atom1, bond.atom2
-                    string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1, distance)
-            for angle in mol.angles:
-                distance = system._constrain_angles.get(id(angle))
-                if distance is not None:
-                    a1, a3 = angle.atom1, angle.atom3
-                    string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_molecule + 1, a3.id_in_molecule + 1, 2, distance)
-
-            string += '\n[ bonds ]\n'
-            for bond in mol.bonds:
-                if bond.is_drude:
-                    # TODO
-                    continue
-                bterm = system._bond_terms[id(bond)]
-                if bterm.__class__ == HarmonicBondTerm:
-                    a1, a2 = bond.atom1, bond.atom2
-                    string += '%6i %6i %6i %12.6f %12.4f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                        1, bterm.length, bterm.k * 2)
-                else:
-                    raise Exception('Unsupported bond term')
-
             string += '\n[ angles ]\n'
             for angle in mol.angles:
+                if id(angle) in system._constrain_angles:
+                    continue
                 aterm = system._angle_terms[id(angle)]
                 a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
                 if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
@@ -201,17 +205,17 @@ class GromacsExporter():
             string += '\n[ dihedrals ]\n'
             for dihedral in mol.dihedrals:
                 dterm = system._dihedral_terms[id(dihedral)]
-                a1, a2, a3, a2 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
+                a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
                             a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a2.id_in_molecule + 1,
+                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
                             9, para.phi, para.k, para.n)
                     if len(dterm.parameters) == 0:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
                             a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a2.id_in_molecule + 1,
+                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
                             9, 0.0, 0.0, 1)
                 else:
                     raise Exception('Unsupported dihedral term')
@@ -219,17 +223,17 @@ class GromacsExporter():
             string += '\n[ dihedrals ]\n'
             for improper in mol.impropers:
                 iterm = system._improper_terms[id(improper)]
-                a1, a2, a3, a2 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
+                a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
                 if iterm.__class__ == OplsImproperTerm:
                     # be careful about the sequence of atoms in OPLS improper definition
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f %4i\n' % (
                         a2.id_in_molecule + 1, a3.id_in_molecule + 1,
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
+                        a1.id_in_molecule + 1, a4.id_in_molecule + 1,
                         4, 180, iterm.k, 2)
                 elif iterm.__class__ == HarmonicImproperTerm:
                     string += '%6i %6i %6i %6i %6i %.2f %12.4f\n' % (
                         a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                        a3.id_in_molecule + 1, a2.id_in_molecule + 1,
+                        a3.id_in_molecule + 1, a4.id_in_molecule + 1,
                         2, iterm.phi, iterm.k * 2)
                 else:
                     raise Exception('Unsupported improper term')
