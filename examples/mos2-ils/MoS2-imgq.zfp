@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<ForceFieldTerms>
+  <Setting lj_mixing_rule="geometric" scale_14_coulomb="0.5" scale_14_vdw="0.5" vdw_cutoff="1.2" vdw_long_range="correct"/>
+  <AtomTypes>
+    <AtomType charge="0.0" eqt_ang_c="MoS" eqt_ang_s="MoS" eqt_bond="MoS" eqt_dih_c="MoS" eqt_dih_s="MoS" eqt_imp_c="MoS" eqt_imp_s="MoS" eqt_polar="MoS" eqt_q_inc="MoS" eqt_vdw="MoS" mass="95.937" name="MoS"/>
+    <AtomType charge="0.0" eqt_ang_c="SMo" eqt_ang_s="SMo" eqt_bond="SMo" eqt_dih_c="SMo" eqt_dih_s="SMo" eqt_imp_c="SMo" eqt_imp_s="SMo" eqt_polar="SMo" eqt_q_inc="SMo" eqt_vdw="SMo" mass="32.064" name="SMo"/>
+    <AtomType charge="0.0" eqt_ang_c="IMG" eqt_ang_s="IMG" eqt_bond="IMG" eqt_dih_c="IMG" eqt_dih_s="IMG" eqt_imp_c="IMG" eqt_imp_s="IMG" eqt_polar="IMG" eqt_q_inc="IMG" eqt_vdw="IMG" mass="0.0" name="IMG"/>
+  </AtomTypes>
+  <ChargeIncrementTerms/>
+  <VdwTerms>
+    <LJ126Term epsilon="0.485" sigma="0.44299999999999995" type1="MoS" type2="MoS"/>
+    <LJ126Term epsilon="2.085" sigma="0.33399999999999996" type1="SMo" type2="SMo"/>
+    <LJ126Term epsilon="0.0" sigma="0.0" type1="IMG" type2="IMG"/>
+  </VdwTerms>
+  <PairwiseVdwTerms/>
+  <BondTerms>
+    <HarmonicBondTerm fixed="False" k="21515.0" length="0.24100000000000002" type1="MoS" type2="SMo"/>
+  </BondTerms>
+  <AngleTerms>
+    <HarmonicAngleTerm fixed="False" k="593.85" theta="83.8" type1="SMo" type2="MoS" type3="SMo"/>
+    <HarmonicAngleTerm fixed="False" k="1025.0" theta="83.8" type1="MoS" type2="SMo" type3="MoS"/>
+  </AngleTerms>
+  <DihedralTerms/>
+  <ImproperTerms/>
+  <PolarizableTerms/>
+</ForceFieldTerms>
