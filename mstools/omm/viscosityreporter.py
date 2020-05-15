@@ -1,13 +1,9 @@
-from __future__ import absolute_import
-
-import simtk.openmm as mm
 from simtk.openmm import app
 from simtk import unit
-import numpy as np
 
 
 class ViscosityReporter(object):
-    """DrudeTemperatureReporter report the real and Drude temperature of Drude simulation
+    """ViscosityReporter report the viscosity with cosine periodic perturbation method
     """
 
     def __init__(self, file, reportInterval):
@@ -41,6 +37,11 @@ class ViscosityReporter(object):
             energies respectively.  The final element specifies whether
             positions should be wrapped to lie in a single periodic box.
         """
+        try:
+            simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
+        except AttributeError:
+            raise Exception('This integrator does not calculate viscosity')
+
         steps = self._reportInterval - simulation.currentStep % self._reportInterval
         return (steps, False, False, False, False)
 
@@ -56,14 +57,13 @@ class ViscosityReporter(object):
         """
         if not self._hasInitialized:
             self._hasInitialized = True
-            print('#"Step"\t"Acceleration (nm/ps^2)"\t"Velocity at z=0 (nm/ps)"\t"1/Viscosity (1/Pa.s)"', file=self._out)
+            print('#"Step"\t"Acceleration (nm/ps^2)"\t"VelocityAmplitude (nm/ps)"\t"1/Viscosity (1/Pa.s)"', file=self._out)
 
         acceleration = simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
         vMax, invVis = simulation.integrator.getViscosity()
         vMax = vMax.value_in_unit(unit.nanometer / unit.picosecond)
         invVis = invVis.value_in_unit((unit.pascal*unit.second)**-1)
         print(simulation.currentStep, acceleration, vMax, invVis, sep='\t', file=self._out)
-
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()

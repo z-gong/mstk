@@ -21,11 +21,11 @@ class GmxSimulation(Simulation):
         if ppf is not None:
             self.dff.typing([msd])  # in order to set the atom type
             self.dff.set_charge([msd], ppf)
-            self.dff.export_gmx(msd, ppf, gro_out, top_out, mdp_out)
+            self.dff.export_gromacs(msd, ppf, gro_out, top_out, mdp_out)
         else:
             ppf_out = 'ff.ppf'
             self.dff.checkout([msd], table=ff, ppf_out=ppf_out)
-            self.dff.export_gmx(msd, ppf_out, gro_out, top_out, mdp_out)
+            self.dff.export_gromacs(msd, ppf_out, gro_out, top_out, mdp_out)
 
     def fast_export_single(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp', ppf=None, ff=None):
         print('Generate GROMACS files ...')
@@ -34,11 +34,11 @@ class GmxSimulation(Simulation):
         if ppf is not None:
             self.dff.typing([msd])  # in order to set the atom type
             self.dff.set_charge([msd], ppf)
-            self.dff.export_gmx(msd, ppf, gro_out, top_out, mdp_out)
+            self.dff.export_gromacs(msd, ppf, gro_out, top_out, mdp_out)
         else:
             ppf_out = 'ff.ppf'
             self.dff.checkout([msd], table=ff, ppf_out=ppf_out)
-            self.dff.export_gmx(msd, ppf_out, gro_out, top_out, mdp_out)
+            self.dff.export_gromacs(msd, ppf_out, gro_out, top_out, mdp_out)
 
     def check_finished(self, logs=None):
         if logs is None:

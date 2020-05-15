@@ -1,0 +1,20 @@
+#DFF:EQT
+#AAT    :  NONB   ATC    BINC   BOND   A/C    A/S    T/C    T/S    O/C    O/S    
+h_1o :  h_1o h_1o h_1o h_1 h_1 h_1 h_1 h_1 h_1 h_1
+o_2w :  o_2w o_2w o_2w o_2w o_2w o_2w o_2w o_2 o_2w o_2
+#DFF:PPF
+#PROTOCOL = AMBER
+#TYPINGRULE =
+ATYPE: h_1o    :    1.00000*,    1.00790*
+ATYPE: o_2w    :    8.00000*,   15.99940*
+ATC: h_1o    :    0.00000*
+ATC: o_2w    :    0.00000*
+BINC: h_1o   , o_2w    :    0.42380*
+N12_6: h_1o    :    0.00010*,    0.00010*
+N12_6: o_2w    :    3.55320*,    0.15530*
+N12_6: s_2     :    3.78000*,    0.44800*
+N12_6: s_2h    :    3.97500*,    0.43000*
+BHARM: h_1    , o_2w    :    1.00000*,  450.00000*
+AHARM: h_1    , o_2w   , h_1     :  109.47000*,   55.00000*
+P12_6: c_4h3  , o_2w    :    3.70576*,    0.11537*
+P12_6: o_2    , o_2w    :    3.44671*,    0.22936*

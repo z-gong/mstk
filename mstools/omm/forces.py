@@ -1,8 +1,8 @@
 import simtk.openmm as mm
 from simtk import unit
-from simtk.unit import elementary_charge as e, nanometer as nm, kilojoule_per_mole as kJ_mol
+from simtk.unit import elementary_charge as qe, nanometer as nm, kilojoule_per_mole as kJ_mol
 
-class CONST:
+class _CONST:
     PI = 3.1415926535
     EPS0 = 8.8541878128E-12 * unit.farad / unit.meter # vacuum dielectric constant
 
@@ -11,16 +11,17 @@ def slab_correction(system: mm.System):
     This applies Yeh's long range coulomb correction for slab geometry in z direction
     to eliminate the undesired interactions between periodic slabs
     It's useful for 2-D systems simulated under 3-D periodic condition
-    Note that a vacuum space two times larger than slab thickness is required
-    for this correction to work correctly
-    The box size should not change during the simulation
+    For this correction to work correctly:
+    * A vacuum space two times larger than slab thickness is required
+    * All particles should never diffuse across the z boundaries
+    * The box size should not change during the simulation
     '''
     muz = mm.CustomExternalForce('q*z')
     muz.addPerParticleParameter('q')
     nbforce = [f for f in system.getForces() if f.__class__ == mm.NonbondedForce][0]
     qsum = 0
     for i in range(nbforce.getNumParticles()):
-        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
+        q = nbforce.getParticleParameters(i)[0].value_in_unit(qe)
         muz.addParticle(i, [q])
         qsum += q
     if abs(qsum) > 1E-4:
@@ -29,8 +30,8 @@ def slab_correction(system: mm.System):
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
     # convert from e^2/nm to kJ/mol  # 138.93545915168772
-    _conv = (1 / (4 * CONST.PI * CONST.EPS0) * e**2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
-    prefactor = 2 * CONST.PI / vol * _conv
+    _conv = (1 / (4 * _CONST.PI * _CONST.EPS0) * qe ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
+    prefactor = 2 * _CONST.PI / vol * _conv
     cvforce = mm.CustomCVForce(f'{prefactor}*muz*muz')
     cvforce.addCollectiveVariable('muz', muz)
     system.addForce(cvforce)
@@ -51,12 +52,9 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], stren
     else:
         kx, ky, kz = strength
 
-    force = mm.CustomExternalForce('kx*periodicdistance(x,0,0,x0,0,0)^2+'
-                                   'ky*periodicdistance(0,y,0,0,y0,0)^2+'
-                                   'kz*periodicdistance(0,0,z,0,0,z0)^2')
-    force.addGlobalParameter('kx', kx) # kJ/mol.nm^2
-    force.addGlobalParameter('ky', ky)
-    force.addGlobalParameter('kz', kz)
+    force = mm.CustomExternalForce(f'{kx}*periodicdistance(x,0,0,x0,0,0)^2+'
+                                   f'{ky}*periodicdistance(0,y,0,0,y0,0)^2+'
+                                   f'{kz}*periodicdistance(0,0,z,0,0,z0)^2')
     force.addPerParticleParameter('x0')
     force.addPerParticleParameter('y0')
     force.addPerParticleParameter('z0')
@@ -90,11 +88,10 @@ def wall_power(system: mm.System, particles: [int], direction: str, bound: [floa
 
     _min_0 = _min + cutoff
     _max_0 = _max - cutoff
-    force = mm.CustomExternalForce(f'k*step({_min_0}-{direction})*rmin^{power}+'
-                                   f'k*step({direction}-{_max_0})*rmax^{power};'
+    force = mm.CustomExternalForce(f'{k}*step({_min_0}-{direction})*rmin^{power}+'
+                                   f'{k}*step({direction}-{_max_0})*rmax^{power};'
                                    f'rmin=({_min_0}-{direction})/{cutoff};'
                                    f'rmax=({direction}-{_max_0})/{cutoff}')
-    force.addGlobalParameter('k', k) # kJ/mol
     for i in particles:
         force.addParticle(i, [])
     system.addForce(force)
@@ -125,11 +122,10 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
 
     _min_0 = _min + sigma * 2 ** (1 / 6)
     _max_0 = _max - sigma * 2 ** (1 / 6)
-    force = mm.CustomExternalForce(f'4*eps*step({_min_0}-{direction})*(rmin^12-rmin^6+0.25)+'
-                                   f'4*eps*step({direction}-{_max_0})*(rmax^12-rmax^6+0.25);'
+    force = mm.CustomExternalForce(f'4*{epsilon}*step({_min_0}-{direction})*(rmin^12-rmin^6+0.25)+'
+                                   f'4*{epsilon}*step({direction}-{_max_0})*(rmax^12-rmax^6+0.25);'
                                    f'rmin={sigma}/({direction}-{_min});'
                                    f'rmax={sigma}/({_max}-{direction})')
-    force.addGlobalParameter('eps', epsilon) # kJ/mol
     for i in particles:
         force.addParticle(i, [])
     system.addForce(force)
@@ -147,15 +143,12 @@ def electric_field(system: mm.System, particles: [int], strength):
         efx, efy, efz = strength
 
     # convert from eV/nm to kJ/(mol*nm)  # 96.4853400990037
-    _conv = (1 * e * unit.volt / unit.item).value_in_unit(kJ_mol)
-    force = mm.CustomExternalForce(f'{_conv}*(efx*q*x+efy*q*y+efz*q*z)')
-    force.addGlobalParameter('efx', efx)
-    force.addGlobalParameter('efy', efy)
-    force.addGlobalParameter('efz', efz)
+    _conv = (1 * qe * unit.volt / unit.item).value_in_unit(kJ_mol)
+    force = mm.CustomExternalForce(f'{_conv}*({efx}*q*x+{efy}*q*y+{efz}*q*z)')
     force.addPerParticleParameter('q')
     nbforce = [f for f in system.getForces() if f.__class__ == mm.NonbondedForce][0]
     for i in particles:
-        q = nbforce.getParticleParameters(i)[0].value_in_unit(e)
+        q = nbforce.getParticleParameters(i)[0].value_in_unit(qe)
         force.addParticle(i, [q])
     system.addForce(force)
 

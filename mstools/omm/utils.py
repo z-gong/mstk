@@ -1,7 +1,7 @@
 import simtk.openmm as mm
-from simtk import unit
-from simtk.unit import bar
-from simtk.unit import kilojoule_per_mole as kj_mol, kelvin
+from simtk.openmm import app
+from simtk.unit import kelvin, bar, nanometer as nm, picosecond as ps
+from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kcal_mol
 from .grofile import GroFile
 
 
@@ -13,27 +13,46 @@ def print_omm_info():
 
 
 def minimize(sim, tolerance, gro_out=None):
-    sim.minimizeEnergy(tolerance=tolerance * kj_mol)
+    state = sim.context.getState(getEnergy=True)
+    print('Initial energy:', state.getPotentialEnergy())
+    sim.minimizeEnergy(tolerance=tolerance * kJ_mol)
     state = sim.context.getState(getPositions=True, getEnergy=True)
-    print('Minimized Energy: ' + str(state.getPotentialEnergy()))
+    print('Minimized energy:', state.getPotentialEnergy())
 
     if gro_out is not None:
-        with open(gro_out, 'w') as f:
-            GroFile.writeFile(sim.topology, state.getTime(), state.getPositions(), state.getPeriodicBoxVectors(), f)
+        GroFile.writeFile(sim.topology, state.getPositions(), state.getPeriodicBoxVectors(),
+                          gro_out)
 
 
-def apply_mc_barostat(system, pcoupl, P, T):
+def apply_mc_barostat(system, pcoupl, P, T, nsteps=100):
     if pcoupl == 'iso':
-        print('    Isotropic barostat')
-        system.addForce(mm.MonteCarloBarostat(P * bar, T * kelvin, 25))
+        print('Isotropic barostat')
+        system.addForce(mm.MonteCarloBarostat(P * bar, T * kelvin, nsteps))
+    elif pcoupl == 'semi-iso':
+        print('Anisotropic barostat with coupled XY')
+        system.addForce(mm.MonteCarloMembraneBarostat(P * bar, 0 * bar * nm, T * kelvin,
+                                                      mm.MonteCarloMembraneBarostat.XYIsotropic,
+                                                      mm.MonteCarloMembraneBarostat.ZFree, nsteps))
     elif pcoupl == 'xyz':
-        print('    Anisotropic barostat')
-        system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, True, 25))
+        print('Anisotropic barostat')
+        system.addForce(
+            mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, True, nsteps))
     elif pcoupl == 'xy':
-        print('    Anisotropic barostat only for X and Y')
-        system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, False, 25))
+        print('Anisotropic barostat only for X and Y')
+        system.addForce(
+            mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, False, nsteps))
     elif pcoupl == 'z':
-        print('    Anisotropic barostat only for Z')
-        system.addForce(mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, 25))
+        print('Anisotropic barostat only for Z')
+        system.addForce(
+            mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, nsteps))
     else:
-        raise Exception('Available pressure coupling types: iso, xyz, xy, z')
+        raise Exception('Available pressure coupling types: iso, semi-iso, xyz, xy, z')
+
+
+def energy_decomposition(sim: app.Simulation, groups=None):
+    if groups is None:
+        groups = range(32)
+    for group in groups:
+        energy = sim.context.getState(getEnergy=True, groups={group}).getPotentialEnergy()
+        if energy.value_in_unit(kJ_mol) != 0 or group < 10:
+            print('E_%i:' % group, energy)

@@ -11,7 +11,7 @@ the ParmEd program and was ported for use with OpenMM.
 Copyright (c) 2014-2016 the Authors
 
 Author: Jason M. Swails
-Contributors: Jing Huang
+Contributors: Jing Huang, Zheng Gong
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -156,13 +156,13 @@ class OplsPsfFile(object):
     # to be turned on and off selectively. This is a way to implement per-term
     # energy decomposition to compare individual components
 
-    BOND_FORCE_GROUP = 0
-    ANGLE_FORCE_GROUP = 1
-    DIHEDRAL_FORCE_GROUP = 2
-    UREY_BRADLEY_FORCE_GROUP = 3
+    BOND_FORCE_GROUP = 1
+    ANGLE_FORCE_GROUP = 2
+    UREY_BRADLEY_FORCE_GROUP = 2
+    DIHEDRAL_FORCE_GROUP = 3
+    CMAP_FORCE_GROUP = 3
     IMPROPER_FORCE_GROUP = 4
-    CMAP_FORCE_GROUP = 5
-    NONBONDED_FORCE_GROUP = 6
+    NONBONDED_FORCE_GROUP = 5
     GB_FORCE_GROUP = 6
     DRUDE_FORCE_GROUP = 7
 
@@ -490,7 +490,7 @@ class OplsPsfFile(object):
             for a1 in a2.bond_partners:
                 for a4 in a3.bond_partners:
                     pair = (min(a1.idx, a4.idx), max(a1.idx, a4.idx),)
-                    if a1 != a4:
+                    if a1 != a3 and a2 != a4 and a1 != a4:
                         pair_14_set.add(pair)
 
         self.pair_12_list = list(sorted(pair_12_set))
@@ -758,11 +758,9 @@ class OplsPsfFile(object):
             if resid != last_residue:
                 last_residue = resid
                 residue = topology.addResidue(atom.residue.resname, chain, str(atom.residue.idx), atom.residue.inscode)
-            if atom.type is not None:
+            if atom.type is not None and atom.type.atomic_number != 0:
                 # This is the most reliable way of determining the element
-                atomic_num = atom.type.atomic_number
-                if atomic_num != 0:
-                    elem = element.Element.getByAtomicNumber(atomic_num)
+                elem = element.Element.getByAtomicNumber(atom.type.atomic_number)
             else:
                 # Figure it out from the mass
                 elem = element.Element.getByMass(atom.mass)
@@ -849,7 +847,7 @@ class OplsPsfFile(object):
         ewaldErrorTolerance : float=0.0005
             The error tolerance to use if the nonbonded method is Ewald, PME, or LJPME.
         flexibleConstraints : bool=True
-            Are our constraints flexible or not?
+            If True, parameters for constrained degrees of freedom will be added to the System
         verbose : bool=False
             Optionally prints out a running progress report
         gbsaModel : str=None
@@ -908,17 +906,7 @@ class OplsPsfFile(object):
         # LJ force will be handled by CustomNonbondedForce
         # Coulomb and 1-4 LJ will be handled by NonbondedForce
         ############################################################
-        has_nbfix_terms = True
         typenames = list(typenames)
-        try:
-            for i, typename in enumerate(typenames):
-                typ = params.atom_types_str[typename]
-                for j in range(i, len(typenames)):
-                    if typenames[j] in typ.nbfix:
-                        has_nbfix_terms = True
-                        raise StopIteration
-        except StopIteration:
-            pass
         has_nbthole_terms = False
         try:
             for i, typename in enumerate(typenames):
@@ -937,37 +925,30 @@ class OplsPsfFile(object):
         except AttributeError:
             pass
 
-        ############################################################
-        # We know that this psf is for Drude model
-        ############################################################
-        self.is_drude = has_drude_particle
-
         # Set up the constraints
-        if verbose and (constraints is not None and not rigidWater):
+        def _is_bond_in_water(bond):
+            return bond.atom1.residue.resname in WATNAMES and \
+                   tuple(sorted([bond.atom1.type.atomic_number, bond.atom2.type.atomic_number])) == (1, 8)
+
+        n_cons_bond = n_cons_angle = 0
+        if verbose and (constraints is not None or rigidWater):
             print('Adding constraints...')
-        if constraints in (ff.HBonds, ff.AllBonds, ff.HAngles):
-            for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number != 1 and
-                    bond.atom2.type.atomic_number != 1):
-                    continue
+
+        for bond in self.bond_list:
+            if constraints in (ff.AllBonds, ff.HAngles):
                 system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                      bond.bond_type.req*length_conv)
-        if constraints in (ff.AllBonds, ff.HAngles):
-            for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number == 1 or
-                    bond.atom2.type.atomic_number == 1):
-                    continue
-                system.addConstraint(bond.atom1.idx, bond.atom2.idx,
-                                     bond.bond_type.req*length_conv)
-        if rigidWater and constraints is None:
-            for bond in self.bond_list:
-                if (bond.atom1.type.atomic_number != 1 and
-                    bond.atom2.type.atomic_number != 1):
-                    continue
-                if (bond.atom1.residue.resname in WATNAMES and
-                    bond.atom2.residue.resname in WATNAMES):
+                n_cons_bond += 1
+            elif constraints is ff.HBonds:
+                if bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1:
                     system.addConstraint(bond.atom1.idx, bond.atom2.idx,
                                          bond.bond_type.req*length_conv)
+                    n_cons_bond += 1
+            elif rigidWater:
+                if _is_bond_in_water(bond):
+                    system.addConstraint(bond.atom1.idx, bond.atom2.idx,
+                                         bond.bond_type.req*length_conv)
+                    n_cons_bond += 1
 
         # Add virtual sites
         if hasattr(self, 'lonepair_list'):
@@ -1007,14 +988,13 @@ class OplsPsfFile(object):
         force.setUsesPeriodicBoundaryConditions(True)
         force.setForceGroup(self.BOND_FORCE_GROUP)
         # See which, if any, energy terms we omit
-        omitall = not flexibleConstraints and constraints is ff.AllBonds
-        omith = omitall or (flexibleConstraints and constraints in
-                            (ff.HBonds, ff.AllBonds, ff.HAngles))
+        omit_all = not flexibleConstraints and constraints in (ff.AllBonds, ff.HAngles)
+        omit_h = not flexibleConstraints and constraints is not None
+        omit_h_in_water = not flexibleConstraints and (constraints is not None or rigidWater)
         for bond in self.bond_list:
-            if omitall: continue
-            if omith and (bond.atom1.type.atomic_number == 1 or
-                          bond.atom2.type.atomic_number == 1):
-                continue
+            if omit_all: continue
+            if omit_h and (bond.atom1.type.atomic_number == 1 or bond.atom2.type.atomic_number == 1): continue
+            if omit_h_in_water and _is_bond_in_water(bond): continue
             force.addBond(bond.atom1.idx, bond.atom2.idx,
                           bond.bond_type.req*length_conv,
                           2*bond.bond_type.k*bond_frc_conv)
@@ -1037,16 +1017,16 @@ class OplsPsfFile(object):
                 atom_constraints[c[1]].append((c[0], dist))
         for angle in self.angle_list:
             # Only constrain angles including hydrogen here
-            if (angle.atom1.type.atomic_number != 1 and
-                angle.atom2.type.atomic_number != 1 and
-                angle.atom3.type.atomic_number != 1):
+            if (angle.atom1.type.atomic_number != 1 and angle.atom3.type.atomic_number != 1):
                 continue
+            a1 = angle.atom1.type.atomic_number
+            a2 = angle.atom2.type.atomic_number
+            a3 = angle.atom3.type.atomic_number
+            nh = int(a1==1) + int(a3==1)
             if constraints is ff.HAngles:
-                a1 = angle.atom1.atomic_number
-                a2 = angle.atom2.atomic_number
-                a3 = angle.atom3.atomic_number
-                nh = int(a1==1) + int(a2==1) + int(a3==1)
-                constrained = (nh >= 2 or (nh == 1 and a2 == 8))
+                constrained = (nh == 2 or (nh == 1 and a2 == 8))
+            elif rigidWater:
+                constrained = (nh == 2 and a2 == 8 and angle.atom1.residue.resname in WATNAMES)
             else:
                 constrained = False # no constraints
             if constrained:
@@ -1058,17 +1038,19 @@ class OplsPsfFile(object):
                         l2 = bond.bond_type.req * length_conv
                 # Compute the distance between the atoms and add a constraint
                 length = sqrt(l1*l1 + l2*l2 - 2*l1*l2*
-                              cos(angle.angle_type.theteq))
-                system.addConstraint(bond.atom1.idx, bond.atom2.idx, length)
+                              cos(angle.angle_type.theteq*pi/180))
+                system.addConstraint(angle.atom1.idx, angle.atom3.idx, length)
+                n_cons_angle += 1
             if flexibleConstraints or not constrained:
                 force.addAngle(angle.atom1.idx, angle.atom2.idx,
                                angle.atom3.idx, angle.angle_type.theteq*pi/180,
                                2*angle.angle_type.k*angle_frc_conv)
+        if verbose and (constraints is not None or rigidWater):
+            print('    Number of bond constraints:', n_cons_bond)
+            print('    Number of angle constraints:', n_cons_angle)
         for angle in self.angle_list:
             # Already did the angles with hydrogen above. So skip those here
-            if (angle.atom1.type.atomic_number == 1 or
-                angle.atom2.type.atomic_number == 1 or
-                angle.atom3.type.atomic_number == 1):
+            if (angle.atom1.type.atomic_number == 1 or angle.atom3.type.atomic_number == 1):
                 continue
             force.addAngle(angle.atom1.idx, angle.atom2.idx,
                            angle.atom3.idx, angle.angle_type.theteq*pi/180,
@@ -1107,23 +1089,37 @@ class OplsPsfFile(object):
         if verbose: print('Adding impropers...')
         # Ick. OpenMM does not have an improper torsion class. Need to
         # construct one from CustomTorsionForce that respects toroidal boundaries
-        energy_function = 'k*min(dtheta, 2*pi-dtheta)^2; dtheta = abs(theta-theta0);'
-        energy_function += 'pi = %f;' % pi
-        force = mm.CustomTorsionForce(energy_function)
-        #####################################################################
-        # Should always use periodic boundary conditions for all forces
-        #####################################################################
-        force.setUsesPeriodicBoundaryConditions(True)
-        force.addPerTorsionParameter('k')
-        force.addPerTorsionParameter('theta0')
-        force.setForceGroup(self.IMPROPER_FORCE_GROUP)
+
+        # energy_function = 'k*min(dtheta, 2*pi-dtheta)^2; dtheta = abs(theta-theta0);'
+        # energy_function += 'pi = %f;' % pi
+        # force = mm.CustomTorsionForce(energy_function)
+        # #####################################################################
+        # # Should always use periodic boundary conditions for all forces
+        # #####################################################################
+        # force.setUsesPeriodicBoundaryConditions(True)
+        # force.addPerTorsionParameter('k')
+        # force.addPerTorsionParameter('theta0')
+        # force.setForceGroup(self.IMPROPER_FORCE_GROUP)
+        # for imp in self.improper_list:
+        #     force.addTorsion(imp.atom1.idx, imp.atom2.idx,
+        #                      imp.atom3.idx, imp.atom4.idx,
+        #                      (imp.improper_type.k*dihe_frc_conv,
+        #                       imp.improper_type.phieq*pi/180)
+        #     )
+        # system.addForce(force)
+
+        ### OPLS improper #######################################################
+        # in OPLS convention, the third atom is the central atom
+        iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
+        iforce.addPerTorsionParameter('k')
+        iforce.setUsesPeriodicBoundaryConditions(True)
+        iforce.setForceGroup(self.IMPROPER_FORCE_GROUP)
         for imp in self.improper_list:
-            force.addTorsion(imp.atom1.idx, imp.atom2.idx,
-                             imp.atom3.idx, imp.atom4.idx,
-                             (imp.improper_type.k*dihe_frc_conv,
-                              imp.improper_type.phieq*pi/180)
-            )
-        system.addForce(force)
+            iforce.addTorsion(imp.atom2.idx, imp.atom3.idx,
+                              imp.atom1.idx, imp.atom4.idx,
+                              [imp.improper_type.k * dihe_frc_conv])
+        system.addForce(iforce)
+        #########################################################################
 
         if hasattr(self, 'cmap_list'):
             if verbose: print('Adding CMAP coupled torsions...')
@@ -1254,97 +1250,91 @@ class OplsPsfFile(object):
             if ewaldErrorTolerance is not None:
                 force.setEwaldErrorTolerance(ewaldErrorTolerance)
 
-        # Add per-particle nonbonded parameters (LJ params)
-        sigma_scale = 2**(-1/6) * 2
-        if not has_nbfix_terms:
-            for atm in self.atom_list:
-                force.addParticle(atm.charge, sigma_scale*atm.type.rmin*length_conv,
-                                  abs(atm.type.epsilon*ene_conv))
-        else:
-            for atm in self.atom_list:
-                force.addParticle(atm.charge, 1.0, 0.0)
-            # Now add the custom nonbonded force that implements NBFIX. First
-            # thing we need to do is condense our number of types
-            lj_idx_list = [0 for atom in self.atom_list]
-            lj_radii, lj_depths = [], []
-            num_lj_types = 0
-            lj_type_list = []
-            for i, atom in enumerate(self.atom_list):
-                atom = atom.type
-                if lj_idx_list[i]: continue # already assigned
-                num_lj_types += 1
-                lj_idx_list[i] = num_lj_types
-                ljtype = (atom.rmin, atom.epsilon)
-                lj_type_list.append(atom)
-                lj_radii.append(atom.rmin)
-                lj_depths.append(atom.epsilon)
-                for j in range(i+1, len(self.atom_list)):
-                    atom2 = self.atom_list[j].type
-                    if lj_idx_list[j] > 0: continue # already assigned
-                    if atom2 is atom:
+        # Add per-particle nonbonded parameters (coulomb params)
+        for atm in self.atom_list:
+            force.addParticle(atm.charge, 1.0, 0.0)
+        # Now add the custom nonbonded force that implements LJ. First
+        # thing we need to do is condense our number of types
+        lj_idx_list = [0 for atom in self.atom_list]
+        lj_radii, lj_depths = [], []
+        num_lj_types = 0
+        lj_type_list = []
+        for i, atom in enumerate(self.atom_list):
+            atom = atom.type
+            if lj_idx_list[i]: continue # already assigned
+            num_lj_types += 1
+            lj_idx_list[i] = num_lj_types
+            ljtype = (atom.rmin, atom.epsilon)
+            lj_type_list.append(atom)
+            lj_radii.append(atom.rmin)
+            lj_depths.append(atom.epsilon)
+            for j in range(i+1, len(self.atom_list)):
+                atom2 = self.atom_list[j].type
+                if lj_idx_list[j] > 0: continue # already assigned
+                if atom2 is atom:
+                    lj_idx_list[j] = num_lj_types
+                elif not atom.nbfix and not atom.nbthole:
+                    # Only non-NBFIXed and non-NBTholed atom types can be compressed
+                    ljtype2 = (atom2.rmin, atom2.epsilon)
+                    if ljtype == ljtype2:
                         lj_idx_list[j] = num_lj_types
-                    elif not atom.nbfix and not atom.nbthole:
-                        # Only non-NBFIXed and non-NBTholed atom types can be compressed
-                        ljtype2 = (atom2.rmin, atom2.epsilon)
-                        if ljtype == ljtype2:
-                            lj_idx_list[j] = num_lj_types
-            # Now everything is assigned. Create the A-coefficient and
-            # B-coefficient arrays
-            acoef = [0 for i in range(num_lj_types*num_lj_types)]
-            bcoef = acoef[:]
-            for i in range(num_lj_types):
-                for j in range(num_lj_types):
-                    namej = lj_type_list[j].name
-                    try:
-                        rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
-                    except KeyError:
-                        # rij = (lj_radii[i] + lj_radii[j]) * length_conv
-                        ##################################################################
-                        # OPLS use geometric combination rule for both epsilon and sigma
-                        ##################################################################
-                        rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
-                        wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
-                    else:
-                        rij *= length_conv
-                        wdij *= ene_conv
-                    acoef[i+num_lj_types*j] = sqrt(wdij) * rij**6
-                    bcoef[i+num_lj_types*j] = 2 * wdij * rij**6
-            cforce = mm.CustomNonbondedForce('(a/r6)^2-b/r6; r6=r^6;'
-                                             'a=acoef(type1, type2);'
-                                             'b=bcoef(type1, type2)')
-            ##################################################################
-            # Dispersion correction for LJ force
-            ##################################################################
-            cforce.setUseLongRangeCorrection(True)
-            cforce.addTabulatedFunction('acoef',
-                    mm.Discrete2DFunction(num_lj_types, num_lj_types, acoef))
-            cforce.addTabulatedFunction('bcoef',
-                    mm.Discrete2DFunction(num_lj_types, num_lj_types, bcoef))
-            cforce.addPerParticleParameter('type')
-            cforce.setForceGroup(self.NONBONDED_FORCE_GROUP)
-            if (nonbondedMethod in (ff.PME, ff.LJPME, ff.Ewald, ff.CutoffPeriodic)):
-                cforce.setNonbondedMethod(cforce.CutoffPeriodic)
-                cforce.setCutoffDistance(nonbondedCutoff)
-            elif nonbondedMethod is ff.NoCutoff:
-                cforce.setNonbondedMethod(cforce.NoCutoff)
-            elif nonbondedMethod is ff.CutoffNonPeriodic:
-                cforce.setNonbondedMethod(cforce.CutoffNonPeriodic)
-                cforce.setCutoffDistance(nonbondedCutoff)
-            else:
-                raise ValueError('Unrecognized nonbonded method')
-            if switchDistance and nonbondedMethod is not ff.NoCutoff:
-                # make sure it's legal
-                if (_strip_optunit(switchDistance, u.nanometer) >=
-                        _strip_optunit(nonbondedCutoff, u.nanometer)):
-                    raise ValueError('switchDistance is too large compared '
-                                     'to the cutoff!')
-                if _strip_optunit(switchDistance, u.nanometer) < 0:
-                    # Detects negatives for both Quantity and float
-                    raise ValueError('switchDistance must be non-negative!')
-                cforce.setUseSwitchingFunction(True)
-                cforce.setSwitchingDistance(switchDistance)
-            for i in lj_idx_list:
-                cforce.addParticle((i - 1,)) # adjust for indexing from 0
+        # Now everything is assigned. Create the A-coefficient and
+        # B-coefficient arrays
+        acoef = [0 for i in range(num_lj_types*num_lj_types)]
+        bcoef = acoef[:]
+        for i in range(num_lj_types):
+            for j in range(num_lj_types):
+                namej = lj_type_list[j].name
+                try:
+                    rij, wdij, rij14, wdij14 = lj_type_list[i].nbfix[namej]
+                except KeyError:
+                    # rij = (lj_radii[i] + lj_radii[j]) * length_conv
+                    ##################################################################
+                    # OPLS use geometric combination rule for both epsilon and sigma
+                    ##################################################################
+                    rij = sqrt(lj_radii[i] * lj_radii[j]) * 2 * length_conv
+                    wdij = sqrt(lj_depths[i] * lj_depths[j]) * ene_conv
+                else:
+                    rij *= length_conv
+                    wdij *= ene_conv
+                acoef[i+num_lj_types*j] = sqrt(wdij) * rij**6
+                bcoef[i+num_lj_types*j] = 2 * wdij * rij**6
+        cforce = mm.CustomNonbondedForce('(a/r6)^2-b/r6; r6=r^6;'
+                                         'a=acoef(type1, type2);'
+                                         'b=bcoef(type1, type2)')
+        ##################################################################
+        # Dispersion correction for LJ force
+        ##################################################################
+        cforce.setUseLongRangeCorrection(True)
+        cforce.addTabulatedFunction('acoef',
+                mm.Discrete2DFunction(num_lj_types, num_lj_types, acoef))
+        cforce.addTabulatedFunction('bcoef',
+                mm.Discrete2DFunction(num_lj_types, num_lj_types, bcoef))
+        cforce.addPerParticleParameter('type')
+        cforce.setForceGroup(self.NONBONDED_FORCE_GROUP)
+        if (nonbondedMethod in (ff.PME, ff.LJPME, ff.Ewald, ff.CutoffPeriodic)):
+            cforce.setNonbondedMethod(cforce.CutoffPeriodic)
+            cforce.setCutoffDistance(nonbondedCutoff)
+        elif nonbondedMethod is ff.NoCutoff:
+            cforce.setNonbondedMethod(cforce.NoCutoff)
+        elif nonbondedMethod is ff.CutoffNonPeriodic:
+            cforce.setNonbondedMethod(cforce.CutoffNonPeriodic)
+            cforce.setCutoffDistance(nonbondedCutoff)
+        else:
+            raise ValueError('Unrecognized nonbonded method')
+        if switchDistance and nonbondedMethod is not ff.NoCutoff:
+            # make sure it's legal
+            if (_strip_optunit(switchDistance, u.nanometer) >=
+                    _strip_optunit(nonbondedCutoff, u.nanometer)):
+                raise ValueError('switchDistance is too large compared '
+                                 'to the cutoff!')
+            if _strip_optunit(switchDistance, u.nanometer) < 0:
+                # Detects negatives for both Quantity and float
+                raise ValueError('switchDistance must be non-negative!')
+            cforce.setUseSwitchingFunction(True)
+            cforce.setSwitchingDistance(switchDistance)
+        for i in lj_idx_list:
+            cforce.addParticle((i - 1,)) # adjust for indexing from 0
 
         # Add NBTHOLE terms
         if has_drude_particle and has_nbthole_terms:
@@ -1518,11 +1508,11 @@ class OplsPsfFile(object):
 
         # If we needed a CustomNonbondedForce, map all of the exceptions from
         # the NonbondedForce to the CustomNonbondedForce
-        if has_nbfix_terms:
-            for i in range(force.getNumExceptions()):
-                ii, jj, q, eps, sig = force.getExceptionParameters(i)
-                cforce.addExclusion(ii, jj)
-            system.addForce(cforce)
+        for i in range(force.getNumExceptions()):
+            ii, jj, q, eps, sig = force.getExceptionParameters(i)
+            cforce.addExclusion(ii, jj)
+        system.addForce(cforce)
+
         if has_drude_particle and has_nbthole_terms:
             for i in range(force.getNumExceptions()):
                 ii, jj, q, eps, sig = force.getExceptionParameters(i)
@@ -1606,7 +1596,7 @@ class OplsPsfFile(object):
                     system.setParticleMass(atom1.idx, new_mass1)
         # See if we want to remove COM motion
         if removeCMMotion:
-            system.addForce(mm.CMMotionRemover())
+            system.addForce(mm.CMMotionRemover(10))
 
         # Cache our system for easy access
         self._system = system

@@ -1,9 +1,8 @@
 import math
 import os
 import random
-
-from .errors import OpenBabelError
 import subprocess
+from .errors import OpenBabelError
 
 
 def greatest_common_divisor(numbers):
@@ -119,19 +118,22 @@ def get_TP_corner(TP_list: [tuple]) -> [tuple]:
     return TP_corner
 
 
-def TP_in_range(TP, TP_corner: [tuple]) -> bool:
-    ### TODO To implement
-    return False
+def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None,
+                           resname: str = None):
+    '''
+    resname only set for mol2_out
+    '''
+    try:
+        import pybel
+    except ImportError:
+        raise ImportError('OpenBabel is required for parsing SMILES')
 
-
-def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None, resname: str = None):
-    # TODO resname only set for mol2_out
-    import pybel
-    from .saved_mol2 import smiles_mol2_dict
     try:
         py_mol = pybel.readstring('smi', smiles)
     except:
-        raise OpenBabelError('Cannot create molecule from SMILES')
+        raise OpenBabelError('Invalid SMILES')
+
+    from .saved_mol2 import smiles_mol2_dict
 
     canSMILES = py_mol.write('can').strip()
     saved_mol2 = smiles_mol2_dict.get(canSMILES)
@@ -146,11 +148,6 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
     if resname is not None:
         obmol = py_mol.OBMol
         res = obmol.GetResidue(0)
-        # if res == None:
-        #     res  = obmol.NewResidue()
-        #     for i in range(obmol.NumAtoms()):
-        #         obatom = obmol.GetAtomById(i)
-        #         obatom.SetResidue(res)
         if res is not None:
             res.SetName('UNL')
 
@@ -271,8 +268,24 @@ def get_last_line(filename):
         string = ''
     return string
 
+
 def histogram(data, bins, normed=False):
     import numpy as np
     y, _x = np.histogram(data, bins=bins, density=normed)
     x = (_x[1:] + _x[:-1]) / 2
     return x, y
+
+
+def print_data_to_file(name_column_dict, file):
+    if len(name_column_dict) == 0:
+        raise Exception('Columns are empty')
+
+    with open(file, 'w') as f:
+        f.write('#')
+        for name in name_column_dict.keys():
+            f.write('"%s"\t' % name)
+        f.write('\n')
+        for i in range(len(list(name_column_dict.values())[0])):
+            for column in name_column_dict.values():
+                f.write('%f\t' % column[i])
+            f.write('\n')

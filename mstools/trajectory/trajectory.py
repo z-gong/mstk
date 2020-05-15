@@ -1,37 +1,127 @@
 import numpy as np
+from io import IOBase
+from ..topology import Topology, UnitCell
+from .. import logger
 
 
 class Frame():
     def __init__(self, n_atom):
-        self.step = 0
-        self.xlo = self.xhi = self.ylo = self.yhi = self.zlo = self.zhi = 0.0
-        self.box = np.array([0., 0., 0.])
-        self.positions = np.array([[0., 0., 0.]] * n_atom)
-        self.has_charge = False
-        self.charges = np.array([0.] * n_atom)  # for fluctuating charge simulations
+        self.step = -1  # -1 means step information not found
+        self.time = -1  # in ps. -1 means time information not found
+        self.cell = UnitCell([0., 0., 0.])
+        self.positions = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_velocity = False
-        self.velocities = np.array([[0., 0., 0.]] * n_atom)
+        self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
+        self.has_charge = False
+        self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
+
+    def resize(self, n_atom):
+        if n_atom < len(self.positions):
+            logger.warning('n_atom is smaller than original. '
+                           'The positions, velocities and charges at the end will be lost')
+        self.positions.resize((n_atom, 3), refcheck=False)
+        self.velocities.resize((n_atom, 3), refcheck=False)
+        self.charges.resize((n_atom, 3), refcheck=False)
 
 
 class Trajectory():
     def __init__(self):
-        self.n_atom = 0
-        self.n_frame = 0
+        # assume all frames have the same number of atoms, but n_atom can only be determined later
+        self.n_atom = -1  # -1 means unknown yet
+        self.n_frame = -1  # -1 means unknown yet
+        self._file = IOBase()
+        self._mode = 'r'
+        self._opened = False
+        # we don't have to create a new Frame object every time we call read_frame()
+        self._frame: Frame = None
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        self._file.close()
+        self._opened = False
+
+    def read_frame(self, i_frame: int):
+        '''
+        Read a single frame
+        @param i_frame:
+        @return:
+        '''
+        if self._mode != 'r' or not self._opened:
+            raise Exception('mode != "r" or closed trajectory')
+
+        if i_frame >= self.n_frame:
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+
+        if self._frame is None:
+            if self.n_atom == -1:
+                raise Exception('Invalid number of atoms')
+            self._frame = Frame(self.n_atom)
+
+        self._read_frame(i_frame, self._frame)
+        return self._frame
+
+    def read_frames(self, i_frames: [int]):
+        '''
+        Read a bunch of frames for multiprocessing
+        @param i_frames:
+        @return:
+        '''
+        if self._mode != 'r' or not self._opened:
+            raise Exception('mode != "r" or closed trajectory')
+
+        if any(i >= self.n_frame for i in i_frames):
+            raise Exception('i_frame should be smaller than %i' % self.n_frame)
+
+        frames = [Frame(self.n_atom) for _ in i_frames]
+        for ii, i_frame in enumerate(i_frames):
+            self._read_frame(i_frame, frames[ii])
+        return frames
+
+    def write_frame(self, frame: Frame, topology: Topology = None, subset: [int] = None, **kwargs):
+        '''
+        Write one frame to trajectory file
+        '''
+        if self._mode not in ('w', 'a') or not self._opened:
+            raise Exception('mode not in ("w", "a") or closed trajectory')
+
+        self._write_frame(frame, topology, subset, **kwargs)
+
+    def _read_frame(self, i_frame, frame):
+        raise NotImplementedError('Method not implemented')
+
+    def _write_frame(self, frame, topology, subset, **kwargs):
+        raise NotImplementedError('Method not implemented')
 
     @staticmethod
     def open(file, mode='r'):
-        from .gro import GRO
-        from .pdb import PDB
-        from .xyz import XYZ
-        from .lammps import LammpsTrj
+        modes_allowed = ('r', 'w', 'a')
+        if mode not in modes_allowed:
+            raise Exception('mode should be one of %s' % str(modes_allowed))
 
-        if file.endswith('.lammpstrj') or file.endswith('.ltrj'):
+        from . import Gro, Xyz, LammpsTrj, Dcd, Xtc, CombinedTrajectory
+
+        if isinstance(file, list):
+            return CombinedTrajectory(file, mode)
+        elif file.endswith('.lammpstrj') or file.endswith('.ltrj'):
             return LammpsTrj(file, mode)
         elif file.endswith('.gro'):
-            return GRO(file, mode)
-        elif file.endswith('.pdb'):
-            return PDB(file, mode)
+            return Gro(file, mode)
         elif file.endswith('.xyz'):
-            return XYZ(file, mode)
+            return Xyz(file, mode)
+        elif file.endswith('.dcd'):
+            return Dcd(file, mode)
+        elif file.endswith('.xtc'):
+            return Xtc(file, mode)
         else:
             raise Exception('filename for trajectory not understand')
+
+    @staticmethod
+    def read_frame_from_file(file, i_frame=0) -> Frame:
+        trj = Trajectory.open(file, 'r')
+        if i_frame == -1:
+            i_frame = trj.n_frame - 1
+        frame = trj.read_frame(i_frame)
+        trj.close()
+        return frame

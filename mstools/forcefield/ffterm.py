@@ -1,0 +1,579 @@
+from collections import namedtuple
+import math
+from distutils.util import strtobool
+from ..constant import *
+
+
+class FFTerm():
+    def __init__(self):
+        self.version = None
+        self.comments: [str] = []
+
+    def __repr__(self):
+        return '<%s: %s>' % (self.__class__.__name__, self.name)
+
+    @property
+    def name(self):
+        raise NotImplementedError('This property should be implemented by subclasses')
+
+    def to_zfp(self) -> {str: str}:
+        '''
+        Pack the attributes of FFTerm into a dict so that can be saved into ZFP xml file
+        Every class to be packed should have a class property zfp_attrs
+        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
+        It also tell the data type of these attributes
+        '''
+        d = {}
+        for attr, func in self.zfp_attrs.items():
+            d[attr] = str(getattr(self, attr))
+        d.update(self.to_zfp_extra())
+        return d
+
+    def to_zfp_extra(self) -> {str: str}:
+        '''
+        Some terms can have extra information to be packed
+        e.g. PeriodicDihedralTerm can contain arbitrary numbers of dihedral parameters
+        '''
+        return {}
+
+    @classmethod
+    def from_zfp(cls, d: {str: str}):
+        '''
+        Reconstruct a FFTerm using a dict of attributes read from ZFP xml file
+        Essentially it calls the __init__() of the class
+        Every class to be reconstructed should have a class property zfp_attrs
+        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
+        It also tell the data type of these attributes
+        This method should be overridden by subclass if the term cannot be reconstructed from simple init
+        '''
+        # must use kwargs instead of args to init the cls,
+        # in case there is mistake in the sequence of init arguments
+        kwargs = {}
+        for attr, func in cls.zfp_attrs.items():
+            kwargs[attr] = func(d[attr])
+        try:
+            term = cls(**kwargs)
+        except:
+            raise Exception('Cannot init %s with kwargs %s' % (cls.__name__, d))
+        term.from_zfp_extra(d)
+        return term
+
+    def from_zfp_extra(self, d: {str: str}):
+        '''
+        Some terms need to handle some data exceptionally
+        e.g. PeriodicDihedralTerm need to rebuild its own storage of multiple dihedral parameters
+        '''
+        pass
+
+    # this dict must be overridden by every subclasses that can be saved into or reconstruced from ZFP xml file
+    zfp_attrs = {}
+
+    def evaluate_energy(self, val):
+        '''
+        Evaluate the energy for bond, angle, vdw etc...
+        '''
+        raise NotImplementedError('This method should be implemented by subclasses')
+
+
+class AtomType(FFTerm):
+    def __init__(self, name, mass=-1, charge=0,
+                 eqt_vdw=None, eqt_q_inc=None, eqt_bond=None,
+                 eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
+                 eqt_imp_c=None, eqt_imp_s=None, eqt_polar=None):
+        super().__init__()
+        self._name = name
+        # mass is only used for assign mass of topology in case mass not exist in topology
+        # mass = -1 means unknown
+        self.mass = mass
+        self.charge = charge
+        self.eqt_vdw = eqt_vdw or name
+        self.eqt_q_inc = eqt_q_inc or name
+        self.eqt_bond = eqt_bond or name
+        self.eqt_ang_c = eqt_ang_c or name
+        self.eqt_ang_s = eqt_ang_s or name
+        self.eqt_dih_c = eqt_dih_c or name
+        self.eqt_dih_s = eqt_dih_s or name
+        self.eqt_imp_c = eqt_imp_c or name
+        self.eqt_imp_s = eqt_imp_s or name
+        self.eqt_polar = eqt_polar or name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        # this is a trick allowing from_zfp() to work correctly
+        self._name = value
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    zfp_attrs = {
+        'name'     : str,
+        'mass'     : float,
+        'charge'   : float,
+        'eqt_vdw'  : str,
+        'eqt_bond' : str,
+        'eqt_q_inc': str,
+        'eqt_ang_c': str,
+        'eqt_ang_s': str,
+        'eqt_dih_c': str,
+        'eqt_dih_s': str,
+        'eqt_imp_c': str,
+        'eqt_imp_s': str,
+        'eqt_polar': str,
+    }
+
+
+class ChargeIncrementTerm(FFTerm):
+    def __init__(self, type1: str, type2: str, value: float):
+        super().__init__()
+        if type1 == type2 and value != 0:
+            raise Exception('Non-zero charge increment between same atom types')
+
+        at1, at2 = sorted([type1, type2])
+        self.type1 = at1
+        self.type2 = at2
+        self.value = value if at1 == type1 else -value
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2] < [other.type1, other.type2]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2] > [other.type1, other.type2]
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'value': float,
+    }
+
+
+class VdwTerm(FFTerm):
+    def __init__(self, type1: str, type2: str):
+        super().__init__()
+        at1, at2 = sorted([type1, type2])
+        self.type1 = at1
+        self.type2 = at2
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2] < [other.type1, other.type2]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2] > [other.type1, other.type2]
+
+
+class BondTerm(FFTerm):
+    def __init__(self, type1: str, type2: str, length: float, fixed=False):
+        super().__init__()
+        at1, at2 = sorted([type1, type2])
+        self.type1 = at1
+        self.type2 = at2
+        self.length = length
+        self.fixed = fixed
+
+    @property
+    def name(self):
+        return '%s,%s' % (self.type1, self.type2)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2] < [other.type1, other.type2]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2] > [other.type1, other.type2]
+
+
+class AngleTerm(FFTerm):
+    def __init__(self, type1: str, type2: str, type3: str, theta: float, fixed=False):
+        super().__init__()
+        at1, at3 = sorted([type1, type3])
+        self.type1 = at1
+        self.type2 = type2
+        self.type3 = at3
+        self.theta = theta
+        self.fixed = fixed
+
+    @property
+    def name(self):
+        return '%s,%s,%s' % (self.type1, self.type2, self.type3)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2, self.type3] < [other.type1, other.type2, other.type3]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2, self.type3] > [other.type1, other.type2, other.type3]
+
+
+class DihedralTerm(FFTerm):
+    '''
+    DihedralTerm allows wildcard(*) for side atoms
+    '''
+
+    def __init__(self, type1: str, type2: str, type3: str, type4: str):
+        super().__init__()
+        if '*' in [type2, type3]:
+            raise Exception('Wildcard not allowed for center atoms in DihedralTerm')
+        if [type1, type4].count('*') in [0, 2]:
+            at1, at2, at3, at4 = min([(type1, type2, type3, type4), (type4, type3, type2, type1)])
+        elif type1 == '*':
+            at1, at2, at3, at4 = (type4, type3, type2, type1)
+        else:
+            at1, at2, at3, at4 = (type1, type2, type3, type4)
+        self.type1 = at1
+        self.type2 = at2
+        self.type3 = at3
+        self.type4 = at4
+
+    @property
+    def name(self):
+        return '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2, self.type3, self.type4] \
+               < [other.type1, other.type2, other.type3, other.type4]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2, self.type3, self.type4] \
+               > [other.type1, other.type2, other.type3, other.type4]
+
+
+class ImproperTerm(FFTerm):
+    '''
+    ImproperTerm allows wildcard(*) for side atoms
+    Center atom is the first, following the convention of GROMACS
+    '''
+
+    def __init__(self, type1: str, type2: str, type3: str, type4: str):
+        super().__init__()
+        if type1 == '*':
+            raise Exception('Wildcard not allowed for center atoms in ImproperTerm')
+        non_wildcard = [t for t in (type2, type3, type4) if t != '*']
+        at2, at3, at4 = list(sorted(non_wildcard)) + ['*'] * (3 - len(non_wildcard))
+        self.type1 = type1
+        self.type2 = at2
+        self.type3 = at3
+        self.type4 = at4
+
+    @property
+    def name(self):
+        return '%s,%s,%s,%s' % (self.type1, self.type2, self.type3, self.type4)
+
+    def __lt__(self, other):
+        return [self.type1, self.type2, self.type3, self.type4] \
+               < [other.type1, other.type2, other.type3, other.type4]
+
+    def __gt__(self, other):
+        return [self.type1, self.type2, self.type3, self.type4] \
+               > [other.type1, other.type2, other.type3, other.type4]
+
+
+class PolarizableTerm(FFTerm):
+    def __init__(self, type):
+        super().__init__()
+        self.type = type
+
+    @property
+    def name(self):
+        return self.type
+
+    def __lt__(self, other):
+        return self.type < other.type
+
+    def __gt__(self, other):
+        return self.type > other.type
+
+
+class LJ126Term(VdwTerm):
+    '''
+    LJ126 is commonly used, so don't generalize it with MieTerm
+    U = 4*epsilon*((sigma/r)^12-(sigma/r)^6)
+    '''
+
+    def __init__(self, type1, type2, epsilon, sigma):
+        super().__init__(type1, type2)
+        self.epsilon = epsilon
+        self.sigma = sigma
+
+    zfp_attrs = {
+        'type1'  : str,
+        'type2'  : str,
+        'epsilon': float,
+        'sigma'  : float,
+    }
+
+    def evaluate_energy(self, r):
+        return 4 * self.epsilon * ((self.sigma / r) ** 12 - (self.sigma / r) ** 6)
+
+
+class MieTerm(VdwTerm):
+    '''
+    Mainly used for SDK and SAFT-gamma Coarse-Grained force field
+    U = C * epsilon * ((sigma/r)^n - (sigma/r)^m)
+    C = n/(n-m) * (n/m)^(m/(n-m))
+    r_min = (n/m)^(1/(n-m)) * sigma
+    '''
+
+    def __init__(self, type1, type2, epsilon, sigma, repulsion, attraction):
+        super().__init__(type1, type2)
+        self.epsilon = epsilon
+        self.sigma = sigma
+        self.repulsion = repulsion
+        self.attraction = attraction
+
+    def evaluate_energy(self, r):
+        return self.factor_energy() * self.epsilon \
+               * ((self.sigma / r) ** self.repulsion - (self.sigma / r) ** self.attraction)
+
+    def factor_energy(self):
+        rep, att = self.repulsion, self.attraction
+        return rep / (rep - att) * (rep / att) ** (att / (rep - att))
+
+    def factor_r_min(self):
+        rep, att = self.repulsion, self.attraction
+        return (rep / att) ** (1 / (rep - att))
+
+    zfp_attrs = {
+        'type1'     : str,
+        'type2'     : str,
+        'epsilon'   : float,
+        'sigma'     : float,
+        'repulsion' : float,
+        'attraction': float,
+    }
+
+
+class HarmonicBondTerm(BondTerm):
+    '''
+    U = k * (b-b0)^2
+    '''
+
+    def __init__(self, type1, type2, length, k, fixed=False):
+        super().__init__(type1, type2, length, fixed=fixed)
+        self.k = k
+
+    zfp_attrs = {
+        'type1' : str,
+        'type2' : str,
+        'length': float,
+        'k'     : float,
+        'fixed' : lambda x: bool(strtobool(x))
+    }
+
+
+class HarmonicAngleTerm(AngleTerm):
+    '''
+    U = k * (theta-theta0)^2
+    '''
+
+    def __init__(self, type1, type2, type3, theta, k, fixed=False):
+        super().__init__(type1, type2, type3, theta, fixed=fixed)
+        self.k = k
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k'    : float,
+        'fixed': lambda x: bool(strtobool(x))
+    }
+
+
+class SDKAngleTerm(AngleTerm):
+    '''
+    U = k * (theta-theta0)^2 + LJ96
+    LJ96 = 6.75 * epsilon * ((sigma/r)^9 - (sigma/r)^6) + epsilon, r < 1.144714 * sigma
+    '''
+
+    def __init__(self, type1, type2, type3, theta, k):
+        super().__init__(type1, type2, type3, theta, fixed=False)
+        self.k = k
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k'    : float,
+    }
+
+
+class PeriodicDihedralTerm(DihedralTerm):
+    '''
+    U = k * (1+cos(n*phi-phi0_n))
+    '''
+
+    Parameter = namedtuple('Parameter', ('phi', 'k', 'n'))
+
+    def __init__(self, type1, type2, type3, type4, parameters=[]):
+        super().__init__(type1, type2, type3, type4)
+        self.parameters = []
+        for para in parameters:
+            if len(para) != 3:
+                raise Exception(
+                    'Three values should be provided for each multiplicity: %s' % self.name)
+            self.add_parameter(*para)
+
+    def add_parameter(self, phi, k, n):
+        if not isinstance(n, int) or n < 1:
+            raise Exception('Multiplicity should be a positive integer: %s' % self.name)
+        for para in self.parameters:
+            if para.n == n:
+                raise Exception('Duplicated multiplicity: %s' % self.name)
+        self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
+        self.parameters.sort(key=lambda x: x.n)
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+    }
+
+    def to_zfp_extra(self) -> {str: str}:
+        d = {}
+        for para in self.parameters:
+            d.update({
+                'phi_%i' % para.n: '%.1f' % para.phi,
+                'k_%i' % para.n  : '%.4f' % para.k,
+            })
+        return d
+
+    def from_zfp_extra(self, d: {str: str}):
+        for key in d.keys():
+            if key.startswith('phi_'):
+                n = int(key.split('_')[-1])
+                phi = float(d['phi_%i' % n])
+                k = float(d['k_%i' % n])
+                self.add_parameter(phi, k, n)
+
+    @property
+    def follow_opls_convention(self) -> bool:
+        for para in self.parameters:
+            if para.n == 1:
+                if para.phi != 0:
+                    return False
+            elif para.n == 2:
+                if para.phi != 180:
+                    return False
+            elif para.n == 3:
+                if para.phi != 0:
+                    return False
+            elif para.n == 4:
+                if para.phi != 180:
+                    return False
+            else:
+                if para.k != 0:
+                    return False
+        return True
+
+    def get_opls_parameters(self) -> (float,):
+        k1 = k2 = k3 = k4 = 0
+        for para in self.parameters:
+            if para.n == 1:
+                if para.phi != 0:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_1 != 0')
+                k1 = para.k
+            elif para.n == 2:
+                if para.phi != 180:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_2 != 180')
+                k2 = para.k
+            elif para.n == 3:
+                if para.phi != 0:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_3 != 0')
+                k3 = para.k
+            elif para.n == 4:
+                if para.phi != 180:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_4 != 180')
+                k4 = para.k
+            else:
+                raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
+        return k1, k2, k3, k4
+
+
+class OplsImproperTerm(ImproperTerm):
+    '''
+    U = k * (1-cos(2*phi))
+
+    It is to keep 3-coordinated structures in the same plane
+    For improper a1-a2-a3-a4, a1 is the center atom
+    In OPLS convention, the improper is defined as the angle between plane a2-a3-a1 and a3-a1-a4
+    '''
+
+    def __init__(self, type1, type2, type3, type4, k):
+        super().__init__(type1, type2, type3, type4)
+        self.k = k
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+        'k'    : float,
+    }
+
+
+class HarmonicImproperTerm(ImproperTerm):
+    '''
+    U = k * (phi-phi0)^2
+
+    For improper a1-a2-a3-a4, a1 is the center atom
+    In CHARMM convention, the improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4
+    '''
+
+    def __init__(self, type1, type2, type3, type4, phi, k):
+        super().__init__(type1, type2, type3, type4)
+        self.phi = phi
+        self.k = k
+
+    zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+        'phi'  : float,
+        'k'    : float,
+    }
+
+
+class DrudeTerm(PolarizableTerm):
+    '''
+    E = k * d^2
+    q = sqrt(4 * pi * eps_0 * (2k) * alpha)
+    TODO Implement anisotropic Drude polarization
+    '''
+
+    def __init__(self, type: str, alpha, thole, k=4184 / 2 * 100, mass=0.4, merge_alpha_H=0.0):
+        super().__init__(type)
+        self.alpha = alpha  # nm^3
+        self.thole = thole
+        self.k = k  # kJ/mol/nm^2
+        self.mass = mass
+        self.merge_alpha_H = merge_alpha_H
+
+    zfp_attrs = {
+        'type'         : str,
+        'alpha'        : float,
+        'thole'        : float,
+        'k'            : float,
+        'mass'         : float,
+        'merge_alpha_H': float,
+    }
+
+    def get_charge(self, alpha=None):
+        if alpha is None:
+            alpha = self.alpha
+        factor = math.sqrt(1E-6 / AVOGADRO) / ELEMENTARY_CHARGE
+        return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * alpha) * factor
