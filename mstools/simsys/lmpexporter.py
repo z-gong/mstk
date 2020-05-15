@@ -226,7 +226,7 @@ variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
 
-# thermo_style custom step temp press pe evdwl v_elec emol
+# thermo_style custom step temp press pe evdwl v_elec ebond eangle edihed eimp
 # thermo 10
 # minimize 1.0e-4 1.0e-6 1000 1000
 # reset_timestep 0
