@@ -21,11 +21,3 @@ c2c1im
 19  HC   14  1.090   8  109.5   17  240.0
 
 connect 5 1
-
-improper  5  2  1  6
-improper  1  3  2  7
-improper  2  4  3  8
-improper  3  5  4  9
-improper  4  1  5 10
-
-il.ff
