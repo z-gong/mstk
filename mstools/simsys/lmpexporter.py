@@ -266,9 +266,9 @@ variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
 
-# thermo_style custom step temp press pe evdwl v_elec ebond eangle edihed eimp
+# thermo_style custom step temp press pe ebond eangle edihed eimp evdwl v_elec
 # thermo 10
-# minimize 1.0e-4 1.0e-6 1000 1000
+# minimize 1.0e-4 1.0e-6 200 1000
 # reset_timestep 0
 
 {cmd_shake}
@@ -282,8 +282,8 @@ timestep 1.0
             string += '''
 fix NPT all npt temp $T $T 100 iso $P $P 1000
 
-thermo_style custom step cpu temp press pe evdwl v_elec density
-thermo 100
+thermo_style custom step cpu temp press pe emol evdwl v_elec density
+thermo 1000
 '''
 
         else:
@@ -295,8 +295,8 @@ fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
 # fix SD  all langevin/drude $T 200 12345 1 50 23456
 # fix NPH all nph iso $P $P 1000
 
-thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe evdwl v_elec density
-thermo 100
+thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe emol evdwl v_elec density
+thermo 1000
 '''
 
         string += f'''
