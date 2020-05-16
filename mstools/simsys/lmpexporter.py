@@ -260,7 +260,7 @@ fix DRUDE all drude {' '.join(fix_drude_list)}
             cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
             if len(lmp_shake_angles) > 0:
                 cmd_shake += 'a ' + ' '.join(map(str, lmp_shake_angles))
-        string += '''
+        string += f'''
 variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
