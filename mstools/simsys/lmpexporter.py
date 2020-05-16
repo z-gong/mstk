@@ -191,12 +191,6 @@ improper_style cvff
 special_bonds lj 0 0 {lj14} coul 0 0 {coul14}
 '''
 
-        cmd_shake = ''
-        if len(lmp_shake_bonds) > 0:
-            cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
-            if len(lmp_shake_angles) > 0:
-                cmd_shake += 'a ' + ' '.join(map(str, lmp_shake_angles))
-
         if DrudeTerm not in system.ff_classes:
             cmd_pair = ''
             for i, (typ_i, atom) in enumerate(lmp_types_real.items()):
@@ -221,27 +215,6 @@ kspace_style pppm 1.0e-4
 read_data data.lmp
 
 {cmd_pair}
-
-variable T equal 300
-variable P equal 1
-variable elec equal ecoul+elong
-
-# thermo_style custom step temp press pe evdwl v_elec ebond eangle edihed eimp
-# thermo 10
-# minimize 1.0e-4 1.0e-6 1000 1000
-# reset_timestep 0
-
-{cmd_shake}
-fix ICECUBE all momentum 100 linear 1 1 1
-
-velocity all create $T 12345
-
-timestep 1.0
-
-fix NPT all npt temp $T $T 100 iso $P $P 1000
-
-thermo_style custom step cpu temp press pe evdwl v_elec density
-thermo 100
 '''
         else:
             cmd_pair = ''
@@ -280,12 +253,19 @@ group ATOMS type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list)
 group CORES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'C']))}
 group DRUDES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'D']))}
 fix DRUDE all drude {' '.join(fix_drude_list)}
+'''
 
+        cmd_shake = ''
+        if len(lmp_shake_bonds) > 0:
+            cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
+            if len(lmp_shake_angles) > 0:
+                cmd_shake += 'a ' + ' '.join(map(str, lmp_shake_angles))
+        string += '''
 variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
 
-# thermo_style custom step temp press pe evdwl v_elec emol
+# thermo_style custom step temp press pe evdwl v_elec ebond eangle edihed eimp
 # thermo 10
 # minimize 1.0e-4 1.0e-6 1000 1000
 # reset_timestep 0
@@ -295,10 +275,21 @@ fix ICECUBE all momentum 100 linear 1 1 1
 
 velocity all create $T 12345
 
+timestep 1.0
+'''
+
+        if DrudeTerm in system.ff_classes:
+            string += '''
+fix NPT all npt temp $T $T 100 iso $P $P 1000
+
+thermo_style custom step cpu temp press pe evdwl v_elec density
+thermo 100
+'''
+
+        else:
+            string += '''
 comm_modify vel yes
 compute TDRUDE all temp/drude
-
-timestep 1.0
 
 fix SD  all langevin/drude $T 200 12345 1 50 23456
 fix NPH all nph iso $P $P 1000
