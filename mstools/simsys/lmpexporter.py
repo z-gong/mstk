@@ -250,7 +250,6 @@ kspace_style pppm 1.0e-4
 read_data data.lmp extra/special/per/atom 99
 
 {cmd_pair}
-
 group ATOMS type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x != 'D']))}
 group CORES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'C']))}
 group DRUDES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'D']))}
@@ -276,7 +275,6 @@ variable elec equal ecoul+elong
 fix ICECUBE all momentum 100 linear 1 1 1
 
 velocity all create $T 12345
-
 timestep 1.0
 '''
 
@@ -293,9 +291,9 @@ thermo 100
 comm_modify vel yes
 compute TDRUDE all temp/drude
 
-fix SD  all langevin/drude $T 200 12345 1 50 23456
-fix NPH all nph iso $P $P 1000
-# fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
+fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
+# fix SD  all langevin/drude $T 200 12345 1 50 23456
+# fix NPH all nph iso $P $P 1000
 
 thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe evdwl v_elec density
 thermo 100
