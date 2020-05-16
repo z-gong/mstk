@@ -278,7 +278,7 @@ velocity all create $T 12345
 timestep 1.0
 '''
 
-        if DrudeTerm in system.ff_classes:
+        if DrudeTerm not in system.ff_classes:
             string += '''
 fix NPT all npt temp $T $T 100 iso $P $P 1000
 
