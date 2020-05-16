@@ -1,6 +1,5 @@
 import math
 import itertools
-import random
 import copy
 import numpy as np
 from .atom import Atom
@@ -518,7 +517,7 @@ class Molecule():
         if len(ff.polarizable_terms) == 0:
             raise Exception('Polarizable terms not found in force field')
 
-        random.seed(seed)
+        np.random.seed(seed)
 
         self.remove_drude_particles(update_topology=False)
 
