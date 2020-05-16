@@ -46,6 +46,24 @@ class System():
         if abs(charge_total) > 1E-8:
             logger.warning('System is not charge neutral. Charge = %.6f' % charge_total)
 
+        # bind FF terms with topological elements
+        self.bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included
+        self.angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
+        self.dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
+        self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
+        self.polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
+        self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
+        self.constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
+        self.constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
+
+        self.vdw_classes = set()
+        self.bond_classes = set()
+        self.angle_classes = set()
+        self.dihedral_classes = set()
+        self.improper_classes = set()
+        self.polarizable_classes = set()
+        self.ff_classes = set()
+
         self.extract_params(ff)
 
     @property
@@ -58,15 +76,6 @@ class System():
 
     def extract_params(self, params: ForceField):
         self._ff.restore_settings(params.get_settings())
-
-        self._bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included
-        self._angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
-        self._dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
-        self._improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
-        self._polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
-        self._drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
-        self._constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
-        self._constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
 
         _atype_not_found = set()
         for atom in self._topology.atoms:
@@ -111,9 +120,9 @@ class System():
                 _bterm_not_found.add(BondTerm(*ats, 0).name)
             else:
                 self._ff.add_term(bterm, replace=True)
-                self._bond_terms[id(bond)] = bterm
+                self.bond_terms[id(bond)] = bterm
                 if bterm.fixed:
-                    self._constrain_bonds[id(bond)] = bterm.length
+                    self.constrain_bonds[id(bond)] = bterm.length
 
         _aterm_not_found = set()
         for angle in self._topology.angles:
@@ -124,15 +133,15 @@ class System():
                 _aterm_not_found.add(AngleTerm(*ats, 0).name)
             else:
                 self._ff.add_term(aterm, replace=True)
-                self._angle_terms[id(angle)] = aterm
+                self.angle_terms[id(angle)] = aterm
                 if not aterm.fixed:
                     continue
                 bond1 = next(b for b in angle.atom2.bonds if b == Bond(angle.atom1, angle.atom2))
                 bond2 = next(b for b in angle.atom2.bonds if b == Bond(angle.atom2, angle.atom3))
                 # constrain the angle only if two bonds are also constrained
-                if id(bond1) in self._constrain_bonds and id(bond2) in self._constrain_bonds:
-                    d1, d2 = self._constrain_bonds[id(bond1)], self._constrain_bonds[id(bond2)]
-                    self._constrain_angles[id(angle)] = math.sqrt(
+                if id(bond1) in self.constrain_bonds and id(bond2) in self.constrain_bonds:
+                    d1, d2 = self.constrain_bonds[id(bond1)], self.constrain_bonds[id(bond2)]
+                    self.constrain_angles[id(angle)] = math.sqrt(
                         d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
 
         _dterm_not_found = set()
@@ -145,7 +154,7 @@ class System():
                     pass
                 else:
                     self._ff.add_term(dterm, replace=True)
-                    self._dihedral_terms[id(dihedral)] = dterm
+                    self.dihedral_terms[id(dihedral)] = dterm
                     break
             else:
                 _dterm_not_found.add(DihedralTerm(*ats_list[0]).name)
@@ -160,13 +169,13 @@ class System():
                     pass
                 else:
                     self._ff.add_term(iterm, replace=True)
-                    self._improper_terms[id(improper)] = iterm
+                    self.improper_terms[id(improper)] = iterm
                     break
             else:
                 _iterm_not_found.add(ImproperTerm(*ats_list[0]).name)
 
         _pterm_not_found = set()
-        for parent in self._drude_pairs.keys():
+        for parent in self.drude_pairs.keys():
             pterm = PolarizableTerm(params.atom_types[parent.type].eqt_polar)
             try:
                 pterm = params.polarizable_terms[pterm.name]
@@ -174,7 +183,7 @@ class System():
                 _pterm_not_found.add(pterm.name)
             else:
                 self._ff.add_term(pterm, replace=True)
-                self._polarizable_terms[parent] = pterm
+                self.polarizable_terms[parent] = pterm
 
         ### print all the missing terms
         _not_found = False
@@ -214,12 +223,11 @@ class System():
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
         self.vdw_classes.update({term.__class__ for term in self._ff.pairwise_vdw_terms.values()})
-        self.bond_classes = {term.__class__ for term in self._bond_terms.values()}
-        self.angle_classes = {term.__class__ for term in self._angle_terms.values()}
-        self.dihedral_classes = {term.__class__ for term in self._dihedral_terms.values()}
-        self.improper_classes = {term.__class__ for term in self._improper_terms.values()}
-        self.polarizable_classes = {term.__class__ for term in self._polarizable_terms.values()}
-
+        self.bond_classes = {term.__class__ for term in self.bond_terms.values()}
+        self.angle_classes = {term.__class__ for term in self.angle_terms.values()}
+        self.dihedral_classes = {term.__class__ for term in self.dihedral_terms.values()}
+        self.improper_classes = {term.__class__ for term in self.improper_terms.values()}
+        self.polarizable_classes = {term.__class__ for term in self.polarizable_terms.values()}
         self.ff_classes = (self.vdw_classes
                            .union(self.bond_classes)
                            .union(self.angle_classes)

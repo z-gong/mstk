@@ -22,7 +22,7 @@ class GromacsExporter():
             GromacsExporter.export_mdp(system, mdp_out)
 
     @staticmethod
-    def export_gro(system, gro_out='conf.gro'):
+    def export_gro(system: System, gro_out='conf.gro'):
         frame = Frame(system._topology.n_atom)
         frame.cell = system._topology.cell
         frame.positions = system._topology.positions
@@ -31,7 +31,7 @@ class GromacsExporter():
         gro.close()
 
     @staticmethod
-    def export_top(system, top_out='topol.top'):
+    def export_top(system:System, top_out='topol.top'):
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm,
@@ -138,13 +138,13 @@ class GromacsExporter():
 
             string += '\n[ constraints ]\n'
             for bond in mol.bonds:
-                distance = system._constrain_bonds.get(id(bond))
+                distance = system.constrain_bonds.get(id(bond))
                 if distance is not None:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f\n' % (
                         a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1, distance)
             for angle in mol.angles:
-                distance = system._constrain_angles.get(id(angle))
+                distance = system.constrain_angles.get(id(angle))
                 if distance is not None:
                     a1, a3 = angle.atom1, angle.atom3
                     string += '%6i %6i %6i %12.6f\n' % (
@@ -154,9 +154,9 @@ class GromacsExporter():
             for bond in mol.bonds:
                 if bond.is_drude:
                     continue
-                if id(bond) in system._constrain_bonds:
+                if id(bond) in system.constrain_bonds:
                     continue
-                bterm = system._bond_terms[id(bond)]
+                bterm = system.bond_terms[id(bond)]
                 if bterm.__class__ == HarmonicBondTerm:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f %12.4f\n' % (
@@ -191,9 +191,9 @@ class GromacsExporter():
 
             string += '\n[ angles ]\n'
             for angle in mol.angles:
-                if id(angle) in system._constrain_angles:
+                if id(angle) in system.constrain_angles:
                     continue
-                aterm = system._angle_terms[id(angle)]
+                aterm = system.angle_terms[id(angle)]
                 a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
                 if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
@@ -204,7 +204,7 @@ class GromacsExporter():
 
             string += '\n[ dihedrals ]\n'
             for dihedral in mol.dihedrals:
-                dterm = system._dihedral_terms[id(dihedral)]
+                dterm = system.dihedral_terms[id(dihedral)]
                 a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
@@ -222,7 +222,7 @@ class GromacsExporter():
 
             string += '\n[ dihedrals ]\n'
             for improper in mol.impropers:
-                iterm = system._improper_terms[id(improper)]
+                iterm = system.improper_terms[id(improper)]
                 a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
                 if iterm.__class__ == OplsImproperTerm:
                     # be careful about the sequence of atoms in OPLS improper definition
@@ -248,7 +248,7 @@ class GromacsExporter():
             f.write(string)
 
     @staticmethod
-    def export_mdp(system, mdp_out='grompp.mdp'):
+    def export_mdp(system:System, mdp_out='grompp.mdp'):
         tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
         with open(mdp_out, 'w')  as f:
             f.write(f'''; Created by mstools

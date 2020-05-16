@@ -30,7 +30,7 @@ class CharmmExporter():
         Psf.save_to(self._topology, psf_out)
 
     @staticmethod
-    def export_prm(system, prm_out='ff.prm'):
+    def export_prm(system: System, prm_out='ff.prm'):
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,
@@ -60,29 +60,29 @@ class CharmmExporter():
             if name not in unique_bonds and tuple(reversed(name)) not in unique_bonds:
                 if bond.is_drude:
                     parent = bond.atom2 if bond.atom1.is_drude else bond.atom1
-                    pterm = system._polarizable_terms[parent]
+                    pterm = system.polarizable_terms[parent]
                     bterm = HarmonicBondTerm(name[0], name[1], 0.0, pterm.k)
                 else:
-                    bterm = system._bond_terms[id(bond)]
+                    bterm = system.bond_terms[id(bond)]
                 unique_bonds[name] = bterm
 
         unique_angles = {}
         for angle in system._topology.angles:
             name = (angle.atom1.type, angle.atom2.type, angle.atom3.type)
             if name not in unique_angles and tuple(reversed(name)) not in unique_angles:
-                unique_angles[name] = system._angle_terms[id(angle)]
+                unique_angles[name] = system.angle_terms[id(angle)]
         unique_dihedrals = {}
         for dihedral in system._topology.dihedrals:
             name = (dihedral.atom1.type, dihedral.atom2.type,
                     dihedral.atom3.type, dihedral.atom4.type)
             if name not in unique_dihedrals and tuple(reversed(name)) not in unique_dihedrals:
-                unique_dihedrals[name] = system._dihedral_terms[id(dihedral)]
+                unique_dihedrals[name] = system.dihedral_terms[id(dihedral)]
         unique_impropers = {}
         for improper in system._topology.impropers:
             name = (improper.atom1.type, improper.atom2.type,
                     improper.atom3.type, improper.atom4.type)
             if name not in unique_impropers and tuple(reversed(name)) not in unique_impropers:
-                unique_impropers[name] = system._improper_terms[id(improper)]
+                unique_impropers[name] = system.improper_terms[id(improper)]
 
         string += '\nBONDS\n'
         string += '''!V(bond) = Kb(b - b0)**2

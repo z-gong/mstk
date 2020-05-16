@@ -28,17 +28,20 @@ class LammpsExporter():
 
         top = system.topology
         ff = system.ff
-        bond_types = list(ff.bond_terms.values())
+
+        ### Assign LAMMPS types ####################################
+        bond_types = list(ff.bond_terms.values())  # bond types between Drude pairs not included
         angle_types = list(ff.angle_terms.values())
         dihedral_types = list(ff.dihedral_terms.values())
         improper_types = list(ff.improper_terms.values())
 
-        ### assign lammps types ####################################
+        # In LAMMPS, Drude parameters are assigned with pair coefficients
+        # Drude particles attached to different heavy atoms must have its own LAMMPS atom type
+        lmp_types_real: {str: Atom} = {}  # {'typ': Atom}
+        lmp_types_drude: {str: Atom} = {}  # {'typ': Atom}
+        lmp_types_parent: {str: Atom} = {}  # {'typ': Atom}
+        lmp_types_atype: {str: AtomType} = {}  # {'typ': AtomType}
         atype_drude: AtomType = None
-        lmp_types_real: {str: Atom} = {}  # {'type': Atom}
-        lmp_types_drude: {str: Atom} = {}  # {'type': Atom}
-        lmp_types_parent: {str: Atom} = {}  # {'type': Atom}
-        lmp_types_atype: {str: AtomType} = {}  # {'type': AtomType}
 
         for atom in top.atoms:
             if atom.is_drude:
@@ -46,8 +49,7 @@ class LammpsExporter():
             if atom.type not in lmp_types_real:
                 lmp_types_real[atom.type] = atom
                 lmp_types_atype[atom.type] = ff.atom_types[atom.type]
-        drude_pairs: {Atom: Atom} = dict(top.get_drude_pairs())
-        for parent, drude in drude_pairs.items():
+        for parent, drude in system.drude_pairs.items():
             if atype_drude is None:
                 atype_drude = system.ff.atom_types[drude.type]
             typ = 'DP_' + parent.type
@@ -69,7 +71,7 @@ class LammpsExporter():
         string = 'Created by mstools\n'
 
         string += '\n%i atoms\n' % top.n_atom
-        string += '%i bonds\n' % (top.n_bond)
+        string += '%i bonds\n' % top.n_bond
         string += '%i angles\n' % top.n_angle
         string += '%i dihedrals\n' % top.n_dihedral
         string += '%i impropers\n' % top.n_improper
@@ -99,7 +101,7 @@ class LammpsExporter():
             string += '%4i %12.6f %10.4f  # %s-%s\n' % (
                 i + 1, bterm.k / 4.184 / 100, bterm.length * 10, bterm.type1, bterm.type2)
         for i, parent in enumerate(lmp_types_parent.values()):
-            pterm = system._polarizable_terms[parent]
+            pterm = system.polarizable_terms[parent]
             string += '%4i %12.6f %10.4f  # %s-%s\n' % (
                 i + 1 + len(bond_types), pterm.k / 4.184 / 100, 0, parent.type, 'DP')
 
@@ -127,12 +129,12 @@ class LammpsExporter():
 
         for atom in top.atoms:
             if atom.is_drude:
-                lmp_type = 'DP_' + atom.bond_partners[0].type
+                typ = 'DP_' + atom.bond_partners[0].type
             else:
-                lmp_type = atom.type
+                typ = atom.type
             x, y, z = atom.position * 10
             string += '%8i %6i %6i %12.6f %10.4f %10.4f %10.4f  # %8s %8s\n' % (
-                atom.id + 1, atom.molecule.id + 1, lmp_type_list.index(lmp_type) + 1,
+                atom.id + 1, atom.molecule.id + 1, lmp_type_list.index(typ) + 1,
                 atom.charge, x, y, z, atom.name, atom.molecule.name)
 
         string += '\nBonds\n\n'
@@ -140,7 +142,7 @@ class LammpsExporter():
         for i, bond in enumerate(top.bonds):
             a1, a2 = bond.atom1, bond.atom2
             if not bond.is_drude:
-                btype = bond_types.index(system._bond_terms[id(bond)]) + 1
+                btype = bond_types.index(system.bond_terms[id(bond)]) + 1
             else:
                 parent = a1 if a2.is_drude else a2
                 btype = list(lmp_types_parent.keys()).index(parent.type) + len(bond_types) + 1
@@ -150,7 +152,7 @@ class LammpsExporter():
         string += '\nAngles\n\n'
 
         for i, angle in enumerate(top.angles):
-            atype = angle_types.index(system._angle_terms[id(angle)]) + 1
+            atype = angle_types.index(system.angle_terms[id(angle)]) + 1
             a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
             string += '%6i %6i %6i %6i %6i  # %s-%s-%s\n' % (
                 i + 1, atype, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
@@ -158,7 +160,7 @@ class LammpsExporter():
         string += '\nDihedrals\n\n'
 
         for i, dihedral in enumerate(top.dihedrals):
-            dtype = dihedral_types.index(system._dihedral_terms[id(dihedral)]) + 1
+            dtype = dihedral_types.index(system.dihedral_terms[id(dihedral)]) + 1
             a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
                 i + 1, dtype, a1.id + 1, a2.id + 1, a3.id + 1, a4.id + 1,
@@ -167,7 +169,7 @@ class LammpsExporter():
         string += '\nImpropers\n\n'
 
         for i, improper in enumerate(top.impropers):
-            itype = improper_types.index(system._improper_terms[id(improper)]) + 1
+            itype = improper_types.index(system.improper_terms[id(improper)]) + 1
             a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
                 i + 1, itype, a2.id + 1, a3.id + 1, a1.id + 1, a4.id + 1,
@@ -176,9 +178,9 @@ class LammpsExporter():
         with open(data_out, 'w')  as f:
             f.write(string)
 
-        lj14 = system.ff.scale_14_vdw
-        coul14 = system.ff.scale_14_coulomb
-        mix = 'geometric' if system.ff.lj_mixing_rule == ForceField.LJ_MIXING_GEOMETRIC else 'arthimatic'
+        cmd_mix = 'geometric'
+        if system.ff.lj_mixing_rule == ForceField.LJ_MIXING_LB:
+            cmd_mix = 'arithmetic'
 
         string = f'''# created by mstools
 units real
@@ -188,7 +190,7 @@ bond_style harmonic
 angle_style harmonic
 dihedral_style opls
 improper_style cvff
-special_bonds lj 0 0 {lj14} coul 0 0 {coul14}
+special_bonds lj 0 0 {ff.scale_14_vdw} coul 0 0 {ff.scale_14_coulomb}
 '''
 
         if DrudeTerm not in system.ff_classes:
@@ -209,7 +211,7 @@ special_bonds lj 0 0 {lj14} coul 0 0 {coul14}
 
             string += f'''
 pair_style lj/cut/coul/long 12.0
-pair_modify mix {mix} tail yes
+pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
 read_data data.lmp
@@ -228,21 +230,21 @@ read_data data.lmp
                         vdw = ff.get_vdw_term(atype1, atype2, mixing=False)
                     except:
                         continue
-                    cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %5.3f  # %8s %8s %s\n' % (
+                    cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
                         i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
                         math.sqrt(a1._alpha * a2._alpha) * 1000, (a1._thole + a2._thole) / 2,
                         lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
             for i, (typ, atom) in enumerate(lmp_types_parent.items()):
                 ii = i + len(lmp_types_real)
                 vdw = ff.get_vdw_term(atype_drude, atype_drude)
-                cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %5.3f  # %8s %8s %s\n' % (
+                cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
                     ii + 1, ii + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
                     atom._alpha * 1000, atom._thole,
                     lmp_type_list[ii], lmp_type_list[ii], ','.join(vdw.comments))
 
             string += f'''
 pair_style lj/cut/thole/long 2.6 12.0
-pair_modify mix {mix} tail yes
+pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
 read_data data.lmp extra/special/per/atom 99
@@ -300,13 +302,14 @@ thermo 100
 '''
 
         string += f'''
-dump TRAJ all custom 10000 dump.lammpstrj id mol type element q xu yu zu
-dump_modify TRAJ sort id element {' '.join(lmp_symbol_list)}
-dump DCD all dcd 1000 dump.dcd
+variable slog equal logfreq(10,9,10)
+dump TRJ all custom 10 dump.lammpstrj id mol type element q xu yu zu
+dump_modify TRJ sort id element {' '.join(lmp_symbol_list)} every v_slog first yes
+dump DCD all dcd 10000 dump.dcd
 dump_modify DCD unwrap yes
 
+restart 1000000 rst_*
 run 1000000
-write_restart rst
 '''
 
         with open(in_out, 'w') as f:

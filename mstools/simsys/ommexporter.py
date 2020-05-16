@@ -51,7 +51,7 @@ class OpenMMExporter():
                 for bond in system._topology.bonds:
                     if bond.is_drude:
                         continue
-                    bterm = system._bond_terms[id(bond)]
+                    bterm = system.bond_terms[id(bond)]
                     if type(bterm) != HarmonicBondTerm:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
@@ -68,7 +68,7 @@ class OpenMMExporter():
                 logger.info('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
                 for angle in system._topology.angles:
-                    aterm = system._angle_terms[id(angle)]
+                    aterm = system.angle_terms[id(angle)]
                     if type(aterm) == HarmonicAngleTerm:
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                                         aterm.theta * PI / 180, aterm.k * 2)
@@ -85,7 +85,7 @@ class OpenMMExporter():
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
                 for angle in system._topology.angles:
-                    aterm = system._angle_terms[id(angle)]
+                    aterm = system.angle_terms[id(angle)]
                     if type(aterm) != SDKAngleTerm:
                         continue
                     vdw = system._ff.get_vdw_term(angle.atom1.type, angle.atom2.type)
@@ -101,16 +101,16 @@ class OpenMMExporter():
             omm_system.addForce(aforce)
 
         ### Set up constraints #################################################################
-        logger.info(f'Setting up {len(system._constrain_bonds)} bond constraints...')
+        logger.info(f'Setting up {len(system.constrain_bonds)} bond constraints...')
         for bond in system._topology.bonds:
-            if id(bond) in system._constrain_bonds:
+            if id(bond) in system.constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
-                                         system._constrain_bonds[id(bond)])
-        logger.info(f'Setting up {len(system._constrain_angles)} angle constraints...')
+                                         system.constrain_bonds[id(bond)])
+        logger.info(f'Setting up {len(system.constrain_angles)} angle constraints...')
         for angle in system._topology.angles:
-            if id(angle) in system._constrain_angles:
+            if id(angle) in system.constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
-                                         system._constrain_angles[id(angle)])
+                                         system.constrain_angles[id(angle)])
 
         ### Set up dihedrals ###################################################################
         for dihedral_class in system.dihedral_classes:
@@ -118,7 +118,7 @@ class OpenMMExporter():
                 logger.info('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in system._topology.dihedrals:
-                    dterm = system._dihedral_terms[id(dihedral)]
+                    dterm = system.dihedral_terms[id(dihedral)]
                     ia1, ia2, ia3, ia4 = dihedral.atom1.id, dihedral.atom2.id, dihedral.atom3.id, dihedral.atom4.id
                     if type(dterm) == PeriodicDihedralTerm:
                         for par in dterm.parameters:
@@ -139,7 +139,7 @@ class OpenMMExporter():
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
                 for improper in system._topology.impropers:
-                    iterm = system._improper_terms[id(improper)]
+                    iterm = system.improper_terms[id(improper)]
                     if type(iterm) == OplsImproperTerm:
                         # in OPLS convention, the third atom is the central atom
                         iforce.addTorsion(improper.atom2.id, improper.atom3.id,
@@ -152,7 +152,7 @@ class OpenMMExporter():
                 iforce.addPerTorsionParameter('phi0')
                 iforce.addPerTorsionParameter('k')
                 for improper in system._topology.impropers:
-                    iterm = system._improper_terms[id(improper)]
+                    iterm = system.improper_terms[id(improper)]
                     if type(iterm) == HarmonicImproperTerm:
                         iforce.addTorsion(improper.atom1.id, improper.atom2.id,
                                           improper.atom3.id, improper.atom4.id,
@@ -325,8 +325,8 @@ class OpenMMExporter():
                 pforce.setForceGroup(ForceGroup.DRUDE)
                 omm_system.addForce(pforce)
                 parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
-                for parent, drude in system._drude_pairs.items():
-                    pterm = system._polarizable_terms[parent]
+                for parent, drude in system.drude_pairs.items():
+                    pterm = system.polarizable_terms[parent]
                     n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
                     alpha = pterm.alpha + n_H * pterm.merge_alpha_H
                     idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1,
@@ -337,10 +337,10 @@ class OpenMMExporter():
                 # and those concerning Drude particles in 1-2 and 1-3 pairs
                 # pairs formed by real atoms have already been handled above
                 # also apply thole screening between 1-2 and 1-3 Drude dipole pairs
-                drude_exclusions = list(system._drude_pairs.items())
+                drude_exclusions = list(system.drude_pairs.items())
                 for atom1, atom2 in pair12 + pair13:
-                    drude1 = system._drude_pairs.get(atom1)
-                    drude2 = system._drude_pairs.get(atom2)
+                    drude1 = system.drude_pairs.get(atom1)
+                    drude2 = system.drude_pairs.get(atom2)
                     if drude1 is not None:
                         drude_exclusions.append((drude1, atom2))
                     if drude2 is not None:
@@ -359,8 +359,8 @@ class OpenMMExporter():
                 # pairs formed by real atoms have already been handled above
                 drude_exclusions14 = []
                 for atom1, atom2 in pair14:
-                    drude1 = system._drude_pairs.get(atom1)
-                    drude2 = system._drude_pairs.get(atom2)
+                    drude1 = system.drude_pairs.get(atom1)
+                    drude2 = system.drude_pairs.get(atom2)
                     if drude1 is not None:
                         drude_exclusions14.append((drude1, atom2))
                     if drude2 is not None:

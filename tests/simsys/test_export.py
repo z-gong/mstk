@@ -42,8 +42,6 @@ def test_lmp_drude():
     system.export_lammps(data_out=cwd + '/files/data-drude.lmp',
                          in_out=cwd + '/files/in-drude.lmp')
 
-test_lmp_drude()
-
 
 def test_charmm():
     ff = Ppf(cwd + '/files/10-benzene.ppf')
