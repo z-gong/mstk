@@ -19,7 +19,7 @@ parser.add_argument('-f', '--forcefield', nargs='+', required=True, type=str,
 parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
 parser.add_argument('--typer', type=str,
                     help='typing file. Required if SMILES provided for topology')
-parser.add_argument('--ljscale', type=str, help='input files for empirical LJ scaling')
+parser.add_argument('--ljscale', type=str, help='input file for empirical LJ scaling')
 parser.add_argument('--nodrude', action='store_true',
                     help='disable Drude particles even if it is polarizable model')
 parser.add_argument('--trj', type=str,
@@ -28,6 +28,10 @@ parser.add_argument('--box', nargs=3, type=float,
                     help='periodic box size if not provided by topology or trajectory')
 parser.add_argument('--packmol', action='store_true',
                     help='generate Packmol input files for building coordinates')
+parser.add_argument('--scaleeps', type=float, default=1.0,
+                    help='extra scaling parameter for all LJ epsilon')
+parser.add_argument('--scalesig', type=float, default=1.0,
+                    help='extra scaling parameter for all LJ sigma')
 args = parser.parse_args()
 
 if args.number is None:
@@ -65,6 +69,15 @@ if args.nodrude:
 if args.ljscale is not None:
     scaler = PaduaLJScaler(args.ljscale)
     scaler.scale(ff)
+
+if args.scaleeps != 1.0 or args.scalesig != 1.0:
+    for vdw in list(ff.vdw_terms.values()) + list(ff.pairwise_vdw_terms.values()):
+        if args.scaleeps != 1.0:
+            vdw.epsilon *= args.scaleeps
+            vdw.comments.append('eps*%.3f' % args.scaleeps)
+        if args.scalesig != 1.0:
+            vdw.sigma *= args.scalesig
+            vdw.comments.append('sig*%.3f' % args.scalesig)
 
 mol_count = top.get_unique_molecules(deepcopy=False)
 for mol in mol_count.keys():

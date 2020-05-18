@@ -336,17 +336,15 @@ class PaduaLJScaler():
         return dimer.scale_factor
 
     def scale_lj(self, term: LJ126Term) -> bool:
-        _scaled = True
         k_eps = self.predict_scale_epsilon(term.type1, term.type2)
-        if k_eps is not None:
-            term.epsilon *= k_eps
-            term.comments.append('eps*%.3f' % k_eps)
-        else:
-            _scaled = False
+        if k_eps is None:
+            return False
 
+        term.epsilon *= k_eps
+        term.comments.append('eps*%.3f' % k_eps)
         k_sig = self.scale_sigma
         if k_sig != 1.0:
             term.sigma *= k_sig
             term.comments.append('sig*%.3f' % k_sig)
 
-        return _scaled
+        return True
