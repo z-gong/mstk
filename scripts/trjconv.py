@@ -18,8 +18,9 @@ parser.add_argument('-e', '--end', default=-1, type=int,
                     help='last frame (not included unless set to -1) to output')
 parser.add_argument('--skip', default=1, type=int, help='skip frames between output')
 parser.add_argument('--topignore', nargs='+', default=[], type=str,
-                    help='ignore these molecule types in topology in case topology and trajectory do not match')
-parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
+                    help='ignore these molecule names in topology in case topology and trajectory do not match')
+parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule names')
+parser.add_argument('--ignoreatom', nargs='+', default=[], type=str, help='ignore these atom types')
 parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
                     help='overwrite the box dimensions')
 parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
@@ -41,7 +42,8 @@ if (top.n_atom != trj.n_atom):
 trj_out = Trajectory.open(args.output, 'w')
 
 if args.ignore != []:
-    subset = [atom.id for atom in top.atoms if atom.molecule.name not in args.ignore]
+    subset = [atom.id for atom in top.atoms
+              if atom.type not in args.ignoreatom and atom.molecule.name not in args.ignore]
 else:
     subset = None
 

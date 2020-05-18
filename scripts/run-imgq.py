@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import signal
 import random
 import simtk.openmm as mm
 from simtk.openmm import app
@@ -10,6 +11,18 @@ from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kCa
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import GroReporter, CheckpointReporter, DrudeTemperatureReporter, StateDataReporter
 from mstools.omm import spring_self, wall_lj126, print_omm_info, minimize, energy_decomposition
+
+
+class SignalHandler():
+    def __init__(self):
+        self.SIGINT = False
+
+    def sigint_handler(self, signal, frame):
+        self.SIGINT = True
+
+
+sig_handler = SignalHandler()
+signal.signal(signal.SIGINT, sig_handler.sigint_handler)
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
@@ -95,7 +108,15 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     minimize(sim, 100, 'em.gro')
 
     print('Running...')
-    sim.step(nstep)
+    i_step = 0
+    while i_step < nstep:
+        if sig_handler.SIGINT:
+            sim.saveCheckpoint('rst.cpt')
+            print('# SIGINT step= %i time= %f' % (
+                sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
+            break
+        sim.step(10)
+        i_step += 10
     sim.saveCheckpoint('rst.cpt')
     sim.saveState('rst.xml')
     # sim.runForClockTime(99.9, 'rst.cpt', 'rst.xml', 1)

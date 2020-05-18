@@ -32,6 +32,8 @@ parser.add_argument('--scaleeps', type=float, default=1.0,
                     help='extra scaling parameter for all LJ epsilon')
 parser.add_argument('--scalesig', type=float, default=1.0,
                     help='extra scaling parameter for all LJ sigma')
+parser.add_argument('--scaleignoreatom', nargs='+', type=str, default=[],
+                    help='ignore these atom types for extra scaling')
 args = parser.parse_args()
 
 if args.number is None:
@@ -72,6 +74,8 @@ if args.ljscale is not None:
 
 if args.scaleeps != 1.0 or args.scalesig != 1.0:
     for vdw in list(ff.vdw_terms.values()) + list(ff.pairwise_vdw_terms.values()):
+        if vdw.type1 in args.scaleignoreatom or vdw.type2 in args.scaleignoreatom:
+            continue
         if args.scaleeps != 1.0:
             vdw.epsilon *= args.scaleeps
             vdw.comments.append('eps*%.3f' % args.scaleeps)

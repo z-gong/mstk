@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 import sys
+import signal
 import simtk.openmm as mm
 from simtk.openmm import app
 from simtk.unit import kelvin, bar
@@ -6,6 +9,18 @@ from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as 
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import StateDataReporter, GroReporter, CheckpointReporter, DrudeTemperatureReporter
 from mstools.omm import print_omm_info, apply_mc_barostat, minimize, energy_decomposition
+
+
+class SignalHandler():
+    def __init__(self):
+        self.SIGINT = False
+
+    def sigint_handler(self, signal, frame):
+        self.SIGINT = True
+
+
+sig_handler = SignalHandler()
+signal.signal(signal.SIGINT, sig_handler.sigint_handler)
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
@@ -58,8 +73,17 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     minimize(sim, 100, 'em.gro')
 
     print('Running...')
-    sim.step(nstep)
+    i_step = 0
+    while i_step < nstep:
+        if sig_handler.SIGINT:
+            sim.saveCheckpoint('rst.cpt')
+            print('# SIGINT step= %i time= %f' % (
+                sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
+            break
+        sim.step(10)
+        i_step += 10
     sim.saveCheckpoint('rst.cpt')
+    sim.saveState('rst.xml')
 
 
 if __name__ == '__main__':

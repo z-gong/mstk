@@ -13,7 +13,9 @@ parser.add_argument('-o', '--output', required=True, type=str, help='output traj
 parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
 parser.add_argument('--qscale', default=1, type=float, help='scale the charge of atoms')
 parser.add_argument('--qscaleignore', nargs='+', default=[], type=str,
-                    help='ignore these molecule types for charge scaling')
+                    help='ignore these molecule names for charge scaling')
+parser.add_argument('--qscaleignoreatom', nargs='+', default=[], type=str,
+                    help='ignore these atom types for charge scaling')
 parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
                     help='overwrite the box dimensions')
 parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
@@ -28,7 +30,7 @@ print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 if args.qscale != 1:
     for atom in top.atoms:
-        if atom.molecule.name in args.qscaleignore:
+        if atom.type in args.qscaleignoreatom or atom.molecule.name in args.qscaleignore:
             continue
         atom.charge *= args.qscale
 
