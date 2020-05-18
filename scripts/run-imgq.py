@@ -23,6 +23,7 @@ class SignalHandler():
 
 sig_handler = SignalHandler()
 signal.signal(signal.SIGINT, sig_handler.sigint_handler)
+signal.signal(signal.SIGTERM, sig_handler.sigint_handler)
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
