@@ -59,7 +59,7 @@ class StateDataReporter(object):
     def __init__(self, file, reportInterval, step=True, time=True, potentialEnergy=True,
                  kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
                  density=True, progress=False, remainingTime=False, speed=True, elapsedTime=True,
-                 separator='\t', systemMass=None, totalSteps=None):
+                 separator='\t', systemMass=None, totalSteps=None, append=False):
         """Create a StateDataReporter.
 
         Parameters
@@ -118,16 +118,8 @@ class StateDataReporter(object):
         if (progress or remainingTime) and totalSteps is None:
             raise ValueError('Reporting progress or remaining time requires total steps to be specified')
         if self._openedFile:
-            # Detect the desired compression scheme from the filename extension
-            # and open all files unbuffered
-            if file.endswith('.gz'):
-                if not have_gzip:
-                    raise RuntimeError("Cannot write .gz file because Python could not import gzip library")
-                self._out = gzip.GzipFile(fileobj=open(file, 'wb', 0))
-            elif file.endswith('.bz2'):
-                if not have_bz2:
-                    raise RuntimeError("Cannot write .bz2 file because Python could not import bz2 library")
-                self._out = bz2.BZ2File(file, 'w', 0)
+            if append:
+                self._out = open(file, 'a')
             else:
                 self._out = open(file, 'w')
         else:

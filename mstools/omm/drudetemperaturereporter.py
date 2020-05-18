@@ -12,7 +12,7 @@ class DrudeTemperatureReporter(object):
     It's better to set the reportInterval larger than 10000 to avoid performance penalty
     """
 
-    def __init__(self, file, reportInterval):
+    def __init__(self, file, reportInterval, append=False):
         """Create a DrudeTemperatureReporter.
 
         Parameters
@@ -23,7 +23,10 @@ class DrudeTemperatureReporter(object):
             The interval (in time steps) at which to write frames
         """
         self._reportInterval = reportInterval
-        self._out = open(file, 'w')
+        if append:
+            self._out = open(file, 'a')
+        else:
+            self._out = open(file, 'w')
         self._hasInitialized = False
 
     def describeNextReport(self, simulation):

@@ -26,7 +26,7 @@ signal.signal(signal.SIGINT, sig_handler.sigint_handler)
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
-                   T=333, voltage=0):
+                   dt=0.001, T=333, voltage=0, restart=None):
     print('Building system...')
     gro = GroFile(gro_file)
     lz = gro.getUnitCellDimensions()[2].value_in_unit(nm)
@@ -71,7 +71,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
     ### TGNH thermostat for ils
     from velocityverletplugin import VVIntegrator
-    integrator = VVIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 40 / ps, 0.001 * ps)
+    integrator = VVIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 40 / ps, dt * ps)
     integrator.setMaxDrudeDistance(0.02 * nm)
     ### thermostat MoS2 by Langevin dynamics
     for i in group_mos:
@@ -96,16 +96,22 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     _platform = mm.Platform.getPlatformByName('CUDA')
     _properties = {'CudaPrecision': 'mixed'}
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
-    sim.context.setPositions(gro.positions)
-    sim.context.setVelocitiesToTemperature(T * kelvin)
-    sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False))
-    sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils))
-    sim.reporters.append(StateDataReporter(sys.stdout, 10000))
-    sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000))
+    if restart:
+        sim.loadCheckpoint(restart)
+        sim.currentStep = int(round(sim.context.getTime().value_in_unit(ps) / dt))
+        append = True
+    else:
+        sim.context.setPositions(gro.positions)
+        sim.context.setVelocitiesToTemperature(T * kelvin)
+        energy_decomposition(sim)
+        minimize(sim, 100, 'em.gro')
+        append = False
 
-    energy_decomposition(sim)
-    minimize(sim, 100, 'em.gro')
+    sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
+    sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
+    sim.reporters.append(GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils, append=append))
+    sim.reporters.append(StateDataReporter(sys.stdout, 10000, append=append))
+    sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
     print('Running...')
     i_step = 0
@@ -124,4 +130,4 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 if __name__ == '__main__':
     print_omm_info()
-    run_simulation(nstep=500000, T=333, voltage=5)
+    run_simulation(nstep=500000, T=333, voltage=5, restart=None)
