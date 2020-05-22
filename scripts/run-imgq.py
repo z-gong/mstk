@@ -90,7 +90,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
             q, _, _ = nbforce.getParticleParameters(i)
             tforce.addParticle([q])
         tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
-        tforce.setCutoffDistance(1.0 * nm)
+        tforce.setCutoffDistance(1.2 * nm)
         system.addForce(tforce)
         tforce.addInteractionGroup(set(group_ils), set(group_img))
         tforce.setForceGroup(9)
