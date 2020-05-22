@@ -100,7 +100,7 @@ class GromacsExporter():
                 'nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass')
             for j, atom in enumerate(mol.atoms):
                 string += '%6i %10s %6i %10s %6s %6i %12.6f %10.4f\n' % (
-                    j + 1, atom.type, 1, mol.name, atom.symbol, 1, atom.charge, atom.mass)
+                    j + 1, atom.type, 1, mol.name, atom.symbol, j+1, atom.charge, atom.mass)
 
             string += '\n[ pairs ]\n'
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()

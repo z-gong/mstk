@@ -28,6 +28,7 @@ parser.add_argument('--box', nargs=3, type=float,
                     help='periodic box size if not provided by topology or trajectory')
 parser.add_argument('--packmol', action='store_true',
                     help='generate Packmol input files for building coordinates')
+parser.add_argument('--qscale', default=1, type=float, help='scale the charge of atoms')
 parser.add_argument('--scaleeps', type=float, default=1.0,
                     help='extra scaling parameter for all LJ epsilon')
 parser.add_argument('--scalesig', type=float, default=1.0,
@@ -142,6 +143,10 @@ else:
             'Numbers of atoms in trajectory (%i) and topology (all: %i, non-Drude: %i) do not match' % (
                 len(frame.positions), top.n_atom, top.n_atom - len(top.get_drude_pairs())))
         sys.exit(1)
+
+for atom in top.atoms:
+    if args.qscale != 1 and atom.type not in args.scaleignoreatom:
+        atom.charge *= args.qscale
 
 system = System(top, ff)
 system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')
