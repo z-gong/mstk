@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
-import signal
 import random
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kelvin, bar, volt
-from simtk.unit import picosecond as ps, nanometer as nm, angstrom as A
-from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kCal_mol
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import GroReporter, CheckpointReporter, DrudeTemperatureReporter, StateDataReporter
 from mstools.omm import spring_self, wall_lj126, print_omm_info, minimize, energy_decomposition
+from mstools.omm.units import *
+from mstools.omm.utils import CONST
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
-                   dt=0.001, T=333, voltage=0, restart=None):
+                   dt=0.001, T=333, voltage=0, screen=0, restart=None):
     print('Building system...')
     gro = GroFile(gro_file)
     lz = gro.getUnitCellDimensions()[2].value_in_unit(nm)
@@ -42,10 +40,11 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
+    print('Add restraint for MoS2...')
     spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
-                [0.001, 0.001, 5.0] * kCal_mol / A ** 2)
+                [0.001, 0.001, 5.0] * kcal_mol / A ** 2)
     wall = wall_lj126(system, group_ils_drude, 'z', [0, lz / 2],
-                      epsilon=0.5 * kCal_mol, sigma=0.15 * nm)
+                      epsilon=0.5 * kcal_mol, sigma=0.15 * nm)
     print(wall.getEnergyFunction())
 
     ### randomlize particle positions to get ride of overlap
@@ -80,6 +79,22 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         for i in group_ils:
             integrator.addParticleElectrolyte(i)
 
+    ### apply screening between ILs and images
+    if screen != 0:
+        print('Add screening between ILs and images...')
+        tforce = mm.CustomNonbondedForce('-%.6f*q1*q2/r*(1+0.5*screen*r)*exp(-screen*r);'
+                                         'screen=%.4f' % (CONST.ONE_4PI_EPS0, screen))
+        print(tforce.getEnergyFunction())
+        tforce.addPerParticleParameter('q')
+        for i in range(system.getNumParticles()):
+            q, _, _ = nbforce.getParticleParameters(i)
+            tforce.addParticle([q])
+        tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
+        tforce.setCutoffDistance(1.0 * nm)
+        system.addForce(tforce)
+        tforce.addInteractionGroup(set(group_ils), set(group_img))
+        tforce.setForceGroup(9)
+
     print('Initializing simulation...')
     _platform = mm.Platform.getPlatformByName('CUDA')
     _properties = {'CudaPrecision': 'mixed'}
@@ -95,9 +110,11 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         minimize(sim, 100, 'em.gro')
         append = False
 
-    sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
+    sim.reporters.append(
+        app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
     sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils, append=append))
+    sim.reporters.append(
+        GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils, append=append))
     sim.reporters.append(StateDataReporter(sys.stdout, 10000, append=append))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
@@ -107,4 +124,4 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 if __name__ == '__main__':
     print_omm_info()
-    run_simulation(nstep=500000, T=333, voltage=5, restart=None)
+    run_simulation(nstep=500000, T=333, voltage=5, screen=0, restart=None)

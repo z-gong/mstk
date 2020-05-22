@@ -1,8 +1,13 @@
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kelvin, bar, nanometer as nm, picosecond as ps
-from simtk.unit import kilojoule_per_mole as kJ_mol, kilocalorie_per_mole as kcal_mol
+from .units import *
 from .grofile import GroFile
+
+
+class CONST:
+    PI = 3.1415926535
+    EPS0 = 8.8541878128E-12  # F/m
+    ONE_4PI_EPS0 = 138.935455  # qq/r -> kJ/mol
 
 
 def print_omm_info():

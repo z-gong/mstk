@@ -1,10 +1,6 @@
 import simtk.openmm as mm
-from simtk import unit
-from simtk.unit import elementary_charge as qe, nanometer as nm, kilojoule_per_mole as kJ_mol
-
-class _CONST:
-    PI = 3.1415926535
-    EPS0 = 8.8541878128E-12 * unit.farad / unit.meter # vacuum dielectric constant
+from .units import *
+from .utils import CONST
 
 def slab_correction(system: mm.System):
     '''
@@ -30,8 +26,9 @@ def slab_correction(system: mm.System):
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
     # convert from e^2/nm to kJ/mol  # 138.93545915168772
-    _conv = (1 / (4 * _CONST.PI * _CONST.EPS0) * qe ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
-    prefactor = 2 * _CONST.PI / vol * _conv
+    _eps0 = CONST.EPS0 * unit.farad / unit.meter # vacuum dielectric constant
+    _conv = (1 / (4 * CONST.PI * _eps0) * qe ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
+    prefactor = 2 * CONST.PI / vol * _conv
     cvforce = mm.CustomCVForce(f'{prefactor}*muz*muz')
     cvforce.addCollectiveVariable('muz', muz)
     system.addForce(cvforce)
