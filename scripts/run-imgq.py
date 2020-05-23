@@ -107,19 +107,20 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
         energy_decomposition(sim)
-        minimize(sim, 100, 'em.gro')
+        # minimize(sim, 100, 'em.gro')
         append = False
 
-    sim.reporters.append(
-        app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
+    sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
+                                         append=append))
     sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(
-        GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils, append=append))
-    sim.reporters.append(StateDataReporter(sys.stdout, 10000, append=append))
+    sim.reporters.append(GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils,
+                                     append=append))
+    sim.reporters.append(StateDataReporter(sys.stdout, 10000, box=False, append=append))
     sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
     print('Running...')
     sim.runForClockTime(99.9, 'rst.cpt', 'rst.xml', 1)
+    print(sim.currentStep, sim.context.getState().getTime().value_in_unit(ps))
 
 
 if __name__ == '__main__':

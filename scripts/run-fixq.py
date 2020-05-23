@@ -121,6 +121,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
     print('Running...')
     sim.runForClockTime(31.9, 'rst.cpt', 'rst.xml', 1)
+    print(sim.currentStep, sim.context.getState().getTime().value_in_unit(ps))
 
 
 if __name__ == '__main__':

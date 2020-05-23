@@ -440,8 +440,8 @@ def voltage():
         sys.stdout.write('\r    frame %i' % i)
 
         z_to_cathode = frame.positions[:, 2] - args.cathode
-        ids_ils = np.where((z_to_cathode > 0) & (z_to_cathode < lz))
-        z_ils = z_to_cathode[ids_ils]
+        ids_ils = np.where((z_to_cathode > 0.1) & (z_to_cathode < lz - 0.1))[0]
+        z_ils = frame.positions[ids_ils, 2]
         q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
         i_bin_ils = ((z_ils - edges[0]) / dz).astype(int)
         for i, i_bin in enumerate(i_bin_ils):
@@ -499,11 +499,12 @@ def charge_petersen():
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
+
         z_to_cathode = frame.positions[:, 2] - args.cathode
-        ids_ils = np.where((z_to_cathode > 0) & (z_to_cathode < lz))
-        z_ils = z_to_cathode[ids_ils]
+        ids_ils = np.where((z_to_cathode > 0.1) & (z_to_cathode < lz - 0.1))[0]
+        z_to_cathode_ils = z_to_cathode[ids_ils]
         q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
-        q_cathode = np.sum(q_ils * z_ils) / lz \
+        q_cathode = np.sum(q_ils * z_to_cathode_ils) / lz \
                     + args.voltage * area / lz * VACUUM_PERMITTIVITY / ELEMENTARY_CHARGE * NANO
         frame_list.append(i)
         q_cathode_list.append(q_cathode)
