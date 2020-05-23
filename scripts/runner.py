@@ -4,11 +4,10 @@ import sys
 import signal
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kelvin, bar
-from simtk.unit import picosecond as ps, nanometer as nm, kilojoule_per_mole as kJ_mol
 from mstools.omm import OplsPsfFile, GroFile
 from mstools.omm import StateDataReporter, GroReporter, CheckpointReporter, DrudeTemperatureReporter
 from mstools.omm import print_omm_info, apply_mc_barostat, minimize, energy_decomposition
+from mstools.omm.units import *
 
 
 class SignalHandler():
@@ -69,7 +68,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
         energy_decomposition(sim)
-        minimize(sim, 100, 'em.gro')
+        # minimize(sim, 100, 'em.gro')
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
