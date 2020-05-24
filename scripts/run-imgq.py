@@ -39,10 +39,34 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
 
+    ### assign image charges
+    for i in group_img:
+        q, _, _ = nbforce.getParticleParameters(i - group_img[0] + group_ils[0])
+        nbforce.setParticleParameters(i, -q, 1, 0)
+
+    ### apply screening between ils and images
+    if screen != 0:
+        print('Add screening between ILs and images...')
+        tforce = mm.CustomNonbondedForce('-%.6f*q1*q2/r*(1+0.5*screen*r)*exp(-screen*r);'
+                                         'screen=%.4f' % (CONST.ONE_4PI_EPS0, screen))
+        print(tforce.getEnergyFunction())
+        tforce.addPerParticleParameter('q')
+        for i in range(system.getNumParticles()):
+            q, _, _ = nbforce.getParticleParameters(i)
+            tforce.addParticle([q])
+        tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
+        tforce.setCutoffDistance(1.2 * nm)
+        system.addForce(tforce)
+        tforce.addInteractionGroup(set(group_ils), set(group_img))
+        tforce.setForceGroup(9)
+
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     print('Add restraint for MoS2...')
     spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
                 [0.001, 0.001, 5.0] * kcal_mol / A ** 2)
+
+    ### in case Drude particles kiss their images
+    print('Add wall for Drude particles of ILs...')
     wall = wall_lj126(system, group_ils_drude, 'z', [0, lz / 2],
                       epsilon=0.5 * kcal_mol, sigma=0.15 * nm)
     print(wall.getEnergyFunction())
@@ -68,32 +92,12 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     for i in group_img:
         integrator.addImagePair(i, i - group_img[0] + group_ils[0])
         # add fake bond between image and parent so that they are always in the same periodic cell
-        forces['HarmonicBondForce'].addBond(i, i - group_img[0] + group_ils[0], 1, 0)
-    ### assign image charges
-    for i in group_img:
-        charge, sig, eps = nbforce.getParticleParameters(i - group_img[0] + group_ils[0])
-        nbforce.setParticleParameters(i, -charge, 1, 0)
-    ### apply electric field
+        forces['HarmonicBondForce'].addBond(i, i - group_img[0] + group_ils[0], 0, 0)
+    ### apply electric field on ils
     if voltage != 0:
         integrator.setElectricField(voltage / lz * 2 * volt / nm)
         for i in group_ils:
             integrator.addParticleElectrolyte(i)
-
-    ### apply screening between ILs and images
-    if screen != 0:
-        print('Add screening between ILs and images...')
-        tforce = mm.CustomNonbondedForce('-%.6f*q1*q2/r*(1+0.5*screen*r)*exp(-screen*r);'
-                                         'screen=%.4f' % (CONST.ONE_4PI_EPS0, screen))
-        print(tforce.getEnergyFunction())
-        tforce.addPerParticleParameter('q')
-        for i in range(system.getNumParticles()):
-            q, _, _ = nbforce.getParticleParameters(i)
-            tforce.addParticle([q])
-        tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
-        tforce.setCutoffDistance(1.2 * nm)
-        system.addForce(tforce)
-        tforce.addInteractionGroup(set(group_ils), set(group_img))
-        tforce.setForceGroup(9)
 
     print('Initializing simulation...')
     _platform = mm.Platform.getPlatformByName('CUDA')
@@ -107,7 +111,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
         energy_decomposition(sim)
-        # minimize(sim, 100, 'em.gro')
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
@@ -125,4 +128,4 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 if __name__ == '__main__':
     print_omm_info()
-    run_simulation(nstep=500000, T=333, voltage=5, screen=0, restart=None)
+    run_simulation(nstep=int(1E8), T=333, voltage=5, screen=0, restart=None)
