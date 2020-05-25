@@ -1,5 +1,5 @@
 import math
-from .grofile import GroFile
+from .. import GroFile
 
 class GroReporter(object):
     """GroReporter outputs a series of frames from a Simulation to a GRO file.

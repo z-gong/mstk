@@ -4,10 +4,8 @@ import sys
 import signal
 import simtk.openmm as mm
 from simtk.openmm import app
-from mstools.omm import OplsPsfFile, GroFile
-from mstools.omm import StateDataReporter, GroReporter, CheckpointReporter, DrudeTemperatureReporter
-from mstools.omm import print_omm_info, apply_mc_barostat, minimize, energy_decomposition
-from mstools.omm.units import *
+import mstools.ommhelper as oh
+from mstools.ommhelper.unit import *
 
 
 class SignalHandler():
@@ -26,8 +24,8 @@ signal.signal(signal.SIGTERM, sig_handler.sigint_handler)
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
                    dt=0.001, T=300, P=1, tcoupl='langevin', pcoupl='iso', restart=None):
     print('Building system...')
-    gro = GroFile(gro_file)
-    psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
+    gro = oh.GroFile(gro_file)
+    psf = oh.OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True, verbose=True)
@@ -37,8 +35,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     if tcoupl == 'langevin':
         if is_drude:
             print('Drude Langevin thermostat: 5.0 /ps, 20 /ps')
-            integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps,
-                                                    dt * ps)
+            integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, dt * ps)
             integrator.setMaxDrudeDistance(0.02 * nm)
         else:
             print('Langevin thermostat: 1.0 /ps')
@@ -55,7 +52,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         raise Exception('Available thermostat: langevin, nose-hoover')
 
     if pcoupl is not None:
-        apply_mc_barostat(system, pcoupl, P, T)
+        oh.apply_mc_barostat(system, pcoupl, P, T)
 
     _platform = mm.Platform.getPlatformByName('CUDA')
     _properties = {'CudaPrecision': 'mixed'}
@@ -67,16 +64,16 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     else:
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
-        energy_decomposition(sim)
+        oh.energy_decomposition(sim)
         # minimize(sim, 100, 'em.gro')
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
-    sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(GroReporter('dump.gro', 'logfreq', append=append))
-    sim.reporters.append(StateDataReporter(sys.stdout, 1000, box=False, volume=True, append=append))
+    sim.reporters.append(oh.CheckpointReporter('cpt.cpt', 10000))
+    sim.reporters.append(oh.GroReporter('dump.gro', 'logfreq', append=append))
+    sim.reporters.append(oh.StateDataReporter(sys.stdout, 1000, box=False, volume=True, append=append))
     if is_drude:
-        sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 10000, append=append))
+        sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 10000, append=append))
 
     print('Running...')
     i_step = 0
@@ -93,5 +90,5 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 
 if __name__ == '__main__':
-    print_omm_info()
+    oh.print_omm_info()
     run_simulation(nstep=100000, T=300, P=1, tcoupl='langevin', pcoupl='iso', restart=None)

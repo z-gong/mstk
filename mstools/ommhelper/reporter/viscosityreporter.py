@@ -1,5 +1,5 @@
 from simtk.openmm import app
-from simtk import unit
+from ..unit import *
 
 
 class ViscosityReporter(object):
@@ -41,7 +41,7 @@ class ViscosityReporter(object):
             positions should be wrapped to lie in a single periodic box.
         """
         try:
-            simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
+            simulation.integrator.getCosAcceleration()
         except AttributeError:
             raise Exception('This integrator does not calculate viscosity')
 
@@ -62,10 +62,10 @@ class ViscosityReporter(object):
             self._hasInitialized = True
             print('#"Step"\t"Acceleration (nm/ps^2)"\t"VelocityAmplitude (nm/ps)"\t"1/Viscosity (1/Pa.s)"', file=self._out)
 
-        acceleration = simulation.integrator.getCosAcceleration().value_in_unit(unit.nanometer / unit.picosecond**2)
+        acceleration = simulation.integrator.getCosAcceleration().value_in_unit(nm / ps ** 2)
         vMax, invVis = simulation.integrator.getViscosity()
-        vMax = vMax.value_in_unit(unit.nanometer / unit.picosecond)
-        invVis = invVis.value_in_unit((unit.pascal*unit.second)**-1)
+        vMax = vMax.value_in_unit(nm / ps)
+        invVis = invVis.value_in_unit((unit.pascal * unit.second) ** -1)
         print(simulation.currentStep, acceleration, vMax, invVis, sep='\t', file=self._out)
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):

@@ -1,6 +1,6 @@
 import simtk.openmm as mm
-from .units import *
-from .utils import CONST
+from .util import CONST
+from .unit import *
 
 def slab_correction(system: mm.System):
     '''

@@ -1,7 +1,7 @@
 import simtk.openmm as mm
 from simtk.openmm import app
-from .units import *
-from .grofile import GroFile
+from .parser import GroFile
+from .unit import *
 
 
 class CONST:

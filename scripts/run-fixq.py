@@ -5,19 +5,16 @@ import signal
 import random
 import simtk.openmm as mm
 from simtk.openmm import app
-from mstools.omm import OplsPsfFile, GroFile
-from mstools.omm import GroReporter, CheckpointReporter, DrudeTemperatureReporter, StateDataReporter
-from mstools.omm import spring_self, slab_correction, print_omm_info, minimize, energy_decomposition
-from mstools.omm.units import *
-from mstools.omm.utils import CONST
+import mstools.ommhelper as oh
+from mstools.ommhelper.unit import *
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
                    dt=0.001, T=333, thole=0, restart=None):
     print('Building system...')
-    gro = GroFile(gro_file)
+    gro = oh.GroFile(gro_file)
     lz = gro.getUnitCellDimensions()[2].value_in_unit(nm)
-    psf = OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
+    psf = oh.OplsPsfFile(psf_file, periodicBoxVectors=gro.getPeriodicBoxVectors())
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True, verbose=True)
@@ -50,7 +47,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         drude_parent_dict = {pair[1]: pair[0] for pair in psf.drudepair_list}
         tforce = mm.CustomNonbondedForce('-%.6f*q1*q2/r*(1+0.5*screen*r)*exp(-screen*r);'
                                          'screen=%.4f*(alpha1*alpha2)^(-1/6)' % (
-                                             CONST.ONE_4PI_EPS0, thole))
+                                             oh.CONST.ONE_4PI_EPS0, thole))
         print(tforce.getEnergyFunction())
         tforce.addPerParticleParameter('q')
         tforce.addPerParticleParameter('alpha')
@@ -78,12 +75,12 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     print('Add dipole slab correction...')
     for i in range(system.getNumParticles()):
         gro.positions[i] += (0, 0, 1) * nm
-    slab_correction(system)
+    oh.slab_correction(system)
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     print('Add restraint for MoS2 cores...')
-    spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
-                [0.001, 0.001, 5.0] * kcal_mol / A ** 2)
+    oh.spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
+                   [0.001, 0.001, 5.0] * kcal_mol / angstrom ** 2)
 
     ### TGNH thermostat for ils
     # from velocityverletplugin import VVIntegrator
@@ -107,16 +104,16 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     else:
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
-        energy_decomposition(sim)
+        oh.energy_decomposition(sim)
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
                                          append=append))
-    sim.reporters.append(CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils,
-                                     append=append))
-    sim.reporters.append(StateDataReporter(sys.stdout, 10000, append=append, box=False))
-    sim.reporters.append(DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
+    sim.reporters.append(oh.CheckpointReporter('cpt.cpt', 10000))
+    sim.reporters.append(oh.GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils,
+                                        append=append))
+    sim.reporters.append(oh.StateDataReporter(sys.stdout, 10000, append=append, box=False))
+    sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
     print('Running...')
     sim.runForClockTime(31.9, 'rst.cpt', 'rst.xml', 1)
@@ -124,5 +121,5 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
 
 if __name__ == '__main__':
-    print_omm_info()
+    oh.print_omm_info()
     run_simulation(nstep=int(1E8), T=333, thole=0, restart=None)

@@ -6,7 +6,6 @@ from simtk.unit import kilojoule_per_mole, kilocalorie_per_mole
 
 ps = picosecond
 nm = nanometer
-A = angstrom
 kJ_mol = kilojoule_per_mole
 kcal_mol = kilocalorie_per_mole
 qe = elementary_charge

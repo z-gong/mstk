@@ -1,8 +1,7 @@
+import numpy as np
 import simtk.openmm as mm
 from simtk.openmm.app import Simulation, Topology
-from simtk import unit
-from simtk.unit import kelvin, kilojoule_per_mole as kJ_mol
-import numpy as np
+from ..unit import *
 
 class DrudeTemperatureReporter(object):
     """
