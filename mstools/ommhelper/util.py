@@ -1,6 +1,6 @@
 import simtk.openmm as mm
 from simtk.openmm import app
-from .parser import GroFile
+from .grofile import GroFile
 from .unit import *
 
 
