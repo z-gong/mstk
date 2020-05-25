@@ -65,7 +65,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
         oh.energy_decomposition(sim)
-        # minimize(sim, 100, 'em.gro')
+        # oh.minimize(sim, 100, 'em.gro')
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
