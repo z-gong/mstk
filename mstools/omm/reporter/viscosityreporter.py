@@ -6,7 +6,7 @@ class ViscosityReporter(object):
     """ViscosityReporter report the viscosity with cosine periodic perturbation method
     """
 
-    def __init__(self, file, reportInterval):
+    def __init__(self, file, reportInterval, append=False):
         """Create a PDBReporter.
 
         Parameters
@@ -17,7 +17,10 @@ class ViscosityReporter(object):
             The interval (in time steps) at which to write frames
         """
         self._reportInterval = reportInterval
-        self._out = open(file, 'w')
+        if append:
+            self._out = open(file, 'a')
+        else:
+            self._out = open(file, 'w')
         self._hasInitialized = False
 
     def describeNextReport(self, simulation):
