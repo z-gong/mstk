@@ -64,9 +64,11 @@ class UnitCell():
     @staticmethod
     def _reduce_box_vectors(vectors):
         '''
-        transform the orientations so that a0 > 2*b0, a0 > 2*c0, b1 > 2*c1
+        transform the orientations so that a0 >= 2*b0, a0 >= 2*c0, b1 >= 2*c1
         '''
         a, b, c = vectors
+        if a[0] >= 2 * b[0] and a[0] >= 2 * c[0] and b[1] >= 2 * c[1]:
+            return
         c -= b * round(c[1] / b[1])
         c -= a * round(c[0] / a[0])
         b -= a * round(b[0] / a[0])
