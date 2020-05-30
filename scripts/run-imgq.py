@@ -77,9 +77,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     cforce.addInteractionGroup(set(group_img), set(group_ils))
     cforce.addInteractionGroup(set(group_mos + group_ils), set(group_mos + group_ils))
 
-    ### TGNH thermostat for ils
+    ### velocity-Verlet-middle integrator
     from velocityverletplugin import VVIntegrator
     integrator = VVIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 40 / ps, dt * ps)
+    integrator.setUseMiddleScheme(True)
     integrator.setMaxDrudeDistance(0.02 * nm)
     ### thermostat MoS2 by Langevin dynamics
     for i in group_mos:
@@ -120,7 +121,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
 
     print('Running...')
     sim.runForClockTime(99.9, 'rst.cpt', 'rst.xml', 1)
-    print(sim.currentStep, sim.context.getState().getTime().value_in_unit(ps))
+    print('# clock time limit: step= %i time= %f' % (
+        sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
 
 
 if __name__ == '__main__':

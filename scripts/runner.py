@@ -80,7 +80,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     i_step = 0
     while i_step < nstep:
         if sig_handler.SIGINT:
-            print('# SIGINT step= %i time= %f' % (
+            print('# interrupted: step= %i time= %f' % (
                 sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
             break
         sim.step(100)
