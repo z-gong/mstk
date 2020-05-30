@@ -99,8 +99,12 @@ class GromacsExporter():
             string += ';%5s %10s %6s %10s %6s %6s %12s %10s\n' % (
                 'nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass')
             for j, atom in enumerate(mol.atoms):
+                # GROMACS use SCF approach for Drude simulation. Set mass of Drude to zero
+                mass = 0 if atom.is_drude else atom.mass
+                if atom in system.drude_pairs:
+                    mass += system.drude_pairs[atom].mass
                 string += '%6i %10s %6i %10s %6s %6i %12.6f %10.4f\n' % (
-                    j + 1, atom.type, 1, mol.name, atom.symbol, j+1, atom.charge, atom.mass)
+                    j + 1, atom.type, 1, mol.name, atom.symbol, j+1, atom.charge, mass)
 
             string += '\n[ pairs ]\n'
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
@@ -263,18 +267,20 @@ nstxout-compressed = 1000
 compressed-x-grps  = System
 
 cutoff-scheme   = Verlet
-rlist           = 1.2
+pbc             = xyz
+; rlist           = 1.2
 coulombtype     = PME
 rcoulomb        = 1.2
+vdwtype         = Cut-off
 rvdw            = 1.2
 DispCorr        = EnerPres
 
-Tcoupl          = no; v-rescale
+tcoupl          = no; v-rescale
 tc_grps         = System
 tau_t           = {tau_t}
 ref_t           = 300
 
-Pcoupl          = berendsen ; parrinello-rahman
+pcoupl          = berendsen ; parrinello-rahman
 pcoupltype      = isotropic
 tau_p           = 0.5; 5
 compressibility = 4.5e-5
