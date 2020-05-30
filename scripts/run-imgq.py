@@ -113,8 +113,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
                                          append=append))
     sim.reporters.append(oh.CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(oh.GroReporter('dump.gro', 'logfreq', subset=group_mos + group_ils,
-                                        append=append))
+    sim.reporters.append(oh.GroReporter('dump.gro', 1000, logarithm=True,
+                                        subset=group_mos + group_ils, append=append))
     sim.reporters.append(oh.StateDataReporter(sys.stdout, 10000, box=False, append=append))
     sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 

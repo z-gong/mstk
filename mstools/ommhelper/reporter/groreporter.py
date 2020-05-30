@@ -5,16 +5,18 @@ class GroReporter(object):
     """GroReporter outputs a series of frames from a Simulation to a GRO file.
     """
 
-    def __init__(self, file, reportInterval, enforcePeriodicBox=False, subset=None, reportVelocity=False, append=False):
+    def __init__(self, file, reportInterval, logarithm=False, enforcePeriodicBox=False, subset=None, reportVelocity=False, append=False):
         """Create a GroReporter.
 
         Parameters
         ----------
         file : string
             The file to write to
-        reportInterval : int, str
+        reportInterval : int
             The interval (in time steps) at which to write frames
-            if set to "logfreq", then write trajectory at [10, 20, 30, ..., 90, 100, 200, ..., 900, 1000, 2000, ...]
+        logarithm : bool
+            if set to True, then write trajectory at logarithm interval. reportInterval will be the minimum step for reporting.
+            e.g. when reportInterval set to 30, then report at [30, 40, 50, ..., 90, 100, 200, ..., 900, 1000, 2000, ...]
         enforcePeriodicBox: bool
             Specifies whether particle positions should be translated so the center of every molecule
             lies in the same periodic box.  If None (the default), it will automatically decide whether
@@ -27,9 +29,8 @@ class GroReporter(object):
         append: bool
             If set to True, will append to file
         """
-        if not (type(reportInterval) is int or reportInterval=='logfreq'):
-            raise ValueError('reportInterval should be a integer or "logfreq"')
         self._reportInterval = reportInterval
+        self._logarithm = logarithm
         self._enforcePeriodicBox = enforcePeriodicBox
         if append:
             self._out = open(file, 'a')
@@ -59,14 +60,14 @@ class GroReporter(object):
             energies respectively.  The final element specifies whether
             positions should be wrapped to lie in a single periodic box.
         """
-        if type(self._reportInterval) is int:
-            steps = self._reportInterval - simulation.currentStep % self._reportInterval
-        else:
-            if simulation.currentStep < 10:
-                _base = 10
+        if self._logarithm:
+            if simulation.currentStep < self._reportInterval:
+                _base = self._reportInterval
             else:
                 _base = 10 ** math.floor(math.log10(simulation.currentStep))
             steps = _base - simulation.currentStep % _base
+        else:
+            steps = self._reportInterval - simulation.currentStep % self._reportInterval
 
         return (steps, True, self._reportVelocity, False, False, self._enforcePeriodicBox)
 

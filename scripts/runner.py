@@ -16,11 +16,6 @@ class SignalHandler():
         self.SIGINT = True
 
 
-sig_handler = SignalHandler()
-signal.signal(signal.SIGINT, sig_handler.sigint_handler)
-signal.signal(signal.SIGTERM, sig_handler.sigint_handler)
-
-
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
                    dt=0.001, T=300, P=1, tcoupl='langevin', pcoupl='iso', restart=None):
     print('Building system...')
@@ -35,7 +30,8 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     if tcoupl == 'langevin':
         if is_drude:
             print('Drude Langevin thermostat: 5.0 /ps, 20 /ps')
-            integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps, dt * ps)
+            integrator = mm.DrudeLangevinIntegrator(T * kelvin, 5.0 / ps, 1 * kelvin, 20 / ps,
+                                                    dt * ps)
             integrator.setMaxDrudeDistance(0.02 * nm)
         else:
             print('Langevin thermostat: 1.0 /ps')
@@ -68,23 +64,27 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         # oh.minimize(sim, 100, 'em.gro')
         append = False
 
-    sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
+    sim.reporters.append(
+        app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False, append=append))
     sim.reporters.append(oh.CheckpointReporter('cpt.cpt', 10000))
-    sim.reporters.append(oh.GroReporter('dump.gro', 'logfreq', append=append))
-    sim.reporters.append(oh.StateDataReporter(sys.stdout, 1000, box=False, volume=True, append=append))
+    sim.reporters.append(oh.GroReporter('dump.gro', 1000, logarithm=True, append=append))
+    sim.reporters.append(
+        oh.StateDataReporter(sys.stdout, 1000, box=False, volume=True, append=append))
     if is_drude:
         sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 10000, append=append))
 
     print('Running...')
+    sig_handler = SignalHandler()
+    signal.signal(signal.SIGINT, sig_handler.sigint_handler)
+    signal.signal(signal.SIGTERM, sig_handler.sigint_handler)
     i_step = 0
     while i_step < nstep:
         if sig_handler.SIGINT:
-            sim.saveCheckpoint('rst.cpt')
             print('# SIGINT step= %i time= %f' % (
                 sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
             break
-        sim.step(10)
-        i_step += 10
+        sim.step(100)
+        i_step += 100
     sim.saveCheckpoint('rst.cpt')
     sim.saveState('rst.xml')
 
