@@ -18,11 +18,11 @@ plt.rcParams.update({'font.size': 15})
 from mstools.utils import histogram, print_data_to_file
 from mstools.topology import Atom, Molecule, Topology
 from mstools.trajectory import Trajectory
-from mstools.constant import VACUUM_PERMITTIVITY, ELEMENTARY_CHARGE, NANO
+from mstools.constant import *
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',
-                                    'chargeconp'],
+                                    'chargeconp', 'epsilon'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -350,8 +350,9 @@ def drude_dipole():
             z_abs_dipoles[idx].append(abs_dipole)
             z_distances[idx].append(dist)
 
-    z_dipole = np.array([np.sum(dipoles, axis=0) / n_frame if len(dipoles) > 0 else np.array([0., 0., 0.])
-                         for dipoles in z_dipoles])
+    z_dipole = np.array(
+        [np.sum(dipoles, axis=0) / n_frame if len(dipoles) > 0 else np.array([0., 0., 0.])
+         for dipoles in z_dipoles])
     z_distance = np.array([np.mean(distances) if len(distances) > 0 else 0
                            for distances in z_distances])
     z_abs_dipole = np.array([np.sum(abs_dipoles) / n_frame if len(abs_dipoles) > 0 else 0
@@ -541,6 +542,43 @@ def charge_conp():
         np.mean(qtot_list) * _conv / 1000 * lz * NANO / VACUUM_PERMITTIVITY))
 
 
+def permittivity():
+    '''
+    Calculate the static relative permittivity from the fluctuation of dipole
+    \eps_r = 1 + (<M^2> - <M>^2) / (3VkT 4\pi\eps_0)
+    '''
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    t_list = []
+    dipoles: [float] = []
+    n_frame = 0
+    for i in range(args.begin, args.end, args.skip):
+        n_frame += 1
+        frame = trj.read_frame(i)
+        sys.stdout.write('\r    frame %i' % i)
+
+        if frame.time != -1:
+            t_list.append(frame.time / 1E3)  # convert ps to ns
+        else:
+            t_list.append(i * args.dt / 1E3)
+
+        charges = frame.charges if frame.has_charge else top_atom_charges
+        dipole = np.sum(frame.positions * np.transpose([charges] * 3), axis=0)
+        dipoles.append(np.sqrt(dipole.dot(dipole)))
+
+    eps_list = [1 + np.var(dipoles[: i + 1]) * (ELEMENTARY_CHARGE * NANO) ** 2 \
+                / (3 * frame0.cell.volume * NANO ** 3) \
+                / (8.314 * 298 / AVOGADRO) \
+                / (4 * PI * VACUUM_PERMITTIVITY)
+                for i in range(n_frame)]
+
+    print('\nRelative permittivity = ', eps_list[-1])
+
+    fig, ax = plt.subplots()
+    ax.set(xlim=[0, t_list[-1]], xlabel='time (ns)', ylabel='rolling relative permittivity')
+    ax.plot(t_list, eps_list)
+    fig.savefig('permittivity-%s.png' % args.output)
+
+
 if __name__ == '__main__':
     if args.cmd == 'dist':
         distribution()
@@ -556,3 +594,5 @@ if __name__ == '__main__':
         charge_petersen()
     elif args.cmd == 'chargeconp':
         charge_conp()
+    elif args.cmd == 'epsilon':
+        permittivity()
