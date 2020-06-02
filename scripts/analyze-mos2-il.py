@@ -576,7 +576,11 @@ def permittivity():
     fig, ax = plt.subplots()
     ax.set(xlim=[0, t_list[-1]], xlabel='time (ns)', ylabel='rolling relative permittivity')
     ax.plot(t_list, eps_list)
-    fig.savefig('permittivity-%s.png' % args.output)
+    fig.savefig(f'{args.output}-permittivity.png')
+
+    name_column_dict = {'time'        : t_list,
+                        'permittivity': eps_list}
+    print_data_to_file(name_column_dict, f'{args.output}-permittivity.txt')
 
 
 if __name__ == '__main__':
