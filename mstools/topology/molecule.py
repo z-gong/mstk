@@ -3,6 +3,7 @@ import itertools
 import copy
 import numpy as np
 from .atom import Atom
+from .virtualsite import *
 from .connectivity import *
 from .unitcell import UnitCell
 from ..forcefield import ForceField, Element
@@ -27,6 +28,9 @@ class Molecule():
         return f'<Molecule: {self.name} {self.id}>'
 
     def __deepcopy__(self, memodict={}):
+        '''
+        If there are virtual sites, they will be constructed with new atoms also
+        '''
         mol = Molecule()
         mol.id = self.id
         mol.name = self.name
@@ -57,6 +61,14 @@ class Molecule():
             idx3 = improper.atom3._id_in_molecule
             idx4 = improper.atom4._id_in_molecule
             mol.add_improper(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
+
+        for i, atom in enumerate(self._atoms):
+            vsite = atom.virtual_site
+            if vsite is not None:
+                new_atom = mol.atoms[i]
+                new_parents =[mol.atoms[p.id_in_molecule] for p in vsite.parents]
+                new_atom.virtual_site = create_virtual_site(vsite.type, new_parents, vsite.parameters)
+
         return mol
 
     @staticmethod
@@ -546,9 +558,9 @@ class Molecule():
             alpha = pterm.alpha + n_H * pterm.merge_alpha_H
             drude.charge = - pterm.get_charge(alpha)
             parent.charge += pterm.get_charge(alpha)
-            # store _alpha and _thole for PSF exporting
-            parent._alpha = alpha
-            parent._thole = pterm.thole
+            # update alpha and thole for Drude parent particle
+            parent.alpha = alpha
+            parent.thole = pterm.thole
 
             if parent.has_position:
                 # make sure Drude and parent atom do not overlap. max deviation 0.005 nm
@@ -699,6 +711,6 @@ class Molecule():
             alpha = pterm.alpha + n_H * pterm.merge_alpha_H
             drude.charge = -pterm.get_charge(alpha)
             parent.charge += pterm.get_charge(alpha)
-            # store _alpha and _thole for PSF exporting
-            parent._alpha = alpha
-            parent._thole = pterm.thole
+            # update alpha and thole for Drude parent particle
+            parent.alpha = alpha
+            parent.thole = pterm.thole

@@ -94,8 +94,8 @@ class Psf(Topology):
             atom.mass = mass
             atom.type = atom_type
             atom._mol_id = mol_id  # temporary attribute for identifying molecules
-            atom._alpha = -alpha / 1000  # convert A^3 to nm^3
-            atom._thole = thole * 2
+            atom.alpha = -alpha / 1000  # convert A^3 to nm^3
+            atom.thole = thole * 2
             if parse_drude and atom.type.startswith('D'):
                 atom.is_drude = True
                 atom.symbol = 'DP'
@@ -181,7 +181,7 @@ class Psf(Topology):
         for i, atom in enumerate(top.atoms):
             line = '%7i  S  %4i %8s %8s %8s %10.6f %8.4f %4i %8.4f %8.4f\n' % (
                 atom.id + 1, atom.molecule.id + 1, atom.molecule.name, atom.name, atom.type,
-                atom.charge, atom.mass, 0, -atom._alpha * 1000, atom._thole / 2
+                atom.charge, atom.mass, 0, -atom.alpha * 1000, atom.thole / 2
             )
             f.write(line)
         f.write('\n')

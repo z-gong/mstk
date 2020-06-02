@@ -62,6 +62,3 @@ def test_write():
 
     spce = ForceField.open(cwd + '/files/SPCE.ppf')
     spce.write(cwd + '/files/out-SPCE.zfp')
-
-mgi = ForceField.open(cwd + '/files/dump-MGI.ppf')
-mgi.write(cwd + '/files/out-MGI.zfp')

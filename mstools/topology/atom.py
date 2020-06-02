@@ -9,15 +9,16 @@ class Atom():
         self.symbol = 'UNK'
         self.mass = 0.
         self.charge = 0.
+        self.alpha = 0.  # isotropic polarizability
+        self.thole = 0.  # thole screening for induced dipole
         self.formal_charge = 0.
         self.is_drude = False  # this is a Drude particle for polarizable model
+        self.virtual_site = None  # this is a virtual site
         self.has_position = False
         self._position = np.zeros(3, dtype=np.float32)
         self._molecule = None
         self._bonds = []
         self._id_in_molecule = -1
-        self._alpha = 0.  # only for PSF export if this is a parent atom for Drude model
-        self._thole = 0.  # only for PSF export if this is a parent atom for Drude model
 
     def __repr__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -29,6 +30,10 @@ class Atom():
         return self.id > other.id
 
     def __deepcopy__(self, memodict={}):
+        '''
+        VirtualSite information is not copied
+        Because it makes no sense to have a single VirtualSite atom without the knowledge of parent atoms
+        '''
         atom = Atom()
         atom.id = self.id
         atom.name = self.name
@@ -40,8 +45,8 @@ class Atom():
         atom.is_drude = self.is_drude
         atom.has_position = self.has_position
         atom._position[:] = self._position[:]
-        atom._alpha = self._alpha
-        atom._thole = self._thole
+        atom.alpha = self.alpha
+        atom.thole = self.thole
         return atom
 
     @property

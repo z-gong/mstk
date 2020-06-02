@@ -222,6 +222,10 @@ class Topology():
     def is_drude(self):
         return any(atom.is_drude for atom in self._atoms)
 
+    @property
+    def has_virtual_site(self):
+        return any(atom.virtual_site is not None for atom in self._atoms)
+
     @staticmethod
     def open(file, **kwargs):
         from .psf import Psf

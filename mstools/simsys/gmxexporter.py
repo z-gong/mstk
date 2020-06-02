@@ -129,7 +129,7 @@ class GromacsExporter():
                 for parent, drude in drude_pairs.items():
                     string += '%5d %5d   %4d  %9.6f  %7.4f  %9.4e\n' % (
                         parent.id_in_molecule + 1, drude.id_in_molecule + 1,
-                        2, parent._alpha, 0.02, 16.768e8)
+                        2, parent.alpha, 0.02, 16.768e8)
 
                 string += '\n[ thole_polarization ]\n'
                 string += ';  ai    aj    ak    al   func   thole   alpha1   alpha2\n'
@@ -138,7 +138,7 @@ class GromacsExporter():
                         string += '%5i %5i %5i %5i   %4i   %9.5f  %9.6f  %9.6f\n' % (
                             a1.id_in_molecule + 1, drude_pairs[a1].id_in_molecule + 1,
                             a2.id_in_molecule + 1, drude_pairs[a2].id_in_molecule + 1,
-                            1, (a1._thole + a2._thole) / 2, a1._alpha, a2._alpha)
+                            1, (a1.thole + a2.thole) / 2, a1.alpha, a2.alpha)
 
             string += '\n[ constraints ]\n'
             for bond in mol.bonds:

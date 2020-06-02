@@ -232,14 +232,14 @@ read_data data.lmp
                         continue
                     cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
                         i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                        math.sqrt(a1._alpha * a2._alpha) * 1000, (a1._thole + a2._thole) / 2,
+                        math.sqrt(a1.alpha * a2.alpha) * 1000, (a1.thole + a2.thole) / 2,
                         lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
             for i, (typ, atom) in enumerate(lmp_types_parent.items()):
                 ii = i + len(lmp_types_real)
                 vdw = ff.get_vdw_term(atype_drude, atype_drude)
                 cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
                     ii + 1, ii + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                    atom._alpha * 1000, atom._thole,
+                    atom.alpha * 1000, atom.thole,
                     lmp_type_list[ii], lmp_type_list[ii], ','.join(vdw.comments))
 
             string += f'''
