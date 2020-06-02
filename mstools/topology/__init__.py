@@ -1,5 +1,5 @@
 from .atom import Atom
-from .virtualsite import VirtualSite
+from .virtualsite import *
 from .connectivity import *
 from .molecule import  Molecule
 from .topology import Topology
