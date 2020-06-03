@@ -548,19 +548,13 @@ def permittivity():
     \eps_r = 1 + (<M^2> - <M>^2) / (3VkT 4\pi\eps_0)
     '''
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
-    t_list = []
+    frame_list = []
     dipoles: [float] = []
-    n_frame = 0
     for i in range(args.begin, args.end, args.skip):
-        n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        if frame.time != -1:
-            t_list.append(frame.time / 1E3)  # convert ps to ns
-        else:
-            t_list.append(i * args.dt / 1E3)
-
+        frame_list.append(i)
         charges = frame.charges if frame.has_charge else top_atom_charges
         dipole = np.sum(frame.positions * np.transpose([charges] * 3), axis=0)
         dipoles.append(np.sqrt(dipole.dot(dipole)))
@@ -569,16 +563,12 @@ def permittivity():
                 / (3 * frame0.cell.volume * NANO ** 3) \
                 / (8.314 * 298 / AVOGADRO) \
                 / (4 * PI * VACUUM_PERMITTIVITY)
-                for i in range(n_frame)]
+                for i in range(len(frame_list))]
 
     print('\nRelative permittivity = ', eps_list[-1])
 
-    fig, ax = plt.subplots()
-    ax.set(xlim=[0, t_list[-1]], xlabel='time (ns)', ylabel='rolling relative permittivity')
-    ax.plot(t_list, eps_list)
-    fig.savefig(f'{args.output}-permittivity.png')
-
-    name_column_dict = {'time'        : t_list,
+    name_column_dict = {'frame'        : frame_list,
+                        'dipole'      : dipoles,
                         'permittivity': eps_list}
     print_data_to_file(name_column_dict, f'{args.output}-permittivity.txt')
 
