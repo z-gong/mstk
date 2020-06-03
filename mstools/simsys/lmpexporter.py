@@ -64,8 +64,8 @@ class LammpsExporter():
         lmp_symbol_list += [atom.symbol or 'UNK' for atom in lmp_types_drude.values()]
         fix_drude_list = ['C' if t in lmp_types_parent else 'D' if t in lmp_types_drude else 'N'
                           for t in lmp_type_list]
-        lmp_shake_bonds = [i for i, bterm in enumerate(bond_types) if bterm.fixed]
-        lmp_shake_angles = [i for i, aterm in enumerate(angle_types) if aterm.fixed]
+        lmp_shake_bonds = [i + 1 for i, bterm in enumerate(bond_types) if bterm.fixed]
+        lmp_shake_angles = [i + 1 for i, aterm in enumerate(angle_types) if aterm.fixed]
         #############################################################
 
         string = 'Created by mstools\n'
