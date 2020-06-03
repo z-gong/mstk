@@ -50,19 +50,26 @@
     <PeriodicDihedralTerm k_1="3.1665" k_2="-1.3472" k_3="1.7138" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="CT" type2="o_2" type3="CT" type4="HC"/>
     <PeriodicDihedralTerm k_1="-3.7493" k_2="-0.7142" k_3="0.9092" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="HC" type2="CT" type3="CT" type4="o_2"/>
     <PeriodicDihedralTerm k_1="2.5999" k_2="0.2121" k_3="0.2879" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="*" type2="CT" type3="CT" type4="*"/>
+    <!-- added for benzyl-imidazolium -->
+    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CT" type4="NA"/>
+    <PeriodicDihedralTerm k_1="-3.5768" k_2="3.0532" k_3="0.3970" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="CA" type2="CT" type3="NA" type4="CW"/>
+    <PeriodicDihedralTerm k_1="-2.6345" phi_1="0.0" type1="CR" type2="NA" type3="CT" type4="CA"/>
+    <!-- added for 2-hydroxyethyl-imidazolium-->
+    <PeriodicDihedralTerm k_1="-22.0257" k_2="-2.7174" phi_1="0.0" phi_2="180.0" type1="NA" type2="CT" type3="CT" type4="OH"/>
   </DihedralTerms>
   <ImproperTerms>
     <OplsImproperTerm k="4.6024" type1="CW" type2="CT" type3="CW" type4="NA"/>
   </ImproperTerms>
   <PolarizableTerms>
-    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="CAP"/>
-    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="CAM"/>
-    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="CAO"/>
-    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="CAT"/>
-    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="CTT"/>
-    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="C_4H2_CA"/>
-    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="C_4H2_CW"/>
-    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="C_4H2_NA"/>
-    <DrudeTerm alpha="0.001144" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="2.6" type="o_2"/>
+    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="CAP"/>
+    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="CAM"/>
+    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="CAO"/>
+    <DrudeTerm alpha="0.001122" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="CAT"/>
+    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="CTT"/>
+    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="C_4H2_CA"/>
+    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="C_4H2_CW"/>
+    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="C_4H2_NA"/>
+    <DrudeTerm alpha="0.001144" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="o_2"/>
+    <DrudeTerm alpha="0.001016" k="209200.0" mass="0.4" merge_alpha_H="0.000323" thole="1.8" type="C1T"/>
   </PolarizableTerms>
 </ForceFieldTerms>
