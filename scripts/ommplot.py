@@ -19,14 +19,15 @@ args = parser.parse_args()
 
 
 def read_log(log_file):
-    types: [str] = []
+    labels: [str] = []
     data_list: [[float]] = []
     _START = False
     for line in open(log_file):
         if line.startswith('#"'):
-            types = [s.strip('"') for s in line.strip('#').strip().split('\t')]
-            data_list = [[] for _ in types]
-            _START = True
+            if not _START:
+                labels = [s.strip('"') for s in line.strip('#').strip().split('\t')]
+                data_list = [[] for _ in labels]
+                _START = True
             continue
         if _START:
             words = line.strip().split()
@@ -38,9 +39,9 @@ def read_log(log_file):
                 continue
             if args.end > 0 and step > args.end:
                 break
-            for i in range(len(types)):
+            for i in range(len(labels)):
                 data_list[i].append(float(words[i]))
-    return types, data_list
+    return labels, data_list
 
 
 def detect_converge(data_list, when_list):
@@ -112,10 +113,10 @@ def plot_data(types, data, when_list):
 
 
 if __name__ == '__main__':
-    types, data = read_log(args.input)
+    labels, data = read_log(args.input)
     when_list = [0] * len(data)
     if args.converge:
         detect_converge(data, when_list)
-    show_data(types, data, when_list)
+    show_data(labels, data, when_list)
     if args.plot:
-        plot_data(types, data, when_list)
+        plot_data(labels, data, when_list)

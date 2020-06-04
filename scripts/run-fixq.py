@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import signal
 import random
 import simtk.openmm as mm
 from simtk.openmm import app
@@ -18,27 +17,29 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True, verbose=True)
-    forces = {force.__class__.__name__: force for force in system.getForces()}
-    nbforce: mm.NonbondedForce = forces['NonbondedForce']
-    cforce: mm.CustomNonbondedForce = forces['CustomNonbondedForce']
+    nbforce = next(f for f in system.getForces() if type(f) == mm.NonbondedForce)
+    is_drude = any(type(f) == mm.DrudeForce for f in system.getForces())
 
     ### assign groups
     atoms = list(psf.topology.atoms())
     group_mos = [atom.index for atom in atoms if atom.residue.name == 'MoS2']
-    group_mos_core = [atom.index for atom in atoms if
-                      atom.residue.name == 'MoS2' and not atom.name.startswith('D')]
+    group_mos_core = [i for i in group_mos if not atoms[i].name.startswith('D')]
     group_img = [atom.index for atom in atoms if atom.residue.name == 'IMG']
     group_ils = [atom.index for atom in atoms if atom.residue.name not in ['MoS2', 'IMG']]
-    group_ils_drude = [atom.index for atom in atoms if
-                       atom.residue.name not in ['MoS2', 'IMG'] and atom.name.startswith('D')]
-    group_ils_not_H = [atom.index for atom in atoms if
-                       atom.residue.name not in ['MoS2', 'IMG'] and not atom.name.startswith('H')]
+    group_ils_not_H = [i for i in group_ils if not atoms[i].name.startswith('H')]
     print('Assigning groups...')
     print('    Number of atoms in group %10s: %i' % ('mos', len(group_mos)))
     print('    Number of atoms in group %10s: %i' % ('ils', len(group_ils)))
     print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
     print('    Number of atoms in group %10s: %i' % ('ils_not_H', len(group_ils_not_H)))
+
+    ### apply TT damping for CLPol force field
+    donors = [atom.idx for atom in psf.atom_list if atom.attype == 'HO']
+    if is_drude and len(donors) > 0:
+        print('Add TT damping between HO and Drude dipoles')
+        ttforce = oh.CLPolCoulTT(system, donors)
+        print(ttforce.getEnergyFunction())
 
     ### apply Thole screening between ILs and MoS2
     if thole != 0:
@@ -67,9 +68,9 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
             tforce.addParticle([q, alpha])
         tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
         tforce.setCutoffDistance(1.2 * nm)
-        system.addForce(tforce)
         tforce.addInteractionGroup(set(group_mos), set(group_ils_not_H))
         tforce.setForceGroup(9)
+        system.addForce(tforce)
 
     ### apply slab correction, need to move all atoms to primary cell
     print('Add dipole slab correction...')
@@ -80,7 +81,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     print('Add restraint for MoS2 cores...')
     oh.spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
-                   [0.001, 0.001, 5.0] * kcal_mol / angstrom ** 2)
+                   [0.01, 0.01, 5.0] * kcal_mol / angstrom ** 2)
 
     ### velocity-Verlet-middle integrator
     # from velocityverletplugin import VVIntegrator
@@ -105,7 +106,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     else:
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
-        oh.energy_decomposition(sim)
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
@@ -117,6 +117,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
     print('Running...')
+    oh.energy_decomposition(sim)
     sim.runForClockTime(31.9, 'rst.cpt', 'rst.xml', 1)
     print('# clock time limit: step= %i time= %f' % (
         sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))

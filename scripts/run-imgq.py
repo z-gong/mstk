@@ -17,29 +17,40 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     prm = app.CharmmParameterSet(prm_file)
     system = psf.createSystem(prm, nonbondedMethod=app.PME, nonbondedCutoff=1.2 * nm,
                               constraints=app.HBonds, rigidWater=True, verbose=True)
-    forces = {force.__class__.__name__: force for force in system.getForces()}
-    nbforce = forces['NonbondedForce']
-    cforce = forces['CustomNonbondedForce']
+    nbforce = next(f for f in system.getForces() if type(f) == mm.NonbondedForce)
+    ljforce = next(f for f in system.getForces() if type(f) == mm.CustomNonbondedForce)
+    bforce = next(f for f in system.getForces() if type(f) == mm.HarmonicBondForce)
+    is_drude = any(type(f) == mm.DrudeForce for f in system.getForces())
 
     ### assign groups
     atoms = list(psf.topology.atoms())
     group_mos = [atom.index for atom in atoms if atom.residue.name == 'MoS2']
-    group_mos_core = [atom.index for atom in atoms if
-                      atom.residue.name == 'MoS2' and not atom.name.startswith('D')]
+    group_mos_core = [i for i in group_mos if not atoms[i].name.startswith('D')]
     group_img = [atom.index for atom in atoms if atom.residue.name == 'IMG']
     group_ils = [atom.index for atom in atoms if atom.residue.name not in ['MoS2', 'IMG']]
-    group_ils_drude = [atom.index for atom in atoms if
-                       atom.residue.name not in ['MoS2', 'IMG'] and atom.name.startswith('D')]
+    group_ils_drude = [i for i in group_ils if atoms[i].name.startswith('D')]
+    image_pairs = list(zip(group_ils, group_img))
     print('Assigning groups...')
     print('    Number of atoms in group %10s: %i' % ('mos', len(group_mos)))
     print('    Number of atoms in group %10s: %i' % ('ils', len(group_ils)))
     print('    Number of atoms in group %10s: %i' % ('img', len(group_img)))
     print('    Number of atoms in group %10s: %i' % ('mos_core', len(group_mos_core)))
 
+    ### apply TT damping for CLPol force field
+    donors = [atom.idx for atom in psf.atom_list if atom.attype == 'HO']
+    if is_drude and len(donors) > 0:
+        print('Add TT damping between HO and Drude dipoles')
+        ttforce = oh.CLPolCoulTT(system, donors)
+        print(ttforce.getEnergyFunction())
+
     ### assign image charges
-    for i in group_img:
-        q, _, _ = nbforce.getParticleParameters(i - group_img[0] + group_ils[0])
-        nbforce.setParticleParameters(i, -q, 1, 0)
+    for parent, image in image_pairs:
+        q, _, _ = nbforce.getParticleParameters(parent)
+        nbforce.setParticleParameters(image, -q, 1, 0)
+
+    ### eliminate the interactions between images and MoS2
+    ljforce.addInteractionGroup(set(group_img), set(group_ils))
+    ljforce.addInteractionGroup(set(group_mos + group_ils), set(group_mos + group_ils))
 
     ### apply screening between ils and images
     if screen != 0:
@@ -53,14 +64,14 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
             tforce.addParticle([q])
         tforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
         tforce.setCutoffDistance(1.2 * nm)
-        system.addForce(tforce)
         tforce.addInteractionGroup(set(group_ils), set(group_img))
         tforce.setForceGroup(9)
+        system.addForce(tforce)
 
     ### restrain the movement of MoS2 cores (Drude particles are free if exist)
     print('Add restraint for MoS2...')
     oh.spring_self(system, gro.positions.value_in_unit(nm), group_mos_core,
-                   [0.001, 0.001, 5.0] * kcal_mol / angstrom ** 2)
+                   [0.01, 0.01, 5.0] * kcal_mol / angstrom ** 2)
 
     ### in case Drude particles kiss their images
     print('Add wall for Drude particles of ILs...')
@@ -73,10 +84,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     for i in range(system.getNumParticles()):
         gro.positions[i] += (random.random(), random.random(), random.random()) * nm / 1000
 
-    ### eliminate the interactions between images and MoS2
-    cforce.addInteractionGroup(set(group_img), set(group_ils))
-    cforce.addInteractionGroup(set(group_mos + group_ils), set(group_mos + group_ils))
-
     ### velocity-Verlet-middle integrator
     from velocityverletplugin import VVIntegrator
     integrator = VVIntegrator(T * kelvin, 10 / ps, 1 * kelvin, 40 / ps, dt * ps)
@@ -87,10 +94,10 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
         integrator.addParticleLangevin(i)
     ### assign image pairs
     integrator.setMirrorLocation(lz / 2 * nm)
-    for i in group_img:
-        integrator.addImagePair(i, i - group_img[0] + group_ils[0])
+    for parent, image in image_pairs:
+        integrator.addImagePair(image, parent)
         # add fake bond between image and parent so that they are always in the same periodic cell
-        forces['HarmonicBondForce'].addBond(i, i - group_img[0] + group_ils[0], 0, 0)
+        bforce.addBond(image, parent, 0, 0)
     ### apply electric field on ils
     if voltage != 0:
         integrator.setElectricField(voltage / lz * 2 * volt / nm)
@@ -108,7 +115,6 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     else:
         sim.context.setPositions(gro.positions)
         sim.context.setVelocitiesToTemperature(T * kelvin)
-        oh.energy_decomposition(sim)
         append = False
 
     sim.reporters.append(app.DCDReporter('dump.dcd', 10000, enforcePeriodicBox=False,
@@ -120,6 +126,7 @@ def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='f
     sim.reporters.append(oh.DrudeTemperatureReporter('T_drude.txt', 100000, append=append))
 
     print('Running...')
+    oh.energy_decomposition(sim)
     sim.runForClockTime(99.9, 'rst.cpt', 'rst.xml', 1)
     print('# clock time limit: step= %i time= %f' % (
         sim.currentStep, sim.context.getState().getTime().value_in_unit(ps)))
