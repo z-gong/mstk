@@ -22,7 +22,7 @@ from mstools.constant import *
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',
-                                    'chargeconp', 'epsilon'],
+                                    'fluctq', 'permit'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -46,9 +46,11 @@ parser.add_argument('--dt', default=10, type=float,
                          'Required for diffusion analysis')
 parser.add_argument('--skip', default=1, type=int, help='skip frames in trajectory')
 parser.add_argument('--voltage', default=0, type=float,
-                    help='pre-assigned voltage drop in image charge simulation for analyzing surface charge, '
-                         'or the evolved voltage drop between electrodes from surface charge for analyzing voltage. '
-                         'Required for voltage and charge analysis')
+                    help='pre-assigned voltage drop in image charge simulation for analyzing surface charge. '
+                         'Required for charge analysis')
+parser.add_argument('--charge', default=0, type=float,
+                    help='pre-assigned or evolved charge density on electrodes for analyzing voltage profile. '
+                         'Required for voltage analysis')
 
 args = parser.parse_args()
 
@@ -327,11 +329,12 @@ def drude_dipole():
     Calculate the distribution of Drude induced dipoles
     '''
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
-    drude_ids = [atom.id for atom in top.atoms if atom.is_drude]
-    parent_ids = [atom.bond_partners[0].id for atom in top.atoms if atom.is_drude]
+    drude_pairs = top.get_drude_pairs()
+    parent_ids = [parent.id for parent, drude in drude_pairs]
+    drude_ids = [drude.id for parent, drude in drude_pairs]
     drude_charges = top_atom_charges[drude_ids]
     z_dipoles = [[] for z in z_array]
-    z_abs_dipoles = [[] for z in z_array]
+    z_dipoles_scalar = [[] for z in z_array]
     z_distances = [[] for z in z_array]
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
@@ -343,33 +346,30 @@ def drude_dipole():
         deltas = drude_positions - parent_positions
         dipoles = deltas * drude_charges[:, np.newaxis]
         distances = np.array([np.sqrt(np.dot(d, d)) for d in deltas])
-        abs_dipoles = -distances * drude_charges[: np.newaxis]
+        dipoles_scalar = -distances * drude_charges[: np.newaxis]
         z_indexes = ((parent_positions[:, 2] - edges[0]) / dz).astype(int)
-        for idx, dipole, abs_dipole, dist in zip(z_indexes, dipoles, abs_dipoles, distances):
+        for idx, dipole, dipole_scalar, dist in zip(z_indexes, dipoles, dipoles_scalar, distances):
             z_dipoles[idx].append(dipole)
-            z_abs_dipoles[idx].append(abs_dipole)
+            z_dipoles_scalar[idx].append(dipole_scalar)
             z_distances[idx].append(dist)
 
-    z_dipole = np.array(
-        [np.sum(dipoles, axis=0) / n_frame if len(dipoles) > 0 else np.array([0., 0., 0.])
-         for dipoles in z_dipoles])
-    z_distance = np.array([np.mean(distances) if len(distances) > 0 else 0
+    z_dipole = np.array([np.mean(dipoles, axis=0) if len(dipoles) > n_frame else np.array([0., 0., 0.])
+                         for dipoles in z_dipoles])
+    z_distance = np.array([np.mean(distances) if len(distances) > n_frame else 0
                            for distances in z_distances])
-    z_abs_dipole = np.array([np.sum(abs_dipoles) / n_frame if len(abs_dipoles) > 0 else 0
-                             for abs_dipoles in z_abs_dipoles])
+    z_dipole_scalar = np.array([np.mean(dipoles_scalar) if len(dipoles_scalar) > n_frame else 0
+                                for dipoles_scalar in z_dipoles_scalar])
 
     fig, ax = plt.subplots()
     ax.set(xlabel='z (nm)', ylabel='induced dipole (e*nm)')
-    ax.plot(z_array, z_abs_dipole, label='|dipole|')
+    ax.plot(z_array, z_dipole_scalar, label='|dipole|')
     ax.plot(z_array, z_dipole[:, 2], label='dipoleZ')
-    # ax.plot(z_array, z_dipole[:, 0], label='dipoleX')
-    # ax.plot(z_array, z_dipole[:, 1], label='dipoleY')
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}-induced.png')
 
     fig, ax = plt.subplots()
-    ax.set(xlabel='z (nm)', ylabel='induced dipole distance (nm)')
+    ax.set(xlabel='z (nm)', ylabel='Drude-parent distance (nm)')
     ax.plot(z_array, z_distance, label='distance')
     ax.legend()
     fig.tight_layout()
@@ -403,19 +403,19 @@ def dipole():
                 charges = frame.charges[ids] if frame.has_charge else top_atom_charges[ids]
                 rel_charges = charges - charges.mean()
                 positions = frame.positions[ids]
-                dipole = np.sum(positions * np.transpose(np.array([rel_charges] * 3)), axis=0)
+                dipole = np.sum(positions * np.transpose([rel_charges] * 3), axis=0)
                 com = _get_weighted_center(positions, [atom.mass for atom in atoms])
                 idx = int((com[2] - edges[0]) / dz)
                 name_z_dipoles_dict[name][idx].append(dipole)
 
     for name, z_dipoles in name_z_dipoles_dict.items():
         name_z_dipole_dict[name] = np.array([np.mean(dipoles, axis=0)
-                                             if len(dipoles) > 100 else np.array([0, 0, 0])
+                                             if len(dipoles) > n_frame else np.array([0, 0, 0])
                                              for dipoles in z_dipoles])
 
     name_column_dict = {'z': z_array}
     fig, ax = plt.subplots()
-    ax.set(xlabel='z (nm)', ylabel='average dipole (e*nm)')
+    ax.set(xlabel='z (nm)', ylabel='mean dipole (e*nm)')
     for name, z_dipole in name_z_dipole_dict.items():
         ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name)
         name_column_dict.update({
@@ -450,8 +450,8 @@ def voltage():
 
     charges /= n_frame
     ### add back charges on electrodes
-    if args.voltage != 0:
-        q_electrode = args.voltage * area / lz * VACUUM_PERMITTIVITY * NANO / ELEMENTARY_CHARGE
+    if args.charge != 0:
+        q_electrode = args.charge * MICRO * area * NANO * NANO / ELEMENTARY_CHARGE
         idx_cat = int((args.cathode - edges[0]) / dz)
         idx_ano = int((args.anode - edges[0]) / dz)
         charges[idx_cat] += q_electrode
@@ -524,14 +524,14 @@ def charge_petersen():
     print_data_to_file(name_column_dict, f'{args.output}-surface_charge.txt')
 
 
-def charge_conp():
+def charge_fluctuated():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     qtot_list = []
     print('%-8s %10s %10s' % ('step', 'density_q', 'q_atom'))
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         if not frame.has_charge:
-            raise Exception('charge_2d function requires charge information in trajectory')
+            raise Exception('Fluctuated charge analysis requires charge information in trajectory')
         qtot = sum(frame.charges[ids_cathode])
         qtot_list.append(qtot)
         print('%-8i %10.4f %10.6f' % (i, qtot * _conv, qtot / len(ids_cathode)))
@@ -549,7 +549,7 @@ def permittivity():
     '''
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
     frame_list = []
-    dipoles: [float] = []
+    dipoles_scalar: [float] = []
     for i in range(args.begin, args.end, args.skip):
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
@@ -557,9 +557,9 @@ def permittivity():
         frame_list.append(i)
         charges = frame.charges if frame.has_charge else top_atom_charges
         dipole = np.sum(frame.positions * np.transpose([charges] * 3), axis=0)
-        dipoles.append(np.sqrt(dipole.dot(dipole)))
+        dipoles_scalar.append(np.sqrt(dipole.dot(dipole)))
 
-    eps_list = [1 + np.var(dipoles[: i + 1]) * (ELEMENTARY_CHARGE * NANO) ** 2 \
+    eps_list = [1 + np.var(dipoles_scalar[: i + 1]) * (ELEMENTARY_CHARGE * NANO) ** 2 \
                 / (3 * frame0.cell.volume * NANO ** 3) \
                 / (8.314 * 298 / AVOGADRO) \
                 / (4 * PI * VACUUM_PERMITTIVITY)
@@ -567,8 +567,8 @@ def permittivity():
 
     print('\nRelative permittivity = ', eps_list[-1])
 
-    name_column_dict = {'frame'        : frame_list,
-                        'dipole'      : dipoles,
+    name_column_dict = {'frame'       : frame_list,
+                        'dipole'      : dipoles_scalar,
                         'permittivity': eps_list}
     print_data_to_file(name_column_dict, f'{args.output}-permittivity.txt')
 
@@ -586,7 +586,7 @@ if __name__ == '__main__':
         dipole()
     elif args.cmd == 'charge':
         charge_petersen()
-    elif args.cmd == 'chargeconp':
-        charge_conp()
-    elif args.cmd == 'epsilon':
+    elif args.cmd == 'fluctq':
+        charge_fluctuated()
+    elif args.cmd == 'permit':
         permittivity()
