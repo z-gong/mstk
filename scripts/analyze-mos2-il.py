@@ -451,7 +451,7 @@ def voltage():
     charges /= n_frame
     ### add back charges on electrodes
     if args.charge != 0:
-        q_electrode = args.charge * MICRO * area * NANO * NANO / ELEMENTARY_CHARGE
+        q_electrode = args.charge * MILLI * area * NANO * NANO / ELEMENTARY_CHARGE
         idx_cat = int((args.cathode - edges[0]) / dz)
         idx_ano = int((args.anode - edges[0]) / dz)
         charges[idx_cat] += q_electrode
