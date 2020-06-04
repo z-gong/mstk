@@ -2,6 +2,7 @@ import simtk.openmm as mm
 from .util import CONST
 from .unit import *
 
+
 def slab_correction(system: mm.System):
     '''
     This applies Yeh's long range coulomb correction for slab geometry in z direction
@@ -26,8 +27,8 @@ def slab_correction(system: mm.System):
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
     # convert from e^2/nm to kJ/mol  # 138.93545915168772
-    _eps0 = CONST.EPS0 * unit.farad / unit.meter # vacuum dielectric constant
-    _conv = (1 / (4 * CONST.PI * _eps0) * qe ** 2 / nm / unit.item).value_in_unit(unit.kilojoule_per_mole)
+    _eps0 = CONST.EPS0 * unit.farad / unit.meter  # vacuum dielectric constant
+    _conv = (1 / (4 * CONST.PI * _eps0) * qe ** 2 / nm / unit.item).value_in_unit(kJ_mol)
     prefactor = 2 * CONST.PI / vol * _conv
     cvforce = mm.CustomCVForce(f'{prefactor}*muz*muz')
     cvforce.addCollectiveVariable('muz', muz)
@@ -45,7 +46,7 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], stren
         raise Exception('Length of positions does not equal to number of particles in system')
 
     if unit.is_quantity(strength):
-        kx, ky, kz = strength.value_in_unit(kJ_mol / nm**2)
+        kx, ky, kz = strength.value_in_unit(kJ_mol / nm ** 2)
     else:
         kx, ky, kz = strength
 
@@ -62,7 +63,8 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], stren
     return force
 
 
-def wall_power(system: mm.System, particles: [int], direction: str, bound: [float], k, cutoff, power=2):
+def wall_power(system: mm.System, particles: [int], direction: str, bound: [float],
+               k, cutoff, power=2):
     '''
     Set a wall for particles so that they cannot cross it
     Note that periodic box condition is not considered,
@@ -94,6 +96,7 @@ def wall_power(system: mm.System, particles: [int], direction: str, bound: [floa
     system.addForce(force)
 
     return force
+
 
 def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [float], epsilon, sigma):
     '''
@@ -129,6 +132,7 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
 
     return force
 
+
 def electric_field(system: mm.System, particles: [int], strength):
     '''
     Apply external electric field to particles
@@ -150,3 +154,45 @@ def electric_field(system: mm.System, particles: [int], strength):
     system.addForce(force)
 
     return force
+
+
+def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
+    '''
+    Apply Tang-Toennies damping between H-bond hydrogen atoms and Drude dipoles
+    '''
+    nbforce: mm.NonbondedForce = next(f for f in system.getForces() if type(f) == mm.NonbondedForce)
+    dforce: mm.DrudeForce = next(f for f in system.getForces() if type(f) == mm.DrudeForce)
+
+    drude_pairs = {}  # {parent: drude}
+    dipole_set = set()
+    for i in range(dforce.getNumParticles()):
+        drude, parent, p2, p3, p4, q, alpha, aniso12, aniso34 = dforce.getParticleParameters(i)
+        drude_pairs[parent] = drude
+        dipole_set.add(parent)
+        dipole_set.add(drude)
+
+    ttforce = mm.CustomNonbondedForce('-%.6f*q1*q2/r*beta*gamma;'
+                                      'beta=exp(-br);'
+                                      'gamma=1+br+br*br/2+br2*br/6+br2*br2/24;'
+                                      'br2=br*br;'
+                                      'br=%.6f*r' % (CONST.ONE_4PI_EPS0, b))
+    ttforce.addPerParticleParameter('q')
+    for i in range(system.getNumParticles()):
+        if i in drude_pairs:
+            q, _, _ = nbforce.getParticleParameters(drude_pairs[i])
+            q = -q
+        else:
+            q, _, _ = nbforce.getParticleParameters(i)
+        q = q.value_in_unit(qe)
+        ttforce.addParticle([q])
+    ttforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
+    ttforce.setCutoffDistance(1.2 * nm)
+    ttforce.addInteractionGroup(set(donors), dipole_set)
+    ttforce.setForceGroup(9)
+    # map all the exclusions from NonbondedForce
+    for i in range(nbforce.getNumExceptions()):
+        ii, jj, _, _, _ = nbforce.getExceptionParameters(i)
+        ttforce.addExclusion(ii, jj)
+    system.addForce(ttforce)
+
+    return ttforce
