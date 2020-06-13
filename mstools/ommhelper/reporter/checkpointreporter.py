@@ -1,11 +1,11 @@
 import os
-import shutil
+import simtk.openmm as mm
 
 
 class CheckpointReporter(object):
     """CheckpointReporter saves periodic checkpoints of a simulation.
-    The checkpoints will overwrite one another -- only the last checkpoint
-    will be saved in the file.
+    The checkpoints will overwrite old files -- only the latest three will be kept.
+    XML files will be saved together, in case the checkpoint files broken.
 
     To use it, create a CheckpointReporter, then add it to the Simulation's
     list of reporters. To load a checkpoint file and continue a simulation,
@@ -69,7 +69,7 @@ class CheckpointReporter(object):
             energies respectively.
         """
         steps = self._reportInterval - simulation.currentStep % self._reportInterval
-        return (steps, False, False, False, False)
+        return (steps, True, True, False, False, False)
 
     def report(self, simulation, state):
         """Generate a report.
@@ -82,13 +82,19 @@ class CheckpointReporter(object):
             The current state of the simulation
         """
 
-        # Do a safe save.
-
-        with open(self._file, 'w+b', 0) as out:
+        filename = self._file + '_%i' % simulation.currentStep
+        with open(filename, 'wb') as out:
             out.write(simulation.context.createCheckpoint())
 
-        filename = self._file + '_%i' % simulation.currentStep
-        file_prev_prev = self._file + '_%i' % (simulation.currentStep - 2 * self._reportInterval)
-        if os.path.exists(file_prev_prev):
-            os.remove(file_prev_prev)
-        shutil.copy(self._file, filename)
+        file_prev3 = self._file + '_%i' % (simulation.currentStep - 3 * self._reportInterval)
+        if os.path.exists(file_prev3):
+            os.remove(file_prev3)
+
+        xml_name = self._file + '.xml_%i' % simulation.currentStep
+        xml = mm.XmlSerializer.serialize(state)
+        with open(xml_name, 'wb') as f:
+            f.write(xml)
+
+        xml_prev3 = self._file + '.xml_%i' % (simulation.currentStep - 3 * self._reportInterval)
+        if os.path.exists(xml_prev3):
+            os.remove(xml_prev3)

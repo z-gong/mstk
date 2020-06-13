@@ -79,14 +79,14 @@ def show_data(types, data_list, when_list):
         ave, stderr, var_block, var_stderr = block_average(data)
         var = np.var(data)
         if not args.reciprocal:
-            option += '%6i: %14s %10.4g %10.4g %10.4g %10.4g %10.4g\n' % (
+            option += '%6i: %14s %10.5g %6.2g %10.4g %6.2g %8.4g\n' % (
                 i, types[i], ave, stderr, var, var_stderr, data_list[0][when])
         else:
             ave_block, var_block = average_of_blocks(data)
             inv_blocks = 1000 / ave_block
             inv_ave = inv_blocks.mean()
             inv_stderr = inv_blocks.std(ddof=1) / math.sqrt(len(inv_blocks))
-            option += '%6i: %14s %10.4g %10.4g 1E3/ %10.4g %10.4g %10.4g\n' % (
+            option += '%6i: %14s %10.5g %6.2g 1E3/ %10.4g %6.2g %8.4g\n' % (
                 i, types[i], ave, stderr, inv_ave, inv_stderr, data_list[0][when])
 
     print(option, end='')

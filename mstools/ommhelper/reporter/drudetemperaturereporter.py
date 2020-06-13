@@ -1,6 +1,6 @@
 import numpy as np
 import simtk.openmm as mm
-from simtk.openmm.app import Simulation, Topology
+from simtk.openmm.app import Simulation
 from ..unit import *
 
 class DrudeTemperatureReporter(object):
@@ -60,31 +60,29 @@ class DrudeTemperatureReporter(object):
         """
         system: mm.System = simulation.system
         if not self._hasInitialized:
-            topology: Topology = simulation.topology
             self.n_atom = system.getNumParticles()
-            self.n_residue = topology.getNumResidues()
-            self.residue_atoms = np.zeros(self.n_atom, dtype=int)  # record which residue the atoms are in
-            self.mass_residues = np.zeros(self.n_residue) # record the mass of residues
-            self.residues = [[] for i in range(self.n_residue)] # record the index of atoms in each residues
-            for i, residue in enumerate(list(topology.residues())):
-                for atom in residue.atoms():
-                    self.residues[i].append(atom.index)
-                    self.residue_atoms[atom.index] = i
-                    self.mass_residues[i] += system.getParticleMass(atom.index).value_in_unit(unit.dalton)
+            self.molecules: ((int,),) = simulation.context.getMolecules()
+            self.n_mol = len(self.molecules)
+            self.mol_atoms = np.zeros(self.n_atom, dtype=int)  # record which molecule the atoms are in
+            self.mass_molecules = np.zeros(self.n_mol) # record the mass of molecules
+            for i, atoms in enumerate(self.molecules):
+                for atom in atoms:
+                    self.mol_atoms[atom] = i
+                    self.mass_molecules[i] += system.getParticleMass(atom).value_in_unit(unit.dalton)
 
-            self.dof_com = np.count_nonzero(self.mass_residues) * 3
-            if any(type(system.getForce(i)) == mm.CMMotionRemover for i in range(system.getNumForces())):
-                self.dof_com -= 3
-
+            self.dof_com = np.count_nonzero(self.mass_molecules) * 3
             self.dof_atom = self.dof_drude = 0
             for i in range(self.n_atom):
                 if system.getParticleMass(i) > 0 * unit.dalton:
                     self.dof_atom += 3
             self.dof_atom -= (self.dof_com + system.getNumConstraints())
 
+            if any(type(f) == mm.CMMotionRemover for f in system.getForces()):
+                self.dof_com -= 3
+
             drude_set = set()
             self.pair_set = set()
-            force = [f for f in system.getForces() if type(f) == mm.DrudeForce][0]
+            force = next(f for f in system.getForces() if type(f) == mm.DrudeForce)
             self.dof_atom -= 3 * force.getNumParticles()
             self.dof_drude += 3 * force.getNumParticles()
             for i in range(force.getNumParticles()):
@@ -100,17 +98,17 @@ class DrudeTemperatureReporter(object):
         velocities = state.getVelocities(asNumpy=True).value_in_unit(unit.nanometer / unit.picosecond)
         masses = np.array([system.getParticleMass(i).value_in_unit(unit.dalton) for i in range(self.n_atom)])
 
-        vel_res = np.zeros([self.n_residue, 3])
-        for i, atoms in enumerate(self.residues):
-            if self.mass_residues[i] == 0:
+        vel_mol = np.zeros([self.n_mol, 3])
+        for i, atoms in enumerate(self.molecules):
+            if self.mass_molecules[i] == 0:
                 continue
             mv = masses[atoms][:, np.newaxis] * velocities[atoms]
-            vel_res[i] = np.sum(mv, axis=0) / self.mass_residues[i]
-        mvv_com = self.mass_residues * np.sum(vel_res ** 2, axis=1)
+            vel_mol[i] = np.sum(mv, axis=0) / self.mass_molecules[i]
+        mvv_com = self.mass_molecules * np.sum(vel_mol ** 2, axis=1)
         ke_com = mvv_com.sum() / 2 * (unit.nanometer / unit.picosecond) ** 2 * unit.dalton
         t_com = (2 * ke_com / (self.dof_com * unit.MOLAR_GAS_CONSTANT_R))
 
-        velocities -= np.array([vel_res[self.residue_atoms[i]] for i in range(self.n_atom)])
+        velocities -= np.array([vel_mol[self.mol_atoms[i]] for i in range(self.n_atom)])
         for i_drude, i_core in self.pair_set:
             v_drude = velocities[i_drude]
             v_core = velocities[i_core]
