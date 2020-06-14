@@ -5,7 +5,7 @@ import simtk.openmm as mm
 class CheckpointReporter(object):
     """CheckpointReporter saves periodic checkpoints of a simulation.
     The checkpoints will overwrite old files -- only the latest three will be kept.
-    XML files will be saved together, in case the checkpoint files broken.
+    XML files can be saved together, in case the checkpoint files broken.
 
     To use it, create a CheckpointReporter, then add it to the Simulation's
     list of reporters. To load a checkpoint file and continue a simulation,
@@ -35,7 +35,7 @@ class CheckpointReporter(object):
 
     """
 
-    def __init__(self, file, reportInterval):
+    def __init__(self, file, reportInterval, xml=None):
         """Create a CheckpointReporter.
 
         Parameters
@@ -48,6 +48,7 @@ class CheckpointReporter(object):
 
         self._reportInterval = reportInterval
         self._file = file
+        self._xml = xml
 
         if type(file) is not str:
             raise Exception('file should be str')
@@ -90,11 +91,12 @@ class CheckpointReporter(object):
         if os.path.exists(file_prev3):
             os.remove(file_prev3)
 
-        xml_name = self._file + '.xml_%i' % simulation.currentStep
-        xml = mm.XmlSerializer.serialize(state)
-        with open(xml_name, 'wb') as f:
-            f.write(xml)
+        if self._xml is not None:
+            xml_name = self._xml + '_%i' % simulation.currentStep
+            xml = mm.XmlSerializer.serialize(state)
+            with open(xml_name, 'w') as f:
+                f.write(xml)
 
-        xml_prev3 = self._file + '.xml_%i' % (simulation.currentStep - 3 * self._reportInterval)
-        if os.path.exists(xml_prev3):
-            os.remove(xml_prev3)
+            xml_prev3 = self._xml + '_%i' % (simulation.currentStep - 3 * self._reportInterval)
+            if os.path.exists(xml_prev3):
+                os.remove(xml_prev3)
