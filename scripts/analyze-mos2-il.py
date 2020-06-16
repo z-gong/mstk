@@ -177,7 +177,7 @@ def distribution():
                 com_atoms, z_range = [x.strip() for x in
                                       section['angle.%s.com_zrange' % name].split(':')]
                 com_atoms = _get_atoms(mol, com_atoms.split())
-                z_range = list(map(float, z_range.split()))
+                z_range = [float(x) + args.cathode for x in z_range.split()]
                 com_pos = _get_com_position(positions, com_atoms)
                 if com_pos[2] < z_range[0] or com_pos[2] > z_range[1]:
                     continue
@@ -216,7 +216,8 @@ def distribution():
     ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
-        ax.plot(x, y_com / area / dz / n_frame, label=name)
+        ax.plot(x, y_com / area / dz / n_frame, label=name,
+                color='darkred' if name == 'dca_com' else None)
         ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name)
         name_column_dict['rho-' + name] = y_com / area / dz / n_frame
         name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
@@ -230,7 +231,7 @@ def distribution():
     ax.set(xlim=[0, 90], ylim=[0, 0.1], xlabel='theta', ylabel='probability')
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
-        ax.plot(x, y, label=name)
+        ax.plot(x, y, label=name, color='darkred' if name == 'dca_e2e' else None)
         name_column_dict.update({'theta': x, 'prob-' + name: y})
     ax.legend()
     fig.tight_layout()
@@ -257,8 +258,10 @@ def diffusion():
                 name_atoms_dict[name] = []
                 z_dict[name] = []
                 residence_dict[name] = []
-                residence_zrange_dict[name] = [float(x) for x in ini['molecule.%s' % (mol.name)][
-                    'diffusion.%s.residence_zrange' % name].split()]
+                residence_zrange_dict[name] = [
+                    float(x) + args.cathode for x in
+                    ini['molecule.%s' % (mol.name)]['diffusion.%s.residence_zrange' % name].split()
+                ]
             name_atoms_dict[name].append(_get_atoms(mol, atoms.split()))
             z_dict[name].append([])
             residence_dict[name].append([])
@@ -313,7 +316,8 @@ def diffusion():
            ylabel='residence auto correlation')
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
-        ax.plot(t_array[:_len], acf_dict[name], label=name)
+        ax.plot(t_array[:_len], acf_dict[name], label=name,
+                color='darkred' if name == 'dca_com' else None)
         name_column_dict['time'] = t_array[:_len]
         name_column_dict['acf-' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.75], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
@@ -353,8 +357,9 @@ def drude_dipole():
             z_dipoles_scalar[idx].append(dipole_scalar)
             z_distances[idx].append(dist)
 
-    z_dipole = np.array([np.mean(dipoles, axis=0) if len(dipoles) > n_frame else np.array([0., 0., 0.])
-                         for dipoles in z_dipoles])
+    z_dipole = np.array(
+        [np.mean(dipoles, axis=0) if len(dipoles) > n_frame else np.array([0., 0., 0.])
+         for dipoles in z_dipoles])
     z_distance = np.array([np.mean(distances) if len(distances) > n_frame else 0
                            for distances in z_distances])
     z_dipole_scalar = np.array([np.mean(dipoles_scalar) if len(dipoles_scalar) > n_frame else 0
