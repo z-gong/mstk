@@ -218,7 +218,8 @@ def distribution():
         x, y_com = histogram(z_list, bins=edges)
         ax.plot(x, y_com / area / dz / n_frame, label=name,
                 color='darkred' if name == 'dca_com' else None)
-        ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name)
+        ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name,
+                 color='darkred' if name == 'dca_com' else None)
         name_column_dict['rho-' + name] = y_com / area / dz / n_frame
         name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
