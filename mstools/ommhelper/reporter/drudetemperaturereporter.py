@@ -61,7 +61,7 @@ class DrudeTemperatureReporter(object):
         system: mm.System = simulation.system
         if not self._hasInitialized:
             self.n_atom = system.getNumParticles()
-            self.molecules: ((int,),) = simulation.context.getMolecules()
+            self.molecules: [[int]] = [list(atoms) for atoms in simulation.context.getMolecules()]
             self.n_mol = len(self.molecules)
             self.mol_atoms = np.zeros(self.n_atom, dtype=int)  # record which molecule the atoms are in
             self.mass_molecules = np.zeros(self.n_mol) # record the mass of molecules
