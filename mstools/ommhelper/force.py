@@ -198,8 +198,8 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
     return ttforce
 
 
-def restraint_particle_number(system: mm.System, particles: [int], direction: str, bound,
-                              sigma, target, k):
+def restrain_particle_number(system: mm.System, particles: [int], direction: str, bound,
+                             sigma, target, k):
     '''
     Restraint the number of particles in a region
     The region is defined by direction (x, y or z) and bound (lower and upper)
