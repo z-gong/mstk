@@ -196,3 +196,38 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
     system.addForce(ttforce)
 
     return ttforce
+
+
+def restraint_particle_number(system: mm.System, particles: [int], direction: str, sigma,
+                              bound, target, k):
+    if direction not in ['x', 'y', 'z']:
+        raise Exception('direction can only be x, y or z')
+    _min, _max = bound
+    if unit.is_quantity(_min):
+        _min = _min.value_in_unit(nm)
+    if unit.is_quantity(_max):
+        _max = _max.value_in_unit(nm)
+    if unit.is_quantity(sigma):
+        sigma = sigma.value_in_unit(nm)
+    if unit.is_quantity(k):
+        k = k.value_in_unit(kJ_mol)
+
+    if _min is not None:
+        str_min = f'erf(({_min}-{direction})/{sigma ** 2})'
+    else:
+        str_min = '-1'
+
+    if _max is not None:
+        str_max = f'erf(({_max}-{direction})/{sigma ** 2})'
+    else:
+        str_max = '1'
+
+    nforce = mm.CustomExternalForce(f'0.5*({str_max}-{str_min})')
+    for i in particles:
+        nforce.addParticle(i, [])
+
+    cvforce = mm.CustomCVForce(f'0.5*{k}*(number-{target})^2')
+    cvforce.addCollectiveVariable('number', nforce)
+    system.addForce(cvforce)
+
+    return cvforce
