@@ -201,11 +201,11 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
 def restrain_particle_number(system: mm.System, particles: [int], direction: str, bound,
                              sigma, target, k):
     '''
-    Restraint the number of particles in a region
+    Restrain the number of particles in a region
     The region is defined by direction (x, y or z) and bound (lower and upper)
-    Each particle is consider as a Gaussian distribution so that it is differentiable
-    sigma is the standard deviation of the Gaussian
-    The number of particles is restraint to be target using a harmonic function with force constant k
+    Each particle is consider as a Gaussian distribution with standard deviation equal to sigma
+    The number of particles is restrained to the target value
+    using a harmonic function with force constant k
     '''
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
