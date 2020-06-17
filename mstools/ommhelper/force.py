@@ -198,8 +198,15 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
     return ttforce
 
 
-def restraint_particle_number(system: mm.System, particles: [int], direction: str, sigma,
-                              bound, target, k):
+def restraint_particle_number(system: mm.System, particles: [int], direction: str, bound,
+                              sigma, target, k):
+    '''
+    Restraint the number of particles in a region
+    The region is defined by direction (x, y or z) and bound (lower and upper)
+    Each particle is consider as a Gaussian distribution so that it is differentiable
+    sigma is the standard deviation of the Gaussian
+    The number of particles is restraint to be target using a harmonic function with force constant k
+    '''
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
     _min, _max = bound
@@ -213,12 +220,12 @@ def restraint_particle_number(system: mm.System, particles: [int], direction: st
         k = k.value_in_unit(kJ_mol)
 
     if _min is not None:
-        str_min = f'erf(({_min}-{direction})/{sigma ** 2})'
+        str_min = f'erf(({_min}-{direction})/{2 ** 0.5 * sigma})'
     else:
         str_min = '-1'
 
     if _max is not None:
-        str_max = f'erf(({_max}-{direction})/{sigma ** 2})'
+        str_max = f'erf(({_max}-{direction})/{2 ** 0.5 * sigma})'
     else:
         str_max = '1'
 

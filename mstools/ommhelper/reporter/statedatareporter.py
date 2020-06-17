@@ -59,7 +59,7 @@ class StateDataReporter(object):
     def __init__(self, file, reportInterval, step=True, time=True, potentialEnergy=True,
                  kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
                  density=True, progress=False, remainingTime=False, speed=True, elapsedTime=True,
-                 separator='\t', systemMass=None, totalSteps=None, append=False, cv=None):
+                 separator='\t', systemMass=None, totalSteps=None, append=False, cvs=[]):
         """Create a StateDataReporter.
 
         Parameters
@@ -112,6 +112,8 @@ class StateDataReporter(object):
             The total number of steps that will be included in the simulation.
             This is required if either progress or remainingTime is set to True,
             and defines how many steps will indicate 100% completion.
+        cvs : list=[]
+            Collective variables defined by CustomCVForce
         """
         self._reportInterval = reportInterval
         self._openedFile = isinstance(file, str)
@@ -148,7 +150,7 @@ class StateDataReporter(object):
 
         self._boxSizeList = [[], [], []]
 
-        self._cv = cv
+        self._cvs = cvs
 
     def describeNextReport(self, simulation):
         """Get information about the next report this object will generate.
@@ -279,8 +281,8 @@ class StateDataReporter(object):
                 else:
                     value = "0:%02d" % remainingSeconds
             values.append(value)
-        if self._cv is not None:
-            values.append(self._cv.getCollectiveVariableValues(simulation.context)[0])
+        for cv in self._cvs:
+            values.append(cv.getCollectiveVariableValues(simulation.context)[0])
 
         self._boxSizeList[0].append(box[0][0].value_in_unit(unit.nanometer)),
         self._boxSizeList[1].append(box[1][1].value_in_unit(unit.nanometer)),
@@ -348,8 +350,8 @@ class StateDataReporter(object):
             headers.append('Elapsed')
         if self._remainingTime:
             headers.append('Remaining')
-        if self._cv is not None:
-            headers.append('CV')
+        for i, cv in enumerate(self._cvs):
+            headers.append('CV%i' %i)
         return headers
 
     def _checkForErrors(self, simulation, state):
