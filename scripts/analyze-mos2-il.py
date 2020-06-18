@@ -473,6 +473,7 @@ def voltage():
     name_column_dict = {'z'    : z_array,
                         'rho_q': charges,
                         'cum_q': charges_cumulative,
+                        'EF': e_field,
                         'V'    : voltage}
     print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
@@ -489,6 +490,13 @@ def voltage():
     ax.plot(z_array, [0] * n_bin, '--')
     fig.tight_layout()
     fig.savefig(f'{args.output}-charge_cumulative.png')
+
+    fig, ax = plt.subplots()
+    ax.set(xlabel='z (nm)', ylabel='electric field (V/m)')
+    ax.plot(z_array, e_field)
+    ax.plot(z_array, [0] * n_bin, '--')
+    fig.tight_layout()
+    fig.savefig(f'{args.output}-efield.png')
 
     fig, ax = plt.subplots()
     ax.set(xlabel='z (nm)', ylabel='voltage (V)')
