@@ -22,7 +22,7 @@ def slab_correction(system: mm.System):
         muz.addParticle(i, [q])
         qsum += q
     if abs(qsum) > 1E-4:
-        raise Exception('Slab correction is not valid for charged system')
+        raise Exception('Slab correction is not valid for non-neutral system')
 
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)

@@ -105,10 +105,15 @@ def plot_data(types, data, when_list):
         else:
             import matplotlib.pyplot as plt
             when = when_list[plottype]
-            plt.plot(data[0][:when], data[plottype][:when])
-            plt.plot(data[0][when:], data[plottype][when:])
-            plt.xlabel(data[0])
-            plt.ylabel(types[plottype])
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+            ax1.plot(data[0][:when], data[plottype][:when])
+            ax1.plot(data[0][when:], data[plottype][when:])
+            ax1.set_xlabel(types[0])
+            ax1.set_ylabel(types[plottype])
+            ax2.hist(data[plottype][when:], density=True, bins=40, color='C1')
+            ax2.set_xlabel(types[plottype])
+            ax2.set_ylabel('Probability')
+            fig.tight_layout()
             plt.show()
 
 

@@ -16,6 +16,7 @@ args = parser.parse_args()
 
 V_Q_electrode = {}
 V_Q_cell = {}
+V_zc = 0
 
 for inp in args.input:
     df = pd.read_csv(inp, sep='\t', index_col=0)
@@ -33,7 +34,9 @@ for inp in args.input:
 
     V_Q_electrode[V_cathode] = q_cathode
     # ignore anode if no voltage drop
-    if q_anode != 0:
+    if q_cathode == 0:
+        V_zc = V_cathode
+    else:
         V_Q_electrode[V_anode] = q_anode
 
     V_Q_cell[V_drop] = q_cathode
@@ -41,13 +44,16 @@ for inp in args.input:
 V_list, Q_list = zip(*sorted(V_Q_electrode.items()))
 coeff4, score4 = polyfit(V_list, Q_list, 4)
 coeff5, score5 = polyfit(V_list, Q_list, 5)
+print('Zero charge voltage: %.4f V' % V_zc)
 print('RSQ for 4th and 5th polynomial fitting Cdiff: %.4f %.4f' % (score4, score5))
 
-print('%10s %10s %10s %10s %10s' % ('electrode', 'V', 'Q', 'Cdiff-4th', 'Cdiff-5th'))
+print('%10s %10s %10s %10s %10s %10s' % ('electrode', 'V', 'Q', 'Cint', 'Cdiff-4th', 'Cdiff-5th'))
 for V, Q in sorted(V_Q_electrode.items()):
     Cdiff4 = polyval_derivative(V, coeff4)[1]
     Cdiff5 = polyval_derivative(V, coeff5)[1]
-    print('%10s %10.4f %10.4f %10.4f %10.4f' % ('', V, Q, Cdiff4, Cdiff5))
+    Cint = Q / (V - V_zc) if V - V_zc != 0 else 0
+    print('%10s %10.4f %10.4f %10.4f %10.4f %10.4f' % ('', V, Q, Cint, Cdiff4, Cdiff5))
 print('%10s %10s %10s %10s' % ('cell', 'V', 'Q', 'Cint'))
 for V, Q in sorted(V_Q_cell.items()):
+    Cint = Q / V if V != 0 else 0
     print('%10s %10.4f %10.4f %10.4f' % ('', V, Q, Q / V))
