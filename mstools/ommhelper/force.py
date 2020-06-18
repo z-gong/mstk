@@ -199,7 +199,7 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
 
 
 def restrain_particle_number(system: mm.System, particles: [int], direction: str, bound,
-                             sigma, target, k):
+                             sigma, target, k, weights: [float] = None):
     '''
     Restrain the number of particles in a region
     The region is defined by direction (x, y or z) and bound (lower and upper)
@@ -218,6 +218,10 @@ def restrain_particle_number(system: mm.System, particles: [int], direction: str
         sigma = sigma.value_in_unit(nm)
     if unit.is_quantity(k):
         k = k.value_in_unit(kJ_mol)
+    if weights is None:
+        weights = [1.0] * len(particles)
+    if len(weights) != len(particles):
+        raise Exception('particles and weights should have the same length')
 
     if _min is not None:
         str_min = f'erf(({_min}-{direction})/{2 ** 0.5 * sigma})'
@@ -229,9 +233,10 @@ def restrain_particle_number(system: mm.System, particles: [int], direction: str
     else:
         str_max = '1'
 
-    nforce = mm.CustomExternalForce(f'0.5*({str_max}-{str_min})')
-    for i in particles:
-        nforce.addParticle(i, [])
+    nforce = mm.CustomExternalForce(f'0.5*({str_max}-{str_min})*weight')
+    nforce.addPerParticleParameter('weight')
+    for i, w in zip(particles, weights):
+        nforce.addParticle(i, [w])
 
     cvforce = mm.CustomCVForce(f'0.5*{k}*(number-{target})^2')
     cvforce.addCollectiveVariable('number', nforce)
