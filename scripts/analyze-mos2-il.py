@@ -195,9 +195,9 @@ def distribution():
                                       section['angle.%s.com_zrange' % name].split(':')]
                 com_atoms = _get_atoms(mol, com_atoms.split())
                 if args.reverse:
-                    z_range = [elecd_r - float(x) for x in reversed(z_range)]
+                    z_range = [elecd_r - float(x) for x in reversed(z_range.split())]
                 else:
-                    z_range = [elecd_l + float(x) for x in z_range]
+                    z_range = [elecd_l + float(x) for x in z_range.split()]
                 com_pos = _get_com_position(positions, com_atoms)
                 if com_pos[2] < z_range[0] or com_pos[2] > z_range[1]:
                     continue
