@@ -51,6 +51,10 @@ parser.add_argument('--voltage', default=0, type=float,
 parser.add_argument('--charge', default=0, type=float,
                     help='pre-assigned or evolved charge density on electrodes for analyzing voltage profile. '
                          'Required for voltage analysis')
+parser.add_argument('--reverse', action='store_true',
+                    help='reverse the direction of cathode and anode. '
+                         'It makes the analysis easier if anode is to be emphasized. '
+                         'It only affect how the results are presented')
 
 args = parser.parse_args()
 
@@ -85,12 +89,19 @@ if len(ids_cathode) == 0 or len(ids_anode) == 0 or len(ids_cathode) != len(ids_a
     print('WARNING: Cannot identify consistent atoms for cathode and anode. '
           'Make sure positions of cathode and anode are correct')
 area = frame0.cell.size[0] * frame0.cell.size[1]
-lz = args.anode - args.cathode
+
+elecd_l = min(args.cathode, args.anode)
+elecd_r = max(args.cathode, args.anode)
+if args.reverse:
+    cathode, anode = args.anode, args.cathode
+else:
+    cathode, anode = args.cathode, args.anode
+lz = elecd_r - elecd_l
 dz = args.dz
 # increase both the bottom and top by 0.4 nm to consider electrodes
 # add one extra bin and move edges by 0.5*dz so that the centers of bins are prettier
 n_bin = math.ceil((lz + 0.8) / dz) + 1
-edges = np.array([dz * (i - 0.5) + args.cathode - 0.4 for i in range(n_bin + 1)], dtype=np.float32)
+edges = np.array([dz * (i - 0.5) + elecd_l - 0.4 for i in range(n_bin + 1)], dtype=np.float32)
 z_array = (edges[1:] + edges[:-1]) / 2
 
 if args.end > trj.n_frame or args.end == -1:
@@ -149,7 +160,11 @@ def distribution():
         n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
+
         positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+
         for mol in top.molecules:
             if mol.name not in mol_names:
                 continue
@@ -179,7 +194,7 @@ def distribution():
                 com_atoms, z_range = [x.strip() for x in
                                       section['angle.%s.com_zrange' % name].split(':')]
                 com_atoms = _get_atoms(mol, com_atoms.split())
-                z_range = [float(x) + args.cathode for x in z_range.split()]
+                z_range = [float(x) + elecd_l for x in z_range.split()]
                 com_pos = _get_com_position(positions, com_atoms)
                 if com_pos[2] < z_range[0] or com_pos[2] > z_range[1]:
                     continue
@@ -262,7 +277,7 @@ def diffusion():
                 z_dict[name] = []
                 residence_dict[name] = []
                 residence_zrange_dict[name] = [
-                    float(x) + args.cathode for x in
+                    float(x) + elecd_l for x in
                     ini['molecule.%s' % (mol.name)]['diffusion.%s.residence_zrange' % name].split()
                 ]
             name_atoms_dict[name].append(_get_atoms(mol, atoms.split()))
@@ -273,6 +288,10 @@ def diffusion():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
+        positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+
         if frame.time != -1:
             t_list.append(frame.time / 1E3)  # convert ps to ns
         else:
@@ -280,7 +299,7 @@ def diffusion():
 
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):
-                com_position = _get_com_position(frame.positions, atoms)
+                com_position = _get_com_position(positions, atoms)
                 z_dict[name][k].append(com_position[2])
                 residence = int(com_position[2] >= residence_zrange_dict[name][0]
                                 and com_position[2] <= residence_zrange_dict[name][1])
@@ -301,8 +320,8 @@ def diffusion():
     name_column_dict = {'time': t_array}
     for name, z_series_list in z_dict.items():
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(8, 8))
-        ax1.set(ylim=[args.anode - 1.0, args.anode], ylabel='z (nm)')
-        ax2.set(ylim=[args.cathode, args.cathode + 1.0], xlabel='time (ns)', ylabel='z (nm)')
+        ax1.set(ylim=[elecd_r - 1.0, elecd_r], ylabel='z (nm)')
+        ax2.set(ylim=[elecd_l, elecd_l + 1.0], xlabel='time (ns)', ylabel='z (nm)')
         ax1.spines['bottom'].set_visible(False)
         ax2.spines['top'].set_visible(False)
         ax1.xaxis.tick_top()
@@ -348,8 +367,13 @@ def drude_dipole():
         n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
-        drude_positions = frame.positions[drude_ids]
-        parent_positions = frame.positions[parent_ids]
+
+        positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+
+        drude_positions = positions[drude_ids]
+        parent_positions = positions[parent_ids]
         deltas = drude_positions - parent_positions
         dipoles = deltas * drude_charges[:, np.newaxis]
         distances = np.array([np.sqrt(np.dot(d, d)) for d in deltas])
@@ -396,6 +420,11 @@ def dipole():
         n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
+
+        positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+
         for mol in top.molecules:
             if mol.name not in mol_names:
                 continue
@@ -410,9 +439,9 @@ def dipole():
                 ids = [atom.id for atom in atoms]
                 charges = frame.charges[ids] if frame.has_charge else top_atom_charges[ids]
                 rel_charges = charges - charges.mean()
-                positions = frame.positions[ids]
-                dipole = np.sum(positions * np.transpose([rel_charges] * 3), axis=0)
-                com = _get_weighted_center(positions, [atom.mass for atom in atoms])
+                poss = positions[ids]
+                dipole = np.sum(poss * np.transpose([rel_charges] * 3), axis=0)
+                com = _get_weighted_center(poss, [atom.mass for atom in atoms])
                 idx = int((com[2] - edges[0]) / dz)
                 name_z_dipoles_dict[name][idx].append(dipole)
 
@@ -448,9 +477,13 @@ def voltage():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        z_to_cathode = frame.positions[:, 2] - args.cathode
-        ids_ils = np.where((z_to_cathode > 0.1) & (z_to_cathode < lz - 0.1))[0]
-        z_ils = frame.positions[ids_ils, 2]
+        positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+
+        z_to_left = positions[:, 2] - elecd_l
+        ids_ils = np.where((z_to_left > 0.1) & (z_to_left < lz - 0.1))[0]
+        z_ils = positions[ids_ils, 2]
         q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
         i_bin_ils = ((z_ils - edges[0]) / dz).astype(int)
         for i, i_bin in enumerate(i_bin_ils):
@@ -460,8 +493,8 @@ def voltage():
     ### add back charges on electrodes
     if args.charge != 0:
         q_electrode = args.charge * MILLI * area * NANO * NANO / ELEMENTARY_CHARGE
-        idx_cat = int((args.cathode - edges[0]) / dz)
-        idx_ano = int((args.anode - edges[0]) / dz)
+        idx_cat = int((cathode - edges[0]) / dz)
+        idx_ano = int((anode - edges[0]) / dz)
         charges[idx_cat] += q_electrode
         charges[idx_ano] -= q_electrode
 
@@ -475,7 +508,7 @@ def voltage():
     name_column_dict = {'z'    : z_array,
                         'rho_q': charges,
                         'cum_q': charges_cumulative,
-                        'EF': e_field,
+                        'EF'   : e_field,
                         'V'    : voltage}
     print_data_to_file(name_column_dict, f'{args.output}-voltage.txt')
 
@@ -512,25 +545,29 @@ def charge_petersen():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
     frame_list = []
-    q_cathode_list = []
+    q_left_list = []
     for i in range(args.begin, args.end, args.skip):
+        frame_list.append(i)
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        z_to_cathode = frame.positions[:, 2] - args.cathode
-        ids_ils = np.where((z_to_cathode > 0.1) & (z_to_cathode < lz - 0.1))[0]
-        z_to_cathode_ils = z_to_cathode[ids_ils]
-        q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
-        q_cathode = np.sum(q_ils * z_to_cathode_ils) / lz \
-                    + args.voltage * area / lz * VACUUM_PERMITTIVITY / ELEMENTARY_CHARGE * NANO
-        frame_list.append(i)
-        q_cathode_list.append(q_cathode)
+        positions = frame.positions
+        if args.reverse:
+            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
 
-    charge_densities = np.array(q_cathode_list) * _conv
+        z_to_left = positions[:, 2] - elecd_l
+        ids_ils = np.where((z_to_left > 0.1) & (z_to_left < lz - 0.1))[0]
+        z_to_left_ils = z_to_left[ids_ils]
+        q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
+        q_left = np.sum(q_ils * z_to_left_ils) / lz + \
+                 args.voltage * area / lz * VACUUM_PERMITTIVITY / ELEMENTARY_CHARGE * NANO
+        q_left_list.append(q_left)
+
+    charge_densities = np.array(q_left_list) * _conv
     voltages_surface = charge_densities / 1000 * lz * NANO / VACUUM_PERMITTIVITY
 
     print('\n%-8s %10s %10s %10s %10s' % ('n_frame', 'rho_q', 'var_rho_q', 'q_atom', 'V_surface'))
-    print('%-8i %10.4f %10.4f %10.6f %10.4f' % (len(q_cathode_list), charge_densities.mean(),
+    print('%-8i %10.4f %10.4f %10.6f %10.4f' % (len(q_left_list), charge_densities.mean(),
                                                 charge_densities.var(),
                                                 charge_densities.mean() / _conv / len(ids_cathode),
                                                 voltages_surface.mean()))
