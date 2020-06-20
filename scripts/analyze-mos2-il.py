@@ -194,7 +194,10 @@ def distribution():
                 com_atoms, z_range = [x.strip() for x in
                                       section['angle.%s.com_zrange' % name].split(':')]
                 com_atoms = _get_atoms(mol, com_atoms.split())
-                z_range = [float(x) + elecd_l for x in z_range.split()]
+                if args.reverse:
+                    z_range = [elecd_r - float(x) for x in reversed(z_range)]
+                else:
+                    z_range = [elecd_l + float(x) for x in z_range]
                 com_pos = _get_com_position(positions, com_atoms)
                 if com_pos[2] < z_range[0] or com_pos[2] > z_range[1]:
                     continue
@@ -276,10 +279,12 @@ def diffusion():
                 name_atoms_dict[name] = []
                 z_dict[name] = []
                 residence_dict[name] = []
-                residence_zrange_dict[name] = [
-                    float(x) + elecd_l for x in
-                    ini['molecule.%s' % (mol.name)]['diffusion.%s.residence_zrange' % name].split()
-                ]
+                z_range = ini['molecule.%s' % (mol.name)][
+                    'diffusion.%s.residence_zrange' % name].split()
+                if args.reverse:
+                    residence_zrange_dict[name] = [elecd_r - float(x) for x in reversed(z_range)]
+                else:
+                    residence_zrange_dict[name] = [elecd_l + float(x) for x in z_range]
             name_atoms_dict[name].append(_get_atoms(mol, atoms.split()))
             z_dict[name].append([])
             residence_dict[name].append([])
