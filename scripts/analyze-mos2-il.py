@@ -222,7 +222,8 @@ def distribution():
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
     for name, z_list in z_atom_dict.items():
         x, y = histogram(z_list, bins=edges)
-        ax.plot(x, y / area / dz / n_frame, label=name)
+        ax.plot(x, y / area / dz / n_frame, label=name,
+                color='darkred' if name == 'dca' else None)
         name_column_dict['rho-' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
@@ -459,7 +460,8 @@ def dipole():
     fig, ax = plt.subplots()
     ax.set(xlabel='z (nm)', ylabel='mean dipole (e*nm)')
     for name, z_dipole in name_z_dipole_dict.items():
-        ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name)
+        ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name,
+                color='darkred' if name == 'dca' else None)
         name_column_dict.update({
             'dipX-' + name: z_dipole[:, 0],
             'dipY-' + name: z_dipole[:, 1],
