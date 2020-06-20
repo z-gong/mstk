@@ -62,8 +62,10 @@ print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 if args.cmd in ('dist', 'diffuse', 'dipole'):
     ini = configparser.ConfigParser()
-    if args.config is None or ini.read(args.config) == []:
+    if args.config is None:
         raise Exception('Config file is required for dist, diffuse and dipole analysis')
+    if ini.read(args.config) == []:
+        raise Exception('Invalid config file')
     mol_names = ini['molecules']['name'].split()
     if set(mol_names) - set((mol.name for mol in top.molecules)) != set():
         raise Exception('Not all molecules listed in config file found in topology')
