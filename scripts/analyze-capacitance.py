@@ -8,9 +8,11 @@ from mstools.analyzer.fitting import polyfit, polyval_derivative
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str, help='files of voltage profiles')
-parser.add_argument('--bulk', type=float, default=2.0, help='length of bulk region (in nm)')
 parser.add_argument('--cathode', type=float, default=0.0, help='z coordinate of cathode (in nm)')
 parser.add_argument('--anode', type=float, default=6.5, help='z coordinate of anode (in nm)')
+parser.add_argument('--bulk', type=float, default=2.0, help='length of bulk region (in nm)')
+parser.add_argument('--tolerance', type=float, default=0.01,
+                    help='consider voltage drop to be zero if smaller than tolerance')
 
 args = parser.parse_args()
 
@@ -29,17 +31,17 @@ for inp in args.input:
     V_anode = df.V.iloc[df.index.get_loc(args.anode + dz, method='nearest')] - V_bulk
     V_drop = V_cathode - V_anode
 
-    q_cathode = df.rho_q[args.cathode] * dz / NANO ** 2 * ELEMENTARY_CHARGE / MILLI  # mC/m^2
-    q_anode = df.rho_q[args.anode] * dz / NANO ** 2 * ELEMENTARY_CHARGE / MILLI  # mC/m^2
-
-    V_Q_electrode[V_cathode] = q_cathode
-    # ignore anode if no voltage drop
-    if q_cathode == 0:
-        V_zc = V_cathode
+    if V_drop < args.tolerance:
+        V_zc = (V_cathode + V_anode) / 2
+        V_Q_electrode[V_zc] = 0
     else:
+        q_cathode = df.rho_q[args.cathode] * dz / NANO ** 2 * ELEMENTARY_CHARGE / MILLI  # mC/m^2
+        q_anode = df.rho_q[args.anode] * dz / NANO ** 2 * ELEMENTARY_CHARGE / MILLI  # mC/m^2
+        if abs(q_cathode + q_anode) > 1E6:
+            print('WARNING: charges on cathode and anode do not equal: %s' % inp)
+        V_Q_electrode[V_cathode] = q_cathode
         V_Q_electrode[V_anode] = q_anode
-
-    V_Q_cell[V_drop] = q_cathode
+        V_Q_cell[V_drop] = q_cathode
 
 V_list, Q_list = zip(*sorted(V_Q_electrode.items()))
 coeff4, score4 = polyfit(V_list, Q_list, 4)
@@ -51,7 +53,7 @@ print('%10s %10s %10s %10s %10s %10s' % ('electrode', 'V', 'Q', 'Cint', 'Cdiff-4
 for V, Q in sorted(V_Q_electrode.items()):
     Cdiff4 = polyval_derivative(V, coeff4)[1]
     Cdiff5 = polyval_derivative(V, coeff5)[1]
-    Cint = Q / (V - V_zc) if V - V_zc != 0 else 0
+    Cint = Q / (V - V_zc) if V != V_zc else 0
     print('%10s %10.4f %10.4f %10.4f %10.4f %10.4f' % ('', V, Q, Cint, Cdiff4, Cdiff5))
 print('%10s %10s %10s %10s' % ('cell', 'V', 'Q', 'Cint'))
 for V, Q in sorted(V_Q_cell.items()):

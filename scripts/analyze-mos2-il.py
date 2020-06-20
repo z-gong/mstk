@@ -186,7 +186,10 @@ def distribution():
                 atoms = _get_atoms(mol, atoms.split())
                 z_com_dict[name].append(_get_com_position(positions, atoms)[2])
 
-            angles = section['angles'].split(';')
+            try:
+                angles = section['angles'].split(';')
+            except:
+                angles = []
             for angle in angles:
                 name, theta_atoms = [x.strip() for x in angle.split(':')]
                 if name not in theta_dict:
