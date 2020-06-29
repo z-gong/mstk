@@ -6,8 +6,9 @@ import math
 import configparser
 import numpy as np
 import scipy.integrate as itg
+from scipy.special import erfc
 
-np.seterr(all='raise')
+np.seterr(all='raise', under='warn')
 import matplotlib
 
 matplotlib.use('Agg')
@@ -22,7 +23,7 @@ from mstools.constant import *
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',
-                                    'fluctq', 'permit'],
+                                    'fluctq', 'permit', 'number', 'q1st'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -54,7 +55,8 @@ parser.add_argument('--charge', default=0, type=float,
 parser.add_argument('--reverse', action='store_true',
                     help='reverse the direction of cathode and anode. '
                          'It makes the analysis easier if anode is to be emphasized. '
-                         'It only affect how the results are presented')
+                         'It only affect how the results are presented. '
+                         'Only used with distribution, voltage, dipole and drude analysis')
 
 args = parser.parse_args()
 
@@ -283,12 +285,9 @@ def diffusion():
                 name_atoms_dict[name] = []
                 z_dict[name] = []
                 residence_dict[name] = []
-                z_range = ini['molecule.%s' % (mol.name)][
+                z_range_str = ini['molecule.%s' % (mol.name)][
                     'diffusion.%s.residence_zrange' % name].split()
-                if args.reverse:
-                    residence_zrange_dict[name] = [elecd_r - float(x) for x in reversed(z_range)]
-                else:
-                    residence_zrange_dict[name] = [elecd_l + float(x) for x in z_range]
+                residence_zrange_dict[name] = [elecd_l + float(x) for x in z_range_str]
             name_atoms_dict[name].append(_get_atoms(mol, atoms.split()))
             z_dict[name].append([])
             residence_dict[name].append([])
@@ -297,10 +296,6 @@ def diffusion():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        positions = frame.positions
-        if args.reverse:
-            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
-
         if frame.time != -1:
             t_list.append(frame.time / 1E3)  # convert ps to ns
         else:
@@ -308,7 +303,7 @@ def diffusion():
 
         for name, atoms_list in name_atoms_dict.items():
             for k, atoms in enumerate(atoms_list):
-                com_position = _get_com_position(positions, atoms)
+                com_position = _get_com_position(frame.positions, atoms)
                 z_dict[name][k].append(com_position[2])
                 residence = int(com_position[2] >= residence_zrange_dict[name][0]
                                 and com_position[2] <= residence_zrange_dict[name][1])
@@ -561,11 +556,7 @@ def charge_petersen():
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        positions = frame.positions
-        if args.reverse:
-            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
-
-        z_to_left = positions[:, 2] - elecd_l
+        z_to_left = frame.positions[:, 2] - elecd_l
         ids_ils = np.where((z_to_left > 0.1) & (z_to_left < lz - 0.1))[0]
         z_to_left_ils = z_to_left[ids_ils]
         q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
@@ -636,6 +627,46 @@ def permittivity():
     print_data_to_file(name_column_dict, f'{args.output}-permittivity.txt')
 
 
+def number(thickness=0.5):
+    id_cations = [atom.id for atom in top.atoms if atom.type in ('CR', 'NA', 'CW')]
+    id_anions = [atom.id for atom in top.atoms if atom.type in ('N3A', 'CZA', 'NZA')]
+    frame_list = []
+    N_list = []
+    for i in range(args.begin, args.end, args.skip):
+        frame_list.append(i)
+        frame = trj.read_frame(i)
+        sys.stdout.write('\r    frame %i' % i)
+
+        z_cations = frame.positions[id_cations][:, 2]
+        z_anions = frame.positions[id_anions][:, 2]
+        N_cations = 0.5 * erfc((anode - thickness - z_cations) / 2 ** 0.5 / 0.005).sum() * 0.2
+        N_anions = 0.5 * erfc((anode - thickness - z_anions) / 2 ** 0.5 / 0.005).sum() * 0.2
+        N_list.append(N_cations - N_anions)
+
+    print()
+    print(np.mean(N_list))
+
+
+def charge_1st(thickness=0.5):
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    frame_list = []
+    q_list = []
+    for i in range(args.begin, args.end, args.skip):
+        frame_list.append(i)
+        frame = trj.read_frame(i)
+        sys.stdout.write('\r    frame %i' % i)
+
+        z_to_left = frame.positions[:, 2] - elecd_l
+        ids_ils = np.where((z_to_left > 0.1) & (z_to_left < lz - 0.1))[0]
+        z_ils = frame.positions[ids_ils, 2]
+        q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
+        q = (0.5 * erfc((anode - thickness - z_ils) / 2 ** 0.5 / 0.005) * q_ils).sum()
+        q_list.append(q)
+
+    print()
+    print(np.mean(q_list))
+
+
 if __name__ == '__main__':
     if args.cmd == 'dist':
         distribution()
@@ -653,3 +684,7 @@ if __name__ == '__main__':
         charge_fluctuated()
     elif args.cmd == 'permit':
         permittivity()
+    elif args.cmd == 'number':
+        number()
+    elif args.cmd == 'q1st':
+        charge_1st()

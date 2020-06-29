@@ -42,7 +42,8 @@ r0_list = []
 k_list = []
 files = filter(os.path.isdir, os.listdir(os.getcwd()))
 for i in sorted(files, key=split_str_digit_alpha):
-    if os.path.isdir(i) and '-' in i and i[0].isdigit() and i[-1].isdigit():
+    if os.path.isdir(i) and '-' in i and \
+            (i[0].isdigit() or i[0].startswith('_')) and i[-1].isdigit():
         r0_list.append(i.split('-')[0])
         k_list.append(i.split('-')[1])
 
@@ -102,11 +103,11 @@ for r0, k in zip(r0_list, k_list):
                 r = float(str[1])
                 outf.write('%.1f %.6f\n' % (time, r))
     outf.close()
-    outf_meta.write('%s %s %s\n' % (outfile, r0, k))
+    outf_meta.write('%s %s %s\n' % (outfile, r0.replace('_', '-'), k)) # replace the leading _ with -
 outf_meta.close()
 
-hist_min = min(map(float, r0_list))
-hist_max = max(map(float, r0_list))
+hist_min = min(map(lambda x: float(x.replace('_', '-')), r0_list))
+hist_max = max(map(lambda x: float(x.replace('_', '-')), r0_list))
 
 if args.plot:
     import matplotlib
