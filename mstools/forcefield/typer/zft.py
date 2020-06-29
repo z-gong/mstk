@@ -34,7 +34,7 @@ class TypeDefine():
 
 class ZftTyper(Typer):
     '''
-    ZftTyper type a topology or molecule with local environment defined by SMARTS.
+    ZftTyper types a topology or molecule with local environment defined by SMARTS.
     A hierarchical strategy is used to make the atom type definition extendable.
     '''
     def __init__(self, file):

@@ -18,9 +18,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'mstools'
-copyright = '2020, Zheng GONG'
-author = 'Zheng GONG'
+copyright = '2020, Zheng Gong'
+author = 'Zheng Gong'
 
+import sys
+sys.path.append('../')
 
 # -- General configuration ---------------------------------------------------
 
@@ -33,6 +35,7 @@ extensions = ['sphinx.ext.autodoc',
 ]
 
 autosummary_generate = True
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

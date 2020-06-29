@@ -2,6 +2,12 @@ from ... import logger
 
 
 class Typer():
+    '''
+    Typing engine assigns atom types for atoms in a molecule or topology by some predefined rules.
+    It is the very first step for force field assignment.
+    It is also the basis of force field development.
+    A well defined typing rule will make the force field development much less painful.
+    '''
     def __init__(self):
         pass
 

@@ -5,6 +5,9 @@ from .errors import *
 
 
 class ForceField():
+    '''
+    A ForceField is a set of FFTerms describing the interactions between atoms in a topology.
+    '''
     VDW_LONGRANGE_CORRECT = 'correct'
     VDW_LONGRANGE_SHIFT = 'shift'
 
@@ -30,7 +33,24 @@ class ForceField():
         self.scale_14_coulomb = 1.0
 
     @staticmethod
-    def open(*files: [str]):
+    def open(*files):
+        '''
+        Load ForceField from files.
+        The type of the ForceField will be determined based on the extension of the first file.
+
+        Parameters
+        ----------
+        files : list of str
+            The files to be loaded. The extension can be `ff`, `ppf` or `zfp`.
+            `ff` file will be loaded as Padua;
+            `ppf` file will be loaded as Ppf;
+            `zfp` file will be loaded as Zfp.
+
+        Returns
+        -------
+        forcefield : [Pauda, Ppf, Zfp]
+
+        '''
         from .zfp import Zfp
         from .ppf import Ppf
         from .padua import Padua
