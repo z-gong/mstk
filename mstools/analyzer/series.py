@@ -4,9 +4,24 @@ import numpy as np
 from pandas import Series
 
 
-def block_average(series: Series, n_block=5) -> (float, float):
+def block_average(series, n_block=5):
     '''
-    Get block average and standard error
+    Calculate the block average and standard error
+
+    Parameters
+    ----------
+    series : Series
+        Time series
+    n_block : int
+        Number of blocks to use
+
+    Returns
+    -------
+    ave : float
+        Block average
+    stderr : float
+        Standard error
+
     '''
     block_aves = average_of_blocks(series, n_block)
     ave, stderr = np.mean(block_aves), np.std(block_aves, ddof=1) / math.sqrt(n_block)
@@ -14,9 +29,21 @@ def block_average(series: Series, n_block=5) -> (float, float):
     return ave, stderr
 
 
-def average_of_blocks(series: Series, n_block=5) -> [float]:
+def average_of_blocks(series, n_block=5):
     '''
     Split data to several blocks and return the average of each block
+
+    Parameters
+    ----------
+    series : Series
+        Time series
+    n_block : int
+        Number of blocks
+
+    Returns
+    -------
+    aves : list of float
+        The average of each block
     '''
     n_points = len(series)
     block_size = n_points // n_block
@@ -28,7 +55,25 @@ def average_of_blocks(series: Series, n_block=5) -> [float]:
     return block_aves
 
 
-def is_converged(series: Series, frac_min=0.5) -> (bool, float):
+def is_converged(series: Series, frac_min=0.5):
+    '''
+    Determine whether a time series has converged or not
+
+    Parameters
+    ----------
+    series : Series
+        Time series
+    frac_min : float
+        Consider this time series is converged only if the fraction of converged parts relative to the full series
+        is larger than this threshold
+
+    Returns
+    -------
+    converged : bool
+        Converged or not
+    when : float
+        From when this times series converged
+    '''
     from pymbar import timeseries
 
     n_points = len(series)
@@ -39,9 +84,24 @@ def is_converged(series: Series, frac_min=0.5) -> (bool, float):
     return True, series.index[t0]
 
 
-def efficiency_with_block_size(l: [float]) -> [float]:
-    array = np.array(l)
-    n_points = len(l)
+def efficiency_with_block_size(data):
+    '''
+    Calculate the statistical efficiency of block average with different block size.
+    It can be used to determine the maximum number of block size.
+
+    Parameters
+    ----------
+    data : list of float
+
+    Returns
+    -------
+    block_size : list of int
+        List of block size
+    efficiency : list of float
+        List of statistic efficiency with different block size
+    '''
+    array = np.array(data)
+    n_points = len(data)
     bsize_list = []
     n_block_list = []
     s_list = []
@@ -64,9 +124,7 @@ def efficiency_with_block_size(l: [float]) -> [float]:
         s = bsize * std_ave_blocks ** 2 / np.std(array) ** 2
         s_list.append(s)
 
-    import pylab
-    pylab.plot(bsize_list, s_list, '.')
-    pylab.show()
+    return bsize_list, s_list
 
 
 def mean_and_uncertainty(series: Series, inefficiency=None) -> (float, float):

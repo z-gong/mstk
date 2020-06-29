@@ -89,7 +89,8 @@ def run_simulation(gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
     sim = app.Simulation(psf.topology, system, integrator, _platform, _properties)
     if restart:
         sim.loadCheckpoint(restart)
-        sim.currentStep = int(round(sim.context.getState().getTime().value_in_unit(ps) / dt))
+        sim.currentStep = round(sim.context.getState().getTime().value_in_unit(ps) / dt / 10) * 10
+        sim.context.setTime(sim.currentStep * dt)
         append = True
     else:
         sim.context.setPositions(gro.positions)

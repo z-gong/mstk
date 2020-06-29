@@ -33,6 +33,10 @@ class TypeDefine():
 
 
 class ZftTyper(Typer):
+    '''
+    ZftTyper type a topology or molecule with local environment defined by SMARTS.
+    A hierarchical strategy is used to make the atom type definition extendable.
+    '''
     def __init__(self, file):
         super().__init__()
         self.defines: {str: TypeDefine} = {}
@@ -95,6 +99,17 @@ class ZftTyper(Typer):
             parent.add_child(last_define)
 
     def type_molecule(self, molecule):
+        '''
+        Type molecule with predefined SMARTS information
+
+        Parameters
+        ----------
+        molecule : Molecule
+
+        Returns
+        -------
+
+        '''
         obmol = molecule._obmol
         if obmol is None:
             raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
