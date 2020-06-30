@@ -15,23 +15,23 @@ mstools is a toolkit for preparing, running and analyzing molecular simulations
    examples
 
 API Reference
-=============
+-------------
 
 .. toctree::
    :maxdepth: 2
 
-   analyzer
-   forcefield
-   jobmanager
-   ommhelper
-   simsys
-   simulation
    topology
    trajectory
+   forcefield
+   simsys
+   jobmanager
+   ommhelper
    wrapper
+   simulation
+   analyzer
 
 
 License
-=======
+-------
 
 mstools is licensed under LGPL v2.1

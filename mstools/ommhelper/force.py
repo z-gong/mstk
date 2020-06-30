@@ -3,15 +3,27 @@ from .util import CONST
 from .unit import *
 
 
-def slab_correction(system: mm.System):
+def slab_correction(system):
     '''
     This applies Yeh's long range coulomb correction for slab geometry in z direction
     to eliminate the undesired interactions between periodic slabs
     It's useful for 2-D systems simulated under 3-D periodic condition
     For this correction to work correctly:
-    * A vacuum space two times larger than slab thickness is required
-    * All particles should never diffuse across the z boundaries
-    * The box size should not change during the simulation
+
+    Parameters
+    ----------
+    system : mm.System
+        The OpenMM system to be simulated
+
+    Returns
+    -------
+    force : mm.CustomCVForce
+
+    Notes
+    -----
+    * A vacuum space two times larger than slab thickness is required.
+    * All particles should never diffuse across the z boundaries.
+    * The box size should not change during the simulation.
     '''
     muz = mm.CustomExternalForce('q*z')
     muz.addPerParticleParameter('q')
@@ -37,10 +49,27 @@ def slab_correction(system: mm.System):
     return cvforce
 
 
-def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], strength):
+def spring_self(system, positions, particles, strength):
     '''
     Restrain the particles at its original positions
     Note that the original positions will NOT change with box size if there is barostat
+
+    Parameters
+    ----------
+    system : mm.System
+        The OpenMM system to be simulated
+    positions : array_like
+        The positions of all particles in the system in unit of nm
+    particles : list of int
+        The indexes of particles to be restrained
+    strength : list of float
+        The strength of harmonic restraint in x, y and z directions.
+        Three elements should be provided in unit of kJ/mol/nm^2
+
+    Returns
+    -------
+    force : mm.CustomExternalForce
+
     '''
     if system.getNumParticles() != len(positions):
         raise Exception('Length of positions does not equal to number of particles in system')
@@ -63,8 +92,7 @@ def spring_self(system: mm.System, positions: [mm.Vec3], particles: [int], stren
     return force
 
 
-def wall_power(system: mm.System, particles: [int], direction: str, bound: [float],
-               k, cutoff, power=2):
+def wall_power(system, particles, direction, bound, k, cutoff, power=2):
     '''
     Set a wall for particles so that they cannot cross it
     Note that periodic box condition is not considered,
@@ -72,6 +100,21 @@ def wall_power(system: mm.System, particles: [int], direction: str, bound: [floa
 
     The energy equal to k when particle is located at the lower or higher bound
     and equal to zero when particle is located between [lower bound + cutoff, higher bound - cutoff]
+
+    Parameters
+    ----------
+    system : mm.System
+    particles : list of int
+    direction : ['x', 'y', 'z']
+    bound : list of float
+    k : float
+    cutoff : float
+    power : int, optional
+
+    Returns
+    -------
+    force : mm.CustomExternalForce
+
     '''
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
@@ -98,7 +141,7 @@ def wall_power(system: mm.System, particles: [int], direction: str, bound: [floa
     return force
 
 
-def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [float], epsilon, sigma):
+def wall_lj126(system, particles, direction, bound, epsilon, sigma):
     '''
     Set a wall for particles so that they cannot cross it
     Note that periodic box condition is not considered,
@@ -107,6 +150,20 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
     The energy is infinite when particle is located at the lower or higher bound
     and equal to epsilon when particle is located at lower bound + sigma or higher bound - sigma
     and equal to zero when particle is located between [lower bound + sigma * 2^(1/6), higher bound - sigma * 2^(1/6)]
+
+    Parameters
+    ----------
+    system : mm.System
+    particles : list of int
+    direction : str
+    bound : list of float
+    epsilon : float
+    sigma : float
+
+    Returns
+    -------
+    force : mm.CustomExternalForce
+
     '''
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
@@ -133,10 +190,22 @@ def wall_lj126(system: mm.System, particles: [int], direction: str, bound: [floa
     return force
 
 
-def electric_field(system: mm.System, particles: [int], strength):
+def electric_field(system, particles, strength):
     '''
     Apply external electric field to particles
     The unit of electric field strength is V/nm
+
+    Parameters
+    ----------
+    system : mm.System
+    particles : list of int
+    strength : list of float
+        Strength of electric field in x, y and z directions
+
+    Returns
+    -------
+    force : mm.CustomExternalForce
+
     '''
     if unit.is_quantity(strength):
         efx, efy, efz = strength.value_in_unit(unit.volt / unit.nanometer)
@@ -156,9 +225,22 @@ def electric_field(system: mm.System, particles: [int], strength):
     return force
 
 
-def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
+def CLPolCoulTT(system, donors, b=45.0):
     '''
     Apply Tang-Toennies damping between H-bond hydrogen atoms and Drude dipoles
+
+    Parameters
+    ----------
+    system : mm.System
+    donors : list of int
+        Indexes of particles served as H-bond donors
+    b : float, optional
+        b in unit of /nm
+
+    Returns
+    -------
+    force : mm.CustomNonbondedForce
+
     '''
     nbforce: mm.NonbondedForce = next(f for f in system.getForces() if type(f) == mm.NonbondedForce)
     dforce: mm.DrudeForce = next(f for f in system.getForces() if type(f) == mm.DrudeForce)
@@ -198,14 +280,32 @@ def CLPolCoulTT(system: mm.System, donors: [int], b: float = 45.0):
     return ttforce
 
 
-def restrain_particle_number(system: mm.System, particles: [int], direction: str, bound,
-                             sigma, target, k, weights: [float] = None):
+def restrain_particle_number(system, particles, direction, bound,
+                             sigma, target, k, weights=None):
     '''
     Restrain the number of particles in a region
     The region is defined by direction (x, y or z) and bound (lower and upper)
     Each particle is consider as a Gaussian distribution with standard deviation equal to sigma
     The number of particles is restrained to the target value
     using a harmonic function with force constant k
+
+    Parameters
+    ----------
+    system : mm.System
+    particles : list of int
+    direction : ['x', 'y', 'z']
+    bound : list of float
+    sigma : float
+        Variance of the particle Gaussian in unit of nm
+    target : float
+    k : float
+        Strength of the harmonic restraint in unit of kJ/mol
+    weights : list of float, optional
+
+    Returns
+    -------
+    force : mm.CustomCVForce
+
     '''
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')

@@ -240,7 +240,7 @@ def fit_vle_dminus(T_list, dminus_list, guess=None, bounds=None):
 
     Returns
     -------
-    coeff : tuple(float, float)
+    coeff : tuple of float
         Tc and B
     rsq : float
     '''
@@ -270,7 +270,7 @@ def fit_vle_dplus(T_list, dplus_list, Tc, guess=None, bounds=None):
     bounds : list of float, optional
 
     Returns
-    coeff : tuple(float, float)
+    coeff : tuple of float
         Tc and B
     rsq : float
     -------

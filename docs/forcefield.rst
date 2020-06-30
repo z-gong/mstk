@@ -5,23 +5,51 @@ Force field
 Typing engine
 -------------
 
+.. currentmodule:: mstools.forcefield.typer
+
 .. autosummary::
     :toctree: _generated/
-    :template: class.rst
 
-    mstools.forcefield.typer.Typer
-    mstools.forcefield.typer.ZftTyper
-
+    Typer
+    ZftTyper
 
 Force field
 -----------
 
+.. currentmodule:: mstools.forcefield
+
 .. autosummary::
     :toctree: _generated/
-    :template: class.rst
 
-    mstools.forcefield.ForceField
-    mstools.forcefield.Zfp
-    mstools.forcefield.Ppf
-    mstools.forcefield.Padua
-    mstools.forcefield.PaduaLJScaler
+    ForceField
+    FFTerm
+    AtomType
+    ChargeIncrementTerm
+    VdwTerm
+    BondTerm
+    AngleTerm
+    DihedralTerm
+    ImproperTerm
+    PolarizableTerm
+    LJ126Term
+    MieTerm
+    HarmonicBondTerm
+    HarmonicAngleTerm
+    SDKAngleTerm
+    PeriodicDihedralTerm
+    OplsImproperTerm
+    HarmonicImproperTerm
+    DrudeTerm
+
+Force field parser
+------------------
+
+.. currentmodule:: mstools.forcefield
+
+.. autosummary::
+    :toctree: _generated/
+
+    Zfp
+    Ppf
+    Padua
+    PaduaLJScaler
