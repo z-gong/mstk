@@ -13,9 +13,28 @@ from .. import logger
 
 
 class Molecule():
-    def __init__(self, name: str = 'UNK'):
-        self.id: int = -1  # id in topology. -1 means information haven\'t been initiated
-        self.name: str = name
+    '''
+    A molecule is defined as atoms and the connectivity between them.
+
+    The term `molecule` is not strictly a chemical molecule.
+    Some atoms may not be connected to any other atoms in the same molecule.
+    However, there can not be bonds connecting atoms belong to different molecules.
+    Drude particles and virtual sites are also considered as atoms.
+    All bond, angles, dihedrals and impropers should be defined explicitly.
+    '''
+
+    def __init__(self, name='UNK'):
+        '''
+        Initialize a molecule with name.
+
+        The atoms and connectivities will be added later by calling add_atom(), add_bond() etc...
+
+        Parameters
+        ----------
+        name : str
+        '''
+        self.id: int = -1  #: index of this molecule in topology. -1 means information haven\'t been updated by topology
+        self.name = name  #: name of the atom, not necessarily unique
         self._topology = None
         self._atoms: [Atom] = []
         self._bonds: [Bond] = []
@@ -66,13 +85,28 @@ class Molecule():
             vsite = atom.virtual_site
             if vsite is not None:
                 new_atom = mol.atoms[i]
-                new_parents =[mol.atoms[p.id_in_molecule] for p in vsite.parents]
-                new_atom.virtual_site = create_virtual_site(vsite.type, new_parents, vsite.parameters)
+                new_parents = [mol.atoms[p.id_in_molecule] for p in vsite.parents]
+                new_atom.virtual_site = VirtualSiteFactory.create(vsite.site_type, new_parents, vsite.parameters)
 
         return mol
 
     @staticmethod
     def from_smiles(smiles):
+        '''
+        Initialize a molecule from SMILES string.
+
+        OpenBabel is used for parsing SMILES. The Hydrogen atoms will be created.
+        The positions of all atoms will also be automatically generated.
+        The SMILES string can contain the name of the molecule at the end, e.g. 'CCCC butane'.
+
+        Parameters
+        ----------
+        smiles : str
+
+        Returns
+        -------
+        molecule : Molecule
+        '''
         try:
             import pybel
         except ImportError:
@@ -98,6 +132,19 @@ class Molecule():
 
     @staticmethod
     def from_pybel(py_mol, name=None):
+        '''
+        Initialize a molecule from PyBel Molecule.
+
+        Parameters
+        ----------
+        py_mol : pybel.Molecule
+        name : str
+            The name of the molecule. If not provided, the formula will be used as the name.
+
+        Returns
+        -------
+        molecule : Molecule
+        '''
         try:
             import openbabel
         except ImportError:
@@ -129,6 +176,17 @@ class Molecule():
 
     @property
     def obmol(self):
+        '''
+        The OpenBabel OBMol object associated with this molecule.
+
+        It is required by ZftTyper typing engine, which performs SMARTS matching on the molecule.
+        The obmol attribute will be assigned if the molecule is initialized from SMILES or Pybel Molecule.
+        Otherwise, this attribute will be None.
+
+        Returns
+        -------
+        obmol : openbabel.OBMol
+        '''
         if self._obmol is not None:
             return self._obmol
         else:
@@ -136,15 +194,30 @@ class Molecule():
 
     @property
     def topology(self):
+        '''
+        The topology this molecule belongs to
+
+        Returns
+        -------
+        topology : Topology
+
+        '''
         return self._topology
 
-    def add_atom(self, atom: Atom, index=None, update_topology=True):
+    def add_atom(self, atom, index=None, update_topology=True):
         '''
         Add an atom to this molecule.
-        If index is None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
+
         The _id_in_molecule attribute of all atoms will be updated after insertion.
-        If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
-        Otherwise, you have to re-init the topology manually so that the topological information is correct.
+
+        Parameters
+        ----------
+        atom : Atom
+        index : int or None
+            If index is None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
+        update_topology : bool
+            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+            Otherwise, you have to re-init the topology manually so that the topological information is correct.
         '''
         atom._molecule = self
         if index is None:
@@ -157,15 +230,20 @@ class Molecule():
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def remove_atom(self, atom: Atom, update_topology=True):
+    def remove_atom(self, atom, update_topology=True):
         '''
         Remove an atom and all the bonds connected to the atom from this molecule.
         The _id_in_molecule attribute of all atoms will be updated after removal.
-        If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
-        Otherwise, you have to re-init the topology manually so that the topological information is correct.
+
+        Parameters
+        ----------
+        atom : Atom
+        update_topology : bool
+            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+            Otherwise, you have to re-init the topology manually so that the topological information is correct.
         '''
         for bond in atom._bonds[:]:
-            self.remove_bond(bond)
+            self.remove_connectivity(bond)
         self._atoms.remove(atom)
         atom._molecule = None
         for i, at in enumerate(self._atoms):
@@ -173,63 +251,153 @@ class Molecule():
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def add_bond(self, atom1: Atom, atom2: Atom, check_existence=False):
+    def add_bond(self, atom1, atom2, check_existence=False):
+        '''
+        Add a bond between two atoms.
+
+        Make sure that both these two atoms belong to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        check_existence : bool
+            If set to True and there is already bond between these two atoms, then do nothing and return None
+
+        Returns
+        -------
+        bond : [Bond, None]
+        '''
         bond = Bond(atom1, atom2)
         if check_existence and bond in self._bonds:
-            return
+            return None
 
         self._bonds.append(bond)
         atom1._bonds.append(bond)
         atom2._bonds.append(bond)
         return bond
 
-    def remove_bond(self, bond: Bond):
-        self._bonds.remove(bond)
-        bond.atom1._bonds.remove(bond)
-        bond.atom2._bonds.remove(bond)
+    def add_angle(self, atom1, atom2, atom3, check_existence=False):
+        '''
+        Add a angle between three atoms.
 
-    def add_angle(self, atom1: Atom, atom2: Atom, atom3: Atom, check_existence=False):
+        The second atom is the central atom.
+        Make sure that both these three atoms belong to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        check_existence : bool
+            If set to True and there is already angle between these three atoms, then do nothing and return None
+        Returns
+        -------
+        angle : [Angle, None]
+        '''
         angle = Angle(atom1, atom2, atom3)
         if check_existence and angle in self._angles:
-            return
+            return None
 
         self._angles.append(angle)
         return angle
 
-    def remove_angle(self, angle: Angle):
-        self._angles.remove(angle)
+    def add_dihedral(self, atom1, atom2, atom3, atom4, check_existence=False):
+        '''
+        Add a dihedral between four atoms.
 
-    def add_dihedral(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom,
-                     check_existence=False):
+        Make sure that both these four atoms belong to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        atom4 : Atom
+        check_existence : bool
+            If set to True and there is already dihedral between these three atoms, then do nothing and return None
+        Returns
+        -------
+        dihedral : [Dihedral, None]
+        '''
         dihedral = Dihedral(atom1, atom2, atom3, atom4)
         if check_existence and dihedral in self._dihedrals:
-            return
+            return None
 
         self._dihedrals.append(dihedral)
         return dihedral
 
-    def remove_dihedral(self, dihedral: Dihedral):
-        self._dihedrals.remove(dihedral)
+    def add_improper(self, atom1, atom2, atom3, atom4, check_existence=False):
+        '''
+        Add a improper between four atoms.
 
-    def add_improper(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom,
-                     check_existence=False):
+        The fist atom is the central atom.
+        Make sure that both these four atoms belong to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        atom4 : Atom
+        check_existence : bool
+            If set to True and there is already improper between these three atoms, then do nothing and return None
+        Returns
+        -------
+        dihedral : [Improper, None]
+        '''
         improper = Improper(atom1, atom2, atom3, atom4)
         if check_existence and improper in self._impropers:
-            return
+            return None
 
         self._impropers.append(improper)
         return improper
 
-    def remove_improper(self, improper: Improper):
-        self._impropers.remove(improper)
-
-    def similar_to(self, other) -> bool:
+    def remove_connectivity(self, connectivity):
         '''
-        See if this molecule is similar to other molecule.
+        Remove a connectivity (bond, angle, diheral or improper) from this molecule.
+
+        Make sure that this connectivity belongs to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        connectivity : [Bond, Angle, Dihedral, Improper]
+        '''
+        if type(connectivity) is Bond:
+            bond = connectivity
+            self._bonds.remove(bond)
+            bond.atom1._bonds.remove(bond)
+            bond.atom2._bonds.remove(bond)
+        elif type(connectivity) is Angle:
+            self._angles.remove(connectivity)
+        elif type(connectivity) is Dihedral:
+            self._dihedrals.remove(connectivity)
+        elif type(connectivity) is Improper:
+            self._impropers.remove(connectivity)
+        else:
+            raise Exception('Invalid connectivity')
+
+    def is_similar_to(self, other):
+        '''
+        Check if this molecule is similar to another molecule.
+
         It requires two molecules contains the same number of atoms.
         The correspond atoms should have same atom symbol, type and charge.
         The bonds should also be the same.
         But it doesn't consider angles, dihedrals and impropers.
+
+        Parameters
+        ----------
+        other : Molecule
+
+        Returns
+        -------
+        is : bool
         '''
         other: Molecule
         if self.n_atom != other.n_atom:
@@ -250,51 +418,133 @@ class Molecule():
 
     @property
     def n_atom(self):
+        '''
+        Number of atoms belong to this molecule
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._atoms)
 
     @property
     def n_bond(self):
+        '''
+        Number of bonds belong to this molecule
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._bonds)
 
     @property
     def n_angle(self):
+        '''
+        Number of angles belong to this molecule
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._angles)
 
     @property
     def n_dihedral(self):
+        '''
+        Number of dihedrals belong to this molecule
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._dihedrals)
 
     @property
     def n_improper(self):
+        '''
+        Number of impropers belong to this molecule
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._impropers)
 
     @property
     def atoms(self):
+        '''
+        List of atoms belong to this molecule
+
+        Returns
+        -------
+        atoms: list of Atom
+        '''
         return self._atoms
 
     @property
     def bonds(self):
+        '''
+        List of bonds belong to this molecule
+
+        Returns
+        -------
+        bonds : list of Bond
+        '''
         return self._bonds
 
     @property
     def angles(self):
+        '''
+        List of angles belong to this molecule
+
+        Returns
+        -------
+        angles : list of Angle
+        '''
         return self._angles
 
     @property
     def dihedrals(self):
+        '''
+        List of dihedrals belong to this molecule
+
+        Returns
+        -------
+        dihedrals : list of Dihedral
+        '''
         return self._dihedrals
 
     @property
     def impropers(self):
+        '''
+        List of impropers belong to this molecule
+
+        Returns
+        -------
+        impropers : list of Improper
+        '''
         return self._impropers
 
     @property
     def has_position(self):
+        '''
+        Whether or not all the atoms in the molecule have positions
+
+        Returns
+        -------
+        has : bool
+        '''
         return all(atom.has_position for atom in self.atoms)
 
-    def get_drude_pairs(self) -> [(Atom, Atom)]:
+    def get_drude_pairs(self):
         '''
-        [(parent, drude)]
+        Retrieve all the Drude dipole pairs belong to this molecule
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, drude)]
         '''
         pairs = []
         for bond in self._bonds:
@@ -304,9 +554,17 @@ class Molecule():
                 pairs.append((bond.atom1, bond.atom2))
         return pairs
 
-    def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
+    def get_12_13_14_pairs(self):
         '''
+        Retrieve all the 1-2, 1-3 and 1-4 pairs based on the bond information.
+
         The pairs only concerns real atoms. Drude particles  will be ignored.
+
+        Returns
+        -------
+        pairs12 : list of tuple of Atom
+        pairs13 : list of tuple of Atom
+        pairs14 : list of tuple of Atom
         '''
         pair_12_set = set()
         pair_13_set = set()
@@ -359,11 +617,11 @@ class Molecule():
                 if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
                     self.add_dihedral(atom1, atom2, atom3, atom4)
 
-    def guess_connectivity_from_ff(self, ff: ForceField, bond_limit=0.25,
-                                   bond_tolerance=0.025, angle_tolerance=None,
-                                   pbc='', cell: UnitCell = None):
+    def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None,
+                                   pbc='', cell=None):
         '''
         Guess bonds, angles, dihedrals and impropers from force field.
+
         It requires that atoms types are defined and positions are available.
         The distance between nearby atoms will be calculated.
         If it's smaller than bond_length_limit, then it will be compared with the equilibrium length in FF.
@@ -377,7 +635,17 @@ class Molecule():
         This is useful for simulating infinite structures
         pbc can be '', 'x', 'y', 'xy', 'xz', 'xyz', which means check bonds cross specific boundaries
         cell should also be provided if pbc is not ''
-        TODO Add support for triclinic cell
+
+        * TODO Add support for triclinic cell
+
+        Parameters
+        ----------
+        ff : ForceField
+        bond_limit : float
+        bond_tolerance : float
+        angle_tolerance : float
+        pbc : str
+        cell : UnitCell
         '''
         if not self.has_position:
             raise Exception('Positions are required for guessing connectivity')
@@ -467,7 +735,7 @@ class Molecule():
                 cos = delta21.dot(delta23) / math.sqrt(delta21.dot(delta21) * delta23.dot(delta23))
                 theta = np.arccos(np.clip(cos, -1, 1))
                 if abs(theta * 180 / math.pi - aterm.theta) > angle_tolerance:
-                    self.remove_angle(angle)
+                    self.remove_connectivity(angle)
                     angles_removed.append(angle)
 
         for dihedral in self._dihedrals[:]:
@@ -477,7 +745,7 @@ class Molecule():
             at4 = ff.atom_types[dihedral.atom4.type].eqt_dih_s
             dterm = DihedralTerm(at1, at2, at3, at4)
             if dterm.name not in ff.dihedral_terms.keys():
-                self.remove_dihedral(dihedral)
+                self.remove_connectivity(dihedral)
                 dihedrals_removed.append(dihedral)
 
         for improper in self._impropers[:]:
@@ -487,7 +755,7 @@ class Molecule():
             at4 = ff.atom_types[improper.atom4.type].eqt_imp_s
             iterm = ImproperTerm(at1, at2, at3, at4)
             if iterm.name not in ff.improper_terms.keys():
-                self.remove_improper(improper)
+                self.remove_connectivity(improper)
                 impropers_removed.append(improper)
 
         if angles_removed != []:
@@ -514,10 +782,10 @@ class Molecule():
                 msg += ' and more ...'
             logger.warning(msg)
 
-    def generate_drude_particles(self, ff: ForceField, type_drude='DP_', seed=1,
-                                 update_topology=True):
+    def generate_drude_particles(self, ff, type_drude='DP_', seed=1, update_topology=True):
         '''
         Generate Drude particles from DrudeTerms in force field.
+
         The atom types should have been defined already.
         Drude particle will not be generated if DrudeTerm for its atom type can not be found in the FF.
         Note that The existing Drude particles will be removed before generating.
@@ -525,6 +793,13 @@ class Molecule():
         The Drude charge will be calculated from the DrudeTerm and transferred from parent atom to the Drude particle.
         Bonds between parent-Drude will be generated and added to the topology.
         If AtomType and VdwTerm for generated Drude particles are not found in FF, these terms will be created and added to the FF.
+
+        Parameters
+        ----------
+        ff : ForceField
+        type_drude : str
+        seed : int
+        update_topology : bool
         '''
         if len(ff.polarizable_terms) == 0:
             raise Exception('Polarizable terms not found in force field')
@@ -600,24 +875,33 @@ class Molecule():
     def remove_drude_particles(self, update_topology=True):
         '''
         Remove all Drude particles and bonds belong to Drude particles
+
         The charges and masses carried by Drude particles will be transferred back to parent atoms
-        :return:
+
+        Parameters
+        ----------
+        update_topology : bool
         '''
         for parent, drude in self.get_drude_pairs():
             parent.mass += drude.mass
             parent.charge += drude.charge
-            self.remove_bond(drude._bonds[0])
+            self.remove_connectivity(drude._bonds[0])
             self.remove_atom(drude, update_topology=False)
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def assign_mass_from_ff(self, ff: ForceField):
+    def assign_mass_from_ff(self, ff):
         '''
         Assign masses of all atoms from the force field.
+
         The atom types should have been defined, and the AtomType in FF should carry mass information.
         The masses of Drude particles will be determined ONLY from the DrudeTerm,
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
+
+        Parameters
+        ----------
+        ff : ForceField
         '''
         _atype_not_found = set()
         _atype_no_mass = set()
@@ -656,15 +940,20 @@ class Molecule():
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge_from_ff(self, ff: ForceField):
+    def assign_charge_from_ff(self, ff):
         '''
         Assign charges of all atoms from the force field.
+
         The atom types should have been defined.
         The charge of corresponding AtomType in FF will be assigned to the atoms first.
         Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
         The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
         and the the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
+
+        Parameters
+        ----------
+        ff : ForceField
         '''
         _assigned = [False] * self.n_atom
         for atom in self._atoms:

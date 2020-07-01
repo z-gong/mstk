@@ -2,11 +2,23 @@ from .atom import Atom
 
 
 class Bond():
-    def __init__(self, atom1: Atom, atom2: Atom):
+    '''
+    A bond between two atoms.
+
+    Two bonds are considered as equal if they contain the identical atoms, regardless of the sequence.
+    '''
+    def __init__(self, atom1, atom2):
         '''
-        Because the properties of atoms are prone to changing,
-        there's no point to sort atoms here
-        it's better to sort them when compare bonds or match force field parameters
+        Construct a bond between two atoms.
+
+        Unlike BondTerm in ForceField, the atoms are not sorted in connectivity
+        because the properties of atoms (name, type, etc...) are prone to changing.
+        It's better to sort them when compare bonds or match force field parameters.
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
         '''
         self.atom1 = atom1
         self.atom2 = atom2
@@ -20,16 +32,47 @@ class Bond():
         return {self.atom1, self.atom2} == {other.atom1, other.atom2}
 
     @property
-    def name(self) -> str:
+    def name(self):
+        '''
+        Name of this bond
+
+        Returns
+        -------
+        name : str
+        '''
         return '%s-%s' % (self.atom1.name, self.atom2.name)
 
     @property
-    def is_drude(self) -> bool:
+    def is_drude(self):
+        '''
+        Whether or not this bond is a Drude dipole bond
+
+        Returns
+        -------
+        is : bool
+        '''
         return self.atom1.is_drude or self.atom2.is_drude
 
 
 class Angle():
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom):
+    '''
+    A angle between three atoms.
+
+    The second atom is the central atom.
+    Two angles are considered as equal if they contain the identical side atoms and center atom,
+    regardless of the sequence of side atoms.
+    '''
+
+    def __init__(self, atom1, atom2, atom3):
+        '''
+        Construct a angle between three atoms
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -46,11 +89,34 @@ class Angle():
 
     @property
     def name(self) -> str:
+        '''
+        Name of this angle
+
+        Returns
+        -------
+        name : str
+        '''
         return '%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name)
 
 
 class Dihedral():
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom):
+    '''
+    A dihedral between four atoms.
+
+    Two dihedrals with reversed sequence are considered as equal: i-j-k-l and l-k-j-i.
+    '''
+
+    def __init__(self, atom1, atom2, atom3, atom4):
+        '''
+        Construct a dihedral between four atoms
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        atom4 : Atom
+        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -69,16 +135,37 @@ class Dihedral():
 
     @property
     def name(self) -> str:
+        '''
+        Name of this dihedral
+
+        Returns
+        -------
+        name : str
+        '''
         return '%s-%s-%s-%s' \
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
 
 class Improper():
     '''
-    center atom is the first
+    A improper between four atoms.
+
+    The first atom is the central atom.
+    Two improeprs are considered as equal if they have the same side atoms and central atom,
+    regardless of the sequence of side atoms.
     '''
 
-    def __init__(self, atom1: Atom, atom2: Atom, atom3: Atom, atom4: Atom):
+    def __init__(self, atom1, atom2, atom3, atom4):
+        '''
+        Construct a improper between four atoms
+
+        Parameters
+        ----------
+        atom1 : Atom
+        atom2 : Atom
+        atom3 : Atom
+        atom4 : Atom
+        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -96,4 +183,11 @@ class Improper():
 
     @property
     def name(self) -> str:
+        '''
+        Name of this improper
+
+        Returns
+        -------
+        name : str
+        '''
         return '%s-%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)

@@ -2,8 +2,8 @@
 Topology
 ========
 
-Topology
---------
+Topology definition
+-------------------
 
 .. currentmodule:: mstools.topology
 
@@ -16,7 +16,7 @@ Topology
     UnitCell
 
 Connectivity
-------------
+~~~~~~~~~~~~
 
 .. currentmodule:: mstools.topology
 
@@ -29,17 +29,17 @@ Connectivity
     Improper
 
 Virtual site
-------------
+~~~~~~~~~~~~
 
 .. currentmodule:: mstools.topology
 
 .. autosummary::
     :toctree: _generated/
 
+    VirtualSiteFactory
     VirtualSite
     TwoLineSite
     ThreePlaneSite
-    create_virtual_site
 
 Topology parser
 ---------------
