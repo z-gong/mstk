@@ -14,10 +14,31 @@ It may be subject to refactor in the future to support different typing and simu
 .. autosummary::
     :toctree: _generated/
 
-    gmx.Npt
-    gmx.NptPPM
-    gmx.Nvt
-    gmx.NvtSlab
-    gmx.NvtGas
-    gmx.NvtVacuum
-    gauss.Cv
+    Simulation
+
+MD protocols
+------------
+
+.. currentmodule:: mstools.simulation.gmx
+
+.. autosummary::
+    :toctree: _generated/
+
+    GmxSimulation
+    Npt
+    NptPPM
+    Nvt
+    NvtSlab
+    NvtGas
+    NvtVacuum
+
+QM protocols
+------------
+
+.. currentmodule:: mstools.simulation.gauss
+
+.. autosummary::
+    :toctree: _generated/
+
+    GaussSimulation
+    Cv

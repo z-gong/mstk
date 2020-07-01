@@ -9,6 +9,9 @@ class Typer():
     A well defined typing rule will make the force field development much less painful.
     '''
     def __init__(self):
+        '''
+        This method should be implemented by subclasses
+        '''
         pass
 
     def type(self, topology):
