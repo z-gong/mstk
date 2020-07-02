@@ -31,6 +31,8 @@ Connectivity
 Virtual site
 ~~~~~~~~~~~~
 
+*Haven't been tested yet.*
+
 .. currentmodule:: mstools.topology
 
 .. autosummary::

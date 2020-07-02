@@ -1,6 +1,6 @@
 
-Job manager
-===========
+Job scheduler
+=============
 
 .. currentmodule:: mstools.jobmanager
 

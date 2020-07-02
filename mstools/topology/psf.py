@@ -19,23 +19,30 @@ class Psf():
     So if there are bonds between residues, there might be bugs.
 
     * Todo Support inter-residue bonds
+
+    Parameters
+    ----------
+    file : str
+    kwargs : dict
+        Ignored
+
+    Attributes
+    ----------
+    topology : Topology
+
+    Examples
+    --------
+    >>> psf = Psf('input.psf')
+    >>> topology = psf.topology
+
+    >>> Psf.save_to(topology, 'output.psf')
     '''
 
-    @staticmethod
-    def read(file, **kwargs):
-        '''
-        Parse a PSF file
+    def __init__(self, file, **kwargs):
+        self.topology = Topology()
+        self._parse(file)
 
-        Parameters
-        ----------
-        file : str
-        kwargs : dict
-            Ignored
-
-        Returns
-        -------
-        topology : Topology
-        '''
+    def _parse(self, file):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -57,9 +64,6 @@ class Psf():
             if word in _sections:
                 _iline_section.append((i, word))
 
-        # start parsing
-        topology = Topology()
-
         for i, (iline, section) in enumerate(_iline_section):
             if i != len(_iline_section) - 1:
                 iline_next = _iline_section[i + 1][0]
@@ -67,27 +71,23 @@ class Psf():
                 iline_next = len(lines)
             if section == '!NTITLE':
                 # the number at section line indicates the line counts of the section
-                Psf._parse_title(topology, lines[iline: iline_next])
+                self._parse_title(lines[iline: iline_next])
             if section == '!NATOM':
-                Psf._parse_atoms(topology, lines[iline: iline_next], is_drude)
+                self._parse_atoms(lines[iline: iline_next], is_drude)
             if section == '!NBOND':
-                Psf._parse_bonds(topology, lines[iline: iline_next])
+                self._parse_bonds( lines[iline: iline_next])
             if section == '!NTHETA':
-                Psf._parse_angles(topology, lines[iline: iline_next])
+                self._parse_angles(lines[iline: iline_next])
             if section == '!NPHI':
-                Psf._parse_dihedrals(topology, lines[iline: iline_next])
+                self._parse_dihedrals(lines[iline: iline_next])
             if section == '!NIMPHI':
-                Psf._parse_impropers(topology, lines[iline: iline_next])
+                self._parse_impropers(lines[iline: iline_next])
 
-        return topology
-
-    @staticmethod
-    def _parse_title(top, lines):
+    def _parse_title(self, lines):
         nline = int(lines[0].strip().split()[0])
-        top.remark = '\n'.join(lines[1:1 + nline]).strip()
+        self.topology.remark = '\n'.join(lines[1:1 + nline]).strip()
 
-    @staticmethod
-    def _parse_atoms(top, lines, parse_drude):
+    def _parse_atoms(self, lines, parse_drude):
         '''
         in psf file, drude particles always appear after attached atoms
         '''
@@ -130,12 +130,11 @@ class Psf():
             mol = molecules[atom._mol_id - 1]
             mol.add_atom(atom)
 
-        top.update_molecules(molecules)
+        self.topology.update_molecules(molecules)
 
-    @staticmethod
-    def _parse_bonds(top, lines):
+    def _parse_bonds(self, lines):
         n_bond = int(lines[0].strip().split()[0])
-        atoms = top.atoms
+        atoms = self.topology.atoms
         for i in range(math.ceil(n_bond / 4)):
             words = lines[i + 1].strip().split()
             for j in range(4):
@@ -144,10 +143,9 @@ class Psf():
                 atom1, atom2 = atoms[int(words[j * 2]) - 1], atoms[int(words[j * 2 + 1]) - 1]
                 atom1.molecule.add_bond(atom1, atom2)
 
-    @staticmethod
-    def _parse_angles(top, lines):
+    def _parse_angles(self, lines):
         n_angle = int(lines[0].strip().split()[0])
-        atoms = top.atoms
+        atoms = self.topology.atoms
         for i in range(math.ceil(n_angle / 3)):
             words = lines[i + 1].strip().split()
             for j in range(3):
@@ -158,10 +156,9 @@ class Psf():
                                       atoms[int(words[j * 3 + 2]) - 1]
                 atom1.molecule.add_angle(atom1, atom2, atom3)
 
-    @staticmethod
-    def _parse_dihedrals(top, lines):
+    def _parse_dihedrals(self, lines):
         n_dihedral = int(lines[0].strip().split()[0])
-        atoms = top.atoms
+        atoms = self.topology.atoms
         for i in range(math.ceil(n_dihedral / 2)):
             words = lines[i + 1].strip().split()
             for j in range(2):
@@ -173,10 +170,9 @@ class Psf():
                                              atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
-    @staticmethod
-    def _parse_impropers(top, lines):
+    def _parse_impropers(self, lines):
         n_improper = int(lines[0].strip().split()[0])
-        atoms = top.atoms
+        atoms = self.topology.atoms
         for i in range(math.ceil(n_improper / 2)):
             words = lines[i + 1].strip().split()
             for j in range(2):

@@ -11,24 +11,30 @@ class XyzTopology():
     XYZ format only records the type (or atomic symbol) and position of atoms.
     There is no real topology, so all atoms are assumed to be in the same molecule.
     The first column is treated as atom type instead of name or symbol.
+
+    Parameters
+    ----------
+    file : str
+    kwargs : dict
+        Ignored
+
+    Attributes
+    ----------
+    topology : Topology
+
+    Examples
+    --------
+    >>> xyz = XyzTopology('input.xyz')
+    >>> topology = xyz.topology
+
+    >>> XyzTopology.save_to(topology, 'output.xyz')
     '''
 
-    @staticmethod
-    def read(file, **kwargs):
-        '''
-        Parse a XYZ file
+    def __init__(self, file, **kwargs):
+        self.topology = Topology()
+        self._parse(file)
 
-        Parameters
-        ----------
-        file : str
-        kwargs : dict
-            Ignored
-
-        Returns
-        -------
-        topology : Topology
-
-        '''
+    def _parse(self, file):
         with open(file) as f:
             n_atom = int(f.readline().strip())
             mol = Molecule()
@@ -47,7 +53,7 @@ class XyzTopology():
                 atom.position = tuple(map(lambda x: float(x) / 10, words[1:4]))
                 mol.add_atom(atom)
 
-        return Topology([mol])
+        self.topology.update_molecules([mol])
 
     @staticmethod
     def save_to(top, file):

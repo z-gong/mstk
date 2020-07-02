@@ -7,31 +7,40 @@ from .ffterm import *
 
 class Zfp():
     '''
-    Generate ForceField from ZFP file.
+    Load ForceField from ZFP file.
 
-    ZFP is the default format for storing force field in mstools.
+    ZFP is the default format for storing ForceField in mstools.
+    XML language is used by ZFP file to serialize the setting and all the FFTerms in a ForceField object.
+    An example is given in the examples folder.
+
+    Several files can be read at one time.
+    Only one ForceField object will be created and it will contain force field terms from all of the files.
+    Note that the settings of the ForceField is read from the first file.
+    The settings in other files will be ignored.
+
+    A force field term describing one topology element should only appear once.
+    If there are duplicated terms, an Exception will be raised.
+    e.g. HarmonicAngleTerm('c_4', 'c_4', 'h_1') and SDKAngleTerm('c_4', 'c_4', 'h_1') are considered as duplicated,
+    because both of them are describing the angle type ('c_4', 'c_4', 'h_1').
+    LJ126Term('c_4', 'h_1') and MieTerm('c_4', 'h_1') are also duplicated,
+    because both of them are describing the vdW interactions between atom types 'c_4' and 'h_1'.
+
+    Parameters
+    ----------
+    files : list of str
+
+    Attributes
+    ----------
+    forcefield : ForceField
     '''
-    @staticmethod
-    def read(*files):
-        '''
-        Parse a ZFP file
 
-        Parameters
-        ----------
-        files : list of str
-
-        Returns
-        -------
-        ff : ForceField
-        '''
-        ff = ForceField()
+    def __init__(self, *files):
+        self.forcefield = ForceField()
+        self._setting_read = False
         for file in files:
-            Zfp._parse(ff, file)
+            self._parse(file)
 
-        return ff
-
-    @staticmethod
-    def _parse(ff, file):
+    def _parse(self, file):
         try:
             tree = ET.ElementTree(file=file)
         except:
@@ -41,12 +50,16 @@ class Zfp():
         if root is None:
             raise Exception('Empty ZFP file')
 
-        node = root.find('Setting')
-        ff.vdw_cutoff = float(node.attrib['vdw_cutoff'])
-        ff.vdw_long_range = node.attrib['vdw_long_range']
-        ff.lj_mixing_rule = node.attrib['lj_mixing_rule']
-        ff.scale_14_vdw = float(node.attrib['scale_14_vdw'])
-        ff.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
+        ff = self.forcefield
+
+        if not self._setting_read:
+            node = root.find('Setting')
+            ff.vdw_cutoff = float(node.attrib['vdw_cutoff'])
+            ff.vdw_long_range = node.attrib['vdw_long_range']
+            ff.lj_mixing_rule = node.attrib['lj_mixing_rule']
+            ff.scale_14_vdw = float(node.attrib['scale_14_vdw'])
+            ff.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
+            self._setting_read = True
 
         tags = {
             'AtomTypes'           : ff.atom_types,

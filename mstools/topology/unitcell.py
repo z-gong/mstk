@@ -8,16 +8,13 @@ class UnitCell():
 
     Both rectangular and triclinic unit cells are supported.
     But note that some other modules in mstools may only support rectangular cell.
+
+    Parameters
+    ----------
+    box : array_like
+        See :func:`set_box` for explanations.
     '''
     def __init__(self, box):
-        '''
-        Construct a unit cell with box lengths or (lengths and angles) or box vectors.
-
-        Parameters
-        ----------
-        box : array_like
-            See :func:`set_box` for explanations.
-        '''
         self.set_box(box)
 
     def set_box(self, box):

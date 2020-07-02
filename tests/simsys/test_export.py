@@ -4,14 +4,14 @@ import os
 import sys
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import Ppf, Padua, Zfp
+from mstools.forcefield import ForceField
 from mstools.simsys import System
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_gmx():
-    ff = Ppf(cwd + '/files/10-benzene.ppf')
+    ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
@@ -21,7 +21,7 @@ def test_gmx():
 
 
 def test_gmx_drude():
-    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
+    ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
     top.generate_angle_dihedral_improper()
     top.generate_drude_particles(ff)
@@ -33,7 +33,7 @@ def test_gmx_drude():
 
 
 def test_lmp_drude():
-    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
+    ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
     top.generate_angle_dihedral_improper()
     top.generate_drude_particles(ff)
@@ -44,7 +44,7 @@ def test_lmp_drude():
 
 
 def test_charmm():
-    ff = Ppf(cwd + '/files/10-benzene.ppf')
+    ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)

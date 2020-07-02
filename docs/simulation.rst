@@ -16,8 +16,8 @@ It may be subject to refactor in the future to support different typing and simu
 
     Simulation
 
-MD protocols
-------------
+GROMACS protocols
+-----------------
 
 .. currentmodule:: mstools.simulation.gmx
 
@@ -32,8 +32,8 @@ MD protocols
     NvtGas
     NvtVacuum
 
-QM protocols
-------------
+Gaussian protocols
+------------------
 
 .. currentmodule:: mstools.simulation.gauss
 

@@ -6,20 +6,22 @@ class Bond():
     A bond between two atoms.
 
     Two bonds are considered as equal if they contain the identical atoms, regardless of the sequence.
+
+    Unlike BondTerm in ForceField, the atoms are not sorted in connectivity
+    because the properties of atoms (name, type, etc...) are prone to changing.
+    It's better to sort them when compare bonds or match force field parameters.
+
+    Parameters
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+
+    Attributes
+    ----------
+    atom1 : Atom
+    atom2 : Atom
     '''
     def __init__(self, atom1, atom2):
-        '''
-        Construct a bond between two atoms.
-
-        Unlike BondTerm in ForceField, the atoms are not sorted in connectivity
-        because the properties of atoms (name, type, etc...) are prone to changing.
-        It's better to sort them when compare bonds or match force field parameters.
-
-        Parameters
-        ----------
-        atom1 : Atom
-        atom2 : Atom
-        '''
         self.atom1 = atom1
         self.atom2 = atom2
 
@@ -61,18 +63,21 @@ class Angle():
     The second atom is the central atom.
     Two angles are considered as equal if they contain the identical side atoms and center atom,
     regardless of the sequence of side atoms.
+
+    Parameters
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
+
+    Attributes
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
     '''
 
     def __init__(self, atom1, atom2, atom3):
-        '''
-        Construct a angle between three atoms
-
-        Parameters
-        ----------
-        atom1 : Atom
-        atom2 : Atom
-        atom3 : Atom
-        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -103,20 +108,25 @@ class Dihedral():
     '''
     A dihedral between four atoms.
 
-    Two dihedrals with reversed sequence are considered as equal: i-j-k-l and l-k-j-i.
+    Two dihedrals with reversed sequence are considered as equal.
+    So i-j-k-l and l-k-j-i are the same.
+
+    Parameters
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
+    atom4 : Atom
+
+    Attributes
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
+    atom4 : Atom
     '''
 
     def __init__(self, atom1, atom2, atom3, atom4):
-        '''
-        Construct a dihedral between four atoms
-
-        Parameters
-        ----------
-        atom1 : Atom
-        atom2 : Atom
-        atom3 : Atom
-        atom4 : Atom
-        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -151,21 +161,27 @@ class Improper():
     A improper between four atoms.
 
     The first atom is the central atom.
-    Two improeprs are considered as equal if they have the same side atoms and central atom,
+    There's arbitrariness in the definition of improper.
+    Herein, two impropers are considered as equal if they have the same side atoms and central atom,
     regardless of the sequence of side atoms.
+    So i-j-k-l and i-k-l-j are the same.
+
+    Parameters
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
+    atom4 : Atom
+
+    Attributes
+    ----------
+    atom1 : Atom
+    atom2 : Atom
+    atom3 : Atom
+    atom4 : Atom
     '''
 
     def __init__(self, atom1, atom2, atom3, atom4):
-        '''
-        Construct a improper between four atoms
-
-        Parameters
-        ----------
-        atom1 : Atom
-        atom2 : Atom
-        atom3 : Atom
-        atom4 : Atom
-        '''
         self.atom1 = atom1
         self.atom2 = atom2
         self.atom3 = atom3
@@ -182,7 +198,7 @@ class Improper():
         return {self.atom2, self.atom3, self.atom4} == {other.atom2, other.atom3, other.atom4}
 
     @property
-    def name(self) -> str:
+    def name(self):
         '''
         Name of this improper
 

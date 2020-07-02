@@ -14,23 +14,28 @@ class Zmat():
     The first line is treated as the name of the molecule.
     The positions will be generated from Z-matrix, with the algorithm copied from fftool of Agilio Padua.
     The first column is treated as atom type.
+
+    Parameters
+    ----------
+    file : str
+    kwargs : dict
+        Ignored
+
+    Attributes
+    ----------
+    topology : Topology
+
+    Examples
+    --------
+    >>> zmat = Zmat('input.zmat')
+    >>> topology = zmat.topology
     '''
-    @staticmethod
-    def read(file, **kwargs):
-        '''
-        Parse a ZMAT file
 
-        Parameters
-        ----------
-        file : str
-        kwargs : dict
-            Ignored
+    def __init__(self, file, **kwargs):
+        self.topology = Topology()
+        self._parse(file)
 
-        Returns
-        -------
-        topology: Topology
-        '''
-
+    def _parse(self, file):
         f = open(file)
 
         mol = Molecule()
@@ -230,4 +235,4 @@ class Zmat():
 
         mol.generate_angle_dihedral_improper()
 
-        return Topology([mol])
+        self.topology.update_molecules([mol])

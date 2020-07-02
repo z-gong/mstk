@@ -109,7 +109,7 @@ class GromacsExporter():
             string += '\n[ pairs ]\n'
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
             for a1, a2 in pairs14:
-                string += '%6i %6i %6i\n' % (a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1)
+                string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
 
             if DrudeTerm in system.ff_classes:
                 drude_pairs = dict(mol.get_drude_pairs())
@@ -122,13 +122,13 @@ class GromacsExporter():
                     if a1 in drude_pairs and a2 in drude_pairs:
                         _pairs14_drude.append((drude_pairs[a1], drude_pairs[a2]))
                 for a1, a2 in _pairs14_drude:
-                    string += '%6i %6i %6i\n' % (a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1)
+                    string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
 
                 string += '\n[ polarization ]\n'
                 string += ';  ai    aj   func    alpha     delta     khyp\n'
                 for parent, drude in drude_pairs.items():
                     string += '%5d %5d   %4d  %9.6f  %7.4f  %9.4e\n' % (
-                        parent.id_in_molecule + 1, drude.id_in_molecule + 1,
+                        parent.id_in_mol + 1, drude.id_in_mol + 1,
                         2, parent.alpha, 0.02, 16.768e8)
 
                 string += '\n[ thole_polarization ]\n'
@@ -136,8 +136,8 @@ class GromacsExporter():
                 for a1, a2 in pairs12 + pairs13:
                     if a1 in drude_pairs and a2 in drude_pairs:
                         string += '%5i %5i %5i %5i   %4i   %9.5f  %9.6f  %9.6f\n' % (
-                            a1.id_in_molecule + 1, drude_pairs[a1].id_in_molecule + 1,
-                            a2.id_in_molecule + 1, drude_pairs[a2].id_in_molecule + 1,
+                            a1.id_in_mol + 1, drude_pairs[a1].id_in_mol + 1,
+                            a2.id_in_mol + 1, drude_pairs[a2].id_in_mol + 1,
                             1, (a1.thole + a2.thole) / 2, a1.alpha, a2.alpha)
 
             string += '\n[ constraints ]\n'
@@ -146,13 +146,13 @@ class GromacsExporter():
                 if distance is not None:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1, 1, distance)
+                        a1.id_in_mol + 1, a2.id_in_mol + 1, 1, distance)
             for angle in mol.angles:
                 distance = system.constrain_angles.get(id(angle))
                 if distance is not None:
                     a1, a3 = angle.atom1, angle.atom3
                     string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_molecule + 1, a3.id_in_molecule + 1, 2, distance)
+                        a1.id_in_mol + 1, a3.id_in_mol + 1, 2, distance)
 
             string += '\n[ bonds ]\n'
             for bond in mol.bonds:
@@ -164,7 +164,7 @@ class GromacsExporter():
                 if bterm.__class__ == HarmonicBondTerm:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f %12.4f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
+                        a1.id_in_mol + 1, a2.id_in_mol + 1,
                         1, bterm.length, bterm.k * 2)
                 else:
                     raise Exception('Unsupported bond term')
@@ -187,9 +187,9 @@ class GromacsExporter():
                     if a1 in drude_pairs and a2 in drude_pairs:
                         _exclusions_drude[d1].append(d2)
                 for d1 in _exclusions_drude.keys():
-                    string += '%5d' % (d1.id_in_molecule + 1)
+                    string += '%5d' % (d1.id_in_mol + 1)
                     for d2 in _exclusions_drude[d1]:
-                        string += ' %5d' % (d2.id_in_molecule + 1)
+                        string += ' %5d' % (d2.id_in_mol + 1)
                     string += '\n'
                 string += '\n'
 
@@ -201,7 +201,7 @@ class GromacsExporter():
                 a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
                 if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1, a3.id_in_molecule + 1,
+                        a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
                         1, aterm.theta, aterm.k * 2)
                 else:
                     raise Exception('Unsupported angle term')
@@ -213,13 +213,13 @@ class GromacsExporter():
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
-                            a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                            a1.id_in_mol + 1, a2.id_in_mol + 1,
+                            a3.id_in_mol + 1, a4.id_in_mol + 1,
                             9, para.phi, para.k, para.n)
                     if len(dterm.parameters) == 0:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
-                            a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                            a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                            a1.id_in_mol + 1, a2.id_in_mol + 1,
+                            a3.id_in_mol + 1, a4.id_in_mol + 1,
                             9, 0.0, 0.0, 1)
                 else:
                     raise Exception('Unsupported dihedral term')
@@ -231,13 +231,13 @@ class GromacsExporter():
                 if iterm.__class__ == OplsImproperTerm:
                     # be careful about the sequence of atoms in OPLS improper definition
                     string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
-                        a2.id_in_molecule + 1, a3.id_in_molecule + 1,
-                        a1.id_in_molecule + 1, a4.id_in_molecule + 1,
+                        a2.id_in_mol + 1, a3.id_in_mol + 1,
+                        a1.id_in_mol + 1, a4.id_in_mol + 1,
                         4, 180, iterm.k, 2)
                 elif iterm.__class__ == HarmonicImproperTerm:
                     string += '%6i %6i %6i %6i %6i %8.2f %12.4f\n' % (
-                        a1.id_in_molecule + 1, a2.id_in_molecule + 1,
-                        a3.id_in_molecule + 1, a4.id_in_molecule + 1,
+                        a1.id_in_mol + 1, a2.id_in_mol + 1,
+                        a3.id_in_mol + 1, a4.id_in_mol + 1,
                         2, iterm.phi, iterm.k * 2)
                 else:
                     raise Exception('Unsupported improper term')

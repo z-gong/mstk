@@ -4,7 +4,7 @@ import os
 import sys
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import Ppf, Padua, Zfp
+from mstools.forcefield import ForceField
 from mstools.simsys import System
 
 import simtk.openmm as mm
@@ -15,7 +15,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_team():
-    ff = Ppf(cwd + '/files/10-benzene.ppf')
+    ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
@@ -34,7 +34,7 @@ def test_team():
 
 
 def test_vdw_shift():
-    ff = Ppf(cwd + '/files/10-benzene.ppf')
+    ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     ff.vdw_long_range = ff.VDW_LONGRANGE_SHIFT
 
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
@@ -55,7 +55,7 @@ def test_vdw_shift():
 
 
 def test_drude():
-    ff = Padua(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
+    ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
     top.generate_angle_dihedral_improper()
     # top.remove_drude_particles()
@@ -78,7 +78,7 @@ def test_drude():
 
 
 def test_sdk():
-    ff = Zfp.read(cwd + '/../forcefield/files/SPICA_v1.zfp')
+    ff = ForceField.open(cwd + '/../forcefield/files/SPICA_v1.zfp')
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
     for atom in top.atoms:
         atom.charge /= 80 ** 0.5

@@ -21,20 +21,22 @@ class Molecule():
     However, there can not be bonds connecting atoms belong to different molecules.
     Drude particles and virtual sites are also considered as atoms.
     All bond, angles, dihedrals and impropers should be defined explicitly.
+
+    Parameters
+    ----------
+    name : str
+
+    Attributes
+    ----------
+    id : int
+        Index of this molecule in topology. -1 means information haven\'t been updated by topology
+    name : str
+        Name of the molecule, not necessarily unique
     '''
 
     def __init__(self, name='UNK'):
-        '''
-        Initialize a molecule with name.
-
-        The atoms and connectivities will be added later by calling add_atom(), add_bond() etc...
-
-        Parameters
-        ----------
-        name : str
-        '''
-        self.id: int = -1  #: index of this molecule in topology. -1 means information haven\'t been updated by topology
-        self.name = name  #: name of the atom, not necessarily unique
+        self.id = -1
+        self.name = name
         self._topology = None
         self._atoms: [Atom] = []
         self._bonds: [Bond] = []
@@ -60,32 +62,32 @@ class Molecule():
             atom_new = copy.deepcopy(atom)
             mol.add_atom(atom_new)
         for bond in self._bonds:
-            idx1 = bond.atom1._id_in_molecule
-            idx2 = bond.atom2._id_in_molecule
+            idx1 = bond.atom1.id_in_mol
+            idx2 = bond.atom2.id_in_mol
             mol.add_bond(mol._atoms[idx1], mol._atoms[idx2])
         for angle in self._angles:
-            idx1 = angle.atom1._id_in_molecule
-            idx2 = angle.atom2._id_in_molecule
-            idx3 = angle.atom3._id_in_molecule
+            idx1 = angle.atom1.id_in_mol
+            idx2 = angle.atom2.id_in_mol
+            idx3 = angle.atom3.id_in_mol
             mol.add_angle(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3])
         for dihedral in self._dihedrals:
-            idx1 = dihedral.atom1._id_in_molecule
-            idx2 = dihedral.atom2._id_in_molecule
-            idx3 = dihedral.atom3._id_in_molecule
-            idx4 = dihedral.atom4._id_in_molecule
+            idx1 = dihedral.atom1.id_in_mol
+            idx2 = dihedral.atom2.id_in_mol
+            idx3 = dihedral.atom3.id_in_mol
+            idx4 = dihedral.atom4.id_in_mol
             mol.add_dihedral(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
         for improper in self._impropers:
-            idx1 = improper.atom1._id_in_molecule
-            idx2 = improper.atom2._id_in_molecule
-            idx3 = improper.atom3._id_in_molecule
-            idx4 = improper.atom4._id_in_molecule
+            idx1 = improper.atom1.id_in_mol
+            idx2 = improper.atom2.id_in_mol
+            idx3 = improper.atom3.id_in_mol
+            idx4 = improper.atom4.id_in_mol
             mol.add_improper(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
 
         for i, atom in enumerate(self._atoms):
             vsite = atom.virtual_site
             if vsite is not None:
                 new_atom = mol.atoms[i]
-                new_parents = [mol.atoms[p.id_in_molecule] for p in vsite.parents]
+                new_parents = [mol.atoms[p.id_in_mol] for p in vsite.parents]
                 new_atom.virtual_site = VirtualSiteFactory.create(vsite.site_type, new_parents, vsite.parameters)
 
         return mol
@@ -133,7 +135,7 @@ class Molecule():
     @staticmethod
     def from_pybel(py_mol, name=None):
         '''
-        Initialize a molecule from PyBel Molecule.
+        Initialize a molecule from a `pybel Molecule` object.
 
         Parameters
         ----------
@@ -177,11 +179,11 @@ class Molecule():
     @property
     def obmol(self):
         '''
-        The OpenBabel OBMol object associated with this molecule.
+        The `openbabel.OBMol` object associated with this molecule.
 
         It is required by ZftTyper typing engine, which performs SMARTS matching on the molecule.
         The obmol attribute will be assigned if the molecule is initialized from SMILES or Pybel Molecule.
-        Otherwise, this attribute will be None.
+        If this information is not available, an Exception will be raised.
 
         Returns
         -------
@@ -208,7 +210,7 @@ class Molecule():
         '''
         Add an atom to this molecule.
 
-        The _id_in_molecule attribute of all atoms will be updated after insertion.
+        The id_in_mol attribute of all atoms will be updated after insertion.
 
         Parameters
         ----------
@@ -222,18 +224,18 @@ class Molecule():
         atom._molecule = self
         if index is None:
             self._atoms.append(atom)
-            atom._id_in_molecule = len(self._atoms) - 1
+            atom.id_in_mol = len(self._atoms) - 1
         else:
             self._atoms.insert(index, atom)
             for i, at in enumerate(self._atoms):
-                at._id_in_molecule = i
+                at.id_in_mol = i
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom, update_topology=True):
         '''
         Remove an atom and all the bonds connected to the atom from this molecule.
-        The _id_in_molecule attribute of all atoms will be updated after removal.
+        The id_in_mol attribute of all atoms will be updated after removal.
 
         Parameters
         ----------
@@ -247,7 +249,7 @@ class Molecule():
         self._atoms.remove(atom)
         atom._molecule = None
         for i, at in enumerate(self._atoms):
-            at._id_in_molecule = i
+            at.id_in_mol = i
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
@@ -411,8 +413,8 @@ class Molecule():
                 return False
             if len(atom1._bonds) != len(atom2._bonds):
                 return False
-            if set(p._id_in_molecule for p in atom1.bond_partners) != \
-                    set(p._id_in_molecule for p in atom2.bond_partners):
+            if set(p.id_in_mol for p in atom1.bond_partners) != \
+                    set(p.id_in_mol for p in atom2.bond_partners):
                 return False
         return True
 
@@ -825,7 +827,7 @@ class Molecule():
             drude.is_drude = True
             drude.type = type_drude
             # add Drude particles after all been generated so the name of them are in sequence
-            drude.name = 'DP' + str(parent._id_in_molecule + 1)
+            drude.name = 'DP' + str(parent.id_in_mol + 1)
             drude.symbol = 'DP'
             drude.mass = pterm.mass
             parent.mass -= drude.mass
@@ -965,7 +967,7 @@ class Molecule():
                 raise Exception(f'Atom type {atom.type} not found in FF')
             atom.charge = charge
             if charge != 0:
-                _assigned[atom.id_in_molecule] = True
+                _assigned[atom.id_in_mol] = True
 
         if len(ff.charge_increment_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
@@ -976,8 +978,8 @@ class Molecule():
                 bond.atom1.charge += increment
                 bond.atom2.charge -= increment
                 if increment != 0:
-                    _assigned[bond.atom1.id_in_molecule] = True
-                    _assigned[bond.atom2.id_in_molecule] = True
+                    _assigned[bond.atom1.id_in_mol] = True
+                    _assigned[bond.atom2.id_in_mol] = True
 
         _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
                              if not atom.is_drude and not _assigned[i]]

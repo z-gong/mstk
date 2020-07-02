@@ -13,8 +13,8 @@ Typing engine
     Typer
     ZftTyper
 
-Force field
------------
+Force field definition
+----------------------
 
 .. currentmodule:: mstools.forcefield
 
@@ -22,15 +22,6 @@ Force field
     :toctree: _generated/
 
     ForceField
-
-Force field terms
------------------
-
-.. currentmodule:: mstools.forcefield
-
-.. autosummary::
-    :toctree: _generated/
-
     FFTerm
     AtomType
     ChargeIncrementTerm

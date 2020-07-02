@@ -16,18 +16,33 @@ class Pdb():
     So if there are bonds between residues, there might be bugs.
 
     * Todo Support bonds between residues
+
+    Parameters
+    ----------
+    file : str
+    kwargs : dict
+        Ignored
+
+    Attributes
+    ----------
+    topology : Topology
+
+    Examples
+    --------
+    >>> pdb = Pdb('input.pdb')
+    >>> topology = pdb.topology
+
+    >>> Pdb.save_to(topology, 'output.pdb')
     '''
 
-    @staticmethod
-    def read(file, **kwargs):
+    def __init__(self, file, **kwargs):
+        self.topology = Topology()
+        self._parse(file)
+
+    def _parse(self, file):
         '''
         Parse a PDB file
 
-        Parameters
-        ----------
-        file : str
-        kwargs : dict
-            Ignored
 
         Returns
         -------
@@ -37,15 +52,13 @@ class Pdb():
         with open(file) as f:
             lines = f.read().splitlines()
 
-        topology = Topology()
-
         atoms = []
         mol_names = {}
         for line in lines:
             line = line.rstrip()
             if line.startswith('CRYST1'):
                 a, b, c, alpha, beta, gamma = list(map(float, line.split()[1:7]))
-                topology.cell.set_box([[a / 10, b / 10, c / 10], [alpha, beta, gamma]])
+                self.topology.cell.set_box([[a / 10, b / 10, c / 10], [alpha, beta, gamma]])
             if line.startswith('ATOM') or line.startswith('HETATM'):
                 atom = Atom()
                 atom.id = int(line[6:11]) - 1
@@ -105,8 +118,7 @@ class Pdb():
                     atom1.molecule.add_bond(atom1, atom5, check_existence=True)
             prev_section = section
 
-        topology.update_molecules(molecules)
-        return topology
+        self.topology.update_molecules(molecules)
 
     @staticmethod
     def save_to(top, file):

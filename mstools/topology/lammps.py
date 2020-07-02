@@ -8,7 +8,7 @@ from .. import logger
 
 class LammpsData():
     '''
-    Generate Topology from Lammps data file.
+    Parse topology from Lammps data file.
 
     Atom masses, types, charges, connectivity, unit cell and atom positions are parsed.
     The velocities and force field parameters are ignored.
@@ -32,30 +32,52 @@ class LammpsData():
     depending on the `improper_style`.
     The argument `improper_center` controls which atom should be treated as the center atom,
     which is set to 1 by default.
-    e.g. for `improper_style cvff`, the central atom is the third.
+
+    Parameters
+    ----------
+    file : str
+    improper_center : [1, 2, 3, 4]
+    kwargs : dict
+    Ignored
+
+    Examples
+    --------
+
+    >>> lammps = LammpsData('data.lmp')
+    >>> topology = lammps.topology
+
+    For `improper_style cvff`, the central atom is the third.
     Then the LammpsData should be loaded as
 
-    >>> topology = LammpsData.read('data.lmp', improper_center=3)
+    >>> lammps = LammpsData('data.lmp', improper_center=3)
 
+    Attributes
+    ----------
+    topology : Topology
+        Parsed topology from the data
+    n_atom_type : int
+        Number of atom types
+    type_names : list of str
+        Names of these atom types
+    type_masses : list of float
+        Masses of these atom types
+    xlo : float
+        The origin of the cell in x direction. Not really useful
+    ylo : float
+        The origin of the cell in z direction. Not really useful
+    zlo : float
+        The origin of the cell in z direction. Not really useful
     '''
 
-    @staticmethod
-    def read(file, improper_center=None, **kwargs):
-        '''
-        Parse a Lammps data file
+    def __init__(self, file, improper_center=None, **kwargs):
+        self.topology = Topology()
+        self._parse(file, improper_center)
 
-        Parameters
-        ----------
-        file : str
-        improper_center : [1, 2, 3, 4]
-        kwargs : dict
-            Ignored
-        '''
+    def _parse(self, file, improper_center):
         with open(file) as f:
             lines = f.read().splitlines()
 
-        topology = Topology()
-        topology.remark = lines[0].strip()
+        self.topology.remark = lines[0].strip()
 
         _sections = ["Atoms", "Velocities", "Ellipsoids", "Lines", "Triangles", "Bodies",
                      "Bonds", "Angles", "Dihedrals", "Impropers",
@@ -72,11 +94,11 @@ class LammpsData():
             if line_clean in _sections:
                 _iline_section.append((i, line_clean))
 
-        n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type, xlo, ylo, zlo = \
-            LammpsData._parse_header(topology, lines[:_iline_section[0][0]])
+        n_atom, n_bond, n_angle, n_dihedral, n_improper= \
+            self._parse_header(lines[:_iline_section[0][0]])
 
-        _type_masses = [0.] * (n_atom_type + 1)
-        _type_names = [''] * (n_atom_type + 1)
+        self.type_masses = [0.] * (self.n_atom_type + 1)
+        self.type_names = [''] * (self.n_atom_type + 1)
 
         for i, (iline, section) in enumerate(_iline_section):
             if i != len(_iline_section) - 1:
@@ -85,26 +107,20 @@ class LammpsData():
                 iline_next = len(lines)
             if section == 'Masses':
                 # there is a blank line after each section header
-                LammpsData._parse_atom_types(lines[iline + 2: iline_next], n_atom_type,
-                                             _type_names, _type_masses)
+                self._parse_atom_types(lines[iline + 2: iline_next])
             if section == 'Atoms':
-                LammpsData._parse_atoms(topology, lines[iline + 2: iline_next], n_atom,
-                                        _type_names, _type_masses, xlo, ylo, zlo)
+                self._parse_atoms(lines[iline + 2: iline_next], n_atom)
             if section == 'Bonds':
-                LammpsData._parse_bonds(topology, lines[iline + 2: iline_next], n_bond)
+                self._parse_bonds(lines[iline + 2: iline_next], n_bond)
             if section == 'Angles':
-                LammpsData._parse_angles(topology, lines[iline + 2: iline_next], n_angle)
+                self._parse_angles(lines[iline + 2: iline_next], n_angle)
             if section == 'Dihedrals':
-                LammpsData._parse_dihedrals(topology, lines[iline + 2: iline_next], n_dihedral)
+                self._parse_dihedrals(lines[iline + 2: iline_next], n_dihedral)
             if section == 'Impropers':
-                LammpsData._parse_impropers(topology, lines[iline + 2: iline_next], n_improper,
-                                            improper_center)
+                self._parse_impropers(lines[iline + 2: iline_next], n_improper, improper_center)
 
-        return topology
-
-    @staticmethod
-    def _parse_header(top, lines):
-        n_atom = n_bond = n_angle = n_dihedral = n_improper = n_atom_type = 0
+    def _parse_header(self, lines):
+        n_atom = n_bond = n_angle = n_dihedral = n_improper = self.n_atom_type = 0
         la = lb = lc = bx = cx = cy = 0
         for line in lines:
             line = line.strip()
@@ -120,44 +136,42 @@ class LammpsData():
             elif line.endswith(' impropers'):
                 n_improper = int(words[0])
             elif line.endswith(' atom types'):
-                n_atom_type = int(words[0])
+                self.n_atom_type = int(words[0])
             elif line.endswith(' xlo xhi'):
                 la = (float(words[1]) - float(words[0])) / 10
-                xlo = float(words[0]) / 10
+                self.xlo = float(words[0]) / 10
             elif line.endswith(' ylo yhi'):
                 lb = (float(words[1]) - float(words[0])) / 10
-                ylo = float(words[0]) / 10
+                self.ylo = float(words[0]) / 10
             elif line.endswith(' zlo zhi'):
                 lc = (float(words[1]) - float(words[0])) / 10
-                zlo = float(words[0]) / 10
+                self.zlo = float(words[0]) / 10
             elif line.endswith(' xy xz yz'):
                 bx, cx, cy = tuple(map(lambda x: float(x) / 10, words[:3]))
             else:
                 continue
 
-        top.cell.set_box([[la, 0, 0], [bx, lb, 0], [cx, cy, lc]])
+        self.topology.cell.set_box([[la, 0, 0], [bx, lb, 0], [cx, cy, lc]])
 
-        return n_atom, n_bond, n_angle, n_dihedral, n_improper, n_atom_type, xlo, ylo, zlo
+        return n_atom, n_bond, n_angle, n_dihedral, n_improper
 
-    @staticmethod
-    def _parse_atom_types(lines, n_atom_type, _type_names, _type_masses):
-        for i in range(n_atom_type):
+    def _parse_atom_types(self, lines):
+        for i in range(self.n_atom_type):
             words = lines[i].strip().split()
             type_id = int(words[0])
             mass = float(words[1])
-            _type_masses[type_id] = mass
+            self.type_masses[type_id] = mass
             # TODO This is not robust but there's no better way
             if len(words) > 3 and words[2] == '#':
                 if words[-1].startswith('D') and mass < 1:
-                    _type_names[type_id] = 'DP_'
+                    self.type_names[type_id] = 'DP_'
                     logger.warning(f'Atom type {type_id} is considered to be Drude particle')
                 else:
-                    _type_names[type_id] = words[3]
+                    self.type_names[type_id] = words[3]
             else:
-                _type_names[type_id] = 'AT' + str(type_id)
+                self.type_names[type_id] = 'AT' + str(type_id)
 
-    @staticmethod
-    def _parse_atoms(top, lines, n_atom, _type_names, _type_masses, _xlo, _ylo, _zlo):
+    def _parse_atoms(self, lines, n_atom):
         atoms = [Atom() for i in range(n_atom)]
         mol_names: {int: str} = {}
         for i in range(n_atom):
@@ -184,16 +198,16 @@ class LammpsData():
             atom._mol_id = mol_id  # temporary attribute for identifying molecules
             atom.id = atom_id - 1  # atom.id starts from 0
             atom.charge = charge
-            atom.mass = _type_masses[type_id]
-            atom.type = _type_names[type_id]
+            atom.mass = self.type_masses[type_id]
+            atom.type = self.type_names[type_id]
             if atom.type == 'DP_':
                 atom.is_drude = True
                 atom.symbol = 'DP'
             else:
                 atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-            atom.position = np.array([x - _xlo + ix * top.cell.size[0],
-                                      y - _ylo + iy * top.cell.size[1],
-                                      z - _zlo + iz * top.cell.size[2]])
+            atom.position = np.array([x - self.xlo + ix * self.topology.cell.size[0],
+                                      y - self.ylo + iy * self.topology.cell.size[1],
+                                      z - self.zlo + iz * self.topology.cell.size[2]])
 
         molecules = [Molecule(name) for id, name in sorted(mol_names.items())]
         for atom in sorted(atoms, key=lambda x: x.id):
@@ -204,20 +218,18 @@ class LammpsData():
                 # atomic symbol + index inside mol starting from 1
                 atom.name = atom.symbol + str(i + 1)
 
-        top.update_molecules(molecules)
+        self.topology.update_molecules(molecules)
 
-    @staticmethod
-    def _parse_bonds(top, lines, n_bond):
-        atoms = top.atoms
+    def _parse_bonds(self, lines, n_bond):
+        atoms = self.topology.atoms
         for i in range(n_bond):
             words = lines[i].strip().split()
             atom1 = atoms[int(words[2]) - 1]
             atom2 = atoms[int(words[3]) - 1]
             atom1.molecule.add_bond(atom1, atom2)
 
-    @staticmethod
-    def _parse_angles(top, lines, n_angle):
-        atoms = top.atoms
+    def _parse_angles(self, lines, n_angle):
+        atoms = self.topology.atoms
         for i in range(n_angle):
             words = lines[i].strip().split()
             atom1 = atoms[int(words[2]) - 1]
@@ -225,9 +237,8 @@ class LammpsData():
             atom3 = atoms[int(words[4]) - 1]
             atom1.molecule.add_angle(atom1, atom2, atom3)
 
-    @staticmethod
-    def _parse_dihedrals(top, lines, n_dihedral):
-        atoms = top.atoms
+    def _parse_dihedrals(self, lines, n_dihedral):
+        atoms = self.topology.atoms
         for i in range(n_dihedral):
             words = lines[i].strip().split()
             atom1 = atoms[int(words[2]) - 1]
@@ -236,8 +247,7 @@ class LammpsData():
             atom4 = atoms[int(words[5]) - 1]
             atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
-    @staticmethod
-    def _parse_impropers(top, lines, n_improper, improper_center):
+    def _parse_impropers(self, lines, n_improper, improper_center):
         if improper_center is None:
             improper_center = 1
             logger.warning('improper_center undefined, '
@@ -245,7 +255,7 @@ class LammpsData():
         elif improper_center not in (1, 2, 3, 4):
             raise Exception('improper_center should be a integer from 1 to 4')
 
-        atoms = top.atoms
+        atoms = self.topology.atoms
         for i in range(n_improper):
             words = lines[i].strip().split()
             sides = []

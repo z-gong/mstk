@@ -7,42 +7,42 @@ from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
 from ..forcefield import ForceField
-from .. import logger
 
 
 class Topology():
     '''
     A topology is a combination of molecules and unit cell.
+
+    Parameters
+    ----------
+    molecules : list of Molecule, optional
+        If molecules not provided, the topology should be initialized by calling update_molecules().
+    cell : UnitCell, optional
+        If cell not provided, a default cell with zero volume will be assumed.
+
+    Notes
+    -----
+    If there are identical molecules in the list, then all the molecules will be deep copied.
+    The cell will always be deep copied if provided.
+
+    Attributes
+    ----------
+    remark : str
+        A short remark for this topology. Only used for output topology file
+    cell : UnitCell
+        Unit cell of this topology. Required for output simulation files and guessing connectivity
     '''
 
     def __init__(self, molecules=None, cell=None):
-        '''
-        Initialize a topology from molecules and unit cell.
-
-        If molecules not provided, the topology should be initialized by calling update_molecules().
-        If cell not provided, a default cell with zero volume will be assumed.
-
-        Parameters
-        ----------
-        molecules : list of Molecule
-        cell : UnitCell
-
-        Notes
-        -----
-        If there are identical molecules provided, then all the molecules will be deep copied.
-        The cell will always be deep copied.
-        '''
-
-        #: remark for this topology. Only used for output topology file
         self.remark = ''
-        #: unit cell of this topology. Required for output simulation files and guessing connectivity
-        self.cell = UnitCell([0, 0, 0])
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         if molecules is not None:
             self.update_molecules(molecules)
         if cell is not None:
-            self.cell.set_box(cell.vectors)
+            self.cell = UnitCell(cell.vectors)
+        else:
+            self.cell = UnitCell([0, 0, 0])
 
     def __deepcopy__(self, memodict={}):
         top = Topology()
@@ -67,7 +67,7 @@ class Topology():
         Notes
         -----
         The molecules and atoms are deep copied if numbers is not None or deepcopy is True.
-        The molecules and atoms are deep copied if there are identical molecules provided.
+        The molecules and atoms are deep copied if there are identical molecules in the list.
         '''
         if not isinstance(molecules, (list, tuple)) \
                 or any(type(mol) is not Molecule for mol in molecules):
@@ -446,15 +446,15 @@ class Topology():
             mol = Molecule.from_smiles(file[1:])
             return Topology([mol])
         elif file.endswith('.psf'):
-            return Psf.read(file, **kwargs)
+            return Psf(file, **kwargs).topology
         elif file.endswith('.pdb'):
-            return Pdb.read(file, **kwargs)
+            return Pdb(file, **kwargs).topology
         elif file.endswith('.lmp'):
-            return LammpsData.read(file, **kwargs)
+            return LammpsData(file, **kwargs).topology
         elif file.endswith('.xyz'):
-            return XyzTopology.read(file, **kwargs)
+            return XyzTopology(file, **kwargs).topology
         elif file.endswith('.zmat'):
-            return Zmat.read(file, **kwargs)
+            return Zmat(file, **kwargs).topology
         else:
             raise Exception('Unsupported format')
 

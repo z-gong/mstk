@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield import Padua, Ppf, Zfp, ZftTyper
-from mstools.forcefield.ffterm import *
-from mstools.topology import *
+from mstools.forcefield import ZftTyper
+from mstools.topology import Topology, Molecule
 
 import os
 

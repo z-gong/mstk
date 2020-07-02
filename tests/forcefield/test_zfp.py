@@ -3,7 +3,7 @@
 import os
 import pytest
 
-from mstools.forcefield import Padua, Ppf, Zfp, ForceField
+from mstools.forcefield import ForceField, Zfp
 from mstools.forcefield.ffterm import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -54,10 +54,10 @@ def test_read():
 
 
 def test_write():
-    clp = Padua(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     Zfp.save_to(clp, cwd + '/files/out-CLPol.zfp')
 
-    il = Ppf(cwd + '/files/TEAM_IL.ppf')
+    il = ForceField.open(cwd + '/files/TEAM_IL.ppf')
     Zfp.save_to(il, cwd + '/files/out-TEAM_IL.zfp')
 
     spce = ForceField.open(cwd + '/files/SPCE.ppf')

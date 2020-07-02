@@ -34,8 +34,65 @@ class TypeDefine():
 
 class ZftTyper(Typer):
     '''
-    ZftTyper types a topology or molecule with local environment defined by SMARTS.
-    A hierarchical strategy is used to make the atom type definition extendable.
+    ZftTyper assign atom types with local environment defined by SMARTS and a hierarchical rule.
+
+    A type definition file is required.
+
+    Examples
+    --------
+    >>> TypeDefinition
+
+    >>> H_1 [H]              0
+    >>> C_4 [#6X4]           0
+    >>> HC  [H][CX4]         0
+    >>> CT  [CX4;H3]         0
+    >>> CS  [CX4;H2]         0
+    >>> HT  [H][CX4]c1ccccc1 0
+
+
+    >>> HierarchicalTree
+
+    >>> H_1
+    >>>     HC
+    >>>         HT
+    >>> C_4
+    >>>     CT
+    >>>     CS
+
+    This is a sample type definition file for hydrocarbons with OPLS force field.
+    Two sections are required: `TypeDefinition` and `HierarchicalTree`.
+    `TypeDefinition` determines which type the atom can be by matching SMARTS and formal charge.
+    Currently, charge information is ignored, but it should be provided in the file.
+    A atom can match several different atom types defined in `TypeDefinition` section.
+    e.g. Hydrogen atoms with one neighbour will match type `H_1`, and carbon atoms with four neighbour will match type `C_4`.
+    Hydrogen atoms bonded with four neighboured carbon will also match type `H_C`.
+    Four neighboured carbon connected with three hydrogen atoms will also match `CT`.
+
+    After all the possible atom types are matched,
+    `HierarchicalTree` determines which type the atom will finally be by performing depth first search.
+    The indentation (by 4 spaces) in the `HierarchicalTree` section represents the depth of atom types.
+    Therefore, if a atom matches `C_4`, but not `CT` or `CS`, it will be typed as `C_4`
+    If a atom matches both `C_4` and `CT` but not `CS`, it will be typed as `CT`.
+    If a atom matches both `C_4` and `CS` but not `CT`, it will be typed as `CS`.
+    If a atom matches both `C_4`, `CT` and `CS` (which is impossible in this example), it will be typed as `CT`.
+
+    For molecule propane, based on the `TypeDefinition`, all the hydrogen atoms will match atom type `H_1` and `HC`.
+    All of the carbon atoms will match atom type `C_4`, but the side carbon atoms will also match `CT` and the center carbon atom will also match `CS`.
+    Then based on the `HierarchicalTree`, all of the hydrogen atoms will be typed as `HC`.
+    Side carbon atoms will be typed as `CT`, and center carbon atom will be typed as `CS`.
+
+    The hierarchical strategy make the atom type definition extendable.
+
+    Parameters
+    ----------
+    file : str
+        Name of type definition file
+
+    Notes
+    -----
+    * SMARTS is parsed by using OpenBabel package. Therefore `pybel` module should be installed.
+    * In type definition file, empty lines are ignored, and comments should start with ##.
+
     '''
     def __init__(self, file):
         super().__init__()
@@ -100,15 +157,21 @@ class ZftTyper(Typer):
 
     def type_molecule(self, molecule):
         '''
-        Type molecule with predefined SMARTS information
+        Assign atom types in the molecule with rules in type definition file.
+
+        The :attr:`~mstools.topology.Atom.type` attribute of all atoms in the molecule will be updated.
+
+        ZftTyper use OpenBabel to do SMARTS matching,
+        therefore it expects :attr:`~mstools.topology.Molecule.obmol` attribute to be available in the molecule.
+        Usually it means the molecule should be initialized from SMILES or pybel Molecule
+        with :func:`~mstools.topology.Molecule.from_smiles` or :func:`~mstools.topology.Molecule.from_pybel`
+
+        If :attr:`~mstools.topology.Molecule.obmol` attribute is None, an Exception will be raised.
+        If an atom can not match any type by the predefined SMARTS patterns, an Exception will be raised.
 
         Parameters
         ----------
         molecule : Molecule
-
-        Returns
-        -------
-
         '''
         obmol = molecule._obmol
         if obmol is None:

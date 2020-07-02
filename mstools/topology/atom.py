@@ -6,47 +6,60 @@ class Atom():
     An atom is a particle in simulation.
 
     It can be an real atom, a Drude particle, a virtual site or a coarse-grained bead.
+
+    Parameters
+    ----------
+    name : str
+
+    Attributes
+    ----------
+    id : int
+        Index of this atom in topology. -1 means information haven\'t been updated by topology
+    id_in_mol : int
+        Index of this atom in molecule. -1 means information haven\'t been updated by topology
+    name : str
+        Name of this atom, not necessarily unique
+    type : str
+        Atom type in force field. Required for assigning force field parameters
+    symbol : str
+        Atomic symbol. Mainly used for output topology or trajectory
+    mass : float
+        Mass assigned. Required for output simulation files
+    charge : float
+        Charge assigned. Required for output simulation files
+    alpha : float
+        Isotropic polarizability. Required for output Drude polarizable simulation files
+    thole : float
+        Thole screening for induced dipole. Required for output Drude polarizable simulation files
+    formal_charge : float
+        Formal charge calculated from valence bond theory. Optionally required by typing engine
+    is_drude : bool
+        Whether or not this is a Drude particle for polarizable model
+    virtual_site : None or subclass of VirtualSite
+        None if this atom is not a virtual site.
+        Otherwise the instance of subclass of VirtualSite
+    has_position : bool
+        Whether or not the position of this atom is set
     '''
 
     def __init__(self, name='UNK'):
-        '''
-        Initialize a atom with name.
-
-        The full information will be assigned later manually or by force field.
-
-        Parameters
-        ----------
-        name : str
-        '''
-        #: name of this atom, not necessarily unique
-        self.name = name
-        #: id in topology. -1 means information haven\'t been updated by topology
         self.id = -1
-        #: atom type in force field. Required for assigning force field parameters
+        self.id_in_mol = -1
+        self.name = name
         self.type = ''
-        #: atomic symbol. Mainly used for output topology or trajectory
         self.symbol = 'UNK'
-        #: atomic mass. Required for output simulation files
         self.mass = 0.
-        #: atomic mass. Required for output simulation files
         self.charge = 0.
-        #: isotropic polarizability. Required for output Drude polarizable simulation files
         self.alpha = 0.
-        #: thole screening for induced dipole. Required for output Drude polarizable simulation files
         self.thole = 0.
-        #: formal charge calculate from valence bond theory. Optionally required by typing engine
         self.formal_charge = 0.
-        #: whether or not this is a Drude particle for polarizable model
         self.is_drude = False
-        #: the instance of subclass of VirtualSite if this atom is a virtual site
         self.virtual_site = None
-        #: whether or not this atom contains position
         self.has_position = False
 
         self._position = np.zeros(3, dtype=np.float32)
         self._molecule = None
         self._bonds = []
-        self._id_in_molecule = -1
 
     def __repr__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -59,22 +72,20 @@ class Atom():
 
     def __deepcopy__(self, memodict={}):
         '''
-        VirtualSite information is not copied
-        Because it makes no sense to have a single VirtualSite atom without the knowledge of parent atoms
+        id, id_in_mol, virtual_site etc are not copied, because these information depends on other atoms.
         '''
         atom = Atom()
-        atom.id = self.id
         atom.name = self.name
         atom.type = self.type
         atom.symbol = self.symbol
         atom.mass = self.mass
         atom.charge = self.charge
+        atom.alpha = self.alpha
+        atom.thole = self.thole
         atom.formal_charge = self.formal_charge
         atom.is_drude = self.is_drude
         atom.has_position = self.has_position
         atom._position[:] = self._position[:]
-        atom.alpha = self.alpha
-        atom.thole = self.thole
         return atom
 
     @property
@@ -89,21 +100,9 @@ class Atom():
         return self._molecule
 
     @property
-    def id_in_molecule(self):
-        '''
-        The index of this atom in molecule.
-
-        Returns
-        -------
-        index : int
-            -1 means information haven\'t been assigned by molecule or topology
-        '''
-        return self._id_in_molecule
-
-    @property
     def bonds(self):
         '''
-        All the bonds which contains this atom.
+        All the bonds involving this atom.
 
         Bonds of Drude dipoles are included if exist.
 
@@ -116,7 +115,7 @@ class Atom():
     @property
     def bond_partners(self):
         '''
-        All the bond partners.
+        All the bond partners of this atom.
 
         Drude particles are included if exist.
 
@@ -136,6 +135,7 @@ class Atom():
         Returns
         -------
         position : array_like
+            The position is a numpy array of shape (3,)
         '''
         return self._position
 

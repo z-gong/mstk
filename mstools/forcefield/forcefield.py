@@ -7,6 +7,11 @@ from .errors import *
 class ForceField():
     '''
     ForceField is a set of FFTerms describing the interactions between atoms in a topology.
+
+    Attributes
+    ----------
+    atom_types : dict, [str, AtomType]
+
     '''
     VDW_LONGRANGE_CORRECT = 'correct'
     VDW_LONGRANGE_SHIFT = 'shift'
@@ -36,19 +41,21 @@ class ForceField():
     def open(*files):
         '''
         Load ForceField from files.
-        The type of the ForceField will be determined based on the extension of the first file.
+
+        The parser for reading the files will be determined from the extension of the first file.
+        Therefore, all the files should be in the same format.
 
         Parameters
         ----------
         files : list of str
-            The files to be loaded. The extension can be `ff`, `ppf` or `zfp`.
-            `ff` file will be loaded as Padua;
-            `ppf` file will be loaded as Ppf;
-            `zfp` file will be loaded as Zfp.
+            The files to be read. The extension can be `zfp`, `ppf` or `ff`.
+            `zfp` file is the native format of mstools, and will be parsed by Zfp.
+            `ppf` file will be parsed as DFF format by Ppf.
+            `ff` file will be parsed as fftool format by Padua.
 
         Returns
         -------
-        forcefield : [Pauda, Ppf, Zfp]
+        forcefield : ForceField
 
         '''
         from .zfp import Zfp
@@ -57,11 +64,11 @@ class ForceField():
 
         file = files[0]
         if file.endswith('.ff'):
-            return Padua(*files)
+            return Padua(*files).forcefield
         elif file.endswith('.ppf'):
-            return Ppf(*files)
+            return Ppf(*files).forcefield
         elif file.endswith('.zfp'):
-            return Zfp.read(*files)
+            return Zfp(*files).forcefield
         else:
             raise Exception('Unsupported format')
 

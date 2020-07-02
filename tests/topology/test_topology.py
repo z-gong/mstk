@@ -4,7 +4,7 @@ import os
 import sys
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import Ppf, Padua, Zfp
+from mstools.forcefield import ForceField
 from mstools.simsys import System
 from mstools.wrapper.packmol import Packmol
 
@@ -47,7 +47,7 @@ def test_scale():
 def test_guess_connectivity():
     top = Topology.open(cwd + '/files/MoS2-13x8-layer1.xyz')
     top.cell.set_box([4.109, 4.380, 1.230])
-    ff = Padua(cwd + '/files/MoS2.ff')
+    ff = ForceField.open(cwd + '/files/MoS2.ff')
     top.guess_connectivity_from_ff(ff, angle_tolerance=15, pbc='xy')
     assert top.n_bond == 1248
     assert top.n_angle == 3120

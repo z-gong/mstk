@@ -83,21 +83,3 @@ class Lammps:
                     box[2] = float(words[1]) - float(words[0])
                     break
         return box
-
-    def scale_box(self, data, data_out, scale: List[float], remap=False):
-        # TODO
-        with open(data) as f_data:
-            with open(data_out) as f_out:
-                ATOMS_START = False
-                for line in f_data:
-                    if line.strip() == '':
-                        f_out.write(line)
-                        continue
-                    if line.startswith('Atoms'):
-                        ATOMS_START = True
-                        f_out.write(line)
-                        continue
-                    if ATOMS_START and (not line.strip()[0].isdigit()):
-                        ATOMS_START = False
-                        f_out.write(line)
-                        continue
