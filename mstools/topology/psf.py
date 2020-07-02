@@ -3,23 +3,39 @@ from ..forcefield import Element
 from .atom import Atom
 from .molecule import Molecule
 from .topology import Topology
-from .. import logger
 
 
-class Psf(Topology):
+class Psf():
     '''
-    It parses psf file to generate Topology
-    Atoms, bonds, angles, dihedrals and impropers are parsed,
-    all others like hydrogen bonds are ignored
+    Generate Topology from PSF file.
+
+    Atoms, bonds, angles, dihedrals and impropers are parsed.
     Polarizability and thole parameters for Drude model are parsed,
     but anisotroic polarizability are ignored
+    All others like hydrogen bonds are ignored
+
+    This parser is designed for non-biological system.
+    Each residue is treated as one molecule.
+    So if there are bonds between residues, there might be bugs.
+
+    * Todo Support inter-residue bonds
     '''
 
-    def __init__(self, file, **kwargs):
-        super(Psf, self).__init__()
-        self.parse(file)
+    @staticmethod
+    def read(file, **kwargs):
+        '''
+        Parse a PSF file
 
-    def parse(self, file):
+        Parameters
+        ----------
+        file : str
+        kwargs : dict
+            Ignored
+
+        Returns
+        -------
+        topology : Topology
+        '''
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -41,6 +57,9 @@ class Psf(Topology):
             if word in _sections:
                 _iline_section.append((i, word))
 
+        # start parsing
+        topology = Topology()
+
         for i, (iline, section) in enumerate(_iline_section):
             if i != len(_iline_section) - 1:
                 iline_next = _iline_section[i + 1][0]
@@ -48,23 +67,27 @@ class Psf(Topology):
                 iline_next = len(lines)
             if section == '!NTITLE':
                 # the number at section line indicates the line counts of the section
-                self.parse_title(lines[iline: iline_next])
+                Psf._parse_title(topology, lines[iline: iline_next])
             if section == '!NATOM':
-                self.parse_atoms(lines[iline: iline_next], is_drude)
+                Psf._parse_atoms(topology, lines[iline: iline_next], is_drude)
             if section == '!NBOND':
-                self.parse_bonds(lines[iline: iline_next])
+                Psf._parse_bonds(topology, lines[iline: iline_next])
             if section == '!NTHETA':
-                self.parse_angles(lines[iline: iline_next])
+                Psf._parse_angles(topology, lines[iline: iline_next])
             if section == '!NPHI':
-                self.parse_dihedrals(lines[iline: iline_next])
+                Psf._parse_dihedrals(topology, lines[iline: iline_next])
             if section == '!NIMPHI':
-                self.parse_impropers(lines[iline: iline_next])
+                Psf._parse_impropers(topology, lines[iline: iline_next])
 
-    def parse_title(self, lines):
+        return topology
+
+    @staticmethod
+    def _parse_title(top, lines):
         nline = int(lines[0].strip().split()[0])
-        self.remark = '\n'.join(lines[1:1 + nline]).strip()
+        top.remark = '\n'.join(lines[1:1 + nline]).strip()
 
-    def parse_atoms(self, lines, parse_drude):
+    @staticmethod
+    def _parse_atoms(top, lines, parse_drude):
         '''
         in psf file, drude particles always appear after attached atoms
         '''
@@ -107,11 +130,12 @@ class Psf(Topology):
             mol = molecules[atom._mol_id - 1]
             mol.add_atom(atom)
 
-        self.update_molecules(molecules)
+        top.update_molecules(molecules)
 
-    def parse_bonds(self, lines):
+    @staticmethod
+    def _parse_bonds(top, lines):
         n_bond = int(lines[0].strip().split()[0])
-        atoms = self.atoms
+        atoms = top.atoms
         for i in range(math.ceil(n_bond / 4)):
             words = lines[i + 1].strip().split()
             for j in range(4):
@@ -120,9 +144,10 @@ class Psf(Topology):
                 atom1, atom2 = atoms[int(words[j * 2]) - 1], atoms[int(words[j * 2 + 1]) - 1]
                 atom1.molecule.add_bond(atom1, atom2)
 
-    def parse_angles(self, lines):
+    @staticmethod
+    def _parse_angles(top, lines):
         n_angle = int(lines[0].strip().split()[0])
-        atoms = self.atoms
+        atoms = top.atoms
         for i in range(math.ceil(n_angle / 3)):
             words = lines[i + 1].strip().split()
             for j in range(3):
@@ -133,9 +158,10 @@ class Psf(Topology):
                                       atoms[int(words[j * 3 + 2]) - 1]
                 atom1.molecule.add_angle(atom1, atom2, atom3)
 
-    def parse_dihedrals(self, lines):
+    @staticmethod
+    def _parse_dihedrals(top, lines):
         n_dihedral = int(lines[0].strip().split()[0])
-        atoms = self.atoms
+        atoms = top.atoms
         for i in range(math.ceil(n_dihedral / 2)):
             words = lines[i + 1].strip().split()
             for j in range(2):
@@ -147,9 +173,10 @@ class Psf(Topology):
                                              atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_dihedral(atom1, atom2, atom3, atom4)
 
-    def parse_impropers(self, lines):
+    @staticmethod
+    def _parse_impropers(top, lines):
         n_improper = int(lines[0].strip().split()[0])
-        atoms = self.atoms
+        atoms = top.atoms
         for i in range(math.ceil(n_improper / 2)):
             words = lines[i + 1].strip().split()
             for j in range(2):
@@ -163,6 +190,14 @@ class Psf(Topology):
 
     @staticmethod
     def save_to(top, file):
+        '''
+        Save topology into a PSF file
+
+        Parameters
+        ----------
+        top : Topology
+        file : str
+        '''
         for atom in top.atoms:
             if atom.type == '':
                 raise Exception('PSF requires all atom types are defined')

@@ -22,6 +22,15 @@ Force field
     :toctree: _generated/
 
     ForceField
+
+Force field terms
+-----------------
+
+.. currentmodule:: mstools.forcefield
+
+.. autosummary::
+    :toctree: _generated/
+
     FFTerm
     AtomType
     ChargeIncrementTerm

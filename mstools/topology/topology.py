@@ -421,18 +421,20 @@ class Topology():
     @staticmethod
     def open(file, **kwargs):
         '''
-        Load topology from a file.
+        Load topology from a file or smiles string
 
         The format will be determined from the extension of the file.
 
         Parameters
         ----------
         file : str
+            If start with ':', then it will be treated as SMLIES string.
+            Otherwise, it is the file to be read.
         kwargs : dict, optional
 
         Returns
         -------
-        topology : subclass of Topology
+        topology : Topology
         '''
         from .psf import Psf
         from .pdb import Pdb
@@ -444,15 +446,15 @@ class Topology():
             mol = Molecule.from_smiles(file[1:])
             return Topology([mol])
         elif file.endswith('.psf'):
-            return Psf(file, **kwargs)
+            return Psf.read(file, **kwargs)
         elif file.endswith('.pdb'):
-            return Pdb(file, **kwargs)
+            return Pdb.read(file, **kwargs)
         elif file.endswith('.lmp'):
-            return LammpsData(file, **kwargs)
+            return LammpsData.read(file, **kwargs)
         elif file.endswith('.xyz'):
-            return XyzTopology(file, **kwargs)
+            return XyzTopology.read(file, **kwargs)
         elif file.endswith('.zmat'):
-            return Zmat(file, **kwargs)
+            return Zmat.read(file, **kwargs)
         else:
             raise Exception('Unsupported format')
 

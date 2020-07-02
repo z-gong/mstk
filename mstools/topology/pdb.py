@@ -1,19 +1,43 @@
-import math
-from ..topology import Topology
 from ..forcefield import Element
 from .atom import Atom
 from .molecule import Molecule
 from .topology import Topology
 
 
-class Pdb(Topology):
-    def __init__(self, file, **kwargs):
-        super().__init__()
-        self.parse(file)
+class Pdb():
+    '''
+    Generate Topology from PDB file.
 
-    def parse(self, file):
+    Atom symbols, molecule information, unit cell and positions are parsed.
+    The connectivity is parsed if CONECT section is provided in the PDB file.
+
+    This parser is designed for non-biological system.
+    Each residue is treated as one molecule.
+    So if there are bonds between residues, there might be bugs.
+
+    * Todo Support bonds between residues
+    '''
+
+    @staticmethod
+    def read(file, **kwargs):
+        '''
+        Parse a PDB file
+
+        Parameters
+        ----------
+        file : str
+        kwargs : dict
+            Ignored
+
+        Returns
+        -------
+        topology : Topology
+        '''
+
         with open(file) as f:
             lines = f.read().splitlines()
+
+        topology = Topology()
 
         atoms = []
         mol_names = {}
@@ -21,7 +45,7 @@ class Pdb(Topology):
             line = line.rstrip()
             if line.startswith('CRYST1'):
                 a, b, c, alpha, beta, gamma = list(map(float, line.split()[1:7]))
-                self.cell.set_box([[a / 10, b / 10, c / 10], [alpha, beta, gamma]])
+                topology.cell.set_box([[a / 10, b / 10, c / 10], [alpha, beta, gamma]])
             if line.startswith('ATOM') or line.startswith('HETATM'):
                 atom = Atom()
                 atom.id = int(line[6:11]) - 1
@@ -81,10 +105,19 @@ class Pdb(Topology):
                     atom1.molecule.add_bond(atom1, atom5, check_existence=True)
             prev_section = section
 
-        self.update_molecules(molecules)
+        topology.update_molecules(molecules)
+        return topology
 
     @staticmethod
     def save_to(top, file):
+        '''
+        Save topology into a PDB file
+
+        Parameters
+        ----------
+        top : Topology
+        file : str
+        '''
         if not top.has_position:
             raise Exception('Position is required for writing PDB file')
 

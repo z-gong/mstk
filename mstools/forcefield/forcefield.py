@@ -6,7 +6,7 @@ from .errors import *
 
 class ForceField():
     '''
-    A ForceField is a set of FFTerms describing the interactions between atoms in a topology.
+    ForceField is a set of FFTerms describing the interactions between atoms in a topology.
     '''
     VDW_LONGRANGE_CORRECT = 'correct'
     VDW_LONGRANGE_SHIFT = 'shift'
@@ -61,7 +61,7 @@ class ForceField():
         elif file.endswith('.ppf'):
             return Ppf(*files)
         elif file.endswith('.zfp'):
-            return Zfp(*files)
+            return Zfp.read(*files)
         else:
             raise Exception('Unsupported format')
 

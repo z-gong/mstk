@@ -78,7 +78,7 @@ def test_drude():
 
 
 def test_sdk():
-    ff = Zfp(cwd + '/../forcefield/files/SPICA_v1.zfp')
+    ff = Zfp.read(cwd + '/../forcefield/files/SPICA_v1.zfp')
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
     for atom in top.atoms:
         atom.charge /= 80 ** 0.5

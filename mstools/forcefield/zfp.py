@@ -5,14 +5,33 @@ from .forcefield import ForceField
 from .ffterm import *
 
 
-class Zfp(ForceField):
-    def __init__(self, *files):
-        super().__init__()
+class Zfp():
+    '''
+    Generate ForceField from ZFP file.
 
+    ZFP is the default format for storing force field in mstools.
+    '''
+    @staticmethod
+    def read(*files):
+        '''
+        Parse a ZFP file
+
+        Parameters
+        ----------
+        files : list of str
+
+        Returns
+        -------
+        ff : ForceField
+        '''
+        ff = ForceField()
         for file in files:
-            self._parse(file)
+            Zfp._parse(ff, file)
 
-    def _parse(self, file):
+        return ff
+
+    @staticmethod
+    def _parse(ff, file):
         try:
             tree = ET.ElementTree(file=file)
         except:
@@ -23,22 +42,22 @@ class Zfp(ForceField):
             raise Exception('Empty ZFP file')
 
         node = root.find('Setting')
-        self.vdw_cutoff = float(node.attrib['vdw_cutoff'])
-        self.vdw_long_range = node.attrib['vdw_long_range']
-        self.lj_mixing_rule = node.attrib['lj_mixing_rule']
-        self.scale_14_vdw = float(node.attrib['scale_14_vdw'])
-        self.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
+        ff.vdw_cutoff = float(node.attrib['vdw_cutoff'])
+        ff.vdw_long_range = node.attrib['vdw_long_range']
+        ff.lj_mixing_rule = node.attrib['lj_mixing_rule']
+        ff.scale_14_vdw = float(node.attrib['scale_14_vdw'])
+        ff.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
 
         tags = {
-            'AtomTypes'           : self.atom_types,
-            'ChargeIncrementTerms': self.charge_increment_terms,
-            'VdwTerms'            : self.vdw_terms,
-            'PairwiseVdwTerms'    : self.pairwise_vdw_terms,
-            'BondTerms'           : self.bond_terms,
-            'AngleTerms'          : self.angle_terms,
-            'DihedralTerms'       : self.dihedral_terms,
-            'ImproperTerms'       : self.improper_terms,
-            'PolarizableTerms'    : self.polarizable_terms,
+            'AtomTypes'           : ff.atom_types,
+            'ChargeIncrementTerms': ff.charge_increment_terms,
+            'VdwTerms'            : ff.vdw_terms,
+            'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
+            'BondTerms'           : ff.bond_terms,
+            'AngleTerms'          : ff.angle_terms,
+            'DihedralTerms'       : ff.dihedral_terms,
+            'ImproperTerms'       : ff.improper_terms,
+            'PolarizableTerms'    : ff.polarizable_terms,
         }
         for tag, d in tags.items():
             node = root.find(tag)
@@ -55,28 +74,36 @@ class Zfp(ForceField):
                 d[term.name] = term
 
     @staticmethod
-    def save_to(params: ForceField, file):
+    def save_to(ff, file):
+        '''
+        Save ForceField to a ZFP file
+
+        Parameters
+        ----------
+        ff : ForceField
+        file : str
+        '''
         root = ET.Element('ForceFieldTerms')
 
         attrib = {
-            'vdw_cutoff'      : str(params.vdw_cutoff),
-            'vdw_long_range'  : params.vdw_long_range,
-            'lj_mixing_rule'  : params.lj_mixing_rule,
-            'scale_14_vdw'    : str(params.scale_14_vdw),
-            'scale_14_coulomb': str(params.scale_14_coulomb),
+            'vdw_cutoff'      : str(ff.vdw_cutoff),
+            'vdw_long_range'  : ff.vdw_long_range,
+            'lj_mixing_rule'  : ff.lj_mixing_rule,
+            'scale_14_vdw'    : str(ff.scale_14_vdw),
+            'scale_14_coulomb': str(ff.scale_14_coulomb),
         }
         node = ET.SubElement(root, 'Setting', attrib=attrib)
 
         tags = {
-            'AtomTypes'           : params.atom_types,
-            'ChargeIncrementTerms': params.charge_increment_terms,
-            'VdwTerms'            : params.vdw_terms,
-            'PairwiseVdwTerms'    : params.pairwise_vdw_terms,
-            'BondTerms'           : params.bond_terms,
-            'AngleTerms'          : params.angle_terms,
-            'DihedralTerms'       : params.dihedral_terms,
-            'ImproperTerms'       : params.improper_terms,
-            'PolarizableTerms'    : params.polarizable_terms,
+            'AtomTypes'           : ff.atom_types,
+            'ChargeIncrementTerms': ff.charge_increment_terms,
+            'VdwTerms'            : ff.vdw_terms,
+            'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
+            'BondTerms'           : ff.bond_terms,
+            'AngleTerms'          : ff.angle_terms,
+            'DihedralTerms'       : ff.dihedral_terms,
+            'ImproperTerms'       : ff.improper_terms,
+            'PolarizableTerms'    : ff.polarizable_terms,
         }
         for tag, d in tags.items():
             node = ET.SubElement(root, tag)

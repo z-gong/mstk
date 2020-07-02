@@ -4,18 +4,31 @@ from .topology import Topology
 from ..forcefield import Element
 
 
-class XyzTopology(Topology):
+class XyzTopology():
     '''
-    XYZ format only records the type and position of atoms
-    There is no real topology, so all atoms are assumed to be in the same molecule
-    The first column is treated as atom type instead of name or symbol
+    Generate Topology from XYZ file.
+
+    XYZ format only records the type (or atomic symbol) and position of atoms.
+    There is no real topology, so all atoms are assumed to be in the same molecule.
+    The first column is treated as atom type instead of name or symbol.
     '''
 
-    def __init__(self, file, **kwargs):
-        super().__init__()
-        self.parse(file)
+    @staticmethod
+    def read(file, **kwargs):
+        '''
+        Parse a XYZ file
 
-    def parse(self, file):
+        Parameters
+        ----------
+        file : str
+        kwargs : dict
+            Ignored
+
+        Returns
+        -------
+        topology : Topology
+
+        '''
         with open(file) as f:
             n_atom = int(f.readline().strip())
             mol = Molecule()
@@ -34,10 +47,21 @@ class XyzTopology(Topology):
                 atom.position = tuple(map(lambda x: float(x) / 10, words[1:4]))
                 mol.add_atom(atom)
 
-        self.update_molecules([mol])
+        return Topology([mol])
 
     @staticmethod
     def save_to(top, file):
+        '''
+        Save topology into a XYZ file.
+
+        Only atom type and positions are written.
+        If atom type is empty, use atom symbol instead.
+
+        Parameters
+        ----------
+        top : Topology
+        file : str
+        '''
         if not top.has_position:
             raise Exception('Position is required for writing XYZ file')
 

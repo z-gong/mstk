@@ -21,13 +21,13 @@ API Reference
    :maxdepth: 2
 
    topology
-   trajectory
    forcefield
    simsys
    jobmanager
+   simulation
    ommhelper
    wrapper
-   simulation
+   trajectory
    analyzer
 
 

@@ -5,6 +5,9 @@ from ..constant import *
 
 
 class FFTerm():
+    '''
+    FFTerm is the base class for all force field terms
+    '''
     def __init__(self):
         self.version = None
         self.comments: [str] = []
@@ -158,6 +161,9 @@ class ChargeIncrementTerm(FFTerm):
 
 
 class VdwTerm(FFTerm):
+    '''
+    VdwTerm is the base class for all vdW terms
+    '''
     def __init__(self, type1: str, type2: str):
         super().__init__()
         at1, at2 = sorted([type1, type2])
@@ -176,6 +182,9 @@ class VdwTerm(FFTerm):
 
 
 class BondTerm(FFTerm):
+    '''
+    BondTerm is the base class for all bond terms
+    '''
     def __init__(self, type1: str, type2: str, length: float, fixed=False):
         super().__init__()
         at1, at2 = sorted([type1, type2])
