@@ -10,8 +10,8 @@ Trajectory
     Trajectory
     Frame
 
-Trajectory parser
------------------
+Trajectory handler
+------------------
 
 .. currentmodule:: mstools.trajectory
 

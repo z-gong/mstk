@@ -26,9 +26,9 @@ API Reference
    jobmanager
    simulation
    ommhelper
-   wrapper
    trajectory
    analyzer
+   wrapper
 
 
 License
