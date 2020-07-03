@@ -1,16 +1,21 @@
 import numpy as np
 import pandas as pd
 from io import StringIO
+from .handler import TrjHandler
 from . import Trajectory, Frame
 from .. import logger
 
 
-class LammpsTrj(Trajectory):
+class LammpsTrj(TrjHandler):
     '''
-    Read step, box and atomic positions (and charges if provided) from dump file of LAMMPS.
-    Velocities will be ignored
-    Because the topology information are detailed in data file, the mol, type, element in dump file will be ignored
-    The length unit will be converted from A to nm
+    Read step, cell and atomic positions (and charges if provided) from dump file of Lammps.
+
+    Velocities are ignored.
+    Because the topology information are detailed in data file, the mol, type, element in dump file are also ignored.
+    The cell used by Lammps is not originated at (0, 0, 0) usually.
+    This handler will translate the positions of atoms based on the lower bound of the cell.
+
+    Writing to LammpsDump is not supported yet.
     '''
 
     def __init__(self, trj_file, mode='r'):
@@ -19,18 +24,10 @@ class LammpsTrj(Trajectory):
         if mode == 'r':
             # open it in binary mode so that we can correctly seek despite of line ending
             self._file = open(trj_file, 'rb')
-            self._get_info()
         else:
             raise Exception('Writing support for LammpsTrj haven\'t been implemented')
 
-        self._mode = mode
-        self._opened = True
-
-    def _get_info(self):
-        '''
-        Read the number of atoms and record the offset of lines and frames,
-        so that we can read arbitrary frame later
-        '''
+    def get_info(self):
         try:
             self._file.readline()
             self._file.readline()
@@ -57,9 +54,9 @@ class LammpsTrj(Trajectory):
             line_start = (9 + self.n_atom) * i
             self._frame_offset.append(self._line_offset[line_start])
 
-        self._frame = Frame(self.n_atom)
+        return self.n_atom, self.n_frame
 
-    def _read_frame(self, i_frame, frame):
+    def read_frame(self, i_frame, frame):
         # skip to frame i and read only this frame
         self._file.seek(self._frame_offset[i_frame])
         string = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame]).decode()
@@ -115,3 +112,6 @@ class LammpsTrj(Trajectory):
             frame.positions[row.id - 1] = np.array([row.x, row.y, row.z])
             if frame.has_charge:
                 frame.charges[row.id - 1] = float(row.q)
+
+TrjHandler.register_format('.lammpstrj', LammpsTrj)
+TrjHandler.register_format('.ltrj', LammpsTrj)

@@ -18,9 +18,10 @@ Trajectory handler
 .. autosummary::
     :toctree: _generated/
 
+    TrjHandler
     Dcd
     Gro
     LammpsTrj
     Xtc
     Xyz
-    CombinedTrajectory
+    CombinedTrj

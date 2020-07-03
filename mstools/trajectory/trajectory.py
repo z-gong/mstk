@@ -1,7 +1,7 @@
 import numpy as np
-from io import IOBase
-from ..topology import Topology, UnitCell
 from .. import logger
+from ..topology import Topology, UnitCell
+from .handler import TrjHandler
 
 
 class Frame():
@@ -39,6 +39,7 @@ class Frame():
         The charge of all atoms in the frame.
         It's a np.ndarry of shape (n_atom,)
     '''
+
     def __init__(self, n_atom):
         self.step = -1  # -1 means step information not found
         self.time = -1  # in ps. -1 means time information not found
@@ -72,24 +73,31 @@ class Frame():
 
 class Trajectory():
     '''
-    Base class of Trajectory reader/writers.
-
     A Trajectory is made of a series of Frames.
+
     It is assumed that all frames have the same number of atoms.
     If it's not the case (e.g. the LammpsDump can have variable number of atoms in each frame),
     then this class may not be able to work correctly.
 
+    The file(s) can be opened in 'r', 'w' or 'a' modes, which mean read, write and append.
     The frames are loaded on request for performance issue,
     therefore a file handler is kept open until :func:`close` is called.
-
-    The Trajectory should not be constructed with its :func:`Trajectory.__init__` function.
-    Instead, use the :func:`open` static function to open a trajectory.
-    A suitable parser will be determined automatically from the extension of the file.
-    Or, explicitly call a subclass of Trajectory to open a file.
+    The handler class used for parsing the trajectory is determined by the extension of the file.
+    It can also be specified explicitly if non-standard extension is used for the name of trajectory file.
 
     Several files can be opened at the same time (even for files of different format),
     which is useful for processing truncated trajectories.
     In this case, the trajectory is read-only.
+
+    Parameters
+    ----------
+    file : str or list of str
+        If it's a str, then open the file with corresponding parser.
+        if it's a list of str, then call :class:`CombinedTrj` to open all of the files.
+    mode : ['r', 'w', 'a']
+    Handler : subclass of TrjHandler
+        Specify the handler class for parsing the trajectory.
+        If set to None, then the handler class will be determined from the extension of the file name.
 
     Attributes
     ----------
@@ -97,32 +105,42 @@ class Trajectory():
         Number of atoms in the trajectory. -1 means unknown yet
     n_frame : int
         Number of frames in the trajectory. -1 means unknown yet
+    frame : Frame or None
+        The latest frame been read by :func:`read_frame`.
+        None means no frame has been read.
 
     Examples
     --------
-    >>> trj = Trajectory.open('input.dcd')
+    >>> trj = Trajectory('input.dcd')
     >>> frame = trj.read_frame(0)
+    >>> frames = trj.read_frames([1,2,5])
     >>> trj.close()
 
-    >>> trj = Trajectory.open('output.dcd', mode='w')
-    >>> trj.write(frame)
+    >>> trj = Trajectory('output.dcd', mode='a')
+    >>> trj.write_frame(frame)
     >>> trj.close()
 
-    >>> trj = Trajectory.open('output.dcd', mode='a')
-    >>> trj.write(frame)
-    >>> trj.close()
-
-    >>> trj = Trajectory.open(['input1.dcd', 'input2.xtc'])
+    >>> trj = Trajectory(['input1.dcd', 'input2.xtc'])
     '''
 
-    def __init__(self):
-        self.n_atom = -1
-        self.n_frame = -1
-        self._file = IOBase()
-        self._mode = 'r'
-        self._opened = False
-        # we don't have to create a new Frame object every time we call read_frame()
-        self._frame: Frame = None
+    def __init__(self, file, mode='r', Handler=None):
+        modes_allowed = ('r', 'w', 'a')
+        if mode not in modes_allowed:
+            raise Exception('mode should be one of %s' % str(modes_allowed))
+
+        if Handler is None:
+            try:
+                Handler = TrjHandler.get_handler_for_file(file)
+            except:
+                raise Exception('Cannot determine the format of the trajectory file. Try to specify the handler class')
+
+        self._handler: TrjHandler = Handler(file, mode)
+        self._opened: bool = True
+        self._mode: str = mode
+        self.frame: Frame = None
+
+        if mode == 'r':
+            self.n_atom, self.n_frame = self._handler.get_info()
 
     def __del__(self):
         self.close()
@@ -131,7 +149,7 @@ class Trajectory():
         '''
         Close the opened trajectory file(s).
         '''
-        self._file.close()
+        self._handler.close()
         self._opened = False
 
     def read_frame(self, i_frame: int):
@@ -163,13 +181,13 @@ class Trajectory():
         if i_frame >= self.n_frame:
             raise Exception('i_frame should be smaller than %i' % self.n_frame)
 
-        if self._frame is None:
+        if self.frame is None:
             if self.n_atom == -1:
                 raise Exception('Invalid number of atoms')
-            self._frame = Frame(self.n_atom)
+            self.frame = Frame(self.n_atom)
 
-        self._read_frame(i_frame, self._frame)
-        return self._frame
+        self._handler.read_frame(i_frame, self.frame)
+        return self.frame
 
     def read_frames(self, i_frames: [int]):
         '''
@@ -198,7 +216,7 @@ class Trajectory():
 
         frames = [Frame(self.n_atom) for _ in i_frames]
         for ii, i_frame in enumerate(i_frames):
-            self._read_frame(i_frame, frames[ii])
+            self._handler.read_frame(i_frame, frames[ii])
         return frames
 
     def write_frame(self, frame, topology=None, subset=None, **kwargs):
@@ -208,70 +226,36 @@ class Trajectory():
         It requires the trajectory opened in 'w' or 'a' mode.
         Some trajectory format (e.g. GRO, XYZ) record part of the topology information,
         therefore, a topology should be provided for these formats.
-        While it's not required for more space efficient formats like DCD, XTC.
 
-        It is possible to write only a subset of atoms in the frame to the trajectory file.
-        In this case, make sure the number of atoms in the subset is the same for every frame been written.
+        It is possible to write only a subset of atoms in the frame.
+        In this case, a list of indexes of these atoms should be provided.
+        Make sure the number of atoms in the subset is the same for every frame been written.
 
         Parameters
         ----------
         frame : Frame
         topology : Topology, optional
         subset : list of int, optional
-            The index of atoms in the frame to be written
         kwargs : dict
         '''
+        print(self._mode, self._opened)
         if self._mode not in ('w', 'a') or not self._opened:
             raise Exception('mode not in ("w", "a") or closed trajectory')
 
-        self._write_frame(frame, topology, subset, **kwargs)
-
-    def _read_frame(self, i_frame, frame):
-        raise NotImplementedError('Method not implemented')
-
-    def _write_frame(self, frame, topology, subset, **kwargs):
-        raise NotImplementedError('Method not implemented')
+        self._handler.write_frame(frame, topology=topology, subset=subset, **kwargs)
 
     @staticmethod
     def open(file, mode='r'):
         '''
-        Open (a) trajectory file(s)
-
-        The file(s) can be opened in 'r', 'w' or 'a' modes, which mean read, write and append.
-        The class used for parsing the trajectory is determined by the extension of the file.
+        Open (a) trajectory file(s). Deprecated. Use the constructor instead.
 
         Parameters
         ----------
         file : str or list of str
-            If it's a str, then open the file with corresponding parser.
-            if it's a list of str, then call :class:`CombinedTrajectory` to open all of the files.
         mode : ['r', 'w', 'a']
-
-        Returns
-        -------
-        trajectory : subclass of Trajectory
-
         '''
-        modes_allowed = ('r', 'w', 'a')
-        if mode not in modes_allowed:
-            raise Exception('mode should be one of %s' % str(modes_allowed))
 
-        from . import Gro, Xyz, LammpsTrj, Dcd, Xtc, CombinedTrajectory
-
-        if isinstance(file, list):
-            return CombinedTrajectory(file, mode)
-        elif file.endswith('.lammpstrj') or file.endswith('.ltrj'):
-            return LammpsTrj(file, mode)
-        elif file.endswith('.gro'):
-            return Gro(file, mode)
-        elif file.endswith('.xyz'):
-            return Xyz(file, mode)
-        elif file.endswith('.dcd'):
-            return Dcd(file, mode)
-        elif file.endswith('.xtc'):
-            return Xtc(file, mode)
-        else:
-            raise Exception('filename for trajectory not understand')
+        return Trajectory(file, mode)
 
     @staticmethod
     def read_frame_from_file(file, i_frame=0):
@@ -280,7 +264,7 @@ class Trajectory():
 
         This is simply a shortcut for
 
-        >>> trj = Trajectory.open('input.dcd')
+        >>> trj = Trajectory('input.dcd')
         >>> frame = trj.read_frame(i_frame)
         >>> trj.close()
 
@@ -298,7 +282,7 @@ class Trajectory():
         frame : Frame
 
         '''
-        trj = Trajectory.open(file, 'r')
+        trj = Trajectory(file, 'r')
         if i_frame == -1:
             i_frame = trj.n_frame - 1
         frame = trj.read_frame(i_frame)

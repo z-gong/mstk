@@ -26,7 +26,7 @@ class GromacsExporter():
         frame = Frame(system._topology.n_atom)
         frame.cell = system._topology.cell
         frame.positions = system._topology.positions
-        gro = Gro(gro_out, 'w')
+        gro = Trajectory(gro_out, 'w')
         gro.write_frame(frame, system._topology)
         gro.close()
 

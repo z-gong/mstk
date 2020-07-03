@@ -2,11 +2,12 @@ import os
 import numpy as np
 from ..topology import Topology
 from . import Trajectory, Frame
+from .handler import TrjHandler
 
 
-class Xyz(Trajectory):
+class Xyz(TrjHandler):
     '''
-    Since xyz format is not very useful, I only parse the first frame
+    Read and write positions from XYZ file.
     '''
 
     def __init__(self, file, mode='r'):
@@ -17,20 +18,12 @@ class Xyz(Trajectory):
         if mode == 'r':
             # open it in binary mode so that we can correctly seek despite of line ending
             self._file = open(file, 'rb')
-            self._get_info()
         elif mode == 'a':
             self._file = open(file, 'ab')
         elif mode == 'w':
             self._file = open(file, 'wb')
 
-        self._mode = mode
-        self._opened = True
-
-    def _get_info(self):
-        '''
-        Read the number of atoms and record the offset of lines and frames,
-        so that we can read arbitrary frame later
-        '''
+    def get_info(self):
         try:
             self.n_atom = int(self._file.readline())
         except:
@@ -53,9 +46,9 @@ class Xyz(Trajectory):
             line_start = (2 + self.n_atom) * i
             self._frame_offset.append(self._line_offset[line_start])
 
-        self._frame = Frame(self.n_atom)
+        return self.n_atom, self.n_frame
 
-    def _read_frame(self, i_frame, frame):
+    def read_frame(self, i_frame, frame):
         # skip to frame i and read only this frame
         self._file.seek(self._frame_offset[i_frame])
         lines = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame]) \
@@ -67,7 +60,18 @@ class Xyz(Trajectory):
             z = float(words[3]) / 10
             frame.positions[i][:] = x, y, z
 
-    def _write_frame(self, frame: Frame, topology: Topology, subset=None, **kwargs):
+    def write_frame(self, frame, topology, subset=None, **kwargs):
+        '''
+        Write a frame into the opened XYZ file
+
+        Parameters
+        ----------
+        frame : Frame
+        topology : Topology
+        subset : list of int
+        kwargs : dict
+            Ignored
+        '''
         if subset is None:
             subset = list(range(len(frame.positions)))
 
@@ -81,3 +85,6 @@ class Xyz(Trajectory):
             string += '%-8s %10.5f %10.5f %10.5f\n' % (atom.symbol, pos[0], pos[1], pos[2])
 
         self._file.write(string.encode())
+        self._file.flush()
+
+TrjHandler.register_format('.xyz', Xyz)

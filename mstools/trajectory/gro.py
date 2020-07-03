@@ -1,13 +1,12 @@
 import numpy as np
 from ..topology import Topology
 from . import Trajectory, Frame
+from .handler import TrjHandler
 
 
-class Gro(Trajectory):
+class Gro(TrjHandler):
     '''
-    Read and write box, atomic positions and optionally velocities from/to gro file
-    Since gro is using fixed width format, the residue id and atom id are ignored
-    When writing to gro file, the residue name will get truncated with max length of 4
+    Read and write cell, atomic positions and optionally velocities from/to GRO file.
     '''
 
     def __init__(self, file, mode='r'):
@@ -18,20 +17,12 @@ class Gro(Trajectory):
         if mode == 'r':
             # open it in binary mode so that we can correctly seek despite of line ending
             self._file = open(file, 'rb')
-            self._get_info()
         elif mode == 'a':
             self._file = open(file, 'ab')
         elif mode == 'w':
             self._file = open(file, 'wb')
 
-        self._mode = mode
-        self._opened = True
-
-    def _get_info(self):
-        '''
-        Read the number of atoms and record the offset of lines and frames,
-        so that we can read arbitrary frame later
-        '''
+    def get_info(self):
         try:
             self._file.readline()
             self.n_atom = int(self._file.readline())
@@ -56,9 +47,9 @@ class Gro(Trajectory):
             line_start = (3 + self.n_atom) * i
             self._frame_offset.append(self._line_offset[line_start])
 
-        self._frame = Frame(self.n_atom)
+        return self.n_atom, self.n_frame
 
-    def _read_frame(self, i_frame, frame):
+    def read_frame(self, i_frame, frame):
         # skip to frame i and read only this frame
         self._file.seek(self._frame_offset[i_frame])
         lines = self._file.read(self._frame_offset[i_frame + 1] - self._frame_offset[i_frame]) \
@@ -90,7 +81,21 @@ class Gro(Trajectory):
         else:
             raise ValueError('Invalid box')
 
-    def _write_frame(self, frame: Frame, topology: Topology, subset=None, write_velocity=False):
+    def write_frame(self, frame, topology, subset=None, write_velocity=False, **kwargs):
+        '''
+        Write a frame into the opened GRO file
+
+        Parameters
+        ----------
+        frame : Frame
+        topology : Topology
+        subset : list of int, optional
+        write_velocity : bool
+            Whether or not velocities should be written.
+            If set to True but velocities not available in frame, an Exception will be raised.
+        kwargs : dict
+            Ignored
+        '''
         if subset is None:
             subset = list(range(len(frame.positions)))
         if write_velocity and not frame.has_velocity:
@@ -117,3 +122,5 @@ class Gro(Trajectory):
 
         self._file.write(string.encode())
         self._file.flush()
+
+TrjHandler.register_format('.gro', Gro)
