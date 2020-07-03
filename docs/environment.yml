@@ -1,0 +1,8 @@
+name: mstools-docs
+channels:
+  - defaults
+  - omnia
+dependencies:
+  - python=3.6
+  - numpy
+  - sphinx>3
