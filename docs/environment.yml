@@ -4,5 +4,6 @@ channels:
   - omnia
 dependencies:
   - python=3.6
-  - numpy
   - sphinx>3
+  - numpy
+  - openmm=7.4.1
