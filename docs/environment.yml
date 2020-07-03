@@ -6,4 +6,7 @@ dependencies:
   - python=3.6
   - sphinx>3
   - numpy
+  - pandas
+  - scipy
+  - scikit-learn
   - openmm=7.4.1
