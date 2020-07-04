@@ -1,23 +1,71 @@
 import copy
 import itertools
-import numpy as np
 import sys
-from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
-from ..trajectory import Frame, Trajectory, Gro
-from ..forcefield import ForceField
-from ..forcefield.ffterm import *
+from ..topology import *
+from ..forcefield import *
 from ..constant import *
 from .. import logger
 
 
 class System():
     '''
-    System is a combination of topology, forcefield and positions.
-    When initiated, topology will be deep copied. And a compressed set of ff will be generated.
-    Any modification to topology and ff after that will have no effect on the system.
+    System is a combination of topology and forcefield, ready for simulation.
+
+    When a system is being initiated, the topology is deep copied.
+    A compressed set of force field is generated, which only contains the terms required by the topology.
+    Any modification to the topology and force field after that will have no effect on the system.
+
+    During the initialization, all information in the topology will be kept untouched, which means:
+
+    * The atom type of all atoms in the topology must have been correctly assigned,
+      so that the force field terms can be matched.
+    * The charges and masses of all atoms in the topology must have been assigned.
+      You may need to call :func:`mstools.topology.Topology.assign_charge_from_ff`
+      and :func:`mstools.topology.Topology.assign_mass_from_ff`
+      before constructing the system to update the charges and masses of atoms in the topology.
+    * If this is a Drude polarizable model, the Drude particles must available in the topology,
+      and the polarizability, thole screening and charges on Drude particles must have been correctly assigned.
+      You may need to call :func:`mstools.topology.Topology.generate_drude_particles` to generate Drude particles.
+
+    The provided force field must be able to fully describe the energy of the topology.
+    If any term required by topology is not found in the force field, an Exception will be raised.
+
+    Positions and unit cell are also required for construct a system.
+    Usually they are included in the topology.
+    If not so, they can be provided by arguments `positions` and `cell`.
+    The explicitly provided positions and cell will override the ones in topology.
+    If positions or unit cell is not included in the topology and not provided explicitly,
+    an Exception will be raised.
+
+    Parameters
+    ----------
+    topology : Topology
+    ff : ForceField
+    positions : array_like, optional
+    cell : UnitCell, optional
+
+    Attributes
+    ----------
+    charged : bool
+        True if any atom in this system carries charge
+    drude_pairs : dict, [Atom, Atom]
+    constrain_bonds : dict, [int, float]
+    constrain_angles : dict, [int, float]
+    bond_terms : dict, [int, subclass of BondTerm]
+    angle_terms : dict, [int, subclass of AngleTerm]
+    dihedral_terms : dict, [int, subclass of DihedralTerm]
+    improper_terms : dict, [int, subclass of ImproperTerm]
+    polarizable_terms :  dict, [int, subclass of PolarizableTerm]
+    vdw_classes : set of subclass of VdwTerm
+    bond_classes : set of subclass of BondTerm
+    angle_classes : set of subclass of AngleTerm
+    dihedral_classes : set of subclass of DihedralTerm
+    improper_classes : set of subclass of ImproperTerm
+    polarizable_classes : set of subclass of PolarizableTerm
+    ff_classes : set of subclass of FFTerm
     '''
 
-    def __init__(self, topology: Topology, ff: ForceField, positions=None, cell=None):
+    def __init__(self, topology, ff, positions=None, cell=None):
         self._topology = copy.deepcopy(topology)
         self._ff = ForceField()
 
@@ -64,23 +112,46 @@ class System():
         self.polarizable_classes = set()
         self.ff_classes = set()
 
-        self.extract_params(ff)
+        self._extract_terms(ff)
 
     @property
     def topology(self):
+        '''
+        The topology associated with the system
+
+        Returns
+        -------
+        topology : Topology
+        '''
         return self._topology
 
     @property
     def ff(self):
+        '''
+        The compressed force field associated with the system
+
+        Returns
+        -------
+        ff : ForceField
+        '''
         return self._ff
 
-    def extract_params(self, params: ForceField):
-        self._ff.restore_settings(params.get_settings())
+    def _extract_terms(self, ff: ForceField):
+        '''
+        Extract only the required terms from a force field.
+
+        If any term required by topology is not found, an Exception will be raised.
+
+        Parameters
+        ----------
+        ff : ForceField
+        '''
+        self._ff.restore_settings(ff.get_settings())
 
         _atype_not_found = set()
         for atom in self._topology.atoms:
             try:
-                atype = params.atom_types[atom.type]
+                atype = ff.atom_types[atom.type]
             except:
                 _atype_not_found.add(atom.type)
             else:
@@ -94,7 +165,7 @@ class System():
         _vdw_not_found = set()
         for atype in self._ff.atom_types.values():
             try:
-                vdw = params.get_vdw_term(atype, atype)
+                vdw = ff.get_vdw_term(atype, atype)
             except Exception as e:
                 _vdw_not_found.add(atype.eqt_vdw)
             else:
@@ -102,7 +173,7 @@ class System():
 
         for atype1, atype2 in itertools.combinations(self._ff.atom_types.values(), 2):
             try:
-                vdw = params.get_vdw_term(atype1, atype2, mixing=False)
+                vdw = ff.get_vdw_term(atype1, atype2, mixing=False)
             except:
                 pass
             else:
@@ -113,9 +184,9 @@ class System():
             if bond.is_drude:
                 # the Drude-parent bonds will be handled by DrudeForce below
                 continue
-            ats = params.get_eqt_for_bond(bond)
+            ats = ff.get_eqt_for_bond(bond)
             try:
-                bterm = params.get_bond_term(*ats)
+                bterm = ff.get_bond_term(*ats)
             except:
                 _bterm_not_found.add(BondTerm(*ats, 0).name)
             else:
@@ -126,9 +197,9 @@ class System():
 
         _aterm_not_found = set()
         for angle in self._topology.angles:
-            ats = params.get_eqt_for_angle(angle)
+            ats = ff.get_eqt_for_angle(angle)
             try:
-                aterm = params.get_angle_term(*ats)
+                aterm = ff.get_angle_term(*ats)
             except Exception as e:
                 _aterm_not_found.add(AngleTerm(*ats, 0).name)
             else:
@@ -146,10 +217,10 @@ class System():
 
         _dterm_not_found = set()
         for dihedral in self._topology.dihedrals:
-            ats_list = params.get_eqt_for_dihedral(dihedral)
+            ats_list = ff.get_eqt_for_dihedral(dihedral)
             for ats in ats_list:
                 try:
-                    dterm = params.get_dihedral_term(*ats)
+                    dterm = ff.get_dihedral_term(*ats)
                 except Exception as e:
                     pass
                 else:
@@ -161,10 +232,10 @@ class System():
 
         _iterm_not_found = set()
         for improper in self._topology.impropers:
-            ats_list = params.get_eqt_for_improper(improper)
+            ats_list = ff.get_eqt_for_improper(improper)
             for ats in ats_list:
                 try:
-                    iterm = params.get_improper_term(*ats)
+                    iterm = ff.get_improper_term(*ats)
                 except Exception as e:
                     pass
                 else:
@@ -176,9 +247,9 @@ class System():
 
         _pterm_not_found = set()
         for parent in self.drude_pairs.keys():
-            pterm = PolarizableTerm(params.atom_types[parent.type].eqt_polar)
+            pterm = PolarizableTerm(ff.atom_types[parent.type].eqt_polar)
             try:
-                pterm = params.polarizable_terms[pterm.name]
+                pterm = ff.polarizable_terms[pterm.name]
             except:
                 _pterm_not_found.add(pterm.name)
             else:
@@ -236,17 +307,58 @@ class System():
                            .union(self.polarizable_classes))
 
     def export_lammps(self, data_out='data.lmp', in_out='in.lmp'):
+        '''
+        Generate input files for Lammps.
+
+        Parameters
+        ----------
+        data_out : str
+            Name of the data file
+        in_out : str
+            Name of the control script
+        '''
         from .lmpexporter import LammpsExporter
         LammpsExporter.export(self, data_out, in_out)
 
     def export_gromacs(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp'):
+        '''
+        Generate input files for GROMACS
+
+        Parameters
+        ----------
+        gro_out : str or None
+            Name of the GRO file
+        top_out : str or None
+            Name of the topol file
+        mdp_out : str or None
+            Name of the mdp control script
+        '''
         from .gmxexporter import GromacsExporter
         GromacsExporter.export(self, gro_out, top_out, mdp_out)
 
     def export_charmm(self, pdb_out='conf.pdb', psf_out='topol.psf', prm_out='ff.prm'):
+        '''
+        Generate input files for CHARMM
+
+        Parameters
+        ----------
+        pdb_out : str or None
+            Name of the PDB file
+        psf_out : str or None
+            Name of the PSF file
+        prm_out : str or None
+            Name of the parameter file
+        '''
         from .charmmexporter import CharmmExporter
         CharmmExporter.export(self, pdb_out, psf_out, prm_out)
 
     def to_omm_system(self):
+        '''
+        Export this system to OpenMM system
+
+        Returns
+        -------
+        omm_system : simtk.openmm.System
+        '''
         from .ommexporter import OpenMMExporter
         return OpenMMExporter.export(self)

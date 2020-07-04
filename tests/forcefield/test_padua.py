@@ -36,7 +36,7 @@ def test_read():
     assert angle.k == 313.8 / 2
 
     dihedral = ff.dihedral_terms['CT,CT,CT,HC']
-    assert dihedral.follow_opls_convention
+    assert dihedral.is_opls_convention
     k1, k2, k3, k4 = dihedral.get_opls_parameters()
     assert k1 == 0
     assert k2 == 0
@@ -44,7 +44,7 @@ def test_read():
     assert k4 == 0
 
     dihedral = ff.dihedral_terms['CT,CT,CT,CT']
-    assert dihedral.follow_opls_convention
+    assert dihedral.is_opls_convention
     k1, k2, k3, k4 = dihedral.get_opls_parameters()
     assert k1 == 5.4392 / 2
     assert k2 == -0.2092 / 2

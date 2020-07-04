@@ -38,7 +38,6 @@ Virtual site
 .. autosummary::
     :toctree: _generated/
 
-    VirtualSiteFactory
     VirtualSite
     TwoLineSite
     ThreePlaneSite

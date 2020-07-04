@@ -1,20 +1,27 @@
-import itertools
-
-import numpy as np
 from .system import System
-from ..forcefield import ForceField
-from ..forcefield.ffterm import *
-from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
-from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import  *
+from ..topology import *
 from .. import logger
 
 
 class LammpsExporter():
+    '''
+    LammpsExporter export a :class:`System` to input files for Lammps
+    '''
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system: System, data_out='data.lmp', in_out='in.lmp'):
+    def export(system, data_out, in_out):
+        '''
+        Generate input files for Lammps from a system
+
+        Parameters
+        ----------
+        system : System
+        data_out : str
+        in_out : str
+        '''
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,
@@ -113,7 +120,7 @@ class LammpsExporter():
         string += '\nDihedral Coeffs  # opls\n\n'
         for i, dterm in enumerate(dihedral_types):
             dterm: PeriodicDihedralTerm
-            if not dterm.follow_opls_convention:
+            if not dterm.is_opls_convention:
                 raise Exception('Only OPLS type dihedral is implemented')
             k1, k2, k3, k4 = map(lambda x: x * 2 / 4.184, dterm.get_opls_parameters())
             string += '%4i %12.6f %12.6f %12.6f %12.6f  # %s-%s-%s-%s\n' % (

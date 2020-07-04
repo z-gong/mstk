@@ -162,7 +162,7 @@ class Ppf():
             elif line.term == 'BINC':
                 term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
                 term.version = line.version
-                ff.charge_increment_terms[term.name] = term
+                ff.bci_terms[term.name] = term
             elif line.term == 'N12_6':
                 at = line.get_names()[0]
                 r_min, epsilon = line.get_float_values()
@@ -249,7 +249,7 @@ class Ppf():
             line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, atype.mass)
         for atype in ff.atom_types.values():
             line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)
-        for binc in ff.charge_increment_terms.values():
+        for binc in ff.bci_terms.values():
             line += 'BINC: %s, %s: %.5f: ' % (binc.type1, binc.type2, binc.value)
         for vdw in ff.vdw_terms.values():
             if isinstance(vdw, LJ126Term):

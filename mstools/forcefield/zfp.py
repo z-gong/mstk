@@ -63,7 +63,7 @@ class Zfp():
 
         tags = {
             'AtomTypes'           : ff.atom_types,
-            'ChargeIncrementTerms': ff.charge_increment_terms,
+            'ChargeIncrementTerms': ff.bci_terms,
             'VdwTerms'            : ff.vdw_terms,
             'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
             'BondTerms'           : ff.bond_terms,
@@ -78,10 +78,10 @@ class Zfp():
                 continue
             for element in node:
                 try:
-                    cls = getattr(sys.modules['mstools.forcefield.ffterm'], element.tag)
+                    term = FFTerm.from_zfp(element.tag, element.attrib)
                 except:
-                    raise Exception('Invalid tag %s' % element.tag)
-                term = cls.from_zfp(element.attrib)
+                    raise Exception('Invalid tag or attributes: %s, %s' %
+                                    (element.tag, str(element.attrib)))
                 if term.name in d.keys():
                     raise Exception('Duplicated term: %s' % str(term))
                 d[term.name] = term
@@ -109,7 +109,7 @@ class Zfp():
 
         tags = {
             'AtomTypes'           : ff.atom_types,
-            'ChargeIncrementTerms': ff.charge_increment_terms,
+            'ChargeIncrementTerms': ff.bci_terms,
             'VdwTerms'            : ff.vdw_terms,
             'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
             'BondTerms'           : ff.bond_terms,

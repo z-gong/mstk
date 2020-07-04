@@ -969,7 +969,7 @@ class Molecule():
             if charge != 0:
                 _assigned[atom.id_in_mol] = True
 
-        if len(ff.charge_increment_terms) > 0:
+        if len(ff.bci_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
                 try:
                     increment = ff.get_charge_increment(bond)

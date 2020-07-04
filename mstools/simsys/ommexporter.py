@@ -1,10 +1,7 @@
 from enum import IntEnum
-import numpy as np
 from .system import System
-from ..forcefield.ffterm import *
-from ..forcefield import ForceField
-from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper
-from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import *
+from ..topology import *
 from .. import logger
 
 class ForceGroup(IntEnum):
@@ -17,11 +14,25 @@ class ForceGroup(IntEnum):
     DRUDE = 7
 
 class OpenMMExporter():
+    '''
+    OpenMMExporter export a :class:`System` to a OpenMM system
+    '''
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system: System):
+    def export(system):
+        '''
+        Generate OpenMM system from a system
+
+        Parameters
+        ----------
+        system : System
+
+        Returns
+        -------
+        omm_system : simtk.openmm.System
+        '''
         try:
             import simtk.openmm as mm
         except ImportError:

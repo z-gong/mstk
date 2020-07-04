@@ -32,7 +32,7 @@ def test_read():
     o_1_t = ff.atom_types.get('o_1-t')
     assert o_1_t.charge == -0.3333
 
-    binc = ff.charge_increment_terms.get('c_35an2,h_1')
+    binc = ff.bci_terms.get('c_35an2,h_1')
     assert binc.type1 == 'c_35an2'
     assert binc.type2 == 'h_1'
     assert binc.version == '0.16'

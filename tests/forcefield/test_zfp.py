@@ -23,12 +23,12 @@ def test_read():
     assert atype.eqt_imp_s == 's_1'
     assert atype.eqt_imp_c == 's_1-'
 
-    term = ff.charge_increment_terms['b_4-,c_2nb']
+    term = ff.bci_terms['b_4-,c_2nb']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'c_2nb'
     assert term.value == 0.262
 
-    term = ff.charge_increment_terms['b_4-,f_1']
+    term = ff.bci_terms['b_4-,f_1']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'f_1'
     assert term.value == 0.4215
@@ -39,7 +39,7 @@ def test_read():
     assert term.type2 == 's_4o'
     assert term.type3 == 'n_2-'
     assert term.type4 == 's_4'
-    assert term.follow_opls_convention
+    assert term.is_opls_convention
     assert pytest.approx(term.get_opls_parameters(), abs=1E-4) == [12.9809, 7.9709, 1.6389, 0]
 
     term = ff.improper_terms['c_3a,c_3a,c_3a,h_1']

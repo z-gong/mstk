@@ -1,36 +1,46 @@
 import itertools
-import numpy as np
 from .system import System
-from ..forcefield.ffterm import *
-from ..forcefield import ForceField
-from ..topology import Pdb, Psf
-from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import *
+from ..topology import *
 from .. import logger
 
 
 class CharmmExporter():
+    '''
+    CharmmExporter export a :class:`System` to input files for CHARMM
+    '''
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system: System, pdb_out, psf_out, prm_out):
+    def export(system, pdb_out, psf_out, prm_out):
+        '''
+        Generate input files for CHARMM from a system
+
+        Parameters
+        ----------
+        system : System
+        pdb_out : str or None
+        psf_out : str or None
+        prm_out : str or None
+        '''
         if pdb_out is not None:
-            CharmmExporter.export_pdb(system, pdb_out)
+            CharmmExporter._export_pdb(system, pdb_out)
         if psf_out is not None:
-            CharmmExporter.export_psf(system, psf_out)
+            CharmmExporter._export_psf(system, psf_out)
         if prm_out is not None:
-            CharmmExporter.export_prm(system, prm_out)
+            CharmmExporter._export_prm(system, prm_out)
 
     @staticmethod
-    def export_pdb(self, pdb_out='conf.pdb'):
+    def _export_pdb(self, pdb_out='conf.pdb'):
         Pdb.save_to(self._topology, pdb_out)
 
     @staticmethod
-    def export_psf(self, psf_out='topol.psf'):
+    def _export_psf(self, psf_out='topol.psf'):
         Psf.save_to(self._topology, psf_out)
 
     @staticmethod
-    def export_prm(system: System, prm_out='ff.prm'):
+    def _export_prm(system: System, prm_out='ff.prm'):
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,

@@ -6,8 +6,24 @@ from ..constant import *
 
 class FFTerm():
     '''
-    FFTerm is the base class for all force field terms
+    FFTerm is the base class for all force field terms like :class:`AtomType`, :class:`BondTerm`, etc...
+
+    Attributes
+    ----------
+    version : str
+        Version is used mainly in :class:`PPF` format by DFF.
+    comments : list of str
+        Comments is useful for debugging when generating input files for simulation engines.
     '''
+
+    _class_map = {}
+
+    _zfp_attrs = {}
+    '''
+    The attributes that will be saved into or loaded from ZFP file.
+    This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFP xml file.
+    '''
+
     def __init__(self):
         self.version = None
         self.comments: [str] = []
@@ -15,70 +31,196 @@ class FFTerm():
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.name)
 
+    @staticmethod
+    def register(klass):
+        '''
+        Register a force field term so that it can be read from or write into a ZFP file.
+
+        Parameters
+        ----------
+        klass : subclass of FFTerm
+        '''
+        FFTerm._class_map[klass.__name__] = klass
+
     @property
     def name(self):
+        '''
+        The name of this force field term.
+
+        Returns
+        -------
+        name : str
+        '''
         raise NotImplementedError('This property should be implemented by subclasses')
 
-    def to_zfp(self) -> {str: str}:
+    def to_zfp(self):
         '''
-        Pack the attributes of FFTerm into a dict so that can be saved into ZFP xml file
-        Every class to be packed should have a class property zfp_attrs
-        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
-        It also tell the data type of these attributes
+        Pack the attributes of a term into a dict so that can be saved into ZFP xml file.
+
+        Every class to be packed should have a class property `zfp_attrs`.
+        This dict records which attributes should be saved into ZFP xml file,
+        and it is also used as the arguments for initializing a FFTerm.
+        It also tell the data type of these attributes.
+
+        Returns
+        -------
+        d : dict, [str, str]
         '''
         d = {}
-        for attr, func in self.zfp_attrs.items():
+        for attr, func in self._zfp_attrs.items():
             d[attr] = str(getattr(self, attr))
-        d.update(self.to_zfp_extra())
+        d.update(self._to_zfp_extra())
         return d
 
-    def to_zfp_extra(self) -> {str: str}:
+    def _to_zfp_extra(self):
         '''
-        Some terms can have extra information to be packed
-        e.g. PeriodicDihedralTerm can contain arbitrary numbers of dihedral parameters
+        Pack extra information for some special terms.
+
+        e.g. PeriodicDihedralTerm can contain arbitrary numbers of dihedral parameters.
+
+        Returns
+        -------
+        d : dict, [str, str]
         '''
         return {}
 
-    @classmethod
-    def from_zfp(cls, d: {str: str}):
+    @staticmethod
+    def from_zfp(name, d):
         '''
-        Reconstruct a FFTerm using a dict of attributes read from ZFP xml file
-        Essentially it calls the __init__() of the class
-        Every class to be reconstructed should have a class property zfp_attrs
-        This dict records which attributes should be saved into ZFP xml file, also used to init a FFTerm
-        It also tell the data type of these attributes
-        This method should be overridden by subclass if the term cannot be reconstructed from simple init
+        Reconstruct a FFTerm using a dict of attributes read from ZFP xml file.
+
+        Essentially it finds the class for the term, and calls the constructor of the class.
+        Every class to be reconstructed should have a class property zfp_attrs.
+        This dict records which attributes should be saved into ZFP xml file,
+        and it is also used as the arguments for initializing a FFTerm.
+        It also tell the data type of these attributes.
+        This method should be overridden by subclass if the term cannot be fully constructed from its constructor.
+
+        Parameters
+        ----------
+        name : str
+            Class name of the term to be constructed
+        d : dict, [str, str]
+            Attributes loaded from ZFP xml element
+
+        Returns
+        -------
+        term : subclass of FFTerm
+
         '''
         # must use kwargs instead of args to init the cls,
         # in case there is mistake in the sequence of init arguments
+        try:
+            cls = FFTerm._class_map[name]
+        except:
+            raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
-        for attr, func in cls.zfp_attrs.items():
+        for attr, func in cls._zfp_attrs.items():
             kwargs[attr] = func(d[attr])
         try:
             term = cls(**kwargs)
         except:
-            raise Exception('Cannot init %s with kwargs %s' % (cls.__name__, d))
-        term.from_zfp_extra(d)
+            raise Exception('Cannot init %s with kwargs %s' % (name, str(d)))
+        term._from_zfp_extra(d)
         return term
 
-    def from_zfp_extra(self, d: {str: str}):
+    def _from_zfp_extra(self, d: {str: str}):
         '''
-        Some terms need to handle some data exceptionally
+        Some terms need to handle some data exceptionally.
+
         e.g. PeriodicDihedralTerm need to rebuild its own storage of multiple dihedral parameters
         '''
         pass
 
-    # this dict must be overridden by every subclasses that can be saved into or reconstruced from ZFP xml file
-    zfp_attrs = {}
-
     def evaluate_energy(self, val):
         '''
-        Evaluate the energy for bond, angle, vdw etc...
+        Evaluate the energy for bond, angle, vdw, etc...
+
+        This method should be implemented by subclasses.
+
+        Parameters
+        ----------
+        val : float
+            Value of distance, angle etc ...
+
+        Returns
+        -------
+        energy : float
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
 
 
 class AtomType(FFTerm):
+    '''
+    AtomType is the most fundamental element in a force field.
+    It determines which :class:`VdwTerm`, :class:`BondTerm`, etc...
+    will be used to describe the energy functions between a specific set of atoms.
+
+    Equivalent table (EQT) is extensively used in mstools.
+    It helps decreasing the number of force field terms significantly without losing generality and accuracy,
+    thus making the force field extendable.
+
+    Parameters
+    ----------
+    name : str
+        The name of this atom type.
+    mass : float , optional
+        The mass of this atom type.
+    charge : float , optional
+        The charge of this atom type.
+    eqt_vdw : str , optional
+        The equivalent type for vdW parameters
+    eqt_q_inc : str , optional
+        The equivalent type for bond charge increment parameters
+    eqt_bond : str , optional
+        The equivalent type for bond parameters
+    eqt_ang_c : str , optional
+        The equivalent type for angle parameters if this atom type is the center of an angle
+    eqt_ang_s: str , optional
+        The equivalent type for angle parameters if this atom type is the side of an angle
+    eqt_dih_c : str , optional
+        The equivalent type for dihedral parameters if this atom type is the center of a dihedral
+    eqt_dih_s: str , optional
+        The equivalent type for dihedral parameters if this atom type is the side of a dihedral
+    eqt_imp_c : str , optional
+        The equivalent type for improper parameters if this atom type is the center of an improper
+    eqt_imp_s : str , optional
+        The equivalent type for improper parameters if this atom type is the side of an improper
+    eqt_polar : str , optional
+        The equivalent type for polarization parameters
+
+    Attributes
+    ----------
+    mass : float
+        The mass of this atom type. -1 means not provided in the force field.
+        Mass is not mandatory, because finally we are going to take the masses from the :class:`~mstools.topology.Topology`.
+        However, masses in force field can be used to assign the masses in topology.
+    charge : float
+        The charge of this atom type.
+        Similar to mass, the charges we are finally going to use are from the :class:`~mstools.topology.Topology`.
+        But charges in force field can be used to assign the charges in topology.
+    eqt_vdw : str
+        The equivalent type for vdW parameters
+    eqt_q_inc : str
+        The equivalent type for bond charge increment parameters
+    eqt_bond : str
+        The equivalent type for bond parameters
+    eqt_ang_c : str
+        The equivalent type for angle parameters if this atom type is the center of an angle
+    eqt_ang_s: str
+        The equivalent type for angle parameters if this atom type is the side of an angle
+    eqt_dih_c : str
+        The equivalent type for dihedral parameters if this atom type is the center of a dihedral
+    eqt_dih_s: str
+        The equivalent type for dihedral parameters if this atom type is the side of a dihedral
+    eqt_imp_c : str
+        The equivalent type for improper parameters if this atom type is the center of an improper
+    eqt_imp_s : str
+        The equivalent type for improper parameters if this atom type is the side of an improper
+    eqt_polar : str
+        The equivalent type for polarization parameters
+    '''
+
     def __init__(self, name, mass=-1, charge=0,
                  eqt_vdw=None, eqt_q_inc=None, eqt_bond=None,
                  eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
@@ -102,6 +244,15 @@ class AtomType(FFTerm):
 
     @property
     def name(self):
+        '''
+        The name of this atom type.
+
+        :setter: Set the name of this atom type
+
+        Returns
+        -------
+        name : str
+        '''
         return self._name
 
     @name.setter
@@ -115,7 +266,7 @@ class AtomType(FFTerm):
     def __gt__(self, other):
         return self.name > other.name
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'name'     : str,
         'mass'     : float,
         'charge'   : float,
@@ -132,7 +283,44 @@ class AtomType(FFTerm):
     }
 
 
+FFTerm.register(AtomType)
+
+
 class ChargeIncrementTerm(FFTerm):
+    '''
+    ChargeIncrementTerm describes the offset of charge between two atom types when they are bonded.
+
+    Two atom types and the offset from the second to first should be provided to construct this term.
+    e.g. The following example means when h_1 and c_4 are bonded,
+    0.06 element charges will be transferred from c_4 to h_1.
+
+    >>> term = ChargeIncrementTerm('h_1', 'c_4', 0.06)
+
+    During the initialization, the two atom types will be sorted by their string.
+    The value will be modified to represent the offset from the second to the first atom types after sorting.
+
+    >>> print(term.type1, term.type2, term.value)
+        c_4 h_1 -0.06
+
+    Parameters
+    ----------
+    type1 : str
+        The string of first atom type
+    type2 : str
+        The string of second atom type
+    value : float
+        The offset from type2 to type1
+
+    Attributes
+    ----------
+    type1 : str
+        The string of first atom type
+    type2 : str
+        The string of second atom type
+    value : float
+        The offset from type2 to type1
+    '''
+
     def __init__(self, type1: str, type2: str, value: float):
         super().__init__()
         if type1 == type2 and value != 0:
@@ -153,17 +341,24 @@ class ChargeIncrementTerm(FFTerm):
     def __gt__(self, other):
         return [self.type1, self.type2] > [other.type1, other.type2]
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'value': float,
     }
 
 
+FFTerm.register(ChargeIncrementTerm)
+
+
 class VdwTerm(FFTerm):
     '''
-    VdwTerm is the base class for all vdW terms
+    VdwTerm is the base class for all vdW terms.
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`LJ126Term`, :class:`MieTerm`.
     '''
+
     def __init__(self, type1: str, type2: str):
         super().__init__()
         at1, at2 = sorted([type1, type2])
@@ -184,7 +379,11 @@ class VdwTerm(FFTerm):
 class BondTerm(FFTerm):
     '''
     BondTerm is the base class for all bond terms
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`HarmonicBondTerm`.
     '''
+
     def __init__(self, type1: str, type2: str, length: float, fixed=False):
         super().__init__()
         at1, at2 = sorted([type1, type2])
@@ -205,6 +404,13 @@ class BondTerm(FFTerm):
 
 
 class AngleTerm(FFTerm):
+    '''
+    AngleTerm is the base class for all angle terms
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`HarmonicAngleTerm`, :class:`SDKAngleTerm`.
+    '''
+
     def __init__(self, type1: str, type2: str, type3: str, theta: float, fixed=False):
         super().__init__()
         at1, at3 = sorted([type1, type3])
@@ -227,7 +433,14 @@ class AngleTerm(FFTerm):
 
 class DihedralTerm(FFTerm):
     '''
-    DihedralTerm allows wildcard(*) for side atoms
+    DihedralTerm is the base class for all dihedral terms.
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`PeriodicDihedralTerm`.
+
+    DihedralTerm allows wildcard(*) for side atoms.
+    During force field matching, the terms with wildcard will have lower priority.
+    The terms with wildcard will be used only if exact match cannot be found.
     '''
 
     def __init__(self, type1: str, type2: str, type3: str, type4: str):
@@ -260,8 +473,20 @@ class DihedralTerm(FFTerm):
 
 class ImproperTerm(FFTerm):
     '''
-    ImproperTerm allows wildcard(*) for side atoms
-    Center atom is the first, following the convention of GROMACS
+    ImproperTerm is the base class for all improper terms.
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`PeriodicImproperTerm`.
+
+    Improper term is usually used to keep 3-coordinated structures in the same plane.
+    The first atom is the central atom, following the convention of GROMACS and CHARMM.
+    However, the definition of the value of improper i-j-k-l is vague.
+    CHARMM defines the value of the improper as the angle between plane i-j-k and j-k-l.
+    Whereas OPLS defines the value as the angle between j-k-i and k-i-l.
+
+    ImproperTerm allows wildcard(*) for side atoms.
+    During force field matching, the terms with wildcard will have lower priority.
+    The terms with wildcard will be used only if exact match cannot be found.
     '''
 
     def __init__(self, type1: str, type2: str, type3: str, type4: str):
@@ -289,6 +514,13 @@ class ImproperTerm(FFTerm):
 
 
 class PolarizableTerm(FFTerm):
+    '''
+    PolarizableTerm is the base class for all polarization terms.
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`DrudeTerm`.
+    '''
+
     def __init__(self, type):
         super().__init__()
         self.type = type
@@ -306,8 +538,13 @@ class PolarizableTerm(FFTerm):
 
 class LJ126Term(VdwTerm):
     '''
-    LJ126 is commonly used, so don't generalize it with MieTerm
-    U = 4*epsilon*((sigma/r)^12-(sigma/r)^6)
+    vdW term in LJ-12-6 function form.
+
+    The energy function is
+
+    >>> U = 4*epsilon*((sigma/r)^12-(sigma/r)^6)
+
+    LJ126 is commonly used, therefore we don't generalize it with :func:`MieTerm`.
     '''
 
     def __init__(self, type1, type2, epsilon, sigma):
@@ -315,7 +552,7 @@ class LJ126Term(VdwTerm):
         self.epsilon = epsilon
         self.sigma = sigma
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1'  : str,
         'type2'  : str,
         'epsilon': float,
@@ -326,12 +563,20 @@ class LJ126Term(VdwTerm):
         return 4 * self.epsilon * ((self.sigma / r) ** 12 - (self.sigma / r) ** 6)
 
 
+FFTerm.register(LJ126Term)
+
+
 class MieTerm(VdwTerm):
     '''
-    Mainly used for SDK and SAFT-gamma Coarse-Grained force field
-    U = C * epsilon * ((sigma/r)^n - (sigma/r)^m)
-    C = n/(n-m) * (n/m)^(m/(n-m))
-    r_min = (n/m)^(1/(n-m)) * sigma
+    vdW term with generalized LJ function form.
+
+    The energy function is
+
+    >>> U = C * epsilon * ((sigma/r)^n - (sigma/r)^m)
+    >>> C = n/(n-m) * (n/m)^(m/(n-m))
+    >>> r_min = (n/m)^(1/(n-m)) * sigma
+
+    This term is mainly used for Coarse-Grained force field
     '''
 
     def __init__(self, type1, type2, epsilon, sigma, repulsion, attraction):
@@ -353,7 +598,7 @@ class MieTerm(VdwTerm):
         rep, att = self.repulsion, self.attraction
         return (rep / att) ** (1 / (rep - att))
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1'     : str,
         'type2'     : str,
         'epsilon'   : float,
@@ -363,16 +608,24 @@ class MieTerm(VdwTerm):
     }
 
 
+FFTerm.register(MieTerm)
+
+
 class HarmonicBondTerm(BondTerm):
     '''
-    U = k * (b-b0)^2
+    Bond term in harmonic function form
+
+    The energy function is
+
+    >>> U = k * (b-b0)^2
+
     '''
 
     def __init__(self, type1, type2, length, k, fixed=False):
         super().__init__(type1, type2, length, fixed=fixed)
         self.k = k
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1' : str,
         'type2' : str,
         'length': float,
@@ -381,16 +634,24 @@ class HarmonicBondTerm(BondTerm):
     }
 
 
+FFTerm.register(HarmonicBondTerm)
+
+
 class HarmonicAngleTerm(AngleTerm):
     '''
-    U = k * (theta-theta0)^2
+    Angle term in harmonic function form
+
+    The energy function is
+
+    >>> U = k * (theta-theta0)^2
+
     '''
 
     def __init__(self, type1, type2, type3, theta, k, fixed=False):
         super().__init__(type1, type2, type3, theta, fixed=fixed)
         self.k = k
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -400,17 +661,25 @@ class HarmonicAngleTerm(AngleTerm):
     }
 
 
+FFTerm.register(HarmonicAngleTerm)
+
+
 class SDKAngleTerm(AngleTerm):
     '''
-    U = k * (theta-theta0)^2 + LJ96
-    LJ96 = 6.75 * epsilon * ((sigma/r)^9 - (sigma/r)^6) + epsilon, r < 1.144714 * sigma
+    Angle term in SDK function form
+
+    The energy function is
+
+    >>> U = k * (theta-theta0)^2 + LJ96
+    >>> LJ96 = 6.75 * epsilon * ((sigma/r)^9 - (sigma/r)^6) + epsilon, r < 1.144714 * sigma
+
     '''
 
     def __init__(self, type1, type2, type3, theta, k):
         super().__init__(type1, type2, type3, theta, fixed=False)
         self.k = k
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -419,9 +688,17 @@ class SDKAngleTerm(AngleTerm):
     }
 
 
+FFTerm.register(SDKAngleTerm)
+
+
 class PeriodicDihedralTerm(DihedralTerm):
     '''
-    U = k * (1+cos(n*phi-phi0_n))
+    Dihedral term in periodic cosine function form
+
+    The energy function is
+
+    >>> U = \sum^n k_n*(1+cos(n*phi-phi0_n))
+
     '''
 
     Parameter = namedtuple('Parameter', ('phi', 'k', 'n'))
@@ -444,14 +721,14 @@ class PeriodicDihedralTerm(DihedralTerm):
         self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
         self.parameters.sort(key=lambda x: x.n)
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
         'type4': str,
     }
 
-    def to_zfp_extra(self) -> {str: str}:
+    def _to_zfp_extra(self) -> {str: str}:
         d = {}
         for para in self.parameters:
             d.update({
@@ -460,7 +737,7 @@ class PeriodicDihedralTerm(DihedralTerm):
             })
         return d
 
-    def from_zfp_extra(self, d: {str: str}):
+    def _from_zfp_extra(self, d: {str: str}):
         for key in d.keys():
             if key.startswith('phi_'):
                 n = int(key.split('_')[-1])
@@ -469,7 +746,19 @@ class PeriodicDihedralTerm(DihedralTerm):
                 self.add_parameter(phi, k, n)
 
     @property
-    def follow_opls_convention(self) -> bool:
+    def is_opls_convention(self) -> bool:
+        '''
+        Whether or not this term follows the OPLS dihedral convention
+
+        In OPLS convention, the largest multiplicity equals to 4.
+        The phi_0 for multiplicity (1, 2, 3, 4) equal to (0, 180, 0, 180), respectively.
+
+        If the dihedral follows OPLS convention, the exporting can be cleaner for some package.
+
+        Returns
+        -------
+        is : bool
+        '''
         for para in self.parameters:
             if para.n == 1:
                 if para.phi != 0:
@@ -488,7 +777,19 @@ class PeriodicDihedralTerm(DihedralTerm):
                     return False
         return True
 
-    def get_opls_parameters(self) -> (float,):
+    def get_opls_parameters(self):
+        '''
+        Get the four force constants of this dihedral term if it follows OPLS diehdral convention.
+
+        If it does not follow OPLS convention, an Exception will be raised.
+
+        Returns
+        -------
+        k1 : float
+        k2 : float
+        k3 : float
+        k4 : float
+        '''
         k1 = k2 = k3 = k4 = 0
         for para in self.parameters:
             if para.n == 1:
@@ -512,20 +813,27 @@ class PeriodicDihedralTerm(DihedralTerm):
         return k1, k2, k3, k4
 
 
+FFTerm.register(PeriodicDihedralTerm)
+
+
 class OplsImproperTerm(ImproperTerm):
     '''
-    U = k * (1-cos(2*phi))
+    Improper term in OPLS cosine function form
 
-    It is to keep 3-coordinated structures in the same plane
-    For improper a1-a2-a3-a4, a1 is the center atom
-    In OPLS convention, the improper is defined as the angle between plane a2-a3-a1 and a3-a1-a4
+    The energy function is
+
+    >>> U = k * (1-cos(2*phi))
+
+    Care must be taken when exporting OplsImproperTerm.
+    For improper a1-a2-a3-a4, a1 is the center atom.
+    In OPLS convention, the value of the improper is defined as the angle between plane a2-a3-a1 and a3-a1-a4.
     '''
 
     def __init__(self, type1, type2, type3, type4, k):
         super().__init__(type1, type2, type3, type4)
         self.k = k
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -534,12 +842,20 @@ class OplsImproperTerm(ImproperTerm):
     }
 
 
+FFTerm.register(OplsImproperTerm)
+
+
 class HarmonicImproperTerm(ImproperTerm):
     '''
-    U = k * (phi-phi0)^2
+    Improper term in harmonic function form. Mainly used by CHARMM.
 
-    For improper a1-a2-a3-a4, a1 is the center atom
-    In CHARMM convention, the improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4
+    The energy function is
+
+    >>> U = k * (phi-phi0)^2
+
+    Care must be taken when exporting HarmonicImproperTerm.
+    For improper a1-a2-a3-a4, a1 is the center atom.
+    In CHARMM convention, the improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4.
     '''
 
     def __init__(self, type1, type2, type3, type4, phi, k):
@@ -547,7 +863,7 @@ class HarmonicImproperTerm(ImproperTerm):
         self.phi = phi
         self.k = k
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -557,11 +873,24 @@ class HarmonicImproperTerm(ImproperTerm):
     }
 
 
+FFTerm.register(HarmonicImproperTerm)
+
+
 class DrudeTerm(PolarizableTerm):
     '''
-    E = k * d^2
-    q = sqrt(4 * pi * eps_0 * (2k) * alpha)
-    TODO Implement anisotropic Drude polarization
+    Polarization term described by Drude induced dipole.
+
+    The energy function for polarization is
+
+    >>> E = k * d^2
+
+    The charge assigned to the Drude particle is
+
+    >>> q = - sqrt(4 * pi * eps_0 * (2k) * alpha)
+
+    Currently, only the isotropic Drude polarization is implemented.
+
+    * TODO Implement anisotropic Drude polarization
     '''
 
     def __init__(self, type: str, alpha, thole, k=4184 / 2 * 100, mass=0.4, merge_alpha_H=0.0):
@@ -572,7 +901,7 @@ class DrudeTerm(PolarizableTerm):
         self.mass = mass
         self.merge_alpha_H = merge_alpha_H
 
-    zfp_attrs = {
+    _zfp_attrs = {
         'type'         : str,
         'alpha'        : float,
         'thole'        : float,
@@ -582,7 +911,25 @@ class DrudeTerm(PolarizableTerm):
     }
 
     def get_charge(self, alpha=None):
+        '''
+        Get the charge offset between parent atom and Drude particle.
+
+        The charge assigned on the Drude particle is the negative of this charge offset.
+
+        Parameters
+        ----------
+        alpha : float
+            The polarizability of parent atom in unit of nm^3.
+
+        Returns
+        -------
+        charge : float
+            The charge offset from Drude particle to parent atom.
+        '''
         if alpha is None:
             alpha = self.alpha
         factor = math.sqrt(1E-6 / AVOGADRO) / ELEMENTARY_CHARGE
         return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * alpha) * factor
+
+
+FFTerm.register(DrudeTerm)

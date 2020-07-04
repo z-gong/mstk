@@ -2,7 +2,7 @@
 Simulation system
 =================
 
-Simsys (simulation system) is a combination of topology, force field, atomic positions and unit cell.
+Simsys (simulation system) is a combination of topology and force field.
 It defines a system that is ready for simulation.
 
 After a simsys is constructed, it can be exported to different simulation engines for calculation.

@@ -1,28 +1,39 @@
 import itertools
-import numpy as np
 from .system import System
-from ..forcefield.ffterm import *
-from ..forcefield import ForceField
-from ..topology import Topology, Atom, UnitCell, Psf, Bond, Angle, Dihedral, Improper, Molecule
-from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import *
+from ..topology import *
+from ..trajectory import *
 from .. import logger
 
 
 class GromacsExporter():
+    '''
+    GromacsExporter export a :class:`System` to input files for Gromacs
+    '''
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system: System, gro_out, top_out, mdp_out):
+    def export(system, gro_out, top_out, mdp_out):
+        '''
+        Generate input files for Gromacs from a system
+
+        Parameters
+        ----------
+        system : System
+        gro_out : str or None
+        top_out : str or None
+        mdp_out : str or None
+        '''
         if gro_out is not None:
-            GromacsExporter.export_gro(system, gro_out)
+            GromacsExporter._export_gro(system, gro_out)
         if top_out is not None:
-            GromacsExporter.export_top(system, top_out)
+            GromacsExporter._export_top(system, top_out)
         if mdp_out is not None:
-            GromacsExporter.export_mdp(system, mdp_out)
+            GromacsExporter._export_mdp(system, mdp_out)
 
     @staticmethod
-    def export_gro(system: System, gro_out='conf.gro'):
+    def _export_gro(system: System, gro_out='conf.gro'):
         frame = Frame(system._topology.n_atom)
         frame.cell = system._topology.cell
         frame.positions = system._topology.positions
@@ -31,7 +42,7 @@ class GromacsExporter():
         gro.close()
 
     @staticmethod
-    def export_top(system:System, top_out='topol.top'):
+    def _export_top(system:System, top_out='topol.top'):
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm,
@@ -252,7 +263,7 @@ class GromacsExporter():
             f.write(string)
 
     @staticmethod
-    def export_mdp(system:System, mdp_out='grompp.mdp'):
+    def _export_mdp(system:System, mdp_out='grompp.mdp'):
         tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
         with open(mdp_out, 'w')  as f:
             f.write(f'''; Created by mstools

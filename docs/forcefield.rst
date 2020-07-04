@@ -24,22 +24,71 @@ Force field definition
     ForceField
     FFTerm
     AtomType
-    ChargeIncrementTerm
+
+vdW terms
+~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
     VdwTerm
-    BondTerm
-    AngleTerm
-    DihedralTerm
-    ImproperTerm
-    PolarizableTerm
     LJ126Term
     MieTerm
+
+Bond charge increment terms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    ChargeIncrementTerm
+
+Polarization terms
+~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    PolarizableTerm
+    DrudeTerm
+
+Bond terms
+~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    BondTerm
     HarmonicBondTerm
+
+Angle terms
+~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    AngleTerm
     HarmonicAngleTerm
     SDKAngleTerm
+
+Dihedral terms
+~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    DihedralTerm
     PeriodicDihedralTerm
+
+Improper terms
+~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    ImproperTerm
     OplsImproperTerm
     HarmonicImproperTerm
-    DrudeTerm
 
 Force field parser
 ------------------
