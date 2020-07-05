@@ -15,6 +15,19 @@ class Npt(GmxSimulation):
         self.n_mol_default = 75
 
     def build(self, export=True, ppf=None):
+        '''
+        Generate control scripts for simulation engine. e.g. mdp files for GROMACS.
+        Also generate force field files for target temperatures if force field is temperature dependent.
+
+        Parameters
+        ----------
+        export
+        ppf
+
+        Returns
+        -------
+
+        '''
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, self.pdb, size=[i - 2 for i in self.box], silent=True)
         print('Create box using DFF ...')

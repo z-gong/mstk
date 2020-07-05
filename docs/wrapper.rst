@@ -11,6 +11,7 @@ Wrappers for GROAMCS, Gaussian, DFF and Packmol simplify the usage of these pack
 
     GMX
     Gauss
+    Packmol
     DFF
     Lammps
     ppf.PPF

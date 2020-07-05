@@ -5,7 +5,31 @@ from ..wrapper import Packmol, DFF
 
 
 class Simulation():
-    def __init__(self, packmol=None, dff=None, packmol_bin=None, dff_root=None, dff_db=None, dff_table=None, jobmanager=None):
+    '''
+    Base class of predefined simulation protocols.
+
+    Simulation defines protocol for running specific type of simulation to get desired properties.
+    e.g. NPT simulation with GROMACS to get cohesive energy, heat capacity and density,
+    NPT_PPM simulation with GROMACS to get viscosity,
+    QM calculation with Gaussian to get intramolecular heat capacity, etc...
+
+    Parameters
+    ----------
+    packmol : Packmol
+    dff : DFF
+    jobmanager : subclass of JobManager
+    packmol_bin : str, optional
+        Binary of packmol. Deprecated.
+    dff_root : str, optional
+        Root directory of DFF. Deprecated.
+    dff_db : str, optional
+        Default database of DFF. Deprecated.
+    dff_table : str, optional
+        Default table of DFF. Deprecated.
+    '''
+
+    def __init__(self, packmol=None, dff=None, packmol_bin=None, dff_root=None, dff_db=None,
+                 dff_table=None, jobmanager=None):
         if packmol is not None:
             self.packmol = packmol
         elif packmol_bin is not None:
@@ -31,62 +55,11 @@ class Simulation():
         self._single_msd = '_single.msd'
         self._single_pdb = '_single.pdb'
 
-    def build(self):
-        '''
-        Use Packmol to build the initial configuration. Generate topology and force filed files
-        '''
-        pass
-
-    def prepare(self):
-        '''
-        Generate control scripts for simulation engine. e.g. mdp files for GROMACS
-        Also generate force field files for target temperatures if force field is temperature dependent
-        '''
-        pass
-
-    def run(self):
-        '''
-        Submit the job to PBS scheduler
-        '''
-        self.jobmanager.submit()
-
-    def check_finished(self):
-        '''
-        Check if the job is successfully finished
-        '''
-        pass
-
-    def analyze(self):
-        '''
-        Analyze simulation data and obtain raw results like energy, density...
-        '''
-        pass
-
-    def clean(self):
-        '''
-        Delete intermediate simulation data
-        '''
-        pass
-
-    def post_process(self, **kwargs):
-        '''
-        Post process the raw simulation results,
-        e.g. fit the density and energy at different temperatures and pressures
-        The obtained coefficients will be used for further analysis
-        '''
-        pass
-
-    def get_post_data(self, **kwargs):
-        '''
-        Derive other results from the post-processed data
-        e.g. heat capacity, thermal expansion, critical point...
-        '''
-        pass
-
-    def set_system(self, smiles_list: [str], n_mol_list: [int] = None, n_atoms: int = None, n_mol_ratio: [int] = None,
-                   length: float = None, density: float = None, name_list: [str] = None):
+    def set_system(self, smiles_list, n_mol_list=None, n_atoms=None, n_mol_ratio=None,
+                   length=None, density=None, name_list=None):
         '''
         Specify the components and size of the simulation system.
+
         The species are defined as SMILES string. The system can be mixtures.
         e.g. for pure hexane, smiles_list=['CCCCCC'];
         for the mixture of benzene and water, smiles_list=['c1ccccc1','O']
@@ -122,14 +95,22 @@ class Simulation():
         If name_list is None, the names of species will be ['MO0', 'MO1', 'MO2'...]
         Normally, it is not recommended to define molecular names. The default names are more general.
 
-        :param smiles_list: list of molecules described by SMILES string
-        :param n_mol_list: list of numbers of molecules
-        :param n_atoms: the approximate number of atoms
-        :param n_mol_ratio: the ratio between numbers of molecules for mixture system
-        :param length: the length of cubic simulation box
-        :param density: the density of cubic simulation box
-        :param name_list: the name of molecules (will be used in mol2, msd and GROMACS top file)
-        :return:
+        Parameters
+        ----------
+        smiles_list : list of str
+            List of SMILES of the molecules to be simulated
+        n_mol_list : list of int, optional
+            List of numbers of molecules
+        n_atoms : int, optional
+            Approximate number of atoms
+        n_mol_ratio : list of int, optional
+            The ratio between numbers of molecules for mixture system
+        length : float
+            The length of cubic simulation box
+        density : float
+            The density of cubic simulation box
+        name_list : list of str
+            The name of molecules. They will be used in mol2, msd and GROMACS top file
         '''
         if type(smiles_list) != list:
             raise Exception('smiles_list should be list')
@@ -152,7 +133,8 @@ class Simulation():
             self.mol2_list.append(mol2)
             n_atom_list.append(len(py_mol.atoms))
             molwt_list.append(py_mol.molwt)
-            density_list.append(estimate_density_from_formula(py_mol.formula) * 0.9)  # * 0.9, build box will be faster
+            density_list.append(estimate_density_from_formula(
+                py_mol.formula) * 0.9)  # * 0.9, build box will be faster
 
         if n_mol_list is not None:
             self.n_mol_list = n_mol_list[:]
@@ -173,8 +155,78 @@ class Simulation():
             self.vol = self.length ** 3
         else:
             if density is None:
-                density = sum([density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(
+                density = sum(
+                    [density_list[i] * self.n_mol_list[i] for i in range(n_components)]) / sum(
                     self.n_mol_list)
             self.vol = 10 / 6.022 * mass / density
             self.length = self.vol ** (1 / 3)  # assume cubic box
             self.box = [self.length, self.length, self.length]
+
+    def build(self):
+        '''
+        Build the initial configuration.
+
+        This method should be implemented by subclasses.
+        '''
+        pass
+
+    def prepare(self):
+        '''
+        Generate input files for simulation engines, and return the commands for running the simulation.
+
+        This method should be implemented by subclasses.
+
+        Returns
+        -------
+        commands : list of str
+            The commands for running the simulation.
+        '''
+        pass
+
+    def run(self):
+        '''
+        Submit the job to PBS scheduler
+        '''
+        self.jobmanager.submit()
+
+    def check_finished(self):
+        '''
+        Check if the job is successfully finished.
+
+        This method should be implemented by subclasses.
+        '''
+        pass
+
+    def analyze(self):
+        '''
+        Analyze simulation data and obtain raw results like energy, density...
+
+        This method should be implemented by subclasses.
+        '''
+        pass
+
+    def clean(self):
+        '''
+        Delete intermediate simulation data.
+
+        This method should be implemented by subclasses.
+        '''
+        pass
+
+    def post_process(self, **kwargs):
+        '''
+        Post process the raw simulation results,
+        e.g. fit the density and energy at different temperatures and pressures.
+
+        This method should be implemented by subclasses.
+        '''
+        pass
+
+    def get_post_data(self, **kwargs):
+        '''
+        Derive other results from the post-processed data,
+        e.g. heat capacity, thermal expansion, critical point...
+
+        This method should be implemented by subclasses.
+        '''
+        pass
