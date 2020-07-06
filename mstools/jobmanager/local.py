@@ -3,6 +3,10 @@ from ..errors import JobManagerError
 
 
 class Local(JobManager):
+    '''
+    A fake job scheduler that run jobs on the local machine.
+
+    '''
     def __init__(self, nprocs, ngpu, **kwargs):
         super().__init__(nprocs=nprocs, ngpu=ngpu, **kwargs)
         self.sh = '_job_local.sh'

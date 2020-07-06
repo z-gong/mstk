@@ -8,6 +8,10 @@ from ..errors import JobManagerError
 
 
 class Slurm(JobManager):
+    '''
+    Slurm job scheduler.
+
+    '''
     def __init__(self, queue, nprocs, ngpu, nprocs_request, **kwargs):
         super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
         self.sh = '_job_slurm.sh'

@@ -30,7 +30,6 @@ GROMACS protocols
     Nvt
     NvtSlab
     NvtGas
-    NvtVacuum
 
 Gaussian protocols
 ------------------

@@ -8,18 +8,44 @@ from ..utils import random_string
 
 
 class GMX:
-    TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gmx/')
+    '''
+    Wrapper for GROAMCS for pre-processing, running and post-processing MD simulations
+
+    GROMACS version 2016 is recommended and has been tested thoroughly.
+    Though this wrapper support both version 2016, 2018 and 2019.
+
+    It's better to compile GROMACS in two binaries. One is the normal `gmx` binary without any acceleration.
+    This is used for pre- and post-processing, which normally run on the front node of a HPC.
+    The other one is the `mdrun` binary with full accelerations through MPI, OpenMP, GPU, etc...
+    This will be submitted to :class:`~mstools.jobmanager.JobManager` to run on the compute node of a HPC.
+    Refer to GROMACS documentation for the compiling options.
+
+    Parameters
+    ----------
+    gmx_bin : str
+        Path of the serial verion gmx binary executable.
+    gmx_mdrun : str, optional
+        Path of the parallel/gpu version mdrun binary executable.
+        If not provided, `gmx_bin` will be used also for mdrun.
+
+    Attributes
+    ----------
+    version : str
+    majorversion : str
+    '''
+
+    _TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gmx/')
 
     def __init__(self, gmx_bin, gmx_mdrun=None):
         self.GMX_BIN = gmx_bin
         self.GMX_MDRUN = gmx_mdrun or gmx_bin + ' mdrun'
-        self.check_version()
+        self._check_version()
         # TODO temporary hack for dielectric constant in mdp
         self._DIELECTRIC = 1.0
         # TODO temporary hack for LJ96 function
         self._LJ96 = False
 
-    def check_version(self):
+    def _check_version(self):
         cmd = '%s --version' % self.GMX_BIN
         try:
             sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
@@ -40,6 +66,32 @@ class GMX:
 
     def grompp(self, mdp='grompp.mdp', gro='conf.gro', top='topol.top', tpr_out='md.tpr',
                cpt=None, maxwarn=3, silent=False, get_cmd=False):
+        '''
+        Run gmx grompp directly or generate the command for grompp.
+
+        Refer to GROMACS documentation for details.
+
+        Parameters
+        ----------
+        mdp : str
+        gro : str
+        top : str
+        tpr_out : str
+        cpt : str
+        maxwarn : int
+        silent : bool
+            If set to True and `get_cmd` set to False, then grompp will be executed silently, without output on screen.
+        get_cmd : bool
+            If set to True, the command for running grompp will be returned, which can be feed into :class:`~mstools.jobmanager.JobManager`.
+            If set to False, grompp will be executed.
+
+        Returns
+        -------
+        command : str or None
+            If get_cmd set to True, will return the command for running grompp.
+            If get_cmd set to False, will return None.
+
+        '''
         cmd = '%s -quiet -nobackup grompp -f %s -c %s -p %s -o %s -maxwarn %i' % (
             self.GMX_BIN, mdp, gro, top, tpr_out, maxwarn)
         if cpt is not None:
@@ -51,7 +103,41 @@ class GMX:
             sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
             sp.communicate()
 
-    def mdrun(self, name='md', nprocs=1, n_omp=None, rerun: str = None, extend=False, silent=False, get_cmd=False):
+    def mdrun(self, name='md', nprocs=1, n_omp=None, rerun=None, extend=False, silent=False, get_cmd=False):
+        '''
+        Run gmx grompp directly or generate the command for grompp.
+
+        mdrun will use both MPI and OpenMP for hybrid parallelization.
+
+        Refer to GROMACS documentation for details.
+
+        Parameters
+        ----------
+        name : str
+            Argument for `mdrun -deffnm`
+        nprocs : int
+            Number of CPU cores to use
+        n_omp : int, optional
+            Number of OpenMP threads to use.
+            If not set, will be determined automatically from nprocs.
+        rerun : str, optional
+            If an XTC or TRR file privided, will perform `mdrun -rerun` on the trajectory.
+        extend : bool
+            If set to True, will perform `mdrun -cpi` on the checkpoint.
+            A checkpoint named `name.cpt` should be avaiable in the current directory.
+        silent : bool
+            If set to True and `get_cmd` set to False, then mdrun will be executed silently, without output on screen.
+        get_cmd : bool
+            If set to True, the command for running mdrun will be returned, which can be feed into :class:`~mstools.jobmanager.JobManager`.
+            If set to False, mdrun will be executed.
+
+        Returns
+        -------
+        command : str or None
+            If get_cmd set to True, will return the command for running mdrun.
+            If get_cmd set to False, will return None.
+
+        '''
         # TODO temporary hack for LJ96 function
         if self._LJ96:
             n_omp = 1
@@ -89,30 +175,50 @@ class GMX:
             sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
             sp.communicate()
 
-    def minimize(self, gro, top, nprocs=1, silent=False, name='em', vacuum=False):
-        if not vacuum:
-            self.prepare_mdp_from_template('t_em.mdp')
-        else:
-            self.prepare_mdp_from_template('t_em_vacuum.mdp')
-
-        self.grompp(gro=gro, top=top, tpr_out=name + '.tpr', silent=silent)
-        self.mdrun(name=name, nprocs=nprocs, silent=silent)
-
-    def dos(self, trr, tpr, T, group='System', log_out='dos.log', get_cmd=False, silent=False):
-        cmd = '%s -quiet -nobackup dos -f %s -s %s -T %f -g %s' % (self.GMX_BIN, trr, tpr, T, log_out)
-        if get_cmd:
-            cmd = 'echo "%s" | %s' % (group, cmd)
-            return cmd
-        else:
-            (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
-            sp = Popen(cmd.split(), stdin=PIPE, stdout=stdout, stderr=stderr)
-            sp.communicate(input=group.encode())
-
     def prepare_mdp_from_template(self, template, mdp_out='grompp.mdp', T=298, P=1, nsteps=10000, dt=0.001, TANNEAL=800,
                                   nstenergy=100, nstxout=0, nstvout=0, nstxtcout=10000, xtcgrps='System',
                                   restart=False, tcoupl='langevin', pcoupl='parrinello-rahman',
                                   constraints='h-bonds', ppm=0, dielectric=None):
-        template = os.path.join(GMX.TEMPLATE_DIR, template)
+        '''
+        Generate MDP control script from template library for running GROMACS simulation.
+
+        Refer to GROMACS documentation for the meaning of parameteres.
+
+        The coupling time constant are determined automatically from `dt`, `tcoupl` and `pcoupl`.
+        The neighbour list update frequency is determined automatically from `dt`.
+
+        Parameters
+        ----------
+        template : str
+            File name of the template to use.
+            Take a look of the template directory to get available choices.
+        mdp_out : str
+        T : float
+        P : float
+        nsteps : int
+        dt : float
+        TANNEAL : float, optional
+            The temperature for annealing.
+            This argument should be used together with template `t_nvt_anneal.mdp`
+            It is ignored for other templates.
+        nstenergy : int
+        nstxout : int
+        nstvout : int
+        nstxtcout : int
+        xtcgrps : int
+        restart : bool
+            If set to True, grompp will not generated velocity.
+        tcoupl : ['langevin', 'v-rescale', 'nose-hoover']
+        pcoupl : ['parrinello-rahman', 'berendsen']
+        constraints : str
+        ppm : float, optional
+            The cosine acceleration strength for periodic perturbation simulation.
+            This argument should be used together with template `t_npt_ppm.mdp`
+            It is ignored for other templates.
+        dielectric : float, optional
+
+        '''
+        template = os.path.join(GMX._TEMPLATE_DIR, template)
         if not os.path.exists(template):
             raise GmxError('mdp template not found')
 
@@ -135,11 +241,8 @@ class GMX:
             tau_p = '1'
         elif pcoupl.lower() == 'parrinello-rahman':
             tau_p = '5'
-        elif pcoupl.lower() == 'mttk':
-            tau_p = '5'
-            constraints = 'none'
         else:
-            raise Exception('Invalid pcoupl, should be one of berendsen, parrinello-rahman, mttk')
+            raise Exception('Invalid pcoupl, should be one of berendsen, parrinello-rahman')
 
         if restart:
             genvel = 'no'
@@ -184,14 +287,22 @@ class GMX:
             out, err = sp.communicate(input=property_str.encode())
             return out
 
-    def get_fluct_props(self, edr, begin=0, end=None) -> (float, float):
+    def get_fluct_props(self, edr, begin=0, end=None):
         '''
-        Get thermal expansion and compressibility using fluctuation of enthalpy, volume
-        Only works for NPT simulation
-        :param edr:
-        :param begin:
-        :param end:
-        :return:
+        Get thermal expansion and compressibility using fluctuation of enthalpy, volume.
+
+        It only works for NPT simulation.
+
+        Parameters
+        ----------
+        edr : str
+        begin : float
+        end : float, optional
+
+        Returns
+        -------
+        expansion : float
+        compressibility : float
         '''
         sp_out = self.energy(edr, properties=['temp', 'vol', 'enthalpy'], begin=begin, end=end, fluct_props=True)
 
@@ -255,12 +366,19 @@ class GMX:
             sp.communicate(input=inp.encode())
 
     @staticmethod
-    def scale_box(gro, gro_out, new_box: [float]):
+    def scale_box(gro, gro_out, new_box):
         '''
-        Scale gro box to desired size.
-        The coordinate of all atoms are scaled.
-        The velocities are not modified.
-        Only support rectangular box
+        Scale GRO box to desired size.
+
+        The coordinate of all atoms are scaled, while the velocities are not modified.
+        Only rectangular box is supported.
+
+        Parameters
+        ----------
+        gro : str
+        gro_out : str
+        new_box : list of float
+            The lengths of the desired rectangular box.
         '''
         NAtoms = 0
         nresidue = []
@@ -438,22 +556,6 @@ class GMX:
 
         raise GmxError('Error running gmx msd')
 
-    def msd_com(self, xtc, tpr, resname, beginfit=-1, endfit=-1, xvg_out=None, silent=False):
-        ndx = 'com-' + resname + '.ndx'
-        GMX.select_com(tpr, resname, ndx_out=ndx)
-        if xvg_out is None:
-            xvg_out = 'msd-com-%s.xvg' % resname
-
-        (stdout, stderr) = (PIPE, PIPE) if silent else (None, None)
-        sp = Popen([self.GMX_BIN, 'msd', '-f', xtc, '-s', tpr, '-n', ndx, '-o', xvg_out, '-nomw',
-                    '-beginfit', str(beginfit), '-endfit', str(endfit)], stdout=stdout, stderr=stderr)
-        sp_out = sp.communicate()[0]
-
-        for line in sp_out.decode().splitlines():
-            if line.startswith('D['):
-                return line
-        raise GmxError('Error running gmx msd')
-
     def traj_com(self, xtc, tpr, trj_out='com.xtc', begin=0, end=0, silent=False):
         ndx = 'com.ndx'
         self.select_com(tpr, 'all', ndx_out=ndx)
@@ -541,16 +643,28 @@ class GMX:
         sp = Popen(cmd.split(), stdout=stdout, stderr=stderr)
         sp.communicate()
 
-    def generate_gpu_multidir_cmds(self,dirs: [str], commands: [str], n_parallel, n_gpu=0, n_omp=None, n_procs=None) -> [[str]]:
+    def generate_gpu_multidir_cmds(self, dirs, commands, n_parallel, n_gpu=0, n_omp=None, n_procs=None):
         '''
-        Set n_omp in most case. If n_procs is set, n_omp has no effect.
-        :param dirs:
-        :param commands:
-        :param n_parallel:
-        :param n_gpu:
-        :param n_procs:
-        :param n_omp:
-        :return:
+        Generate commands for performing `multidir` simulation with GROMACS.
+
+        multidir simulation enables several similar simulations being run at the same time in different directories.
+        This is a powerful feature allowing for much better utilization of GPU resources.
+
+        Parameters
+        ----------
+        dirs : list of str
+        commands : list of str
+        n_parallel : int
+        n_gpu : int, optional
+        n_omp : int, optional
+            Set n_omp in most case.
+            When n_procs is set, n_omp will have no effect.
+        n_procs : int, optional
+
+        Returns
+        -------
+        commands_list : list of list of str
+
         '''
         import math, re
         def replace_gpu_multidir_cmd(dirs: [str], cmd: str) -> str:
@@ -609,7 +723,59 @@ class GMX:
         return commands_list
 
     @staticmethod
-    def modify_lj96_top(top):
+    def modify_lj96(itp_files, top_files, mdp_files, xvg_files):
+        '''
+        Convert the current simulation files for LJ-12-6 vdW form into LJ-9-6 form.
+
+        This is a trick to simplify the exporting of LJ-9-6 vdW form in GROMACS.
+
+        Parameters
+        ----------
+        itp_files : None or list of str
+            The `itp` files to be modified.
+            If not set, all the `itp` files in the current directory will be modified.
+        top_files : None or list of str
+            The `top` files to be modified.
+            If not set, all the `top` files in the current directory will be modified.
+        mdp_files : None or list of str
+            The `mdp` files to be modified.
+            If not set, all the `mdp` files in the current directory will be modified.
+        xvg_files : list of str
+            The `xvg` files to be generated. They contain the tabulated LJ-9-6 potential and force.
+        '''
+        if itp_files is None:
+            itp_files = list(filter(lambda x: x.endswith('.itp'), os.listdir('.')))
+        for itp in itp_files:
+            GMX._modify_lj96_itp(itp)
+
+        if top_files is None:
+            top_files = list(filter(lambda x: x.endswith('.top'), os.listdir('.')))
+        for top in top_files:
+            GMX._modify_lj96_top(top)
+
+        if mdp_files is None:
+            mdp_files = list(filter(lambda x: x.endswith('.mdp'), os.listdir('.')))
+        for mdp in mdp_files:
+            GMX._modify_lj96_mdp(mdp)
+
+        for xvg in xvg_files:
+            shutil.copy(os.path.join(GMX._TEMPLATE_DIR, 'table6-9.xvg'), xvg)
+
+    @staticmethod
+    def _modify_lj96_itp(itp):
+        with open(itp) as f:
+            lines = f.read().splitlines()
+        new_lines = []
+        for line in lines:
+            if line.strip().split()[:3] == ['1', '2', 'yes']:
+                new_lines.append(line + ' 9')
+            else:
+                new_lines.append(line)
+        with open(itp, 'w') as f:
+            f.write('\n'.join(new_lines))
+
+    @staticmethod
+    def _modify_lj96_top(top):
         with open(top) as f:
             lines = f.read().splitlines()
 
@@ -643,20 +809,7 @@ class GMX:
             f.write('\n'.join(new_lines))
 
     @staticmethod
-    def modify_lj96_itp(itp):
-        with open(itp) as f:
-            lines = f.read().splitlines()
-        new_lines = []
-        for line in lines:
-            if line.strip().split()[:3] == ['1', '2', 'yes']:
-                new_lines.append(line + ' 9')
-            else:
-                new_lines.append(line)
-        with open(itp, 'w') as f:
-            f.write('\n'.join(new_lines))
-
-    @staticmethod
-    def modify_lj96_mdp(mdp):
+    def _modify_lj96_mdp(mdp):
         with open(mdp) as f:
             lines = f.read().splitlines()
         new_lines = []
@@ -678,23 +831,3 @@ class GMX:
         new_lines.append('vdwtype = user')
         with open(mdp, 'w') as f:
             f.write('\n'.join(new_lines))
-
-    @staticmethod
-    def modify_lj96(itp_files: [str], top_files: [str], mdp_files: [str], xvg_files: []):
-        if itp_files is None:
-            itp_files = list(filter(lambda x: x.endswith('.itp'), os.listdir('.')))
-        for itp in itp_files:
-            GMX.modify_lj96_itp(itp)
-
-        if top_files is None:
-            top_files = list(filter(lambda x: x.endswith('.top'), os.listdir('.')))
-        for top in top_files:
-            GMX.modify_lj96_top(top)
-
-        if mdp_files is None:
-            mdp_files = list(filter(lambda x: x.endswith('.mdp'), os.listdir('.')))
-        for mdp in mdp_files:
-            GMX.modify_lj96_mdp(mdp)
-
-        for xvg in xvg_files:
-            shutil.copy(os.path.join(GMX.TEMPLATE_DIR, 'table6-9.xvg'), xvg)

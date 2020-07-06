@@ -9,23 +9,63 @@ from mstools.errors import PackmolError
 
 class Packmol:
     '''
-    wrappers for Packmol
+    Wrapper for Packmol for building initial coordinates for simulation
+
+    Parameters
+    ----------
+    packmol_bin : str
+        Path of the packmol binary executable
     '''
 
     def __init__(self, packmol_bin):
         self.PACKMOL_BIN = packmol_bin
 
-    def build_box(self, files: [str], numbers: [int], output: str,
-                  size: [float] = None, length: float = None,
-                  slab=None, slab_multiple=False,
-                  tolerance: float = 1.8, seed: int = None,
-                  inp_file='build.inp', silent=False) -> [int]:
+    def build_box(self, files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
+                  tolerance=1.8, seed=None, inp_file='build.inp', silent=False):
         '''
-        Build box directly from files
+        Build a box directly from molecule files.
+
+        Currently, rectangular box of following models are supported:
+
+        * Homogeneous bulk liquid or gas model
+        * Liquid-vapor interface model
+        * Multi-component liquid-liquid interface model
+
+        The input molecule files can be in XYZ or PDB format.
+        The format for all input files and output files should be the same.
+
+        Parameters
+        ----------
+        files : list of str
+            List of input XYZ or PDB files
+        numbers : list of int
+            Numbers to be packed of each molecules
+        output : str
+            File name of the ouput XYZ or PDB file
+        size : list of float, or None
+            Size of the packed rectangular box.
+            If not set, argument `length` should be provided.
+        length : float or None
+            Length of the packed cubic box.
+            If not set, argument `size` should be provided.
+        slab : float or None
+            If a vapor-liquid interface model is to be packed, it gives the z-coordinates of the interface.
+            It conflicts with argument `slab_multiple`.
+        slab_multiple : bool or None
+            Set it to True if a liquid-liquid interface model is to be packed.
+            It conflicts with argument `slab`.
+        tolerance : float
+            The minimum distance between atoms belongs to different molecules.
+        seed : int or None
+            The seed for randomizing positions.
+            If not provided, a randomly generated seed will be used.
+        inp_file : str
+            The input file for running packmol to be written.
+        silent : bool
+            If set to True, packmol will run silently without writing output on the screen.
+            The error message will still be written on the screen.
         '''
-        Packmol.gen_inp(files, numbers,
-                        output, size, length, slab, slab_multiple,
-                        tolerance, seed, inp_file)
+        Packmol.gen_inp(files, numbers, output, size, length, slab, slab_multiple, tolerance, seed, inp_file)
 
         # TODO subprocess PIPE not work for Packmol new version, do not know why
         if silent:
@@ -41,11 +81,14 @@ class Packmol:
             # sp.communicate(input=inp.encode())
 
     @staticmethod
-    def gen_inp(files: [str], numbers: [int], output: str,
-                size: [float] = None, length: float = None,
-                slab=None, slab_multiple=False,
-                tolerance: float = 1.8, seed: int = None,
-                inp_file='build.inp'):
+    def gen_inp(files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
+                tolerance=1.8, seed=None, inp_file='build.inp'):
+        '''
+        Generate input file for running packmol.
+
+        It is the same as :func:`build_box` except that packmol is not called after input file generated.
+        See :func:`build_box` for the details of parameters.
+        '''
         if len(files) == 0:
             raise PackmolError('No files provided')
         if len(files) != len(numbers):

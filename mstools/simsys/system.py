@@ -313,9 +313,7 @@ class System():
         Parameters
         ----------
         data_out : str
-            Name of the data file
         in_out : str
-            Name of the control script
         '''
         from .lmpexporter import LammpsExporter
         LammpsExporter.export(self, data_out, in_out)
@@ -327,11 +325,8 @@ class System():
         Parameters
         ----------
         gro_out : str or None
-            Name of the GRO file
         top_out : str or None
-            Name of the topol file
         mdp_out : str or None
-            Name of the mdp control script
         '''
         from .gmxexporter import GromacsExporter
         GromacsExporter.export(self, gro_out, top_out, mdp_out)
@@ -343,11 +338,8 @@ class System():
         Parameters
         ----------
         pdb_out : str or None
-            Name of the PDB file
         psf_out : str or None
-            Name of the PSF file
         prm_out : str or None
-            Name of the parameter file
         '''
         from .charmmexporter import CharmmExporter
         CharmmExporter.export(self, pdb_out, psf_out, prm_out)

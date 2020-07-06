@@ -1,4 +1,7 @@
 class PbsJob():
+    '''
+    Job managed by job scheduler.
+    '''
     def __init__(self, id, name, state, workdir=None, user=None, queue=None):
         self.id = id
         self.name = name

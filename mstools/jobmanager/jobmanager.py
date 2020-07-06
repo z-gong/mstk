@@ -5,6 +5,10 @@ from .pbsjob import PbsJob
 
 
 class JobManager:
+    '''
+    Base class for job schedulers.
+
+    '''
     def __init__(self, queue=None, nprocs=1, ngpu=0, nprocs_request=None, env_cmd=None):
         self.queue = queue
         self.nprocs = nprocs
@@ -30,6 +34,15 @@ class JobManager:
 
     @property
     def walltime(self):
+        '''
+        Alias of :attr:`time`.
+
+        :setter: Set the time limit.
+
+        Returns
+        -------
+        time : float
+        '''
         return self.time
 
     @walltime.setter
@@ -44,6 +57,15 @@ class JobManager:
         return self.stored_jobs
 
     def is_working(self) -> bool:
+        '''
+        Check whether or not this job scheduler is working normally.
+
+        This method should be implemented by subclasses.
+
+        Returns
+        -------
+        is : bool
+        '''
         pass
 
     def update_stored_jobs(self):

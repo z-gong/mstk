@@ -8,6 +8,10 @@ from ..errors import JobManagerError
 
 
 class RemoteSlurm(Slurm):
+    '''
+    Slurm job scheduler that runs on the remote machine.
+
+    '''
     def __init__(self, queue, nprocs, ngpu, nproc_request, host, username, remote_dir, port=22, **kwargs):
         super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nproc_request, **kwargs)
 
