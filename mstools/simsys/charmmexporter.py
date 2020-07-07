@@ -7,8 +7,21 @@ from .. import logger
 
 class CharmmExporter():
     '''
-    CharmmExporter export a :class:`System` to input files for CHARMM
+    CharmmExporter export a :class:`System` to input files for CHARMM.
+
+    The following potential functions are currently supported:
+
+    * :class:`~mstools.forcefield.LJ126Term`
+    * :class:`~mstools.forcefield.HarmonicBondTerm`
+    * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.PeriodicDihedralTerm`
+    * :class:`~mstools.forcefield.HarmonicImproperTerm`
+    * :class:`~mstools.forcefield.DrudeTerm`
+
+    The :class:`~mtools.forcefield.OplsImproperTerm` can be exported, but it will be in the harmonic form.
+    Usually it is acceptable if the improper to be described is planer and quite rigid.
     '''
+
     def __init__(self):
         pass
 

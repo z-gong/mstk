@@ -2,9 +2,10 @@ import math
 
 from ..utils import create_mol_from_smiles, estimate_density_from_formula
 from ..wrapper import Packmol, DFF
+from ..util import DocstringMeta
 
 
-class Simulation():
+class Simulation(metaclass=DocstringMeta):
     '''
     Base class of predefined simulation protocols.
 
@@ -13,19 +14,7 @@ class Simulation():
     NPT_PPM simulation with GROMACS to get viscosity,
     QM calculation with Gaussian to get intramolecular heat capacity, etc...
 
-    Parameters
-    ----------
-    packmol : Packmol
-    dff : DFF
-    jobmanager : subclass of JobManager
-    packmol_bin : str, optional
-        Binary of packmol. Deprecated.
-    dff_root : str, optional
-        Root directory of DFF. Deprecated.
-    dff_db : str, optional
-        Default database of DFF. Deprecated.
-    dff_table : str, optional
-        Default table of DFF. Deprecated.
+    Simulation should not be constructed directly. Use its subclasses instead.
     '''
 
     def __init__(self, packmol=None, dff=None, packmol_bin=None, dff_root=None, dff_db=None,

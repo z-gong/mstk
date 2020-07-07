@@ -1,13 +1,30 @@
 from .system import System
-from ..forcefield import  *
+from ..forcefield import *
 from ..topology import *
 from .. import logger
 
 
 class LammpsExporter():
     '''
-    LammpsExporter export a :class:`System` to input files for Lammps
+    LammpsExporter export a :class:`System` to input files for Lammps.
+
+    The following potential functions are currently supported:
+
+    * :class:`~mstools.forcefield.LJ126Term`
+    * :class:`~mstools.forcefield.HarmonicBondTerm`
+    * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.PeriodicDihedralTerm`
+    * :class:`~mstools.forcefield.OplsImproperTerm`
+    * :class:`~mstools.forcefield.DrudeTerm`
+
+    Lammps is powerful and flexible. The other functional forms are also supported by Lammps.
+    But the input file structure of Lammps is too flexible to be handled in an elegant way.
+    Especially when there are hybrid functional forms.
+
+    In order to run simulation of Drude model, the package USER-DRUDE should be included when compiling Lammps.
+
     '''
+
     def __init__(self):
         pass
 

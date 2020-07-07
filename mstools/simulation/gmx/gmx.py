@@ -9,24 +9,9 @@ class GmxSimulation(Simulation):
     '''
     Base class of predefined simulation protocols with GROMACS.
 
-    Parameters
-    ----------
-    packmol : Packmol
-    dff : DFF
-    gmx : GMX
-    jobmanager : subclass of JobManager
-    packmol_bin : str, optional
-        Binary of packmol. Deprecated.
-    dff_root : str, optional
-        Root directory of DFF. Deprecated.
-    dff_db : str, optional
-        Default database of DFF. Deprecated.
-    dff_table : str, optional
-        Default table of DFF. Deprecated.
-    gmx_bin : str, optional
-        Binary of gmx. Deprecated.
-    gmx_mdrun: str, optional
-        Binary of gmx mdrun. Deprecated.
+    Packmol, DFF and a job scheduler is required.
+
+    GmxSimulation should not be constructed directly. Use its subclasses instead.
     '''
     def __init__(self, packmol=None, dff=None, gmx=None, packmol_bin=None, dff_root=None, gmx_bin=None, gmx_mdrun=None, jobmanager=None, **kwargs):
         super().__init__(packmol=packmol, dff=dff, packmol_bin=packmol_bin, dff_root=dff_root, jobmanager=jobmanager, **kwargs)

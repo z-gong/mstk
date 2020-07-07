@@ -15,7 +15,9 @@ class ForceGroup(IntEnum):
 
 class OpenMMExporter():
     '''
-    OpenMMExporter export a :class:`System` to a OpenMM system
+    OpenMMExporter export a :class:`System` to a OpenMM system.
+
+    All of the force field terms supported by `mstools` can be exported to OpenMM.
     '''
     def __init__(self):
         pass

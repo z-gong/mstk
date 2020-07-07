@@ -2,12 +2,12 @@
 Simulation protocols
 ====================
 
-Predefined simulation protocols for performing different types of MD and QM calculations.
-They are designed for High-throughput prediction of liquid properties with TEAM force field.
-The force field typing and parameter assigning are hardcoded with DFF,
-therefore this module is not supposed to be used for other purposes.
+This module provides predefined simulation protocols for performing different types of MD and QM calculations.
+e.g. NPT simulation or periodic perturbation simulation with GROMACS, normal mode analysis with Gaussian, etc...
+They are designed for high-throughput prediction of liquid properties.
 
-It may be subject to refactor in the future to support different typing and simulation engines.
+Currently, these simulation protocols are hardcoded with DFF typing engine and TEAM force field.
+It will be subject to refactor in the future to support different typing engines and force fields.
 
 .. currentmodule:: mstools.simulation
 

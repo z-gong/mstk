@@ -1,7 +1,42 @@
 class PbsJob():
     '''
-    Job managed by job scheduler.
+    A PbsJob object is a job managed by job scheduler.
+
+    Parameters
+    ----------
+    id : int
+        Job ID assigned by job scheduler.
+    name : str
+        Name of this job in job scheduler.
+    state: [0, 1, 9]
+        Whether this job is pending (0), running (1) or finished (9).
+        Killed or failed is also considered as finished.
+    workdir : str
+        The working directory of this job.
+    user : str
+        Name of the user who submitted this job.
+    queue : str
+        The queue this job is submitted to.
+
+    Attributes
+    ----------
+    id : int
+        Job ID assigned by job scheduler.
+    name : str
+        Name of this job in job scheduler.
+    state: [0, 1, 9]
+        Whether this job is pending (0), running (1) or finished (9).
+        Killed or failed is also considered as finished.
+    workdir : str
+        The working directory of this job.
+    user : str
+        Name of the user who submitted this job.
+    queue : str
+        The queue this job is submitted to.
+    state_str : str
+        The string shown by the job scheduler, which represents the state of the job.
     '''
+
     def __init__(self, id, name, state, workdir=None, user=None, queue=None):
         self.id = id
         self.name = name

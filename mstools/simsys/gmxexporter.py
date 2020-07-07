@@ -8,8 +8,28 @@ from .. import logger
 
 class GromacsExporter():
     '''
-    GromacsExporter export a :class:`System` to input files for Gromacs
+    GromacsExporter export a :class:`System` to input files for Gromacs.
+
+    The following potential functions are currently supported:
+
+    * :class:`~mstools.forcefield.LJ126Term`
+    * :class:`~mstools.forcefield.HarmonicBondTerm`
+    * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.PeriodicDihedralTerm`
+    * :class:`~mstools.forcefield.OplsImproperTerm`
+    * :class:`~mstools.forcefield.HarmonicImproperTerm`
+    * :class:`~mstools.forcefield.DrudeTerm`
+
+    The :class:`~mstools.forcefield.MieTerm` can be exported, but it will be in the LJ-12-6 form.
+    If the dispersion of `MieTerm` is in 6-th power, then MieTerm can be correctly handled
+    by small modifications to topol and mdp files after exported.
+    Refer to the GROMACS documentation for details.
+
+    The :class:`~mstools.forcefield.SDKAngleTerm` can be exported, but it will be in the harmonic form.
+    Usually it is acceptable if the molecule is not going to form a coil structure.
+    Refer to the original SDK paper for details.
     '''
+
     def __init__(self):
         pass
 
@@ -42,7 +62,7 @@ class GromacsExporter():
         gro.close()
 
     @staticmethod
-    def _export_top(system:System, top_out='topol.top'):
+    def _export_top(system: System, top_out='topol.top'):
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm,
@@ -115,7 +135,7 @@ class GromacsExporter():
                 if atom in system.drude_pairs:
                     mass += system.drude_pairs[atom].mass
                 string += '%6i %10s %6i %10s %6s %6i %12.6f %10.4f\n' % (
-                    j + 1, atom.type, 1, mol.name, atom.symbol, j+1, atom.charge, mass)
+                    j + 1, atom.type, 1, mol.name, atom.symbol, j + 1, atom.charge, mass)
 
             string += '\n[ pairs ]\n'
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
@@ -263,7 +283,7 @@ class GromacsExporter():
             f.write(string)
 
     @staticmethod
-    def _export_mdp(system:System, mdp_out='grompp.mdp'):
+    def _export_mdp(system: System, mdp_out='grompp.mdp'):
         tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
         with open(mdp_out, 'w')  as f:
             f.write(f'''; Created by mstools
