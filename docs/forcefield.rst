@@ -22,6 +22,7 @@ Force field definition
     :toctree: _generated/
 
     ForceField
+    FFTermFactory
     FFTerm
     AtomType
 

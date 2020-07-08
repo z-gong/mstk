@@ -4,23 +4,24 @@ from simtk.openmm.app import Simulation
 from ..unit import *
 
 class DrudeTemperatureReporter(object):
-    """
-    DrudeTemperatureReporter reports the temperature of Drude simulation
+    '''
+    DrudeTemperatureReporter reports the temperatures of different DOFs in a Drude simulation system.
+
     The temperatures for three sets of degrees of freedom are reported
-    -- molecular center of mass, internal atomic and Drude temperature
+    -- molecular center of mass, internal atomic and Drude temperature.
     It's better to set the reportInterval larger than 10000 to avoid performance penalty
-    """
+
+    Parameters
+    ----------
+    file : string
+        The file to write to
+    reportInterval : int
+        The interval (in time steps) at which to write frames
+    append : bool
+        Whether or not append to existing file
+    '''
 
     def __init__(self, file, reportInterval, append=False):
-        """Create a DrudeTemperatureReporter.
-
-        Parameters
-        ----------
-        file : string
-            The file to write to
-        reportInterval : int
-            The interval (in time steps) at which to write frames
-        """
         self._reportInterval = reportInterval
         if append:
             self._out = open(file, 'a')

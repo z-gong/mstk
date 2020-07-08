@@ -78,7 +78,7 @@ class Zfp():
                 continue
             for element in node:
                 try:
-                    term = FFTerm.from_zfp(element.tag, element.attrib)
+                    term = FFTermFactory.create_from_zfp(element.tag, element.attrib)
                 except:
                     raise Exception('Invalid tag or attributes: %s, %s' %
                                     (element.tag, str(element.attrib)))

@@ -4,22 +4,53 @@ from simtk.unit import nanometer, picosecond, norm, is_quantity
 
 
 class GroFile(GromacsGroFile):
+    '''
+    GroFile is a parser and writer for Gromacs .gro file.
+
+    GroFile extends GromacsGroFile from OpenMM python API by adding writing ability.
+
+    Parameters
+    ----------
+    file : string
+        the name of the file to load
+    '''
+
     @staticmethod
     def writeFile(topology, positions, vectors, file, time=None, subset=None, velocities=None):
+        '''
+        Write positions (and optionally velocities) of atoms into a GRO file
+
+        It is possible to write a subset of atoms into the GRO file by providing `subset` argument.
+
+        Parameters
+        ----------
+        topology : simtk.openmm.app.Topology
+        positions : array_like of shape (n_atom, 3)
+            The length of positions should equal to the number of atoms in the topology, even when subset is provided.
+        vectors :  array_like of shape (3, 3)
+            The full box vectors.
+        file : str or FileIO
+        time : float
+        subset : list of int, optional
+            If not provided, then all atoms will be written.
+        velocities array_like of shape (n_atom, 3), optional
+            The length of velocities should equal to the number of atoms in the topology, even when subset is provided.
+            If not provided, then velocities information will not be written.
+        '''
         if type(file) is str:
             _file = open(file, 'w')
         else:
             _file = file
 
-        GroFile.writeHeader(time, _file)
-        GroFile.writeModel(topology, positions, _file, subset, velocities)
-        GroFile.writeFooter(vectors, _file)
+        GroFile._writeHeader(time, _file)
+        GroFile._writeModel(topology, positions, _file, subset, velocities)
+        GroFile._writeFooter(vectors, _file)
 
         if type(file) is str:
             _file.close()
 
     @staticmethod
-    def writeHeader(time=None, file=sys.stdout):
+    def _writeHeader(time=None, file=sys.stdout):
         """Write out the header for a PDB file.
 
         Parameters
@@ -37,7 +68,7 @@ class GroFile(GromacsGroFile):
         print("written by openmm t = %.3f ps" % time, file=file)
 
     @staticmethod
-    def writeModel(topology, positions, file=sys.stdout, subset=None, velocities=None):
+    def _writeModel(topology, positions, file=sys.stdout, subset=None, velocities=None):
         """Write out a model to a PDB file.
 
         Parameters
@@ -85,7 +116,7 @@ class GroFile(GromacsGroFile):
             print(line, file=file)
 
     @staticmethod
-    def writeFooter(periodicBoxVectors, file=sys.stdout):
+    def _writeFooter(periodicBoxVectors, file=sys.stdout):
         """Write out the footer for a PDB file.
 
         Parameters

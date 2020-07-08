@@ -8,7 +8,7 @@ from .. import logger
 
 class LammpsData():
     '''
-    Parse topology from Lammps data file.
+    Generate topology from Lammps data file.
 
     Atom masses, types, charges, connectivity, unit cell and atom positions are parsed.
     The velocities and force field parameters are ignored.

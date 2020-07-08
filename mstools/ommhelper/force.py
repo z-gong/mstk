@@ -5,10 +5,15 @@ from .unit import *
 
 def slab_correction(system):
     '''
-    This applies Yeh's long range coulomb correction for slab geometry in z direction
-    to eliminate the undesired interactions between periodic slabs
-    It's useful for 2-D systems simulated under 3-D periodic condition
+    Apply Yeh's long range coulomb correction for slab geometry in z direction
+    to eliminate the undesired interactions between periodic slabs.
+
+    It's useful for 2-D systems simulated under 3-D periodic condition.
     For this correction to work correctly:
+
+    * A vacuum space two times larger than slab thickness is required.
+    * All particles should never diffuse across the z boundaries.
+    * The box size should not change during the simulation.
 
     Parameters
     ----------
@@ -18,12 +23,6 @@ def slab_correction(system):
     Returns
     -------
     force : mm.CustomCVForce
-
-    Notes
-    -----
-    * A vacuum space two times larger than slab thickness is required.
-    * All particles should never diffuse across the z boundaries.
-    * The box size should not change during the simulation.
     '''
     muz = mm.CustomExternalForce('q*z')
     muz.addPerParticleParameter('q')
@@ -51,8 +50,9 @@ def slab_correction(system):
 
 def spring_self(system, positions, particles, strength):
     '''
-    Restrain the particles at its original positions
-    Note that the original positions will NOT change with box size if there is barostat
+    Restrain the selected particles at their original positions.
+
+    Note that the original positions will NOT change with box size if there is a barostat.
 
     Parameters
     ----------
@@ -69,7 +69,6 @@ def spring_self(system, positions, particles, strength):
     Returns
     -------
     force : mm.CustomExternalForce
-
     '''
     if system.getNumParticles() != len(positions):
         raise Exception('Length of positions does not equal to number of particles in system')
@@ -94,12 +93,13 @@ def spring_self(system, positions, particles, strength):
 
 def wall_power(system, particles, direction, bound, k, cutoff, power=2):
     '''
-    Set a wall for particles so that they cannot cross it
-    Note that periodic box condition is not considered,
-    so you need to make sure particles will not move to other cells during the simulation
+    Set a harmonic wall for selected particles so that they cannot cross it.
 
-    The energy equal to k when particle is located at the lower or higher bound
-    and equal to zero when particle is located between [lower bound + cutoff, higher bound - cutoff]
+    Note that periodic box condition is not considered,
+    so you need to make sure particles will not move to other cells during the simulation.
+
+    The energy equal to k when particle is located at the lower or higher bound,
+    and equal to zero when particle is located between [lower bound + cutoff, higher bound - cutoff].
 
     Parameters
     ----------
@@ -143,13 +143,14 @@ def wall_power(system, particles, direction, bound, k, cutoff, power=2):
 
 def wall_lj126(system, particles, direction, bound, epsilon, sigma):
     '''
-    Set a wall for particles so that they cannot cross it
-    Note that periodic box condition is not considered,
-    so you need to make sure particles will not move to other cells during the simulation
+    Set a LJ-12-6 wall for selected particles so that they cannot cross it.
 
-    The energy is infinite when particle is located at the lower or higher bound
-    and equal to epsilon when particle is located at lower bound + sigma or higher bound - sigma
-    and equal to zero when particle is located between [lower bound + sigma * 2^(1/6), higher bound - sigma * 2^(1/6)]
+    Note that periodic box condition is not considered,
+    so you need to make sure particles will not move to other cells during the simulation.
+
+    The energy is infinite when particle is located at the lower or higher bound,
+    and equal to epsilon when particle is located at lower bound + sigma or higher bound - sigma,
+    and equal to zero when particle is located between [lower bound + sigma * 2^(1/6), higher bound - sigma * 2^(1/6)].
 
     Parameters
     ----------
@@ -192,8 +193,9 @@ def wall_lj126(system, particles, direction, bound, epsilon, sigma):
 
 def electric_field(system, particles, strength):
     '''
-    Apply external electric field to particles
-    The unit of electric field strength is V/nm
+    Apply external electric field to selected particles in a system.
+
+    The unit of electric field strength is V/nm.
 
     Parameters
     ----------
@@ -227,7 +229,7 @@ def electric_field(system, particles, strength):
 
 def CLPolCoulTT(system, donors, b=45.0):
     '''
-    Apply Tang-Toennies damping between H-bond hydrogen atoms and Drude dipoles
+    Apply Tang-Toennies damping between selected H-bond hydrogen atoms and Drude dipoles.
 
     Parameters
     ----------
@@ -283,11 +285,12 @@ def CLPolCoulTT(system, donors, b=45.0):
 def restrain_particle_number(system, particles, direction, bound,
                              sigma, target, k, weights=None):
     '''
-    Restrain the number of particles in a region
-    The region is defined by direction (x, y or z) and bound (lower and upper)
-    Each particle is consider as a Gaussian distribution with standard deviation equal to sigma
+    Restrain the number of selected particles in a region.
+
+    The region is defined by direction (x, y or z) and bound (lower and upper).
+    Each particle is consider as a Gaussian distribution with standard deviation equal to sigma.
     The number of particles is restrained to the target value
-    using a harmonic function with force constant k
+    using a harmonic function with force constant k.
 
     Parameters
     ----------

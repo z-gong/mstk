@@ -26,9 +26,9 @@ Forces
     :toctree: _generated
 
     slab_correction
-    spring_self
-    electric_field
     restrain_particle_number
+    electric_field
+    spring_self
 
 Reporters
 ---------

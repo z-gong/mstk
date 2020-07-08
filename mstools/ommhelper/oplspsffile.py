@@ -113,7 +113,17 @@ def _strip_optunit(thing, unit):
 _resre = re.compile(r'(-?\d+)([a-zA-Z]*)')
 
 class OplsPsfFile(object):
-    """A chemical structure instantiated from CHARMM files.
+    """A chemical structure instantiated from CHARMM files for running simulations with OPLS force field.
+
+    This parser is modified from CharmmPsfFile shiped with OpenMM python API.
+    It will treat the parameters as in OPLS functional form when calling :func:`createSystem`.
+    That is, the mixing rule for LJ interactions will be geometric average,
+    instead of the Lorentz-Bethot rule used by CHARMM.
+    The improper terms will be added as cosine form instead of harmonic form used by CHARMM.
+    Note that the definition of improper is different in CHARMM and OPLS.
+    For improper i-j-k-l, i is the central atom in CHARMM, while k is the central atom in OPLS.
+    Therefore, the PSF should be prepared in OPLS improper sequence
+    so that this parser can handle the impropers in OPLS form correctly.
 
     This structure has numerous attributes that are lists of the elements of
     this structure, including atoms, bonds, torsions, etc. The attributes are
@@ -796,8 +806,8 @@ class OplsPsfFile(object):
                      flexibleConstraints=True,
                      verbose=False,
                      gbsaModel=None):
-        """Construct an OpenMM System representing the topology described by the
-        prmtop file. You MUST have loaded a parameter set into this PSF before
+        """Construct an OPLS compatible OpenMM System representing the topology described by the
+        PSF file. You MUST have loaded a parameter set into this PSF before
         calling createSystem. If not, AttributeError will be raised. ValueError
         is raised for illegal input.
 

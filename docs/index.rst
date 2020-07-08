@@ -14,8 +14,8 @@ mstools is a toolkit for preparing, running and analyzing molecular simulations
    installation
    examples
 
-API Reference
--------------
+Modules
+-------
 
 .. toctree::
    :maxdepth: 2

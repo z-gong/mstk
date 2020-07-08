@@ -3,19 +3,22 @@ from ..unit import *
 
 
 class ViscosityReporter(object):
-    """ViscosityReporter report the viscosity with cosine periodic perturbation method
-    """
+    '''
+    ViscosityReporter report the viscosity using cosine periodic perturbation method.
+    A integrator supporting this method is required.
+    e.g. the VVIntegrator from https://github.com/z-gong/openmm-velocityVerlet.
+
+    Parameters
+    ----------
+    file : string
+        The file to write to
+    reportInterval : int
+        The interval (in time steps) at which to write frames
+    append : bool
+        Whether or not append to the existing file.
+    '''
 
     def __init__(self, file, reportInterval, append=False):
-        """Create a PDBReporter.
-
-        Parameters
-        ----------
-        file : string
-            The file to write to
-        reportInterval : int
-            The interval (in time steps) at which to write frames
-        """
         self._reportInterval = reportInterval
         if append:
             self._out = open(file, 'a')

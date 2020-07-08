@@ -2,50 +2,27 @@ import os
 import simtk.openmm as mm
 
 
-class CheckpointReporter(object):
-    """CheckpointReporter saves periodic checkpoints of a simulation.
+class CheckpointReporter():
+    '''
+    CheckpointReporter saves periodic checkpoints of a simulation.
     The checkpoints will overwrite old files -- only the latest three will be kept.
-    XML files can be saved together, in case the checkpoint files broken.
+    State XML files can be saved together, in case the checkpoint files are broken.
 
-    To use it, create a CheckpointReporter, then add it to the Simulation's
-    list of reporters. To load a checkpoint file and continue a simulation,
-    use the following recipe:
-
-    >>> with open('checkput.chk', 'rb') as f:
-    >>>     simulation.context.loadCheckpoint(f.read())
-
-    Notes:
-    A checkpoint contains not only publicly visible data such as the particle
-    positions and velocities, but also internal data such as the states of
-    random number generators.  Ideally, loading a checkpoint should restore the
-    Context to an identical state to when it was written, such that continuing
-    the simulation will produce an identical trajectory.  This is not strictly
-    guaranteed to be true, however, and should not be relied on.  For most
-    purposes, however, the internal state should be close enough to be
-    reasonably considered equivalent.
-
-    A checkpoint contains data that is highly specific to the Context from
-    which it was created. It depends on the details of the System, the
-    Platform being used, and the hardware and software of the computer it was
-    created on.  If you try to load it on a computer with different hardware,
-    or for a System that is different in any way, loading is likely to fail.
-    Checkpoints created with different versions of OpenMM are also often
-    incompatible.  If a checkpoint cannot be loaded, that is signaled by
-    throwing an exception.
-
-    """
+    Parameters
+    ----------
+    file : string
+        The file to write to.
+        Any current contents will be overwritten.
+        The latest three checkpoint will be kept with the step appended to the file name.
+    reportInterval : int
+        The interval (in time steps) at which to write checkpoints.
+    xml : string, optional
+        If provided, the state will be serialized into XML format and saved together with checkpoint.
+        Any current contents will be overwritten.
+        The latest three XML files will be kept with the step appended to the file name.
+    '''
 
     def __init__(self, file, reportInterval, xml=None):
-        """Create a CheckpointReporter.
-
-        Parameters
-        ----------
-        file : string
-            The file to write to. Any current contents will be overwritten.
-        reportInterval : int
-            The interval (in time steps) at which to write checkpoints.
-        """
-
         self._reportInterval = reportInterval
         self._file = file
         self._xml = xml
