@@ -7,18 +7,45 @@ from ...wrapper.ppf import delta_ppf
 
 
 class NvtVacuum(GmxSimulation):
+    '''
+    Nvt vacuum simulation with GROMACS enables the calculation of intramolecular enthalpy of single molecule.
+
+    Parameters
+    ----------
+    packmol : Packmol
+    dff : DFF
+    gmx : GMX
+    jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    packmol : Packmol
+    dff : Packmol
+    gmx : GMX
+    jobmanager : subclass of JobManager
+    n_atom_default : int
+    n_mol_default : int
+    n_mol_list : list of int
+    logs : list of str
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt-vacuum'
         self.logs = ['vacuum.log']
         self.n_atoms_default = 1
 
+    def set_system(self, smiles_list, **kwargs):
+        super().set_system(smiles_list, **kwargs)
+
     def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
-        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2, silent=True)
+        self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=self.length - 2,
+                               silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb',
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd,
+                                         mol_corr='init.pdb',
                                          length=self.length)
         if export:
             self.export(ppf=ppf)
@@ -52,15 +79,18 @@ class NvtVacuum(GmxSimulation):
         commands.append(cmd)
 
         # NVT eq
-        self.gmx.prepare_mdp_from_template('t_nvt_vacuum.mdp', mdp_out='grompp-eq.mdp', T=T, nsteps=nst_eq, nstxtcout=0)
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='em.gro', top=top, tpr_out='eq.tpr', get_cmd=True)
+        self.gmx.prepare_mdp_from_template('t_nvt_vacuum.mdp', mdp_out='grompp-eq.mdp', T=T,
+                                           nsteps=nst_eq, nstxtcout=0)
+        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro='em.gro', top=top, tpr_out='eq.tpr',
+                              get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
         # NVT production
         self.gmx.prepare_mdp_from_template('t_nvt_vacuum.mdp', mdp_out='grompp-vacuum.mdp', T=T,
-                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
+                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr,
+                                           nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
         cmd = self.gmx.grompp(mdp='grompp-vacuum.mdp', gro='eq.gro', top=top, tpr_out='vacuum.tpr',
                               cpt='eq.cpt', get_cmd=True)
@@ -70,6 +100,9 @@ class NvtVacuum(GmxSimulation):
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
+
+    def run(self):
+        super().run()
 
     def analyze(self, dirs=None):
         if dirs is None:
@@ -90,5 +123,5 @@ class NvtVacuum(GmxSimulation):
 
         return converged, {
             'temperature': np.mean(temp_series[when:]),
-            'potential': np.mean(pe_series[when:]),
+            'potential'  : np.mean(pe_series[when:]),
         }

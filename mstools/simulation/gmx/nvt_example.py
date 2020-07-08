@@ -4,6 +4,10 @@ from ...wrapper.ppf import delta_ppf
 
 
 class NvtExample(GmxSimulation):
+    '''
+    This is a fake protocol enabling fast export of input files for GROMACS from AIMS_Web.
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt-example'
@@ -11,12 +15,16 @@ class NvtExample(GmxSimulation):
         self.n_atom_default = 1
         self.n_mol_default = 1
 
+    def set_system(self, smiles_list, **kwargs):
+        super().set_system(smiles_list, **kwargs)
+
     def build(self, export=True, ppf=None):
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
         self.packmol.build_box(self.pdb_list, self.n_mol_list, 'init.pdb', length=28, silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', length=30)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd,
+                                         mol_corr='init.pdb', length=30)
         if export:
             self.export(ppf=ppf)
 
@@ -42,9 +50,11 @@ class NvtExample(GmxSimulation):
 
         # NVT production with Langevin thermostat
         self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-nvt.mdp', T=T,
-                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
+                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr,
+                                           nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
-        cmd = self.gmx.grompp(mdp='grompp-nvt.mdp', gro='conf.gro', top=top, tpr_out='nvt.tpr', get_cmd=True)
+        cmd = self.gmx.grompp(mdp='grompp-nvt.mdp', gro='conf.gro', top=top, tpr_out='nvt.tpr',
+                              get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='nvt', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
@@ -52,5 +62,5 @@ class NvtExample(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def analyze(self, dirs=None):
-        pass
+    def run(self):
+        raise Exception('Example protocol is not supposed to be submitted')

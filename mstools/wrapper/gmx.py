@@ -26,10 +26,14 @@ class GMX:
     Parameters
     ----------
     gmx_bin : str
-        Path of the serial verion gmx binary executable.
+        Path of the serial version gmx binary executable.
     gmx_mdrun : str, optional
         Path of the parallel/gpu version mdrun binary executable.
         If not provided, `gmx_bin` will be used also for mdrun.
+    version : str, optional
+        The version of GROMACS, e.g. 2016.6, 2019.6.
+        If not specified, then gmx_bin will be called to check the version.
+        In this case, make sure gmx_bin is available on this machine.
 
     Attributes
     ----------
@@ -39,10 +43,15 @@ class GMX:
 
     _TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gmx/')
 
-    def __init__(self, gmx_bin, gmx_mdrun=None):
+    def __init__(self, gmx_bin, gmx_mdrun=None, version=None):
         self.GMX_BIN = gmx_bin
         self.GMX_MDRUN = gmx_mdrun or gmx_bin + ' mdrun'
-        self._check_version()
+        if version is None:
+            self._check_version()
+        else:
+            self.version = version
+            self.majorversion = self.version.split('.')[0]
+
         # TODO temporary hack for dielectric constant in mdp
         self._DIELECTRIC = 1.0
         # TODO temporary hack for LJ96 function

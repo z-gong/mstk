@@ -1,11 +1,11 @@
-from .typer import *
+from .typer import Typer
 from ..errors import *
 
 try:
     import openbabel as ob
     import pybel
 except:
-    OPENBABEL_IMPORTED = True
+    OPENBABEL_IMPORTED = False
 else:
     OPENBABEL_IMPORTED = True
 
@@ -94,8 +94,11 @@ class ZftTyper(Typer):
     * In type definition file, empty lines are ignored, and comments should start with ##.
 
     '''
+
     def __init__(self, file):
-        super().__init__()
+        if not OPENBABEL_IMPORTED:
+            raise Exception('Cannot import openbabel')
+
         self.defines: {str: TypeDefine} = {}
         self.define_root = TypeDefine('UNDEFINED', None, 0)
         self._file = file
@@ -105,9 +108,6 @@ class ZftTyper(Typer):
         return '<ZftTyper: %s>' % self._file
 
     def _parse(self, file):
-        if not OPENBABEL_IMPORTED:
-            raise Exception('Cannot import openbabel')
-
         with open(file)  as f:
             lines = f.read().splitlines()
 
@@ -173,14 +173,13 @@ class ZftTyper(Typer):
         ----------
         molecule : Molecule
         '''
-        obmol = molecule._obmol
-        if obmol is None:
+        if molecule.obmol is None:
             raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
 
         possible_defines = {i: [] for i in range(molecule.n_atom)}
         for define in self.defines.values():
             obsmarts = define.obsmarts
-            obsmarts.Match(obmol)
+            obsmarts.Match(molecule.obmol)
             results = list(obsmarts.GetMapList())
             for indexes in results:
                 idx = indexes[0] - 1

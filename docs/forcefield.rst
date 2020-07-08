@@ -12,6 +12,7 @@ Typing engine
 
     Typer
     ZftTyper
+    DffTyper
 
 Force field definition
 ----------------------

@@ -6,18 +6,11 @@ This module provides predefined simulation protocols for performing different ty
 e.g. NPT simulation or periodic perturbation simulation with GROMACS, normal mode analysis with Gaussian, etc...
 They are designed for high-throughput prediction of liquid properties.
 
-Currently, these simulation protocols are hardcoded with DFF typing engine and TEAM force field.
-It will be subject to refactor in the future to support different typing engines and force fields.
-
-.. currentmodule:: mstools.simulation
-
-.. autosummary::
-    :toctree: _generated/
-
-    Simulation
-
 GROMACS protocols
 -----------------
+
+Currently, these MD simulation protocols are hardcoded with DFF typing engine and TEAM force field.
+It will be subject to refactor in the future to support different typing engines and force fields.
 
 .. currentmodule:: mstools.simulation.gmx
 
@@ -26,9 +19,10 @@ GROMACS protocols
 
     GmxSimulation
     Npt
+    NvtSlab
     NptPPM
     Nvt
-    NvtSlab
+    NvtVacuum
     NvtGas
 
 Gaussian protocols

@@ -1,26 +1,74 @@
+import tempfile
 from .typer import Typer
+from ..errors import *
+from ...topology import *
+from ...wrapper import DFF
+
+try:
+    import openbabel as ob
+    import pybel
+except:
+    OPENBABEL_IMPORTED = False
+else:
+    OPENBABEL_IMPORTED = True
 
 
-class DffDefaultTyper(Typer):
-    def __init__(self):
-        super().__init__()
+class DffTyper(Typer):
+    '''
+    DffTyper calls pre-installed DFF to assign the atom types based on the chemical environment.
 
+    A type definition file is required by DFF for calculating the atom type.
+    The native definition files shipped with DFF can be used by providing the full path of one of those files.
 
-class DffDefTyper(Typer):
-    def __init__(self, file):
-        super().__init__()
-        self._file = file
-        self._parse(file)
+    * TODO implement parser for MSD file so that DffTyper will work.
 
-    def _parse(self, file):
-        pass
+    Parameters
+    ----------
+    dff : DFF
+    file : str
+        Path of the DFF type definition file
+    '''
 
+    def __init__(self, dff, file):
+        if not OPENBABEL_IMPORTED:
+            raise Exception('Cannot import openbabel')
 
-class DffExtTyper(Typer):
-    def __init__(self, file):
-        super().__init__()
-        self._file = file
-        self._parse(file)
+        self.dff = dff
+        self.file = file
 
-    def _parse(self, file):
-        pass
+    def type_molecule(self, molecule):
+        '''
+        Assign atom types in the molecule with rules in type definition file.
+
+        The :attr:`~mstools.topology.Atom.type` attribute of all atoms in the molecule will be updated.
+
+        DffTyper use DFF to analyzing the molecular structure, which requires correct bond orders information.
+        It expects :attr:`~mstools.topology.Molecule.obmol` attribute to be available in the molecule.
+        Usually it means the molecule should be initialized from SMILES or pybel Molecule
+        with :func:`~mstools.topology.Molecule.from_smiles` or :func:`~mstools.topology.Molecule.from_pybel`
+
+        If :attr:`~mstools.topology.Molecule.obmol` attribute is None, an Exception will be raised.
+
+        Parameters
+        ----------
+        molecule : Molecule
+        '''
+        if molecule.obmol is None:
+            raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
+
+        mol2 = tempfile.NamedTemporaryFile(suffix='.mol2').name
+        msd = tempfile.NamedTemporaryFile(suffix='.msd').name
+        convert = tempfile.NamedTemporaryFile(suffix='convert').name
+        setfc = tempfile.NamedTemporaryFile(suffix='setfc').name
+        typing = tempfile.NamedTemporaryFile(suffix='typing').name
+
+        m = pybel.Molecule(molecule.obmol)
+        m.write('mol2', mol2)
+
+        self.dff.convert_model_to_msd(mol2, msd, convert)
+        self.dff.set_formal_charge([msd], setfc)
+        self.dff.typing([msd], self.file, typing)
+
+        top = Topology.open(msd)
+        for i, atom in enumerate(molecule.atoms):
+            atom.type = top.atoms[i].type

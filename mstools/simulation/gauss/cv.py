@@ -7,7 +7,7 @@ from ...utils import create_mol_from_smiles, generate_conformers
 
 class Cv(GaussSimulation):
     '''
-    Intramolecular heat capacity calculation with Gaussian.
+    Cv protocol enables calculation of intramolecular heat capacity through frequency analysis.
 
     Essentially, geometry optimization will be performed followed by frequency calculation.
     The frequency is then used to determine the intramolecular heat capacity of the molecule.
@@ -23,6 +23,12 @@ class Cv(GaussSimulation):
     gauss_scrdir : str
         The scratch directory to be used by Gaussian calculation
     jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    gauss : Gauss
+    jobmanager : subclass of JobManager
+    logs : list of str
     '''
 
     def __init__(self, **kwargs):
@@ -30,12 +36,12 @@ class Cv(GaussSimulation):
         self.procedure = 'cv'
         self.logs = ['conf-0.log']
 
-    def build(self, export=True, ppf=None, minimize=False):
-        '''
-        No need to build anything for Gaussian CV calculation.
-        '''
+    def set_system(self, smiles_list, n_mol_list=None, **kwargs):
+        if n_mol_list is None:
+            n_mol_list = [1] * len(smiles_list)
+        super().set_system(smiles_list, n_mol_list)
 
-    def prepare(self, gjf_name=None, n_conformer=0, T_list=None, jobname=None):
+    def prepare(self, T_list, gjf_name=None, n_conformer=0, jobname=None):
         '''
         Prepare the input files for running Gaussian CV calculation.
 
@@ -48,9 +54,9 @@ class Cv(GaussSimulation):
 
         Parameters
         ----------
+        T_list : list of float
         gjf_name : str
         n_conformer : int
-        T_list : list of float
         jobname : str
 
         Returns
@@ -82,6 +88,9 @@ class Cv(GaussSimulation):
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
+
+    def run(self):
+        super().run()
 
     def analyze(self, dirs=None, logs=None):
         '''
@@ -175,9 +184,3 @@ class Cv(GaussSimulation):
             'Cv'          : Cv_ave,
             'Cv-corrected': Cv_corr_ave,
         }
-
-    def clean(self):
-        '''
-        No need to clean anything for Gaussian CV calculation.
-        '''
-        pass

@@ -29,7 +29,8 @@ class Gauss:
         self.GAUSS_ROOT = os.path.dirname(gauss_bin)
         self.SCRDIR = scrdir
 
-    def generate_gjf_cv(self, name, py_mol, method='B3LYP', basis='6-31G*', scale=0.9613, T_list=[298]):
+    def generate_gjf_cv(self, name, py_mol, method='B3LYP', basis='6-31G*', scale=0.9613,
+                        T_list=None):
         '''
         Genrate GJF input file for calculating heat capacity with Gaussian
 
@@ -50,8 +51,10 @@ class Gauss:
         method : str
         basis : str
         scale : float
-        T_list : list of float
+        T_list : list of float, optional
         '''
+        if T_list is None:
+            T_list = [298]
         gjf = name + '.gjf'
         with open(gjf, 'w') as f:
             f.write('%%chk=%(name)s.chk\n'
@@ -60,12 +63,12 @@ class Gauss:
                     'Title\n'
                     '\n'
                     '%(charge)i %(multiplicity)i\n'
-                    % ({'name': name,
-                        'method': method,
-                        'basis': basis,
-                        'scale': scale,
-                        'T': T_list[0],
-                        'charge': py_mol.charge,
+                    % ({'name'        : name,
+                        'method'      : method,
+                        'basis'       : basis,
+                        'scale'       : scale,
+                        'T'           : T_list[0],
+                        'charge'      : py_mol.charge,
                         'multiplicity': py_mol.spin
                         })
                     )
@@ -78,13 +81,13 @@ class Gauss:
                         '%%chk=%(name)s.chk\n'
                         '# freq=(readfc,hindrot) geom=allcheck scale=%(scale).4f temperature=%(T).2f\n'
                         '\n'
-                        % ({'name': name,
+                        % ({'name' : name,
                             'scale': scale,
-                            'T': T
+                            'T'    : T
                             })
                         )
 
-    def run_gjf(self, gjf, nprocs=1, memMB = 1000, get_cmd=False, sh_out=None):
+    def run_gjf(self, gjf, nprocs=1, memMB=1000, get_cmd=False, sh_out=None):
         '''
         Process the GJF file so that it is ready for multi-core Gaussian calculation, and then return the commands for calculation.
 

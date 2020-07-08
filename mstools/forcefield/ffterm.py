@@ -150,9 +150,9 @@ class FFTerm():
 
     def evaluate_energy(self, val):
         '''
-        Evaluate the energy for a force field term, e.g. HarmonicBondTerm, PeriodicDihedralTerm.
+        Evaluate the energy for a force field term like HarmonicBondTerm, PeriodicDihedralTerm, etc...
 
-        It is mainly for the purpose of debug. It is not (and can not be) implemented for all terms.
+        It is mainly for debugging. It is not (and can not be) implemented for all terms.
 
         Parameters
         ----------
