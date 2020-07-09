@@ -43,7 +43,7 @@ class ZftTyper(Typer):
     >>> TypeDefinition
 
     >>> H_1 [H]              0
-    >>> C_4 [#6X4]           0
+    >>> C_4 [CX4]            0
     >>> HC  [H][CX4]         0
     >>> CT  [CX4;H3]         0
     >>> CS  [CX4;H2]         0

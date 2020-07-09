@@ -112,14 +112,15 @@ dca         dme          3.385  # guess from dca-dca dme-dme
 
 ATOMS
 # cation
+# use c2c1im to represent all atom types attached to imidazolium ring
 c2c1im   NA CR CW C1 HCR HCW CE C2 H1 C1T
 # anion
 dca      N3A CZA NZA
-fsi      FSI SBT NBT OBT F1 CBT
-#use mso (c1so3) to represent c1so4
-mso      HS4 CS4 OC4 SO  OS4
+# use fsi to represent both fsi and tfsi
+fsi      FSI SBT OBT NBT CBT F1
 # netural
 C4H10    CT  CS  HC
-tol      CAP CAM CAO CAT HAT CTT HT C_4H2_CA
-#use dme (COCCOC) to represent hydroxyl group
-dme      o_2 C2O OH
+tol      CAP CAM CAO CAT HAT
+# use dme (COCCOC) to represent hydroxy group
+dme      C2O OH
+

@@ -914,9 +914,10 @@ class Molecule():
             atype = ff.atom_types.get(atom.type)
             if atype is None:
                 _atype_not_found.add(atom.type)
-            if atype.mass == -1:
+                continue
+            elif atype.mass == -1:
                 _atype_no_mass.add(atom.type)
-            if atype.mass == 0:
+            elif atype.mass == 0:
                 _zero_mass.add(atom.type)
             atom.mass = atype.mass
 

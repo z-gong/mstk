@@ -1,6 +1,13 @@
+## This is an incomplete type definition file for CL&P force field.
+## This file can be parsed by ZftTyper to assign atom types for common ionic liquids.
+## Currently following ionic liquids are implemented:
+## 1,3-dialkylimidazolium, 1-benzyl-3-alkylimidazolium, 1-(2-hydroxyethyl)-3-alkylimidazolium, DCA, BF4, FSI, TFSI
+
 TypeDefinition
 ## basic
-H_1 [H] 0
+H_1 [#1] 0
+B_3 [#5X3] 0
+B_4 [#5X4] 0
 C_2 [#6X2] 0
 C_3 [#6X3] 0
 C_4 [#6X4] 0
@@ -17,7 +24,7 @@ HC [H][CX4] 0
 CT [CX4;H3] 0
 CS [CX4;H2] 0
 
-## imidazolium
+## alkyl-imidazolium
 NA n1cncc1 1
 CR c1nccn1 1
 CW c1cncn1 1
@@ -32,21 +39,27 @@ CE [CX4;H3][CX4]n1cncc1 1
 CA c1ccccc1 0
 HA [H]c1ccccc1 0
 
-## ethylbenzene-imidazolium
+## benzyl-imidazolium
 CAT c1(C)ccccc1 0
 CAO [cH]1c(C)cccc1 0
 CAM [cH]1cc(C)ccc1 0
 CAP [cH]1ccc(C)cc1 0
 HAT [H][$(c1c(C)cccc1),$(c1cc(C)ccc1),$(c1ccc(C)cc1)] 0
-C_4H2_CA Cc1ccccc1 0
-HT [H][CX4]c1ccccc1 0
-C_4H2_NA [CH2](n1cncc1)Cc1ccccc1 1
-C_4H2_CW [CH2]c1cncn1 1
+C1T [CX4;H2](n1cncc1)c1ccccc1 1
+
+## (2-hydroxyethyl)-imidazolium
+C2O [CX4;H2](O)[CX4]n1cncc1 1
+OH  [OX2;H1] 0
+HO  [H]O     0
 
 ## dicyanoimide
 N3A [N-]C#N -1
 CZA C([N-])#N -1
 NZA N#C[N-] -1
+
+## BF4
+B  [B-] -1
+FB F[B-](F)(F)(F) -1
 
 ## FSI TFSI
 NBT [N-](S(=O)(=O))S(=O)(=O) -1
@@ -56,19 +69,17 @@ FSI FS(=O)(=O)[N-] -1
 CBT C(F)(F)(F)S(=O)(=O)[N-] -1
 F1 F[CX4] 0
 
-## ether
-o_2 [OX2]C(C) 0
-C2O [CX4;H2](O)[CX4]n1cncc1 1
-
 HierarchicalTree
 H_1
     HCR
     HCW
     HC
         H1
-        HT
     HA
         HAT
+    HO
+B_4
+    B
 C_2
     CZA
 C_3
@@ -81,12 +92,10 @@ C_3
         CAP
 C_4
     C1
-        C_4H2_NA
+        C1T
     CT
         CE
     CS
-        C_4H2_CW
-        C_4H2_CA
         C2
             C2O
     CBT
@@ -100,9 +109,10 @@ N_3
 O_1
     OBT
 O_2
-    o_2
+    OH
 F_1
     FSI
     F1
+    FB
 S_4
     SBT
