@@ -1,3 +1,7 @@
+'''
+Pre-defined physical constants.
+'''
+
 PI = 3.1415926535
 PI_SQRT = PI ** 0.5
 VACUUM_PERMITTIVITY = 8.854_187_812_8E-12  # farad/meter

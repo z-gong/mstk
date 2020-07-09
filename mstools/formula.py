@@ -1,26 +1,53 @@
-class Formula:
-    def __init__(self, formula=None):
+class Formula():
+    '''
+    Parse elements and numbers from a non-standardized chemical formula.
+
+    e.g. H4C3(COH2)2 will be parsed as five carbon, eight hydrogen and two oxygen.
+
+    Parameters
+    ----------
+    mol_str : str
+    
+    Attributes
+    ----------
+    atomlist : list of tuple
+        Each element of this list is a tuple represents the symbol and number of each chemical element.
+    atomdict : dict, [str, int]
+        Dict of the symbol and number of each chemical element.
+    '''
+    def __init__(self, mol_str=None):
         self.atomlist = []  # list of (atom, number)
         self.atomdict = {}
-        if formula is not None:
-            self.load(formula)
+        if mol_str is not None:
+            self._load(mol_str)
 
-    def load(self, formula):
-        token_list = self.get_token(formula)
-        self.calculate(token_list)
-        self.count()
-        self.atomlist = self.sort()
+    def _load(self, mol_str):
+        token_list = self._get_token(mol_str)
+        self._calculate(token_list)
+        self._count()
+        self.atomlist = self._sort_hill()
 
     @staticmethod
     def read(mol_str):
+        '''
+        An alias of the constructor for compatibility concern.
+
+        Parameters
+        ----------
+        mol_str : str
+
+        Returns
+        -------
+        formula : Formula
+        '''
         mol = Formula()
-        token_list = mol.get_token(mol_str)
-        mol.calculate(token_list)
-        mol.count()
-        mol.atomlist = mol.sort()
+        token_list = mol._get_token(mol_str)
+        mol._calculate(token_list)
+        mol._count()
+        mol.atomlist = mol._sort_hill()
         return mol
 
-    def get_token(self, mol_str):
+    def _get_token(self, mol_str):
         tmp = ''
         tmp_num = ''
         token_list = []
@@ -64,7 +91,7 @@ class Formula:
 
         return token_list
 
-    def calculate(self, token_list):
+    def _calculate(self, token_list):
         for token in token_list:
             if token == '(':
                 self.atomlist.append(('(', 0))
@@ -87,16 +114,23 @@ class Formula:
                 self.atomlist.append((token, 1))
 
     def to_str(self):
-        return ''.join([name + Formula.to_num(num) for name, num in self.atomlist])
+        '''
+        Return the standardized formula in hill order.
 
-    def count(self):
+        Returns
+        -------
+        formula_str : str
+        '''
+        return ''.join([name + Formula._to_num(num) for name, num in self.atomlist])
+
+    def _count(self):
         for name, num in self.atomlist:
             if name not in self.atomdict:
                 self.atomdict[name] = num
             else:
                 self.atomdict[name] += num
 
-    def sort(self):
+    def _sort_hill(self):
         outlist = []
         C_cnt = None
         H_cnt = None
@@ -117,14 +151,21 @@ class Formula:
         return outlist
 
     @staticmethod
-    def to_num(num):
+    def _to_num(num):
         if num == 1:
             return ''
         else:
             return str(num)
 
     @property
-    def n_heavy(self) -> int:
+    def n_heavy(self):
+        '''
+        Number of heavy atoms (non-hydrogen atoms) in this formula.
+
+        Returns
+        -------
+        n_heavy : int
+        '''
         n = 0
         for k, v in self.atomdict.items():
             if k != 'H':
@@ -133,10 +174,24 @@ class Formula:
 
     @property
     def n_heavy_atom(self) -> int:
+        '''
+        Alias of n_heavy for compatibility concern.
+
+        Returns
+        -------
+        n_heavy : int
+        '''
         return self.n_heavy
 
     @property
-    def n_h(self) -> int:
+    def n_h(self):
+        '''
+        Number of hydrogen atoms in this formula.
+
+        Returns
+        -------
+        n_h : int
+        '''
         n = 0
         for k, v in self.atomdict.items():
             if k == 'H':

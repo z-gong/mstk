@@ -3,7 +3,7 @@ import math
 
 from ...wrapper import GMX, Packmol, DFF
 from ...utils import get_last_line, create_mol_from_smiles, estimate_density_from_formula
-from ...util import DocstringMeta
+from ...misc import DocstringMeta
 
 
 class GmxSimulation(metaclass=DocstringMeta):

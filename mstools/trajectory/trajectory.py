@@ -238,7 +238,6 @@ class Trajectory():
         subset : list of int, optional
         kwargs : dict
         '''
-        print(self._mode, self._opened)
         if self._mode not in ('w', 'a') or not self._opened:
             raise Exception('mode not in ("w", "a") or closed trajectory')
 

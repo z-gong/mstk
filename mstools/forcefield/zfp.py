@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from .forcefield import ForceField
 from .ffterm import *
+from ..logger import logger
 
 
 class Zfp():
@@ -19,7 +20,7 @@ class Zfp():
     The settings in other files will be ignored.
 
     A force field term describing one topology element should only appear once.
-    If there are duplicated terms, an Exception will be raised.
+    If there are duplicated terms, the one appears later will be omitted.
     e.g. HarmonicAngleTerm('c_4', 'c_4', 'h_1') and SDKAngleTerm('c_4', 'c_4', 'h_1') are considered as duplicated,
     because both of them are describing the angle type ('c_4', 'c_4', 'h_1').
     LJ126Term('c_4', 'h_1') and MieTerm('c_4', 'h_1') are also duplicated,
@@ -72,6 +73,7 @@ class Zfp():
             'ImproperTerms'       : ff.improper_terms,
             'PolarizableTerms'    : ff.polarizable_terms,
         }
+        _duplicated = []
         for tag, d in tags.items():
             node = root.find(tag)
             if node is None:
@@ -83,8 +85,14 @@ class Zfp():
                     raise Exception('Invalid tag or attributes: %s, %s' %
                                     (element.tag, str(element.attrib)))
                 if term.name in d.keys():
-                    raise Exception('Duplicated term: %s' % str(term))
-                d[term.name] = term
+                    _duplicated.append(term)
+                else:
+                    d[term.name] = term
+        if _duplicated != []:
+            msg = 'Following duplicated terms are omitted:'
+            for term in _duplicated:
+                msg += ' ' + str(term)
+            logger.warning(msg)
 
     @staticmethod
     def save_to(ff, file):

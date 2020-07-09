@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from .pbsjob import PbsJob
-from ..util import DocstringMeta
+from ..misc import DocstringMeta
 
 
 class JobManager(metaclass=DocstringMeta):

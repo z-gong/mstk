@@ -25,7 +25,7 @@ def check_vle_density(series):
     interval = series.index[1] - series.index[0]
 
     result, peaks = Ptre.test_data(series, interval)  # the peaks starts from 0, not original index
-    peaks.sort(key=lambda x: x[0])
+    peaks._sort_hill(key=lambda x: x[0])
 
     if result != Ptre._PATTERN_A:
         return False, None, None

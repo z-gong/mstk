@@ -30,6 +30,7 @@ Modules
    trajectory
    analyzer
    wrapper
+   misc
 
 
 License

@@ -4,7 +4,7 @@ import shutil
 from ...errors import GmxError
 from ...wrapper import Gauss
 from ...utils import get_last_line
-from ...util import DocstringMeta
+from ...misc import DocstringMeta
 
 
 class GaussSimulation(metaclass=DocstringMeta):
