@@ -8,7 +8,7 @@ The positions of images will be determined by treating electrodes as mirrors
 
 import sys
 import argparse
-from mstools.topology import XyzTopology
+from mstools.topology import Topology
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('input', type=str, help='input xyz file')
@@ -19,7 +19,7 @@ parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore th
 parser.add_argument('--drude', action='store_true', help='generate image for drude particles for heavy atoms')
 args = parser.parse_args()
 
-top = XyzTopology(args.input)
+top = Topology.open(args.input)
 positions = top.positions[:]
 
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')

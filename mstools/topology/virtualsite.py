@@ -1,20 +1,22 @@
 from .atom import Atom
 
 
-class VirtualSite():
+class VirtualSiteFactory():
     '''
-    Base class for virtual site definitions
+    Factory class for virtual site.
     '''
-
     _class_map = {}
-
-    def __init__(self):
-        self.parents = []
-        self.parameters = []
 
     @staticmethod
     def register(klass):
-        VirtualSite._class_map[klass.__name__] = klass
+        '''
+        Register a virtual site class so that it can be created.
+
+        Parameters
+        ----------
+        klass : subclass of VirtualSite
+        '''
+        VirtualSiteFactory._class_map[klass.__name__] = klass
 
     @staticmethod
     def create(type, parents, parameters):
@@ -36,12 +38,24 @@ class VirtualSite():
         '''
 
         try:
-            cls = VirtualSite._class_map[type]
+            cls = VirtualSiteFactory._class_map[type]
         except:
-            raise Exception('Unknown virtual site type. Valid types: '
-                            + str(list(VirtualSite._class_map.keys())))
+            raise Exception(
+                'Unknown virtual site type. Valid types: ' + str(list(VirtualSiteFactory._class_map.keys())))
 
         return cls(parents, parameters)
+
+
+class VirtualSite():
+    '''
+    Base class for virtual site definitions.
+
+    This class should not be constructed directly. Use its subclasses instead.
+    '''
+
+    def __init__(self):
+        self.parents = []
+        self.parameters = []
 
     def calc_position(self):
         '''
@@ -51,7 +65,7 @@ class VirtualSite():
         -------
         position : array_like
         '''
-        raise NotImplementedError('This method should be implemented by subclasses')
+        raise NotImplementedError('Method not implemented')
 
 
 class TwoLineSite(VirtualSite):
@@ -63,6 +77,7 @@ class TwoLineSite(VirtualSite):
     parents : list of Atom
     parameters : list of float
     '''
+
     def __init__(self, parents, parameters):
         if len(parents) != 2 or len(parameters) != 1:
             raise Exception('Invalid number of parents or parameters')
@@ -80,7 +95,7 @@ class TwoLineSite(VirtualSite):
         return a1.position * p1 + a2.position * (1 - p1)
 
 
-VirtualSite.register(TwoLineSite)
+VirtualSiteFactory.register(TwoLineSite)
 
 
 class ThreePlaneSite(VirtualSite):
@@ -92,6 +107,7 @@ class ThreePlaneSite(VirtualSite):
     parents : list of Atom
     parameters : list of float
     '''
+
     def __init__(self, parents, parameters):
         if len(parents) != 3 or len(parameters) != 2:
             raise Exception('Invalid number of parents or parameters')
@@ -109,4 +125,4 @@ class ThreePlaneSite(VirtualSite):
         return a1.position * p1 + a2.position * p2 + a3.position * (1 - p1 - p2)
 
 
-VirtualSite.register(ThreePlaneSite)
+VirtualSiteFactory.register(ThreePlaneSite)

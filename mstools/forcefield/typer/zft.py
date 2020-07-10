@@ -42,8 +42,8 @@ class ZftTyper(Typer):
     --------
     >>> TypeDefinition
 
-    >>> H_1 [H]              0
-    >>> C_4 [CX4]            0
+    >>> H_1 [#1]              0
+    >>> C_4 [#6X4]            0
     >>> HC  [H][CX4]         0
     >>> CT  [CX4;H3]         0
     >>> CS  [CX4;H2]         0
@@ -65,8 +65,9 @@ class ZftTyper(Typer):
     Currently, charge information is ignored, but it should be provided in the file.
     A atom can match several different atom types defined in `TypeDefinition` section.
     e.g. Hydrogen atoms with one neighbour will match type `H_1`, and carbon atoms with four neighbour will match type `C_4`.
-    Hydrogen atoms bonded with four neighboured carbon will also match type `H_C`.
-    Four neighboured carbon connected with three hydrogen atoms will also match `CT`.
+    Hydrogen atoms bonded with four neighboured carbon will also match type `HC`.
+    If a four neighboured carbon is bonded to a benzene ring, then hydrogen atoms bonded to this carbon will also match type `HT`.
+    Four neighboured carbon connected with two and three hydrogen atoms will also match `CS` and `CT`, respectively.
 
     After all the possible atom types are matched,
     `HierarchicalTree` determines which type the atom will finally be by performing depth first search.
@@ -85,8 +86,10 @@ class ZftTyper(Typer):
 
     Parameters
     ----------
-    file : str
+    file : str, optional
         Name of type definition file
+    content : str, optional
+        Content of type definition file
 
     Notes
     -----
@@ -95,21 +98,22 @@ class ZftTyper(Typer):
 
     '''
 
-    def __init__(self, file):
+    def __init__(self, file=None, content=None):
         if not OPENBABEL_IMPORTED:
             raise Exception('Cannot import openbabel')
 
         self.defines: {str: TypeDefine} = {}
         self.define_root = TypeDefine('UNDEFINED', None, 0)
-        self._file = file
-        self._parse(file)
+        if file is not None:
+            with open(file) as f:
+                content = f.read()
+        elif content is None:
+            raise Exception('Argument file or string should be provided')
 
-    def __repr__(self):
-        return '<ZftTyper: %s>' % self._file
+        self._parse(content)
 
-    def _parse(self, file):
-        with open(file)  as f:
-            lines = f.read().splitlines()
+    def _parse(self, content):
+        lines = content.splitlines()
 
         section = ''
         tree_lines = []
