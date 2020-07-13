@@ -5,9 +5,9 @@ A toolkit for preparing, running and analyzing molecular simulations.
 ## Capabilities
    
   * Assign atom types based on local chemical environment
-  * Assign force field parameters and export to simulation engines like LAMMPS, GROMACS, OpenMM
-  * Predefined simulation protocols for efficient and reproducible prediction of liquid properties
-  * Access local and remote job schedulers for high-through simulations
+  * Assign force field parameters and generate input files for simulation engines like LAMMPS, GROMACS, OpenMM
+  * Use pre-defined simulation protocols to liquid properties in a efficient and reproducible way
+  * Access local and remote job schedulers for high-throughput simulations
   * Read/write common topology files (LAMMPS, PSF, ZMAT etc...)
   * Read/write common trajectory files (LAMMPS, GRO, DCD, XTC, etc...)
   
