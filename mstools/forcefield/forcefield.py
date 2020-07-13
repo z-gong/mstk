@@ -217,6 +217,11 @@ class ForceField():
                 self.atom_types[term.name] = term
             else:
                 _duplicated = True
+        elif isinstance(term, ChargeIncrementTerm):
+            if term.name not in self.bci_terms or replace:
+                self.bci_terms[term.name] = term
+            else:
+                _duplicated = True
         elif isinstance(term, BondTerm):
             if term.name not in self.bond_terms or replace:
                 self.bond_terms[term.name] = term

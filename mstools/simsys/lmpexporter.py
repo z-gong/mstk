@@ -120,7 +120,9 @@ class LammpsExporter():
         for i, (typ, atom) in enumerate(lmp_types_drude.items()):
             string += '%4i %8.3f  # %8s\n' % (i + len(lmp_types_real) + 1, atom.mass, typ)
 
-        string += '\nBond Coeffs  # harmonic\n\n'
+        if len(bond_types) + len(lmp_types_parent) > 0:
+            string += '\nBond Coeffs  # harmonic\n\n'
+
         for i, bterm in enumerate(bond_types):
             string += '%4i %12.6f %10.4f  # %s-%s\n' % (
                 i + 1, bterm.k / 4.184 / 100, bterm.length * 10, bterm.type1, bterm.type2)
@@ -129,12 +131,16 @@ class LammpsExporter():
             string += '%4i %12.6f %10.4f  # %s-%s\n' % (
                 i + 1 + len(bond_types), pterm.k / 4.184 / 100, 0, parent.type, 'DP')
 
-        string += '\nAngle Coeffs  # harmonic\n\n'
+        if len(angle_types) > 0:
+            string += '\nAngle Coeffs  # harmonic\n\n'
+
         for i, atype in enumerate(angle_types):
             string += '%4i %12.6f %10.4f  # %s-%s-%s\n' % (
                 i + 1, atype.k / 4.184, atype.theta, atype.type1, atype.type2, atype.type3)
 
-        string += '\nDihedral Coeffs  # opls\n\n'
+        if len(dihedral_types) > 0:
+            string += '\nDihedral Coeffs  # opls\n\n'
+
         for i, dterm in enumerate(dihedral_types):
             dterm: PeriodicDihedralTerm
             if not dterm.is_opls_convention:
@@ -144,7 +150,9 @@ class LammpsExporter():
                 i + 1, k1, k2, k3, k4,
                 dterm.type1, dterm.type2, dterm.type3, dterm.type4)
 
-        string += '\nImproper Coeffs  # cvff\n\n'
+        if len(improper_types) > 0:
+            string += '\nImproper Coeffs  # cvff\n\n'
+
         for i, iterm in enumerate(improper_types):
             string += '%4i %12.6f %4i %4i  # %s-%s-%s-%s\n' % (
                 i + 1, iterm.k / 4.184, -1, 2, iterm.type2, iterm.type3, iterm.type1, iterm.type4)
@@ -161,7 +169,8 @@ class LammpsExporter():
                 atom.id + 1, atom.molecule.id + 1, lmp_type_list.index(typ) + 1,
                 atom.charge, x, y, z, atom.name, atom.molecule.name)
 
-        string += '\nBonds\n\n'
+        if top.n_bond > 0:
+            string += '\nBonds\n\n'
 
         for i, bond in enumerate(top.bonds):
             a1, a2 = bond.atom1, bond.atom2
@@ -173,7 +182,8 @@ class LammpsExporter():
             string += '%6i %6i %6i %6i  # %s-%s\n' % (
                 i + 1, btype, a1.id + 1, a2.id + 1, a1.name, a2.name)
 
-        string += '\nAngles\n\n'
+        if top.n_angle > 0:
+            string += '\nAngles\n\n'
 
         for i, angle in enumerate(top.angles):
             atype = angle_types.index(system.angle_terms[id(angle)]) + 1
@@ -181,7 +191,8 @@ class LammpsExporter():
             string += '%6i %6i %6i %6i %6i  # %s-%s-%s\n' % (
                 i + 1, atype, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
 
-        string += '\nDihedrals\n\n'
+        if top.n_dihedral > 0:
+            string += '\nDihedrals\n\n'
 
         for i, dihedral in enumerate(top.dihedrals):
             dtype = dihedral_types.index(system.dihedral_terms[id(dihedral)]) + 1
@@ -190,7 +201,8 @@ class LammpsExporter():
                 i + 1, dtype, a1.id + 1, a2.id + 1, a3.id + 1, a4.id + 1,
                 a1.name, a2.name, a3.name, a4.name)
 
-        string += '\nImpropers\n\n'
+        if top.n_improper > 0:
+            string += '\nImpropers\n\n'
 
         for i, improper in enumerate(top.impropers):
             itype = improper_types.index(system.improper_terms[id(improper)]) + 1

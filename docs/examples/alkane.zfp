@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<ForceFieldTerms>
+  <Setting lj_mixing_rule="lorentz-berthelot" scale_14_coulomb="0.8333333333333334" scale_14_vdw="0.5" vdw_cutoff="1.2" vdw_long_range="correct"/>
+  <AtomTypes>
+    <AtomType charge="0.0" eqt_ang_c="c_4" eqt_ang_s="c_4" eqt_bond="c_4" eqt_dih_c="c_4" eqt_dih_s="c_4" eqt_imp_c="c_4" eqt_imp_s="c_4" eqt_polar="c_4h2" eqt_q_inc="c_4" eqt_vdw="c_4h2" mass="12.011" name="c_4h2"/>
+    <AtomType charge="0.0" eqt_ang_c="c_4" eqt_ang_s="c_4" eqt_bond="c_4" eqt_dih_c="c_4" eqt_dih_s="c_4" eqt_imp_c="c_4" eqt_imp_s="c_4" eqt_polar="c_4h3" eqt_q_inc="c_4" eqt_vdw="c_4h3" mass="12.011" name="c_4h3"/>
+    <AtomType charge="0.0" eqt_ang_c="h_1" eqt_ang_s="h_1" eqt_bond="h_1" eqt_dih_c="h_1" eqt_dih_s="h_1" eqt_imp_c="h_1" eqt_imp_s="h_1" eqt_polar="h_1" eqt_q_inc="h_1" eqt_vdw="h_1" mass="1.0079" name="h_1"/>
+  </AtomTypes>
+  <ChargeIncrementTerms>
+    <ChargeIncrementTerm type1="c_4" type2="h_1" value="-0.06"/>
+  </ChargeIncrementTerms>
+  <VdwTerms>
+    <LJ126Term epsilon="0.3138" sigma="0.34919666156228735" type1="c_4h2" type2="c_4h2"/>
+    <LJ126Term epsilon="0.328444" sigma="0.36449339255275703" type1="c_4h3" type2="c_4h3"/>
+    <LJ126Term epsilon="0.0891192" sigma="0.2433668028343965" type1="h_1" type2="h_1"/>
+  </VdwTerms>
+  <PairwiseVdwTerms/>
+  <BondTerms>
+    <HarmonicBondTerm fixed="False" k="89309.57200000001" length="0.15333000000000002" type1="c_4" type2="c_4"/>
+    <HarmonicBondTerm fixed="True" k="150740.98464" length="0.10967" type1="c_4" type2="h_1"/>
+  </BondTerms>
+  <AngleTerms>
+    <HarmonicAngleTerm fixed="False" k="260.5305672" theta="114.1793" type1="c_4" type2="c_4" type3="c_4"/>
+    <HarmonicAngleTerm fixed="False" k="190.5401968" theta="110.1319" type1="c_4" type2="c_4" type3="h_1"/>
+    <HarmonicAngleTerm fixed="False" k="149.1466296" theta="106.6794" type1="h_1" type2="c_4" type3="h_1"/>
+  </AngleTerms>
+  <DihedralTerms>
+    <PeriodicDihedralTerm k_1="-1.6891" k_2="-0.0075" k_3="0.2657" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="c_4" type2="c_4" type3="c_4" type4="c_4"/>
+    <PeriodicDihedralTerm k_1="-1.0544" k_2="0.7448" k_3="0.7870" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="c_4" type2="c_4" type3="c_4" type4="h_1"/>
+    <PeriodicDihedralTerm k_1="0.6485" k_2="1.0678" k_3="0.6226" phi_1="0.0" phi_2="180.0" phi_3="0.0" type1="h_1" type2="c_4" type3="c_4" type4="h_1"/>
+  </DihedralTerms>
+  <ImproperTerms/>
+  <PolarizableTerms/>
+</ForceFieldTerms>

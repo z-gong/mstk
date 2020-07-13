@@ -6,8 +6,7 @@
 mstools
 =======
 
-A toolkit for preparing, running and analyzing molecular simulations.
-It was initially developed for high-throughput predictions of liquid properties.
+`mstools` is a toolkit for preparing, running and analyzing molecular simulations.
 
 .. toctree::
    :maxdepth: 2

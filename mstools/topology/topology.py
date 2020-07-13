@@ -208,7 +208,8 @@ class Topology():
             raise Exception('Positions are required for scaling box')
 
         from ..wrapper.packmol import Packmol
-        packmol: Packmol
+        if packmol is not None and not isinstance(packmol, Packmol):
+            raise Exception('Invalid Packmol')
 
         xyz_files = []
         for i, mol in enumerate(self._molecules):
