@@ -8,7 +8,19 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_read():
-    pass
+    pdb = Topology.open(cwd + '/files/test.pdb')
+    assert pdb.n_atom == 16
+    assert pytest.approx(pdb.cell.volume, abs=1E-6) == 0.06
+
+    mol = pdb.molecules[0]
+    assert mol.name == 'c1c1'
+
+    atom = pdb.atoms[-1]
+    assert atom.name == 'H16'
+    assert atom.type == ''
+    assert atom.symbol == 'H'
+    assert pytest.approx(atom.position, abs=1E-6) == [0.3369, 0.2249, -0.0890]
+    assert atom.has_position
 
 
 def test_write():

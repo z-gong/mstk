@@ -42,7 +42,7 @@ class Topology():
         if cell is not None:
             self.cell = UnitCell(cell.vectors)
         else:
-            self.cell = UnitCell([0, 0, 0])
+            self.cell = UnitCell()
 
     def __deepcopy__(self, memodict={}):
         top = Topology()

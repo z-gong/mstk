@@ -43,12 +43,22 @@ class Frame():
     def __init__(self, n_atom):
         self.step = -1  # -1 means step information not found
         self.time = -1  # in ps. -1 means time information not found
-        self.cell = UnitCell([0., 0., 0.])
+        self.cell = UnitCell()
         self.positions = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_velocity = False
         self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
         self.has_charge = False
         self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
+
+    def reset(self):
+        '''
+        Remove step, time and cell information, and reset has_velocity, has_charge to False.
+        '''
+        self.step = -1
+        self.time = -1
+        self.cell.set_box(None)
+        self.has_velocity = False
+        self.has_charge = False
 
     def resize(self, n_atom):
         '''
@@ -149,7 +159,10 @@ class Trajectory():
         '''
         Close the opened trajectory file(s).
         '''
-        self._handler.close()
+        try:
+            self._handler.close()
+        except:
+            pass
         self._opened = False
 
     def read_frame(self, i_frame: int):
@@ -185,6 +198,9 @@ class Trajectory():
             if self.n_atom == -1:
                 raise Exception('Invalid number of atoms')
             self.frame = Frame(self.n_atom)
+
+        # Reset the information in self.frame in case the frames read from different trajectory files pollute each other for CombinedTrajectory
+        self.frame.reset()
 
         self._handler.read_frame(i_frame, self.frame)
         return self.frame

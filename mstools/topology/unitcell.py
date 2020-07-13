@@ -7,14 +7,23 @@ class UnitCell():
     UnitCell represents the periodic boundary condition of simulation system.
 
     Both rectangular and triclinic unit cells are supported.
-    But note that some other modules in mstools may only support rectangular cell.
+    However, note that some other modules in `mstools` may only support rectangular cell.
 
     Parameters
     ----------
-    box : array_like
-        See :func:`set_box` for explanations.
+    box : array_like, optional
+        box can be array_like of shape (3,), (2,3) or (3,3).
+        If its shape is (3,), then it will be treated as the lengths of a rectangular box.
+        If its shape is (2,3), then it will be treated as the lengths and angles of a triclinic box.
+        The angles are in unit of degree.
+        If its shape is (3,3), then it will be treated as the box vectors.
+        If not provided, the cell will be initialized with all elements of box vectors equal to zero.
     '''
-    def __init__(self, box):
+
+    def __init__(self, box=None):
+        self._vectors = None
+        self._lengths = None
+        self._angles = None
         self.set_box(box)
 
     def set_box(self, box):
@@ -23,13 +32,23 @@ class UnitCell():
 
         Parameters
         ----------
-        box : array_like
-            box can be array_like of shape (3,), (2,3) or (3,3).
-            If its shape is (3,), then it will be treated as the lengths of a rectangular box.
-            If its shape is (2,3), then it will be treated as the lengths and angles of a triclinic box.
-            The angles are in unit of degree.
-            If its shape is (3,3), then it will be treated as the box vectors.
+        box : array_like or None
+            See the argument `box` of constructor for detailed explanations.
         '''
+        if box is None:
+            if self._vectors is None:
+                self._vectors = np.zeros((3, 3), dtype=np.float32)
+            else:
+                self._vectors.fill(0.0)
+            if self._lengths is None:
+                self._lengths = np.zeros(3, dtype=np.float32)
+            else:
+                self._lengths.fill(0.0)
+            if self._angles is None:
+                self._angles = np.empty(3, dtype=np.float32)
+            self._angles.fill(90.0)
+            return
+
         if not isinstance(box, (tuple, list, np.ndarray)):
             raise ValueError('Invalid argument')
         array = np.array(box, dtype=np.float32)
