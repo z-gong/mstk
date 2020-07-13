@@ -4,9 +4,9 @@ A toolkit for preparing, running and analyzing molecular simulations.
 
 ## Capabilities
    
-  * Assign atom types based on local chemical environment
-  * Assign force field parameters and generate input files for simulation engines like LAMMPS, GROMACS, OpenMM
-  * Use pre-defined simulation protocols to liquid properties in a efficient and reproducible way
+  * Assign atom types and force field parameters based on local chemical environment
+  * Generate input files for simulation engines like LAMMPS, GROMACS, OpenMM
+  * Predict liquid properties in an efficient and reproducible way through pre-defined simulation protocols
   * Access local and remote job schedulers for high-throughput simulations
   * Read/write common topology files (LAMMPS, PSF, ZMAT etc...)
   * Read/write common trajectory files (LAMMPS, GRO, DCD, XTC, etc...)
@@ -14,7 +14,7 @@ A toolkit for preparing, running and analyzing molecular simulations.
 
 ## Example
 
-This script build a simulation box of hexane using `Packmol`,
+This script will build a simulation box of hexane using `Packmol`,
 assign temperature-dependent *TEAM_MGI* force field using `DFF`,
 prepare input files for running `GROMACS` NPT simulation at 500 K and 10 bar,
 and generate corresponding script for `Slurm` job scheduler.
