@@ -27,8 +27,11 @@ Forces
 
     slab_correction
     restrain_particle_number
+    wall_lj126
+    wall_power
     electric_field
     spring_self
+    CLPolCoulTT
 
 Reporters
 ---------

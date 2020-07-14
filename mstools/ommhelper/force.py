@@ -93,7 +93,7 @@ def spring_self(system, positions, particles, strength):
 
 def wall_power(system, particles, direction, bound, k, cutoff, power=2):
     '''
-    Set a harmonic wall for selected particles so that they cannot cross it.
+    Add a power wall for selected particles so that they cannot cross it.
 
     Note that periodic box condition is not considered,
     so you need to make sure particles will not move to other cells during the simulation.
@@ -143,7 +143,7 @@ def wall_power(system, particles, direction, bound, k, cutoff, power=2):
 
 def wall_lj126(system, particles, direction, bound, epsilon, sigma):
     '''
-    Set a LJ-12-6 wall for selected particles so that they cannot cross it.
+    Add a LJ-12-6 wall for selected particles so that they cannot cross it.
 
     Note that periodic box condition is not considered,
     so you need to make sure particles will not move to other cells during the simulation.
@@ -229,7 +229,7 @@ def electric_field(system, particles, strength):
 
 def CLPolCoulTT(system, donors, b=45.0):
     '''
-    Apply Tang-Toennies damping between selected H-bond hydrogen atoms and Drude dipoles.
+    Apply Tang-Toennies damping for the Coulomb interactions between selected H-bond donors and Drude dipoles.
 
     Parameters
     ----------
