@@ -15,40 +15,18 @@ args = parser.parse_args()
 BEGIN = args.begin
 SKIP = args.skip
 
-
-def split_str_digit_alpha(string):
-    digit = ''
-    alpha = ''
-    elements = []
-    for i in string:
-        if i.isdigit():
-            digit += i
-            if alpha != '':
-                elements.append(alpha)
-                alpha = ''
-        else:
-            alpha += i
-            if digit != '':
-                elements.append(int(digit))
-                digit = ''
-    if digit != '':
-        elements.append(int(digit))
-    elif alpha != '':
-        elements.append(alpha)
-    return elements
-
-
-r0_list = []
-k_list = []
+r0_k_list = []
 files = filter(os.path.isdir, os.listdir(os.getcwd()))
-for i in sorted(files, key=split_str_digit_alpha):
+for i in files:
     if os.path.isdir(i) and '-' in i and \
             (i[0].isdigit() or i[0].startswith('_')) and i[-1].isdigit():
-        r0_list.append(i.split('-')[0])
-        k_list.append(i.split('-')[1])
+        r0 = i.split('-')[0]
+        k = i.split('-')[1]
+        r0_k_list.append((r0, k))
+r0_k_list.sort(key=lambda x: float(x[0].replace('_', '-')))
 
 outf_meta = open('wham-meta', 'w')
-for r0, k in zip(r0_list, k_list):
+for r0, k in r0_k_list:
     outfile = 'wham-' + r0 + '-' + k + '.txt'
     outf = open(outfile, 'w')
     if args.type == 'openmm':
@@ -103,11 +81,8 @@ for r0, k in zip(r0_list, k_list):
                 r = float(str[1])
                 outf.write('%.1f %.6f\n' % (time, r))
     outf.close()
-    outf_meta.write('%s %s %s\n' % (outfile, r0.replace('_', '-'), k)) # replace the leading _ with -
+    outf_meta.write('%s %s %s\n' % (outfile, r0.replace('_', '-'), k))  # replace the leading _ with -
 outf_meta.close()
-
-hist_min = min(map(lambda x: float(x.replace('_', '-')), r0_list))
-hist_max = max(map(lambda x: float(x.replace('_', '-')), r0_list))
 
 if args.plot:
     import matplotlib
@@ -119,16 +94,15 @@ if args.plot:
     fig.set_size_inches(16, 8)
     plt.grid(True)
     files = filter(lambda x: x.startswith('wham-') and x.endswith('.txt'), os.listdir(os.getcwd()))
-    for i in sorted(files, key=split_str_digit_alpha):
-        if i.startswith('wham-') and i.endswith('.txt'):
-            array = np.genfromtxt(i)
-            data = array[:, 1]
-            if args.nbin:
-                hist, bins = np.histogram(data, bins=args.nbin)
-            else:
-                hist, bins = np.histogram(data)
-            center = (bins[:-1] + bins[1:]) / 2.
-            plt.plot(center, hist, linewidth=2)
+    for r0, k in r0_k_list:
+        array = np.genfromtxt('wham-%s-%s.txt' %(r0, k))
+        data = array[:, 1]
+        if args.nbin:
+            hist, bins = np.histogram(data, bins=args.nbin)
+        else:
+            hist, bins = np.histogram(data)
+        center = (bins[:-1] + bins[1:]) / 2.
+        plt.plot(center, hist, linewidth=2)
     plt.savefig('wham-hist.png')
 
 # os.system('wham %f %f %s %s 298.15 0 wham-meta wham-pmf' %(hist_min, hist_max, bins, tol))
