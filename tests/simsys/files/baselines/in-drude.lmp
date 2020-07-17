@@ -1,0 +1,73 @@
+# created by mstools
+units real
+boundary p p p
+atom_style full
+bond_style harmonic
+angle_style harmonic
+dihedral_style opls
+improper_style cvff
+special_bonds lj 0 0 0.5 coul 0 0 0.5
+
+pair_style lj/cut/thole/long 2.6 12.0
+pair_modify mix geometric tail yes
+kspace_style pppm 1.0e-4
+
+read_data data.lmp extra/special/per/atom 99
+
+pair_coeff   1   1   0.17000   3.2500   1.2080   2.600  #       NA       NA 
+pair_coeff   2   2   0.07000   3.5500   1.4450   2.600  #       CR       CR 
+pair_coeff   3   3   0.07000   3.5500   1.4450   2.600  #       CW       CW 
+pair_coeff   4   4   0.06600   3.5000   1.9850   2.600  #       C1       C1 
+pair_coeff   5   5   0.03000   2.4200   0.0000   0.000  #      HCR      HCR 
+pair_coeff   6   6   0.03000   2.4200   0.0000   0.000  #      HCW      HCW 
+pair_coeff   7   7   0.03000   2.5000   0.0000   0.000  #       H1       H1 
+pair_coeff   8   8   0.06600   3.5000   1.9850   2.600  #       CE       CE 
+pair_coeff   9   9   0.03000   2.5000   0.0000   0.000  #       HC       HC 
+pair_coeff  10  10   0.09500   3.5800   0.5780   2.600  #        B        B 
+pair_coeff  11  11   0.06099   3.1200   0.6250   2.600  #       FB       FB 
+pair_coeff  12  12   0.00000   0.0000   1.2080   2.600  #    DP_NA    DP_NA 
+pair_coeff  13  13   0.00000   0.0000   1.4450   2.600  #    DP_CR    DP_CR 
+pair_coeff  14  14   0.00000   0.0000   1.4450   2.600  #    DP_CW    DP_CW 
+pair_coeff  15  15   0.00000   0.0000   1.9850   2.600  #    DP_C1    DP_C1 
+pair_coeff  16  16   0.00000   0.0000   1.9850   2.600  #    DP_CE    DP_CE 
+pair_coeff  17  17   0.00000   0.0000   0.5780   2.600  #     DP_B     DP_B 
+pair_coeff  18  18   0.00000   0.0000   0.6250   2.600  #    DP_FB    DP_FB 
+
+group ATOMS type 1 2 3 4 5 6 7 8 9 10 11
+group CORES type 1 2 3 4 8 10 11
+group DRUDES type 12 13 14 15 16 17 18
+fix DRUDE all drude C C C C N N N C N C C D D D D D D D
+
+variable T equal 300
+variable P equal 1
+variable elec equal ecoul+elong
+
+# thermo_style custom step press pe ebond eangle edihed eimp evdwl v_elec
+# thermo 10
+# minimize 1.0e-4 1.0e-6 200 1000
+# reset_timestep 0
+
+fix SHAKE all shake 0.0001 20 0 b 5 6 7
+fix ICECUBE all momentum 100 linear 1 1 1
+
+velocity all create $T 12345
+timestep 1.0
+
+comm_modify vel yes
+compute TDRUDE all temp/drude
+
+fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
+# fix SD  all langevin/drude $T 200 12345 1 50 23456
+# fix NPH all nph iso $P $P 1000
+
+thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe emol evdwl v_elec density
+thermo 1000
+
+variable slog equal logfreq(10,9,10)
+dump TRJ all custom 10 dump.lammpstrj id mol type element q xu yu zu
+dump_modify TRJ sort id element N C C C H H H C H B F DP DP DP DP DP DP DP every v_slog first yes
+dump DCD all dcd 10000 dump.dcd
+dump_modify DCD unwrap yes
+
+restart 1000000 rst_*
+run 1000000

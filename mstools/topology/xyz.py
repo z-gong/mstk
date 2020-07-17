@@ -60,6 +60,7 @@ class XyzTopology():
         '''
         Save topology into a XYZ file.
 
+        The name of the first molecule in the topology will be written as the remark of the topology.
         Only atom type and positions are written.
         If atom type is empty, use atom symbol instead.
 

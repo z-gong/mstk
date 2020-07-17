@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+import tempfile
+import filecmp
 import pytest
 from mstools.forcefield import ForceField, Ppf
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -95,4 +98,6 @@ def test_read():
 
 def test_write():
     ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
-    Ppf.save_to(ff, cwd + '/files/out-CLP.ppf')
+    tmp = os.path.join(tmpdir, 'out-CLP.ppf')
+    Ppf.save_to(ff, tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLP.ppf')

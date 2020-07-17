@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
 from mstools.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -25,8 +28,12 @@ def test_read():
 
 def test_write():
     zmat = Topology.open(cwd + '/files/Im11.zmat')
-    zmat.write(cwd + '/files/zmat-out.xyz')
+    tmp = os.path.join(tmpdir, 'zmat-out.xyz')
+    zmat.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/zmat-out.xyz')
+
     mol = Molecule.from_smiles('C[n+]1cn(cc1)CCCC[B-](F)(F)F')
-    top = Topology()
-    top.update_molecules([mol])
-    top.write(cwd + '/files/smi-out.xyz')
+    top = Topology([mol])
+    tmp = os.path.join(tmpdir, 'smi-out.xyz')
+    top.write(tmp)
+    filecmp.cmp(tmp, cwd + '/files/baselines/smi-out.xyz')

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
 
 from mstools.forcefield import ForceField, Zfp
 from mstools.forcefield.ffterm import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -50,15 +53,19 @@ def test_read():
     assert term.type4 == 'h_1'
     assert pytest.approx(term.k, abs=1E-4) == 7.1270
 
-    ff.write(cwd + '/files/zfp-out.zfp')
-
 
 def test_write():
     clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
-    Zfp.save_to(clp, cwd + '/files/out-CLPol.zfp')
+    tmp = os.path.join(tmpdir, 'out-CLPol.zfp')
+    Zfp.save_to(clp, tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLPol.zfp')
 
     il = ForceField.open(cwd + '/files/TEAM_IL.ppf')
-    Zfp.save_to(il, cwd + '/files/out-TEAM_IL.zfp')
+    tmp = os.path.join(tmpdir, 'out-TEAM_IL.zfp')
+    Zfp.save_to(il, tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-TEAM_IL.zfp')
 
     spce = ForceField.open(cwd + '/files/SPCE.ppf')
-    spce.write(cwd + '/files/out-SPCE.zfp')
+    tmp = os.path.join(tmpdir, 'out-SPCE.zfp')
+    spce.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-SPCE.zfp')

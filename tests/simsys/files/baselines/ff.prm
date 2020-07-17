@@ -1,0 +1,61 @@
+* Created by mstools
+*
+
+ATOMS
+  MASS      1       c_3a    12.0110
+  MASS      2        h_1     1.0079
+
+BONDS
+!V(bond) = Kb(b - b0)**2
+!Kb: kcal/mole/A**2
+!b0: A
+!
+!      atom type Kb          b0
+      c_3a       c_3a       389.051300     1.3870
+      c_3a        h_1       400.707000     1.0886
+
+ANGLES
+!V(angle) = Ktheta(Theta - Theta0)**2
+!V(Urey-Bradley) = Kub(S - S0)**2
+!Ktheta: kcal/mole/rad**2
+!Theta0: degrees
+!Kub: kcal/mole/A**2 (Urey-Bradley)
+!S0: A
+!
+!      atom types     Ktheta    Theta0   Kub     S0
+      c_3a       c_3a       c_3a    46.358400     120.0004
+      c_3a       c_3a        h_1    43.876900     118.9160
+
+DIHEDRALS
+!V(dihedral) = Kchi(1 + cos(n(chi) - delta))
+!Kchi: kcal/mole
+!n: multiplicity
+!delta: degrees
+!
+!atom types             Kchi    n   delta
+      c_3a       c_3a       c_3a       c_3a     3.499300    2   180.00
+      c_3a       c_3a       c_3a        h_1     3.999500    2   180.00
+       h_1       c_3a       c_3a        h_1     1.976500    2   180.00
+
+IMPROPERS
+!V(improper) = Kpsi(psi - psi0)**2
+!Kpsi: kcal/mole/rad**2
+!psi0: degrees
+!
+!      atom types           Kpsi      ignored         psi0
+      c_3a       c_3a       c_3a        h_1     1.703400    0     0.00
+
+NONBONDED
+!V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]
+!epsilon: kcal/mole, Eps,i,j = sqrt(eps,i * eps,j)
+!Rmin/2: A, Rmin,i,j = Rmin/2,i + Rmin/2,j
+!
+!      atom  ignored    epsilon      Rmin/2   ignored   eps,1-4       Rmin/2,1-4
+      c_3a     0.0000    -0.078710     1.965615     0.0000    -0.039355     1.965615  ! 
+       h_1     0.0000    -0.021250     1.365860     0.0000    -0.010625     1.365860  ! 
+
+NBFIX
+!      atom  atom  epsilon      Rmin   eps,1-4       Rmin,1-4
+      c_3a        h_1    -1.078710     3.931230    -0.539355     3.931230  ! 
+
+END

@@ -18,8 +18,6 @@ def test_typing():
     typer = DffTyper(dff, r'D:\Projects\DFF\Developing\database\TEAMFF.ref\IL\IL.ext')
     typer.type(top)
 
-    top.write(cwd + '/files/dff.xyz')
-
     assert [atom.type for atom in im2eben.atoms] == (
             ['c_4nph3', 'n_35+da', 'c_35an2', 'n_35+da', 'c_35an', 'c_35an', 'c_4np',
              'c_4h2', 'c_3ac', 'c_3a', 'c_3a', 'c_3a', 'c_3a', 'c_3a']

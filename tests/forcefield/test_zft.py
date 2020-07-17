@@ -20,8 +20,6 @@ def test_typing():
     typer = ZftTyper(cwd + '/files/CLP-define.zft')
     typer.type(top)
 
-    top.write(cwd + '/files/zft.xyz')
-
     assert [atom.type for atom in im61.atoms] == (
             ['C1', 'NA', 'CR', 'NA', 'CW', 'CW', 'C1', 'C2', 'CS', 'CS', 'CS', 'CT']
             + ['H1', 'H1', 'H1', 'HCR', 'HCW', 'HCW'] + ['H1', 'H1'] + ['HC'] * 11)

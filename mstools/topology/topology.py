@@ -17,12 +17,14 @@ class Topology():
     ----------
     molecules : list of Molecule, optional
         If molecules not provided, the topology should be initialized by calling update_molecules().
+    numbers : list of int, optional
+        The number of each molecule you want to put in this topology.
     cell : UnitCell, optional
         If cell not provided, a default cell with zero volume will be assumed.
 
     Notes
     -----
-    If there are identical molecules in the list, then all the molecules will be deep copied.
+    All the molecules will be deep copied if there are identical molecules in the list, or if numbers is not None.
     The cell will always be deep copied if provided.
 
     Attributes
@@ -33,12 +35,12 @@ class Topology():
         Unit cell of this topology. Required for output simulation files and guessing connectivity
     '''
 
-    def __init__(self, molecules=None, cell=None):
+    def __init__(self, molecules=None, numbers=None, cell=None):
         self.remark = ''
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         if molecules is not None:
-            self.update_molecules(molecules)
+            self.update_molecules(molecules, numbers)
         if cell is not None:
             self.cell = UnitCell(cell.vectors)
         else:
