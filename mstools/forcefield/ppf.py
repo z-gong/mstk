@@ -297,5 +297,5 @@ class Ppf():
         if len(ff.polarizable_terms) > 0:
             logger.warning('Polarizable parameters are ignored because PPF does not support them')
 
-        with open(file, 'w') as f:
-            f.write(line)
+        with open(file, 'wb') as f:
+            f.write(line.encode())

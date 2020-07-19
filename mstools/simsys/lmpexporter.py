@@ -211,8 +211,8 @@ class LammpsExporter():
                 i + 1, itype, a2.id + 1, a3.id + 1, a1.id + 1, a4.id + 1,
                 a2.name, a3.name, a1.name, a4.name)
 
-        with open(data_out, 'w')  as f:
-            f.write(string)
+        with open(data_out, 'wb')  as f:
+            f.write(string.encode())
 
         cmd_mix = 'geometric'
         if system.ff.lj_mixing_rule == ForceField.LJ_MIXING_LB:
@@ -346,5 +346,5 @@ restart 1000000 rst_*
 run 1000000
 '''
 
-        with open(in_out, 'w') as f:
-            f.write(string)
+        with open(in_out, 'wb') as f:
+            f.write(string.encode())

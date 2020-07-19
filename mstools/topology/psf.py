@@ -75,7 +75,7 @@ class Psf():
             if section == '!NATOM':
                 self._parse_atoms(lines[iline: iline_next], is_drude)
             if section == '!NBOND':
-                self._parse_bonds( lines[iline: iline_next])
+                self._parse_bonds(lines[iline: iline_next])
             if section == '!NTHETA':
                 self._parse_angles(lines[iline: iline_next])
             if section == '!NPHI':
@@ -125,10 +125,10 @@ class Psf():
             else:
                 atom.symbol = Element.guess_from_atom_type(atom.type).symbol
 
-        molecules = [Molecule(name) for id, name in mol_names.items()]
+        molecules = [Molecule(name) for id, name in sorted(mol_names.items())]
         for atom in atoms:
             mol = molecules[atom._mol_id - 1]
-            mol.add_atom(atom)
+            mol.add_atom(atom, update_topology=False)
 
         self.topology.update_molecules(molecules)
 
@@ -198,62 +198,63 @@ class Psf():
             if atom.type == '':
                 raise Exception('PSF requires all atom types are defined')
 
-        f = open(file, 'w')
+        string = ''
 
         if top.is_drude:
-            f.write('PSF DRUDE\n\n')
+            string += 'PSF DRUDE\n\n'
         else:
-            f.write('PSF\n\n')
+            string += 'PSF\n\n'
 
-        f.write('%8i !NTITLE\n' % 1)
-        f.write(' REMARKS Created by mstools\n\n')
+        string += '%8i !NTITLE\n' % 1
+        string += ' REMARKS Created by mstools\n\n'
 
-        f.write('%8i !NATOM\n' % top.n_atom)
+        string += '%8i !NATOM\n' % top.n_atom
         for i, atom in enumerate(top.atoms):
-            line = '%7i  S  %4i %8s %8s %8s %10.6f %8.4f %4i %8.4f %8.4f\n' % (
+            string += '%7i  S  %4i %8s %8s %8s %10.6f %8.4f %4i %8.4f %8.4f\n' % (
                 atom.id + 1, atom.molecule.id + 1, atom.molecule.name, atom.name, atom.type,
                 atom.charge, atom.mass, 0, -atom.alpha * 1000, atom.thole / 2
             )
-            f.write(line)
-        f.write('\n')
+        string += '\n'
 
         n_bond = top.n_bond
-        f.write('%8i !NBOND: bonds\n' % n_bond)
+        string += '%8i !NBOND: bonds\n' % n_bond
         for i, bond in enumerate(top.bonds):
-            f.write('%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1))
+            string += '%8i%8i' % (bond.atom1.id + 1, bond.atom2.id + 1)
             if (i + 1) % 4 == 0 or i + 1 == n_bond:
-                f.write('\n')
-        f.write('\n')
+                string += '\n'
+        string += '\n'
 
         n_angle = top.n_angle
-        f.write('%8i !NTHETA: angles\n' % n_angle)
+        string += '%8i !NTHETA: angles\n' % n_angle
         for i, angle in enumerate(top.angles):
-            f.write('%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
-                                   angle.atom3.id + 1))
+            string += '%8i%8i%8i' % (angle.atom1.id + 1, angle.atom2.id + 1,
+                                     angle.atom3.id + 1)
             if (i + 1) % 3 == 0 or i + 1 == n_angle:
-                f.write('\n')
-        f.write('\n')
+                string += '\n'
+        string += '\n'
 
         n_dihedral = top.n_dihedral
-        f.write('%8i !NPHI: dihedrals\n' % n_dihedral)
+        string += '%8i !NPHI: dihedrals\n' % n_dihedral
         for i, dihedral in enumerate(top.dihedrals):
-            f.write('%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
-                                      dihedral.atom3.id + 1, dihedral.atom4.id + 1))
+            string += '%8i%8i%8i%8i' % (dihedral.atom1.id + 1, dihedral.atom2.id + 1,
+                                        dihedral.atom3.id + 1, dihedral.atom4.id + 1)
             if (i + 1) % 2 == 0 or i + 1 == n_dihedral:
-                f.write('\n')
-        f.write('\n')
+                string += '\n'
+        string += '\n'
 
         n_improper = top.n_improper
-        f.write('%8i !NIMPHI: impropers\n' % n_improper)
+        string += '%8i !NIMPHI: impropers\n' % n_improper
         for i, improper in enumerate(top.impropers):
-            f.write('%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
-                                      improper.atom3.id + 1, improper.atom4.id + 1))
+            string += '%8i%8i%8i%8i' % (improper.atom1.id + 1, improper.atom2.id + 1,
+                                        improper.atom3.id + 1, improper.atom4.id + 1)
             if (i + 1) % 2 == 0 or i + 1 == n_improper:
-                f.write('\n')
-        f.write('\n')
+                string += '\n'
+        string += '\n'
 
-        f.write('%8i !NDON: donors\n\n' % 0)
-        f.write('%8i !NACC: acceptors\n\n' % 0)
-        f.write('%8i !NNB\n\n\n' % 0)
-        f.write('%8i !NUMANISO\n\n' % 0)
-        f.close()
+        string += '%8i !NDON: donors\n\n' % 0
+        string += '%8i !NACC: acceptors\n\n' % 0
+        string += '%8i !NNB\n\n\n' % 0
+        string += '%8i !NUMANISO\n\n' % 0
+
+        with open(file, 'wb') as f:
+            f.write(string.encode())

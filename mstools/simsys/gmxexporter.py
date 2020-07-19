@@ -279,14 +279,13 @@ class GromacsExporter():
         for i, (mol, count) in enumerate(mols_unique.items()):
             string += '%s_%i %6i\n' % (mol.name, i + 1, count)
 
-        with open(top_out, 'w') as f:
-            f.write(string)
+        with open(top_out, 'wb') as f:
+            f.write(string.encode())
 
     @staticmethod
     def _export_mdp(system: System, mdp_out='grompp.mdp'):
         tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
-        with open(mdp_out, 'w')  as f:
-            f.write(f'''; Created by mstools
+        string = f'''; Created by mstools
 integrator      = sd
 dt              = 0.002 ; ps
 nsteps          = 1000000
@@ -322,4 +321,6 @@ gen_temp        = 300
 
 constraints     = h-bonds
 constraint-algorithm = LINCS
-''')
+'''
+        with open(mdp_out, 'wb')  as f:
+            f.write(string.encode())

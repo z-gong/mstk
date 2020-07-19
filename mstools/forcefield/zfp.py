@@ -132,5 +132,5 @@ class Zfp():
                 ET.SubElement(node, term.__class__.__name__, attrib=term.to_zfp())
 
         str_xml = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
-        with open(file, 'w') as f:
-            f.write(str_xml)
+        with open(file, 'wb') as f:
+            f.write(str_xml.encode())

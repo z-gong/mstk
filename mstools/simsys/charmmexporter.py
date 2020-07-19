@@ -196,5 +196,5 @@ class CharmmExporter():
 
         string += '\nEND\n'
 
-        with open(prm_out, 'w') as f:
-            f.write(string)
+        with open(prm_out, 'wb') as f:
+            f.write(string.encode())

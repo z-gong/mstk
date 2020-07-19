@@ -1,3 +1,4 @@
+import os
 import tempfile
 from .typer import Typer
 from ..errors import *
@@ -19,8 +20,6 @@ class DffTyper(Typer):
 
     A type definition file is required by DFF for calculating the atom type.
     The native definition files shipped with DFF can be used by providing the full path of one of those files.
-
-    * TODO implement parser for MSD file so that DffTyper will work.
 
     Parameters
     ----------
@@ -56,11 +55,12 @@ class DffTyper(Typer):
         if molecule.obmol is None:
             raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
 
-        mol2 = tempfile.NamedTemporaryFile(suffix='.mol2').name
-        msd = tempfile.NamedTemporaryFile(suffix='.msd').name
-        convert = tempfile.NamedTemporaryFile(suffix='convert').name
-        setfc = tempfile.NamedTemporaryFile(suffix='setfc').name
-        typing = tempfile.NamedTemporaryFile(suffix='typing').name
+        tmpdir = tempfile.mkdtemp()
+        mol2 = os.path.join(tmpdir, 'mol.mol2')
+        msd = os.path.join(tmpdir, 'mol.msd')
+        convert = os.path.join(tmpdir, 'dff_convert')
+        setfc = os.path.join(tmpdir, 'dff_setfc')
+        typing = os.path.join(tmpdir, 'dff_typing')
 
         m = pybel.Molecule(molecule.obmol)
         m.write('mol2', mol2)

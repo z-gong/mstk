@@ -212,7 +212,7 @@ class LammpsData():
         molecules = [Molecule(name) for id, name in sorted(mol_names.items())]
         for atom in sorted(atoms, key=lambda x: x.id):
             mol = molecules[atom._mol_id - 1]
-            mol.add_atom(atom)
+            mol.add_atom(atom, update_topology=False)
         for mol in molecules:
             for i, atom in enumerate(mol.atoms):
                 # atomic symbol + index inside mol starting from 1

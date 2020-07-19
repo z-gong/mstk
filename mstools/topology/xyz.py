@@ -72,10 +72,11 @@ class XyzTopology():
         if not top.has_position:
             raise Exception('Position is required for writing XYZ file')
 
-        with open(file, 'w')as f:
-            f.write('%i\n' % top.n_atom)
-            f.write('%s\n' % top.molecules[0].name)
-            for atom in top.atoms:
-                pos = atom.position * 10
-                f.write('%-8s %11.5f %11.5f %11.5f\n' % (
-                    atom.type or atom.symbol, pos[0], pos[1], pos[2]))
+        string = '%i\n' % top.n_atom
+        string += '%s\n' % top.molecules[0].name
+        for atom in top.atoms:
+            pos = atom.position * 10
+            string += '%-8s %11.5f %11.5f %11.5f\n' % (
+                atom.type or atom.symbol, pos[0], pos[1], pos[2])
+        with open(file, 'wb')as f:
+            f.write(string.encode())

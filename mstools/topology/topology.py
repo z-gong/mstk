@@ -444,6 +444,7 @@ class Topology():
         from .lammps import LammpsData
         from .xyz import XyzTopology
         from .zmat import Zmat
+        from .msd import Msd
 
         if file.startswith(':'):
             mol = Molecule.from_smiles(file[1:])
@@ -458,6 +459,8 @@ class Topology():
             return XyzTopology(file, **kwargs).topology
         elif file.endswith('.zmat'):
             return Zmat(file, **kwargs).topology
+        elif file.endswith('.msd'):
+            return Msd(file, **kwargs).topology
         else:
             raise Exception('Unsupported format')
 
