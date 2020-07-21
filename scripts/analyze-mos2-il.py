@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+import multiprocessing
 import math
 import configparser
 import numpy as np
@@ -36,6 +37,7 @@ parser.add_argument('-b', '--begin', default=0, type=int,
 parser.add_argument('-e', '--end', default=-1, type=int,
                     help='last frame (not included) to analyze. Index starts from 0. '
                          '-1 means until last frames (included)')
+parser.add_argument('-n', '--nprocs', default=12, type=int, help='number of parallel processes to use')
 parser.add_argument('--cathode', default=0, type=float, help='z coordinate (in nm) of cathode')
 parser.add_argument('--anode', default=6.5, type=float, help='z coordinate (in nm) of anode')
 parser.add_argument('--dz', default=0.01, type=float,
@@ -153,82 +155,126 @@ def _calc_acf(series):
 
 
 def distribution():
+    mol_dists_atom = {}
+    mol_dists_com = {}
+    mol_dists_angle = {}
+
+    z_atom_name_atoms = {}
+    z_com_name_atoms = {}
+    theta_name_atoms_com_zrange = {}
+
     z_atom_dict = {}
     z_com_dict = {}
     theta_dict = {}
 
-    n_frame = 0
-    for i in range(args.begin, args.end, args.skip):
-        n_frame += 1
-        frame = trj.read_frame(i)
-        sys.stdout.write('\r    frame %i' % i)
+    for mol_name in mol_names:
+        section = ini['molecule.%s' % (mol_name)]
+        dists = section['distributions'].split(';')
+        mol_dists_atom[mol_name] = []
+        for dist in dists:
+            name, atoms_str = [x.strip() for x in dist.split(':')]
+            mol_dists_atom[mol_name].append(name)
+            z_atom_name_atoms[name] = atoms_str.split()
+            z_atom_dict[name] = []
 
-        positions = frame.positions
-        if args.reverse:
-            positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
+        com_dists = section['com_distributions'].split(';')
+        mol_dists_com[mol_name] = []
+        for dist in com_dists:
+            name, atoms_str = [x.strip() for x in dist.split(':')]
+            mol_dists_com[mol_name].append(name)
+            z_com_name_atoms[name] = atoms_str.split()
+            z_com_dict[name] = []
 
-        for mol in top.molecules:
-            if mol.name not in mol_names:
-                continue
+        try:
+            angles = section['angles'].split(';')
+        except:
+            angles = []
+        mol_dists_angle[mol_name] = []
+        for angle in angles:
+            name, atoms_str = [x.strip() for x in angle.split(':')]
+            mol_dists_angle[mol_name].append(name)
+            com_atoms_str, z_range_str = [x.strip() for x in section['angle.%s.com_zrange' % name].split(':')]
+            if args.reverse:
+                com_z_range = [elecd_r - float(x) for x in reversed(z_range_str.split())]
+            else:
+                com_z_range = [elecd_l + float(x) for x in z_range_str.split()]
+            theta_name_atoms_com_zrange[name] = (atoms_str.split(), com_atoms_str.split(), com_z_range)
+            theta_dict[name] = []
 
-            section = ini['molecule.%s' % (mol.name)]
-            dists = section['distributions'].split(';')
-            for dist in dists:
-                name, atoms = [x.strip() for x in dist.split(':')]
-                if name not in z_atom_dict:
-                    z_atom_dict[name] = []
-                atoms = _get_atoms(mol, atoms.split())
-                z_atom_dict[name] += [positions[atom.id][2] for atom in atoms]
+    all_frames = list(range(args.begin, args.end, args.skip))
+    n_group = math.ceil(len(all_frames) / args.nprocs)
+    for i_group in range(n_group):
+        i_frames = all_frames[i_group * args.nprocs: (i_group + 1) * args.nprocs]
+        frames = trj.read_frames(i_frames)
+        sys.stdout.write('\r    frames %s' % ' '.join(map(str, i_frames)))
 
-            com_dists = section['com_distributions'].split(';')
-            for dist in com_dists:
-                name, atoms = [x.strip() for x in dist.split(':')]
-                if name not in z_com_dict:
-                    z_com_dict[name] = []
-                atoms = _get_atoms(mol, atoms.split())
-                z_com_dict[name].append(_get_com_position(positions, atoms)[2])
+        queue = multiprocessing.Queue()
+        def worker(frame):
+            _tmp_z_atom_dict = {name: [] for name in z_atom_dict}
+            _tmp_z_com_dict = {name: [] for name in z_com_dict}
+            _tmp_theta_dict = {name: [] for name in theta_dict}
 
-            try:
-                angles = section['angles'].split(';')
-            except:
-                angles = []
-            for angle in angles:
-                name, theta_atoms = [x.strip() for x in angle.split(':')]
-                if name not in theta_dict:
-                    theta_dict[name] = []
-                com_atoms, z_range = [x.strip() for x in
-                                      section['angle.%s.com_zrange' % name].split(':')]
-                com_atoms = _get_atoms(mol, com_atoms.split())
-                if args.reverse:
-                    z_range = [elecd_r - float(x) for x in reversed(z_range.split())]
-                else:
-                    z_range = [elecd_l + float(x) for x in z_range.split()]
-                com_pos = _get_com_position(positions, com_atoms)
-                if com_pos[2] < z_range[0] or com_pos[2] > z_range[1]:
-                    continue
+            positions = frame.positions
+            if args.reverse:
+                positions[:, 2] = elecd_l + elecd_r - positions[:, 2]
 
-                if len(theta_atoms.split()) == 2:
-                    a1, a2 = _get_atoms(mol, theta_atoms.split())
-                    vec = positions[a2.id] - positions[a1.id]
-                    theta_dict[name].append(_calc_angle_xy(vec))
-                elif len(theta_atoms.split()) == 3:
-                    a1, a2, a3 = _get_atoms(mol, theta_atoms.split())
-                    vec_12 = positions[a2.id] - positions[a1.id]
-                    vec_13 = positions[a3.id] - positions[a1.id]
-                    vec_normal = np.cross(vec_12, vec_13)
-                    theta_dict[name].append(90 - _calc_angle_xy(vec_normal))
-                else:
-                    raise Exception('Invalid angle definition', name, theta_atoms)
+            for mol in top.molecules:
+                if mol.name in mol_dists_atom:
+                    for name in mol_dists_atom[mol.name]:
+                        atom_names = z_atom_name_atoms[name]
+                        atoms = _get_atoms(mol, atom_names)
+                        _tmp_z_atom_dict[name] += [positions[atom.id][2] for atom in atoms]
+                if mol.name in mol_dists_com:
+                    for name in mol_dists_com[mol.name]:
+                        atom_names = z_com_name_atoms[name]
+                        atoms = _get_atoms(mol, atom_names)
+                        _tmp_z_com_dict[name].append(_get_com_position(positions, atoms)[2])
+                if mol.name in mol_dists_angle:
+                    for name in mol_dists_angle[mol.name]:
+                        atom_names, com_atom_names, com_z_range = theta_name_atoms_com_zrange[name]
+                        com_atoms = _get_atoms(mol, com_atom_names)
+                        com_pos = _get_com_position(positions, com_atoms)
+                        if com_pos[2] < com_z_range[0] or com_pos[2] > com_z_range[1]:
+                            continue
+                        if len(atom_names) == 2:
+                            a1, a2 = _get_atoms(mol, atom_names)
+                            vec = positions[a2.id] - positions[a1.id]
+                            _tmp_theta_dict[name].append(_calc_angle_xy(vec))
+                        elif len(atom_names) == 3:
+                            a1, a2, a3 = _get_atoms(mol, atom_names)
+                            vec_12 = positions[a2.id] - positions[a1.id]
+                            vec_13 = positions[a3.id] - positions[a1.id]
+                            vec_normal = np.cross(vec_12, vec_13)
+                            _tmp_theta_dict[name].append(90 - _calc_angle_xy(vec_normal))
+                        else:
+                            raise Exception('Invalid angle definition', name, atom_names)
+            queue.put((_tmp_z_atom_dict, _tmp_z_com_dict, _tmp_theta_dict))
+
+        jobs = []
+        for frame in frames:
+            job = multiprocessing.Process(target=worker, args=(frame,))
+            jobs.append(job)
+            job.start()
+        for job in jobs:
+            _tmp_z_atom_dict, _tmp_z_com_dict, _tmp_theta_dict = queue.get()
+            for k, v in z_atom_dict.items():
+                z_atom_dict[k] += _tmp_z_atom_dict[k]
+            for k, v in z_com_dict.items():
+                z_com_dict[k] += _tmp_z_com_dict[k]
+            for k, v in theta_dict.items():
+                theta_dict[k] += _tmp_theta_dict[k]
+        for job in jobs:
+            job.join()
 
     print('')
 
+    n_frame = len(all_frames)
     name_column_dict = {'z': z_array}
     fig, ax = plt.subplots()
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
     for name, z_list in z_atom_dict.items():
         x, y = histogram(z_list, bins=edges)
-        ax.plot(x, y / area / dz / n_frame, label=name,
-                color='darkred' if name == 'dca' else None)
+        ax.plot(x, y / area / dz / n_frame, label=name, color='darkred' if name == 'dca' else None)
         name_column_dict['rho-' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
@@ -242,10 +288,8 @@ def distribution():
     ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
-        ax.plot(x, y_com / area / dz / n_frame, label=name,
-                color='darkred' if name == 'dca_com' else None)
-        ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name,
-                 color='darkred' if name == 'dca_com' else None)
+        ax.plot(x, y_com / area / dz / n_frame, label=name, color='darkred' if name == 'dca_com' else None)
+        ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name, color='darkred' if name == 'dca_com' else None)
         name_column_dict['rho-' + name] = y_com / area / dz / n_frame
         name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
