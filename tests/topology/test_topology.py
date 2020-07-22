@@ -2,6 +2,7 @@
 
 import os
 import sys
+import shutil
 import pytest
 from mstools.topology import Topology, UnitCell
 from mstools.forcefield import ForceField
@@ -37,7 +38,15 @@ def test_compress():
 
 
 def test_scale():
-    packmol = Packmol(r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe')
+    if os.path.exists(r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'):
+        path = r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'
+    else:
+        path = shutil.which('packmol')
+        if path is None:
+            print('Packmol not found')
+            assert 0
+
+    packmol = Packmol(path)
     top = Topology.open(cwd + '/files/Im11.zmat')
     top.cell.set_box([3, 3, 3])
     top.scale_with_packmol(10, packmol)
