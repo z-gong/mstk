@@ -24,7 +24,7 @@ from mstools.constant import *
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',
-                                    'fluctq', 'permit', 'number', 'q1st'],
+                                    'fluctq', 'permit', 'n1st', 'q1st'],
                     help='the property to analyze')
 parser.add_argument('-t', '--topology', required=True, type=str,
                     help='psf or lammps data file for topology information')
@@ -39,7 +39,7 @@ parser.add_argument('-e', '--end', default=-1, type=int,
                          '-1 means until last frames (included)')
 parser.add_argument('-n', '--nprocs', default=8, type=int, help='number of parallel processes to use')
 parser.add_argument('--cathode', default=0, type=float, help='z coordinate (in nm) of cathode')
-parser.add_argument('--anode', default=6.5, type=float, help='z coordinate (in nm) of anode')
+parser.add_argument('--anode', default=8.0, type=float, help='z coordinate (in nm) of anode')
 parser.add_argument('--dz', default=0.01, type=float,
                     help='bin size (nm) for numerical calculation of distribution and voltage')
 parser.add_argument('--ignore', nargs='+', default=[], type=str,
@@ -59,6 +59,9 @@ parser.add_argument('--reverse', action='store_true',
                          'It makes the analysis easier if anode is to be emphasized. '
                          'It only affect how the results are presented. '
                          'Only used with distribution, voltage, dipole and drude analysis')
+parser.add_argument('--sigma', default=0.5, type=float,
+                    help='width of Gaussian particles. '
+                         'Required for n1st and q1st analysis')
 
 args = parser.parse_args()
 
@@ -209,6 +212,7 @@ def distribution():
         sys.stdout.write('\r    frames %s' % ' '.join(map(str, i_frames)))
 
         queue = multiprocessing.Queue()
+
         def worker(frame):
             _tmp_z_atom_dict = {name: [] for name in z_atom_dict}
             _tmp_z_com_dict = {name: [] for name in z_com_dict}
@@ -671,11 +675,15 @@ def permittivity():
     print_data_to_file(name_column_dict, f'{args.output}-permittivity.txt')
 
 
-def number(thickness=0.5):
+def number_1st(thickness=0.5):
+    '''
+    The number of cations and anions in the first layer at anode.
+    '''
     id_cations = [atom.id for atom in top.atoms if atom.type in ('CR', 'NA', 'CW')]
     id_anions = [atom.id for atom in top.atoms if atom.type in ('N3A', 'CZA', 'NZA')]
     frame_list = []
-    N_list = []
+    N_cation_list = []
+    N_anion_list = []
     for i in range(args.begin, args.end, args.skip):
         frame_list.append(i)
         frame = trj.read_frame(i)
@@ -683,18 +691,21 @@ def number(thickness=0.5):
 
         z_cations = frame.positions[id_cations][:, 2]
         z_anions = frame.positions[id_anions][:, 2]
-        N_cations = 0.5 * erfc((anode - thickness - z_cations) / 2 ** 0.5 / 0.005).sum() * 0.2
-        N_anions = 0.5 * erfc((anode - thickness - z_anions) / 2 ** 0.5 / 0.005).sum() * 0.2
-        N_list.append(N_cations - N_anions)
+        N_cation = 0.5 * erfc((anode - thickness - z_cations) / 2 ** 0.5 / args.sigma).sum() * 0.2
+        N_anion = 0.5 * erfc((anode - thickness - z_anions) / 2 ** 0.5 / args.sigma).sum() * 0.2
+        N_cation_list.append(N_cation)
+        N_anion_list.append(N_anion)
 
-    print()
-    print(np.mean(N_list))
+    name_column_dict = {'frame'   : frame_list,
+                        'N_cation': N_cation_list,
+                        'N_anion' : N_anion_list}
+    print_data_to_file(name_column_dict, f'{args.output}-n1st.txt')
 
 
 def charge_1st(thickness=0.5):
     top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
     frame_list = []
-    q_list = []
+    q1st_list = []
     for i in range(args.begin, args.end, args.skip):
         frame_list.append(i)
         frame = trj.read_frame(i)
@@ -704,11 +715,12 @@ def charge_1st(thickness=0.5):
         ids_ils = np.where((z_to_left > 0.1) & (z_to_left < lz - 0.1))[0]
         z_ils = frame.positions[ids_ils, 2]
         q_ils = frame.charges[ids_ils] if frame.has_charge else top_atom_charges[ids_ils]
-        q = (0.5 * erfc((anode - thickness - z_ils) / 2 ** 0.5 / 0.005) * q_ils).sum()
-        q_list.append(q)
+        q = (0.5 * erfc((anode - thickness - z_ils) / 2 ** 0.5 / args.sigma) * q_ils).sum()
+        q1st_list.append(q)
 
-    print()
-    print(np.mean(q_list))
+    name_column_dict = {'frame': frame_list,
+                        'q1st' : q1st_list}
+    print_data_to_file(name_column_dict, f'{args.output}-q1st.txt')
 
 
 if __name__ == '__main__':
@@ -728,7 +740,7 @@ if __name__ == '__main__':
         charge_fluctuated()
     elif args.cmd == 'permit':
         permittivity()
-    elif args.cmd == 'number':
-        number()
+    elif args.cmd == 'n1st':
+        number_1st()
     elif args.cmd == 'q1st':
         charge_1st()

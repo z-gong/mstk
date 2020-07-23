@@ -10,11 +10,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('input', type=str, help='data file')
 parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this step')
 parser.add_argument('-e', '--end', default=-1, type=float, help='end at this step')
-parser.add_argument('-c', '--converge', default=False, action='store_true',
-                    help='detect convergence')
+parser.add_argument('-c', '--converge', default=False, action='store_true', help='detect convergence')
 parser.add_argument('-p', '--plot', default=False, action='store_true', help='plot data')
-parser.add_argument('-r', '--reciprocal', default=False, action='store_true',
-                    help='calculate reciprocal')
+parser.add_argument('-r', '--reciprocal', default=False, action='store_true', help='calculate reciprocal')
+parser.add_argument('-d', '--dist', default=False, action='store_true', help='plot distribution')
 args = parser.parse_args()
 
 
@@ -105,14 +104,17 @@ def plot_data(types, data, when_list):
         else:
             import matplotlib.pyplot as plt
             when = when_list[plottype]
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+            if not args.dist:
+                fig, (ax1) = plt.subplots(1, 1, figsize=(5, 4))
+            else:
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+                ax2.hist(data[plottype][when:], density=True, bins=40, color='C1')
+                ax2.set_xlabel(types[plottype])
+                ax2.set_ylabel('Probability')
             ax1.plot(data[0][:when], data[plottype][:when])
             ax1.plot(data[0][when:], data[plottype][when:])
             ax1.set_xlabel(types[0])
             ax1.set_ylabel(types[plottype])
-            ax2.hist(data[plottype][when:], density=True, bins=40, color='C1')
-            ax2.set_xlabel(types[plottype])
-            ax2.set_ylabel('Probability')
             fig.tight_layout()
             plt.show()
 
