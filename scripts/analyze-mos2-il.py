@@ -54,6 +54,7 @@ parser.add_argument('--voltage', default=0, type=float,
 parser.add_argument('--charge', default=0, type=float,
                     help='pre-assigned or evolved charge density on electrodes for analyzing voltage profile. '
                          'Required for voltage analysis')
+parser.add_argument('--cn', action='store_true', help='plot the cumulative number on distribution plot')
 parser.add_argument('--reverse', action='store_true',
                     help='reverse the direction of cathode and anode. '
                          'It makes the analysis easier if anode is to be emphasized. '
@@ -288,12 +289,14 @@ def distribution():
     name_column_dict = {'z': z_array}
     fig, ax = plt.subplots()
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='molecule density (/$nm^3$)')
-    ax2 = ax.twinx()
-    ax2.set_ylabel('cumulative molecule number')
+    if args.cn:
+        ax2 = ax.twinx()
+        ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
         ax.plot(x, y_com / area / dz / n_frame, label=name, color='darkred' if name == 'dca_com' else None)
-        ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name, color='darkred' if name == 'dca_com' else None)
+        if args.cn:
+            ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name, color='darkred' if name == 'dca_com' else None)
         name_column_dict['rho-' + name] = y_com / area / dz / n_frame
         name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
