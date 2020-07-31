@@ -310,7 +310,7 @@ def distribution():
     ax.set(xlim=[0, 90], ylim=[0, 0.1], xlabel='theta', ylabel='probability')
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
-        ax.plot(x, y, label=name, linestyle='--' if name.endswith('--') else None,
+        ax.plot(x, y, label=name, linestyle='--' if name.endswith('-') else None,
                 color='darkred' if name.startswith('dca') else None)
         name_column_dict.update({'theta': x, 'prob-' + name: y})
     ax.legend()
