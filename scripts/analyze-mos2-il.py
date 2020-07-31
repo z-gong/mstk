@@ -279,7 +279,7 @@ def distribution():
     ax.set(xlim=[edges[0], edges[-1]], xlabel='z (nm)', ylabel='particle density (/$nm^3$)')
     for name, z_list in z_atom_dict.items():
         x, y = histogram(z_list, bins=edges)
-        ax.plot(x, y / area / dz / n_frame, label=name, color='darkred' if name == 'dca' else None)
+        ax.plot(x, y / area / dz / n_frame, label=name, color='darkred' if name.startswith('dca') else None)
         name_column_dict['rho-' + name] = y / area / dz / n_frame
     ax.legend()
     fig.tight_layout()
@@ -294,9 +294,10 @@ def distribution():
         ax2.set_ylabel('cumulative molecule number')
     for name, z_list in z_com_dict.items():
         x, y_com = histogram(z_list, bins=edges)
-        ax.plot(x, y_com / area / dz / n_frame, label=name, color='darkred' if name == 'dca_com' else None)
+        ax.plot(x, y_com / area / dz / n_frame, label=name, color='darkred' if name.startswith('dca') else None)
         if args.cn:
-            ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name, color='darkred' if name == 'dca_com' else None)
+            ax2.plot(x, np.cumsum(y_com) / n_frame, '--', label=name,
+                     color='darkred' if name.startswith('dca') else None)
         name_column_dict['rho-' + name] = y_com / area / dz / n_frame
         name_column_dict['cum-' + name] = np.cumsum(y_com) / n_frame
     ax.legend()
@@ -309,7 +310,8 @@ def distribution():
     ax.set(xlim=[0, 90], ylim=[0, 0.1], xlabel='theta', ylabel='probability')
     for name, t_list in theta_dict.items():
         x, y = histogram(t_list, bins=np.linspace(0, 90, 91), normed=True)
-        ax.plot(x, y, label=name, color='darkred' if name == 'dca_e2e' else None)
+        ax.plot(x, y, label=name, linestyle='--' if name.endswith('--') else None,
+                color='darkred' if name.startswith('dca') else None)
         name_column_dict.update({'theta': x, 'prob-' + name: y})
     ax.legend()
     fig.tight_layout()
@@ -393,8 +395,7 @@ def diffusion():
            ylabel='residence auto correlation')
     for name, z_series_list in z_dict.items():
         _len = len(acf_dict[name])
-        ax.plot(t_array[:_len], acf_dict[name], label=name,
-                color='darkred' if name == 'dca_com' else None)
+        ax.plot(t_array[:_len], acf_dict[name], label=name, color='darkred' if name.startswith('dca') else None)
         name_column_dict['time'] = t_array[:_len]
         name_column_dict['acf-' + name] = acf_dict[name]
     ax.plot([0, t_array[-1] * 0.75], [np.exp(-1), np.exp(-1)], '--', label='$e^{-1}$')
@@ -509,8 +510,7 @@ def dipole():
     fig, ax = plt.subplots()
     ax.set(xlabel='z (nm)', ylabel='mean dipole (e*nm)')
     for name, z_dipole in name_z_dipole_dict.items():
-        ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name,
-                color='darkred' if name == 'dca' else None)
+        ax.plot(z_array, z_dipole[:, 2], label='dipoleZ - ' + name, color='darkred' if name.startswith('dca') else None)
         name_column_dict.update({
             'dipX-' + name: z_dipole[:, 0],
             'dipY-' + name: z_dipole[:, 1],
