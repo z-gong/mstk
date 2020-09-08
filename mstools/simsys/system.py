@@ -37,12 +37,19 @@ class System():
     If positions or unit cell is not included in the topology and not provided explicitly,
     an Exception will be raised.
 
+    If some bonded (bond, angle, dihedral, improper) parameters required by the topology are not found in the force field,
+    `mstools` can try to transfer parameters from more general terms in the force field.
+    e.g. if bond term between 'c_4o2' and 'n_3' is not found, the bond term between 'c_4' and 'n_3' will be used.
+    This mechanism is initially designed for TEAM force field.
+    It is disabled by default, and can be enabled by setting argument `transfer_bonded_terms` to True.
+
     Parameters
     ----------
     topology : Topology
     ff : ForceField
     positions : array_like, optional
     cell : UnitCell, optional
+    transfer_bonded_terms: bool, optional
 
     Attributes
     ----------
@@ -65,7 +72,7 @@ class System():
     ff_classes : set of subclass of FFTerm
     '''
 
-    def __init__(self, topology, ff, positions=None, cell=None):
+    def __init__(self, topology, ff, positions=None, cell=None, transfer_bonded_terms=False):
         self._topology = copy.deepcopy(topology)
         self._ff = ForceField()
 
@@ -112,7 +119,7 @@ class System():
         self.polarizable_classes = set()
         self.ff_classes = set()
 
-        self._extract_terms(ff)
+        self._extract_terms(ff, transfer_bonded_terms)
 
     @property
     def topology(self):
@@ -136,7 +143,7 @@ class System():
         '''
         return self._ff
 
-    def _extract_terms(self, ff: ForceField):
+    def _extract_terms(self, ff, transfer_bonded_terms=False):
         '''
         Extract only the required terms from a force field.
 
@@ -145,6 +152,7 @@ class System():
         Parameters
         ----------
         ff : ForceField
+        transfer_bonded_terms : bool
         '''
         self._ff.restore_settings(ff.get_settings())
 
@@ -184,10 +192,19 @@ class System():
             if bond.is_drude:
                 # the Drude-parent bonds will be handled by DrudeForce below
                 continue
+            _found = False
             ats = ff.get_eqt_for_bond(bond)
             try:
                 bterm = ff.get_bond_term(*ats)
+                _found = True
             except:
+                if transfer_bonded_terms:
+                    try:
+                        bterm = ff.get_bond_term(*(at[:3] for at in ats))
+                        _found = True
+                    except:
+                        pass
+            if not _found:
                 _bterm_not_found.add(BondTerm(*ats, 0).name)
             else:
                 self._ff.add_term(bterm, replace=True)
@@ -197,10 +214,19 @@ class System():
 
         _aterm_not_found = set()
         for angle in self._topology.angles:
+            _found = False
             ats = ff.get_eqt_for_angle(angle)
             try:
                 aterm = ff.get_angle_term(*ats)
-            except Exception as e:
+                _found = True
+            except:
+                if transfer_bonded_terms:
+                    try:
+                        aterm = ff.get_angle_term(*(at[:3] for at in ats))
+                        _found = True
+                    except:
+                        pass
+            if not _found:
                 _aterm_not_found.add(AngleTerm(*ats, 0).name)
             else:
                 self._ff.add_term(aterm, replace=True)
@@ -217,33 +243,60 @@ class System():
 
         _dterm_not_found = set()
         for dihedral in self._topology.dihedrals:
+            _found = False
+            dterm = None
             ats_list = ff.get_eqt_for_dihedral(dihedral)
             for ats in ats_list:
                 try:
                     dterm = ff.get_dihedral_term(*ats)
-                except Exception as e:
+                    _found = True
+                except:
                     pass
                 else:
-                    self._ff.add_term(dterm, replace=True)
-                    self.dihedral_terms[id(dihedral)] = dterm
                     break
             else:
+                if transfer_bonded_terms:
+                    for ats in ats_list:
+                        try:
+                            dterm = ff.get_dihedral_term(*(at[:3] for at in ats))
+                            _found = True
+                        except:
+                            pass
+                        else:
+                            break
+            if not _found:
                 _dterm_not_found.add(DihedralTerm(*ats_list[0]).name)
+            else:
+                self._ff.add_term(dterm, replace=True)
+                self.dihedral_terms[id(dihedral)] = dterm
 
         _iterm_not_found = set()
         for improper in self._topology.impropers:
+            _found = False
+            iterm = None
             ats_list = ff.get_eqt_for_improper(improper)
             for ats in ats_list:
                 try:
                     iterm = ff.get_improper_term(*ats)
-                except Exception as e:
+                    _found = True
+                except:
                     pass
                 else:
-                    self._ff.add_term(iterm, replace=True)
-                    self.improper_terms[id(improper)] = iterm
                     break
             else:
+                if transfer_bonded_terms:
+                    try:
+                        iterm = ff.get_improper_term(*(at[:3] for at in ats))
+                        _found = True
+                    except:
+                        pass
+                    else:
+                        break
+            if not _found:
                 _iterm_not_found.add(ImproperTerm(*ats_list[0]).name)
+            else:
+                self._ff.add_term(iterm, replace=True)
+                self.improper_terms[id(improper)] = iterm
 
         _pterm_not_found = set()
         for parent in self.drude_pairs.keys():

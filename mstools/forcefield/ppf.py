@@ -1,3 +1,4 @@
+import traceback
 from .forcefield import ForceField
 from .ffterm import *
 from .element import Element
@@ -160,7 +161,11 @@ class Ppf():
                     if atype._eqt_charge_ == line.key:
                         atype.charge = line.get_float_values()[0]
             elif line.term == 'BINC':
-                term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
+                try:
+                    term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
+                except:
+                    logger.error('Invalid BINC line: %s' % line.key)
+                    raise
                 term.version = line.version
                 ff.bci_terms[term.name] = term
             elif line.term == 'N12_6':
