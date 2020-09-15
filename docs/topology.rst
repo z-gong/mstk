@@ -1,4 +1,3 @@
-
 Topology
 ========
 
@@ -27,21 +26,6 @@ Connectivity
     Angle
     Dihedral
     Improper
-
-Virtual site
-~~~~~~~~~~~~
-
-*Haven't been tested yet.*
-
-.. currentmodule:: mstools.topology
-
-.. autosummary::
-    :toctree: _generated/
-
-    VirtualSiteFactory
-    VirtualSite
-    TwoLineSite
-    ThreePlaneSite
 
 Topology parser
 ---------------

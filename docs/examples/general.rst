@@ -4,10 +4,16 @@ General applications
 Assign atom types using typing engine
 -------------------------------------
 
+Atom type is the most basic element in a force field.
+It determines which parameters should be used for describing the potential energy of each topological element (bond, angle, etc...) in a simulation system.
+However, the assigning of atom types is usually the most cumbersome task in a simulation workflow.
+For bio simulations, template matching is commonly used, because almost all bio-polymers are made of several kinds of repeating units.
+However, the template matching won't work well for other molecules because there is no common repeating units.
+
 `mstools` provide two typing engines for assigning atom types.
 
 1. :class:`~mstools.forcefield.typer.ZftTyper` is based on local chemical environment
-described by SMARTS pattern and a hierarchical rule described in a type definition file.
+defined by SMARTS pattern and a hierarchical rule described in a type definition file.
 
 2. :class:`~mstools.forcefield.typer.DffTyper` calls `DFF` program to assign atom types.
 (The dependence of `DFF` will be removed in the future)
