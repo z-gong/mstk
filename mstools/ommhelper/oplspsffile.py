@@ -1182,7 +1182,7 @@ class OplsPsfFile(object):
         try:
             force.setExceptionsUsePeriodicBoundaryConditions(True)
         except:
-            print('WARNING: Cannot apply PBC for LJ exceptions')
+            print('WARNING: Cannot apply PBC for 1-4 exceptions')
 
         force.setForceGroup(self.NONBONDED_FORCE_GROUP)
         if not hasbox: # non-periodic

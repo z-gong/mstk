@@ -58,16 +58,18 @@ class ForceField():
         the key is the :attr:`~ImproperTerm.name` of the object.
     vdw_cutoff : float
         Cutoff distance for vdW interactions.
+        Will be ignored if periodic boundary condition is not used.
     vdw_long_range : str
         The method to handle the long-range vdW interactions.
         Optional values: :attr:`VDW_LONGRANGE_CORRECT`, :attr:`VDW_LONGRANGE_SHIFT`
+        Will be ignored if periodic boundary condition is not used.
     lj_mixing_rule : str
         The rule to generate the pairwise LJ126 parameters if not provided.
         Optional values: :attr:`LJ_MIXING_NONE`, :attr:`LJ_MIXING_LB`, :attr:`LJ_MIXING_GEOMETRIC`
     scale_14_vdw : float
-        The scaling factor for 1-4 intramolecular vdW interactions
+        The scaling factor for 1-4 vdW interactions
     scale_14_coulomb : float
-        The scaling factor for 1-4 intramolecular Coulomb interactions
+        The scaling factor for 1-4 Coulomb interactions
     '''
     #: Truncated vdW interactions with long range continuum correction
     VDW_LONGRANGE_CORRECT = 'correct'

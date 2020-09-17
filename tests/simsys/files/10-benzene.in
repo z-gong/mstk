@@ -1,0 +1,36 @@
+#Lammps 2009 input file generate by DFF
+
+units          real
+atom_style     full
+boundary       p p p
+#boundary       s s s
+
+pair_style     lj/cut/coul/long     12.0
+#pair_style     lj/cut/coul/cut 100
+pair_modify    mix arithmetic
+pair_modify    tail yes
+#pair_modify    shift yes
+
+kspace_style   pppm 1.0e-4
+dielectric     1.0
+special_bonds  amber
+bond_style     harmonic
+angle_style    harmonic
+dihedral_style opls
+improper_style cvff
+
+read_data      10-benzene.lmp
+
+pair_coeff     1     2   1.079   3.5023
+
+
+timestep       1.0
+fix            1 all nvt temp 298.15 298.15 100.0
+
+variable elec equal ecoul+elong
+
+thermo_style   custom pe ebond eangle edihed eimp evdwl v_elec
+thermo         10000
+
+run            100000
+

@@ -55,6 +55,8 @@ class System():
     ----------
     charged : bool
         True if any atom in this system carries charge
+    use_pbc : bool
+        True if unit cell information provided and volume is not zero
     drude_pairs : dict, [Atom, Atom]
     constrain_bonds : dict, [int, float]
     constrain_angles : dict, [int, float]
@@ -83,8 +85,10 @@ class System():
 
         if cell is not None:
             self._topology.cell = UnitCell(cell.vectors)
-        if self._topology.cell.volume == 0:
-            raise Exception('Periodic cell should be provided with topology or cell')
+
+        self.use_pbc = bool(self._topology.cell.volume != 0) # convert numpy.bool_ to bool
+        if not self.use_pbc:
+            logger.warning('Periodic cell not provided or volume equal to zero')
 
         if all(atom.mass <= 0 for atom in topology.atoms):
             logger.error('All atoms have non-positive mass. '

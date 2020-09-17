@@ -37,6 +37,22 @@ class CharmmExporter():
         psf_out : str or None
         prm_out : str or None
         '''
+        if not system.use_pbc:
+            raise Exception('PBC required for exporting CHARMM')
+
+        supported_terms = {LJ126Term,
+                           HarmonicBondTerm,
+                           HarmonicAngleTerm,
+                           PeriodicDihedralTerm,
+                           OplsImproperTerm, HarmonicImproperTerm,
+                           DrudeTerm}
+        unsupported = system.ff_classes - supported_terms
+        if unsupported != set():
+            raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
+
+        if OplsImproperTerm in system.ff_classes:
+            logger.warning('OplsImproperTerm not supported by CHARMM. Will be exported in harmonic form')
+
         if pdb_out is not None:
             CharmmExporter._export_pdb(system, pdb_out)
         if psf_out is not None:
@@ -54,21 +70,6 @@ class CharmmExporter():
 
     @staticmethod
     def _export_prm(system: System, prm_out='ff.prm'):
-        supported_terms = {LJ126Term,
-                           HarmonicBondTerm,
-                           HarmonicAngleTerm,
-                           PeriodicDihedralTerm,
-                           OplsImproperTerm, HarmonicImproperTerm,
-                           DrudeTerm}
-        unsupported = system.ff_classes - supported_terms
-        if unsupported != set():
-            raise Exception('Unsupported FF terms: %s'
-                            % (', '.join(map(lambda x: x.__name__, unsupported))))
-
-        if OplsImproperTerm in system.ff_classes:
-            logger.warning('OplsImproperTerm not supported by CHARMM. '
-                           'Will be exported in harmonic form')
-
         string = '* Created by mstools\n'
         string += '*\n'
 

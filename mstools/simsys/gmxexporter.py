@@ -45,6 +45,24 @@ class GromacsExporter():
         top_out : str or None
         mdp_out : str or None
         '''
+        if not system.use_pbc:
+            raise Exception('PBC required for exporting GROMACS')
+
+        supported_terms = {LJ126Term, MieTerm,
+                           HarmonicBondTerm,
+                           HarmonicAngleTerm, SDKAngleTerm,
+                           PeriodicDihedralTerm,
+                           OplsImproperTerm, HarmonicImproperTerm,
+                           DrudeTerm}
+        unsupported = system.ff_classes - supported_terms
+        if unsupported != set():
+            raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
+
+        if MieTerm in system.ff_classes:
+            logger.warning('MieTerm not supported by GROMACS. Will be exported in LJ-12-6 form')
+        if SDKAngleTerm in system.ff_classes:
+            logger.warning('SDKAngleTerm not supported by GROMACS. Will be exported in harmonic form')
+
         if gro_out is not None:
             GromacsExporter._export_gro(system, gro_out)
         if top_out is not None:
@@ -63,24 +81,6 @@ class GromacsExporter():
 
     @staticmethod
     def _export_top(system: System, top_out='topol.top'):
-        supported_terms = {LJ126Term, MieTerm,
-                           HarmonicBondTerm,
-                           HarmonicAngleTerm, SDKAngleTerm,
-                           PeriodicDihedralTerm,
-                           OplsImproperTerm, HarmonicImproperTerm,
-                           DrudeTerm}
-        unsupported = system.ff_classes - supported_terms
-        if unsupported != set():
-            raise Exception('Unsupported FF terms: %s'
-                            % (', '.join(map(lambda x: x.__name__, unsupported))))
-
-        if MieTerm in system.ff_classes:
-            logger.warning('MieTerm not supported by GROMACS. '
-                           'Will be exported in LJ-126 form')
-        if SDKAngleTerm in system.ff_classes:
-            logger.warning('SDKAngleTerm not supported by GROMACS. '
-                           'Will be exported in harmonic form')
-
         mols_unique = system._topology.get_unique_molecules(deepcopy=False)
 
         string = '; GROMACS topol file created by mstools\n'

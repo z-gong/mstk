@@ -54,6 +54,24 @@ def test_vdw_shift():
     assert pytest.approx(pe, rel=0.001) == 494.3
 
 
+def test_team_vacuum():
+    ff = ForceField.open(cwd + '/files/10-benzene.ppf')
+    top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
+    top.assign_charge_from_ff(ff)
+    system = System(top, ff, cell=UnitCell([0, 0, 0]))
+
+    omm_sys = system.to_omm_system()
+    integrator = mm.VerletIntegrator(0.001)
+    platform = mm.Platform.getPlatformByName('Reference')
+    sim = app.Simulation(top.to_omm_topology(), omm_sys, integrator, platform)
+    sim.context.setPositions(top.positions)
+
+    print_energy_terms(sim)
+
+    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    assert pytest.approx(pe, rel=0.001) == 490.8
+
+
 def test_drude():
     ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
     top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')

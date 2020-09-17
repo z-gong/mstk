@@ -39,6 +39,9 @@ class LammpsExporter():
         data_out : str
         in_out : str
         '''
+        if not system.use_pbc:
+            raise Exception('PBC required for exporting LAMMPS')
+
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,
@@ -47,8 +50,7 @@ class LammpsExporter():
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
-            raise Exception('Unsupported FF terms: %s'
-                            % (', '.join(map(lambda x: x.__name__, unsupported))))
+            raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         top = system.topology
         ff = system.ff
