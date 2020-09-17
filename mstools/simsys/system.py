@@ -50,6 +50,8 @@ class System():
     positions : array_like, optional
     cell : UnitCell, optional
     transfer_bonded_terms: bool, optional
+    supress_pbc_warning: bool, optional
+        Set to True if you intend to build a vacuum system and don't want to hear warning about it.
 
     Attributes
     ----------
@@ -74,7 +76,8 @@ class System():
     ff_classes : set of subclass of FFTerm
     '''
 
-    def __init__(self, topology, ff, positions=None, cell=None, transfer_bonded_terms=False):
+    def __init__(self, topology, ff, positions=None, cell=None, transfer_bonded_terms=False,
+                 suppress_pbc_warning=False):
         self._topology = copy.deepcopy(topology)
         self._ff = ForceField()
 
@@ -86,8 +89,8 @@ class System():
         if cell is not None:
             self._topology.cell = UnitCell(cell.vectors)
 
-        self.use_pbc = bool(self._topology.cell.volume != 0) # convert numpy.bool_ to bool
-        if not self.use_pbc:
+        self.use_pbc = bool(self._topology.cell.volume != 0)  # convert numpy.bool_ to bool
+        if not self.use_pbc and not suppress_pbc_warning:
             logger.warning('Periodic cell not provided or volume equal to zero')
 
         if all(atom.mass <= 0 for atom in topology.atoms):

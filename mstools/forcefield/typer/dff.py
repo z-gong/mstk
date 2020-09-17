@@ -2,7 +2,6 @@ import os
 import tempfile
 from .typer import Typer
 from ..errors import *
-from ...topology import *
 from ...wrapper import DFF
 
 try:
@@ -69,6 +68,7 @@ class DffTyper(Typer):
         self.dff.set_formal_charge([msd], setfc)
         self.dff.typing([msd], self.file, typing)
 
+        from ...topology import Topology
         top = Topology.open(msd)
         for i, atom in enumerate(molecule.atoms):
             atom.type = top.atoms[i].type
