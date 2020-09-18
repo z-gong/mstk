@@ -37,7 +37,7 @@ parser.add_argument('-b', '--begin', default=0, type=int,
 parser.add_argument('-e', '--end', default=-1, type=int,
                     help='last frame (not included) to analyze. Index starts from 0. '
                          '-1 means until last frames (included)')
-parser.add_argument('-n', '--nprocs', default=8, type=int, help='number of parallel processes to use')
+parser.add_argument('-n', '--nproc', default=8, type=int, help='number of parallel processes to use')
 parser.add_argument('--cathode', default=0, type=float, help='z coordinate (in nm) of cathode')
 parser.add_argument('--anode', default=8.0, type=float, help='z coordinate (in nm) of anode')
 parser.add_argument('--dz', default=0.01, type=float,
