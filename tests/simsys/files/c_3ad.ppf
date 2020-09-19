@@ -1,0 +1,47 @@
+#DFF:EQT
+#AAT                :	NB	ATC	BINC	Bond	A/C	A/S	T/C	T/S	O/C	O/S
+c_3a                 :	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a: V 1.0, S MGI, C D, R R1
+c_3ac                :	c_3ac	c_3ac	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a	c_3a: V 1.15, S MGI, C V, R R1
+c_3ad                :	c_3ac	c_3a	c_3a	c_3a	c_3a	c_3a	c_3ad	c_3a	c_3a	c_3a: V 1.80, S MGI, C D, R R9
+c_4h3                :	c_4h3	c_4h3	c_4	c_4	c_4	c_4	c_4	c_4	c_4	c_4: V 1.0, S MGI, C D, R R1
+h_1                  :	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1: V 1.0, S MGI, C D, R R1
+#DFF:PPF
+#PROTOCOL = AMBER
+#TYPINGRULE = D:\Projects\DFF\Developing\database\TEAMFF.ref\MGI\MGI.ext
+ATYPE: c_3a:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
+ATYPE: c_3ac:    6.00000*,  12.01100*: V 1.35, S MGI, C D, R R1
+ATYPE: c_4h3:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
+ATYPE: h_1:    1.00000*,   1.00790*: V 1.0, S MGI, C D, R R1
+ATC: c_3a:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: c_3ac:    0.00000*: V 1.91, S MGI, C D, R R9
+ATC: c_4h3:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: h_1:    0.00000*: V 1.0, S MGI, C D, R R1
+BINC: c_3a, c_3a:    0.00000*: V 1.0, S MGI, C D, R R1
+BINC: c_3a, c_4:    0.08820*: V 1.0, S MGI, C D, R R1
+BINC: c_3a, h_1:   -0.12000*: V 1.0, S MGI, C D, R R1
+BINC: c_4, h_1:   -0.06000*: V 1.0, S MGI, C D, R R1
+N12_6: c_3a:    3.93123*,   0.07871*: V 1.80, S MGI, C D, R R9
+N12_6: c_3ac:    3.87585*,   0.07797*: V 1.80, S MGI, C D, R R9
+N12_6: c_3ad:    3.81943*,   0.07719*: V 1.75, S MGI, C D, R R9
+N12_6: c_4h3:    4.09133*,   0.07855*: V 1.78, S MGI, C D, R R9
+N12_6: h_1:    2.73172*,   0.02125*: V 1.78, S MGI, C D, R R9
+BHARM: c_3a, c_3a:    1.38700*, 389.05130*: V 1.0, S MGI, C D, R R1
+BHARM: c_3a, c_4:    1.50840*, 254.18840*: V 1.0, S MGI, C D, R R1
+BHARM: c_3a, h_1:    1.08860*, 400.70700*: V 1.0, S MGI, C D, R R1
+BHARM: c_4, h_1:    1.09670*, 360.27960*: V 1.0, S MGI, C D, R R1
+AHARM: c_3a, c_3a, c_3a:  120.00040*,  46.35840*: V 1.0, S MGI, C D, R R1
+AHARM: c_3a, c_3a, c_4:  122.15610*,  71.46610*: V 1.0, S MGI, C D, R R1
+AHARM: c_3a, c_3a, h_1:  118.91600*,  43.87690*: V 1.0, S MGI, C D, R R1
+AHARM: c_3a, c_4, h_1:  110.60100*,  35.90670*: V 1.0, S MGI, C D, R R1
+AHARM: h_1, c_4, h_1:  106.67940*,  35.64690*: V 1.0, S MGI, C D, R R1
+TCOSP: X, c_3a, c_3ad, X:  180.00000*,   4.03420*,   2.00000*: V 1.53, S MGI, C D, R R9
+TCOSP: c_3a, c_3a, c_3a, c_3a:  180.00000*,   3.49930*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: c_3a, c_3a, c_3a, c_4:  180.00000*,   4.59820*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: c_3a, c_3a, c_3a, h_1:  180.00000*,   3.99950*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: c_3a, c_3a, c_4, h_1:    0.00000*,   0.07830*,   3.00000*,   0.00000*,  -1.80450*,   1.00000*, 180.00000*,   0.28990*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: c_3a, c_3ad, c_3ad, c_3a:  180.00000*,   0.99030*,   2.00000*: V 1.80, S MGI, C D, R R9
+TCOSP: c_4, c_3a, c_3a, h_1:  180.00000*,   1.39840*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: h_1, c_3a, c_3a, h_1:  180.00000*,   1.97650*,   2.00000*: V 1.0, S MGI, C D, R R1
+IBCOS: c_3a, c_3a, c_3a, c_3a:  180.00000*,   4.52940*,   2.00000*: V 1.90, S MGI, C D, R R9
+IBCOS: c_3a, c_3a, c_3a, c_4:  180.00000*,   4.68180*,   2.00000*: V 1.0, S MGI, C D, R R1
+IBCOS: c_3a, c_3a, c_3a, h_1:  180.00000*,   1.70340*,   2.00000*: V 1.0, S MGI, C D, R R1

@@ -9,6 +9,7 @@ from .unitcell import UnitCell
 from ..forcefield import ForceField, Element
 from ..forcefield.ffterm import *
 from ..forcefield.errors import *
+from ..utils import create_mol_from_smiles
 from .. import logger
 
 
@@ -109,11 +110,6 @@ class Molecule():
         -------
         molecule : Molecule
         '''
-        try:
-            import pybel
-        except ImportError:
-            raise ImportError('OpenBabel is required for parsing SMILES')
-
         words = smiles.strip().split()
         smiles = words[0]
         if len(words) > 1:
@@ -121,13 +117,7 @@ class Molecule():
         else:
             name = None
 
-        try:
-            py_mol = pybel.readstring('smi', smiles)
-        except:
-            raise Exception('Invalid SMILES')
-
-        py_mol.addh()
-        py_mol.make3D()
+        py_mol = create_mol_from_smiles(smiles)
         mol = Molecule.from_pybel(py_mol, name)
 
         return mol

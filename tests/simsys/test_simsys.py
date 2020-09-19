@@ -14,22 +14,24 @@ from simtk.unit import kilocalorie_per_mole as kcal_mol
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 
+def get_omm_integrator_platform():
+    integrator = mm.VerletIntegrator(0.001)
+    platform = mm.Platform.getPlatformByName('Reference')
+    return integrator, platform
+
+
 def test_team():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
     top.assign_charge_from_ff(ff)
     system = System(top, ff)
 
-    omm_sys = system.to_omm_system()
-    integrator = mm.VerletIntegrator(0.001)
-    platform = mm.Platform.getPlatformByName('Reference')
-    # platform = mm.Platform.getPlatformByName('OpenCL')
-    sim = app.Simulation(top.to_omm_topology(), omm_sys, integrator, platform)
-    sim.context.setPositions(top.positions)
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
 
-    print_energy_terms(sim)
+    print_energy_terms(context)
 
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 488.5
 
 
@@ -41,16 +43,12 @@ def test_vdw_shift():
     # top.assign_charge_from_ff(ff)
     system = System(top, ff)
 
-    omm_sys = system.to_omm_system()
-    integrator = mm.VerletIntegrator(0.001)
-    platform = mm.Platform.getPlatformByName('Reference')
-    # platform = mm.Platform.getPlatformByName('OpenCL')
-    sim = app.Simulation(top.to_omm_topology(), omm_sys, integrator, platform)
-    sim.context.setPositions(top.positions)
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
 
-    print_energy_terms(sim)
+    print_energy_terms(context)
 
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 494.3
 
 
@@ -60,16 +58,28 @@ def test_team_vacuum():
     top.assign_charge_from_ff(ff)
     system = System(top, ff, cell=UnitCell([0, 0, 0]))
 
-    omm_sys = system.to_omm_system()
-    integrator = mm.VerletIntegrator(0.001)
-    platform = mm.Platform.getPlatformByName('Reference')
-    sim = app.Simulation(top.to_omm_topology(), omm_sys, integrator, platform)
-    sim.context.setPositions(top.positions)
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
 
-    print_energy_terms(sim)
+    print_energy_terms(context)
 
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 490.8
+
+
+def test_eqt_vdw():
+    ff = ForceField.open(cwd + '/files/c_3ad.ppf')
+    top = Topology.open(cwd + '/files/c_3ad.msd')
+    top.assign_charge_from_ff(ff)
+    system = System(top, ff)
+
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
+
+    print_energy_terms(context)
+
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    assert pytest.approx(pe, rel=0.001) == 46.55
 
 
 def test_drude():
@@ -82,16 +92,12 @@ def test_drude():
 
     system = System(top, ff)
 
-    omm_sys = system.to_omm_system()
-    integrator = mm.VerletIntegrator(0.001)
-    platform = mm.Platform.getPlatformByName('Reference')
-    # platform = mm.Platform.getPlatformByName('OpenCL')
-    sim = app.Simulation(top.to_omm_topology(), omm_sys, integrator, platform)
-    sim.context.setPositions(top.positions)
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
 
-    print_energy_terms(sim)
+    print_energy_terms(context)
 
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 100.8
 
 
@@ -100,33 +106,26 @@ def test_sdk():
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
     for atom in top.atoms:
         atom.charge /= 80 ** 0.5
-
     system = System(top, ff)
-    omm_top = top.to_omm_topology()
-    omm_sys = system.to_omm_system()
 
-    integrator = mm.VerletIntegrator(0.001)
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
 
-    platform = mm.Platform.getPlatformByName('Reference')
-    # platform = mm.Platform.getPlatformByName('OpenCL')
-    sim = app.Simulation(omm_top, omm_sys, integrator, platform)
-    sim.context.setPositions(top.positions)
+    print_energy_terms(context)
 
-    print_energy_terms(sim)
-
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
     assert pytest.approx(pe, rel=0.001) == 186.0
 
 
-def print_energy_terms(sim):
-    pe = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    state1 = sim.context.getState(getEnergy=True, groups={1})
-    state2 = sim.context.getState(getEnergy=True, groups={2})
-    state3 = sim.context.getState(getEnergy=True, groups={3})
-    state4 = sim.context.getState(getEnergy=True, groups={4})
-    state5 = sim.context.getState(getEnergy=True, groups={5})
-    state6 = sim.context.getState(getEnergy=True, groups={6})
-    state7 = sim.context.getState(getEnergy=True, groups={7})
+def print_energy_terms(context):
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
+    state1 = context.getState(getEnergy=True, groups={1})
+    state2 = context.getState(getEnergy=True, groups={2})
+    state3 = context.getState(getEnergy=True, groups={3})
+    state4 = context.getState(getEnergy=True, groups={4})
+    state5 = context.getState(getEnergy=True, groups={5})
+    state6 = context.getState(getEnergy=True, groups={6})
+    state7 = context.getState(getEnergy=True, groups={7})
     print()
     print('E_pot      : ', pe)
     print('E_bond     : ', state1.getPotentialEnergy().value_in_unit(kcal_mol))

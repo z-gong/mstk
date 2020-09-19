@@ -54,10 +54,13 @@ class OpenMMExporter():
             raise Exception('Unsupported FF terms: %s'
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        top = system.topology
+        ff = system.ff
+
         omm_system = mm.System()
         if system.use_pbc:
-            omm_system.setDefaultPeriodicBoxVectors(*system._topology.cell.vectors)
-        for atom in system._topology.atoms:
+            omm_system.setDefaultPeriodicBoxVectors(*top.cell.vectors)
+        for atom in top.atoms:
             omm_system.addParticle(atom.mass)
 
         ### Set up bonds #######################################################################
@@ -65,7 +68,7 @@ class OpenMMExporter():
             if bond_class == HarmonicBondTerm:
                 logger.info('Setting up harmonic bonds...')
                 bforce = mm.HarmonicBondForce()
-                for bond in system._topology.bonds:
+                for bond in top.bonds:
                     if bond.is_drude:
                         continue
                     bterm = system.bond_terms[id(bond)]
@@ -84,7 +87,7 @@ class OpenMMExporter():
             if angle_class == HarmonicAngleTerm:
                 logger.info('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
-                for angle in system._topology.angles:
+                for angle in top.angles:
                     aterm = system.angle_terms[id(angle)]
                     if type(aterm) == HarmonicAngleTerm:
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
@@ -101,11 +104,11 @@ class OpenMMExporter():
                 aforce.addPerBondParameter('k')
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
-                for angle in system._topology.angles:
+                for angle in top.angles:
                     aterm = system.angle_terms[id(angle)]
                     if type(aterm) != SDKAngleTerm:
                         continue
-                    vdw = system._ff.get_vdw_term(angle.atom1.type, angle.atom2.type)
+                    vdw = ff.get_vdw_term(ff.atom_types[angle.atom1.type], ff.atom_types[angle.atom2.type])
                     if type(vdw) != MieTerm or vdw.repulsion != 9 or vdw.attraction != 6:
                         raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id],
@@ -119,12 +122,12 @@ class OpenMMExporter():
 
         ### Set up constraints #################################################################
         logger.info(f'Setting up {len(system.constrain_bonds)} bond constraints...')
-        for bond in system._topology.bonds:
+        for bond in top.bonds:
             if id(bond) in system.constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
                                          system.constrain_bonds[id(bond)])
         logger.info(f'Setting up {len(system.constrain_angles)} angle constraints...')
-        for angle in system._topology.angles:
+        for angle in top.angles:
             if id(angle) in system.constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
                                          system.constrain_angles[id(angle)])
@@ -134,7 +137,7 @@ class OpenMMExporter():
             if dihedral_class == PeriodicDihedralTerm:
                 logger.info('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
-                for dihedral in system._topology.dihedrals:
+                for dihedral in top.dihedrals:
                     dterm = system.dihedral_terms[id(dihedral)]
                     ia1, ia2, ia3, ia4 = dihedral.atom1.id, dihedral.atom2.id, dihedral.atom3.id, dihedral.atom4.id
                     if type(dterm) == PeriodicDihedralTerm:
@@ -155,7 +158,7 @@ class OpenMMExporter():
                 logger.info('Setting up periodic impropers...')
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
-                for improper in system._topology.impropers:
+                for improper in top.impropers:
                     iterm = system.improper_terms[id(improper)]
                     if type(iterm) == OplsImproperTerm:
                         # in OPLS convention, the third atom is the central atom
@@ -168,7 +171,7 @@ class OpenMMExporter():
                                                f'pi={PI}')
                 iforce.addPerTorsionParameter('phi0')
                 iforce.addPerTorsionParameter('k')
-                for improper in system._topology.impropers:
+                for improper in top.impropers:
                     iterm = system.improper_terms[id(improper)]
                     if type(iterm) == HarmonicImproperTerm:
                         iforce.addTorsion(improper.atom1.id, improper.atom2.id,
@@ -184,7 +187,7 @@ class OpenMMExporter():
         ### Set up non-bonded interactions #########################################################
         # NonbonedForce is not flexible enough. Use it only for Coulomb interactions (including 1-4 Coulomb exceptions)
         # CustomNonbondedForce handles vdW interactions (including 1-4 LJ exceptions)
-        cutoff = system._ff.vdw_cutoff
+        cutoff = ff.vdw_cutoff
         logger.info('Setting up Coulomb interactions...')
         nbforce = mm.NonbondedForce()
         if system.use_pbc:
@@ -201,17 +204,17 @@ class OpenMMExporter():
             nbforce.setNonbondedMethod(mm.NonbondedForce.NoCutoff)
         nbforce.setForceGroup(ForceGroup.COULOMB)
         omm_system.addForce(nbforce)
-        for atom in system._topology.atoms:
+        for atom in top.atoms:
             nbforce.addParticle(atom.charge, 1.0, 0.0)
 
         ### Set up vdW interactions #########################################################
-        atom_types = list(system._ff.atom_types.values())
-        type_names = list(system._ff.atom_types.keys())
+        atom_types = list(ff.atom_types.values())
+        type_names = list(ff.atom_types.keys())
         n_type = len(atom_types)
         for vdw_class in system.vdw_classes:
             if vdw_class == LJ126Term:
                 logger.info('Setting up LJ-12-6 vdW interactions...')
-                if system.use_pbc and system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
+                if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     invRc6 = 1 / cutoff ** 6
                     cforce = mm.CustomNonbondedForce(
                         f'A(type1,type2)*(invR6*invR6-{invRc6 * invRc6})-'
@@ -224,9 +227,9 @@ class OpenMMExporter():
                 cforce.addPerParticleParameter('type')
                 A_list = [0.0] * n_type * n_type
                 B_list = [0.0] * n_type * n_type
-                for i, type1 in enumerate(atom_types):
-                    for j, type2 in enumerate(atom_types):
-                        vdw = system._ff.get_vdw_term(type1, type2)
+                for i, atype1 in enumerate(atom_types):
+                    for j, atype2 in enumerate(atom_types):
+                        vdw = ff.get_vdw_term(atype1, atype2)
                         if type(vdw) == LJ126Term:
                             A = 4 * vdw.epsilon * vdw.sigma ** 12
                             B = 4 * vdw.epsilon * vdw.sigma ** 6
@@ -237,13 +240,13 @@ class OpenMMExporter():
                 cforce.addTabulatedFunction('A', mm.Discrete2DFunction(n_type, n_type, A_list))
                 cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
 
-                for atom in system._topology.atoms:
+                for atom in top.atoms:
                     id_type = type_names.index(atom.type)
                     cforce.addParticle([id_type])
 
             elif vdw_class == MieTerm:
                 logger.info('Setting up Mie vdW interactions...')
-                if system.use_pbc and system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
+                if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
                                                      'B(type1,type2)/r^ATT(type1,type2)-'
                                                      'SHIFT(type1,type2)')
@@ -256,9 +259,9 @@ class OpenMMExporter():
                 REP_list = [0.0] * n_type * n_type
                 ATT_list = [0.0] * n_type * n_type
                 SHIFT_list = [0.0] * n_type * n_type
-                for i, type1 in enumerate(atom_types):
-                    for j, type2 in enumerate(atom_types):
-                        vdw = system._ff.get_vdw_term(type1, type2)
+                for i, atype1 in enumerate(atom_types):
+                    for j, atype2 in enumerate(atom_types):
+                        vdw = ff.get_vdw_term(atype1, atype2)
                         if type(vdw) == MieTerm:
                             A = vdw.factor_energy() * vdw.epsilon * vdw.sigma ** vdw.repulsion
                             B = vdw.factor_energy() * vdw.epsilon * vdw.sigma ** vdw.attraction
@@ -276,10 +279,10 @@ class OpenMMExporter():
                 cforce.addTabulatedFunction('B', mm.Discrete2DFunction(n_type, n_type, B_list))
                 cforce.addTabulatedFunction('REP', mm.Discrete2DFunction(n_type, n_type, REP_list))
                 cforce.addTabulatedFunction('ATT', mm.Discrete2DFunction(n_type, n_type, ATT_list))
-                if system.use_pbc and system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
+                if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce.addTabulatedFunction('SHIFT', mm.Discrete2DFunction(n_type, n_type, SHIFT_list))
 
-                for atom in system._topology.atoms:
+                for atom in top.atoms:
                     id_type = type_names.index(atom.type)
                     cforce.addParticle([id_type])
 
@@ -289,7 +292,7 @@ class OpenMMExporter():
             if system.use_pbc:
                 cforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
                 cforce.setCutoffDistance(cutoff)
-                if system._ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT:
+                if ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT:
                     cforce.setUseLongRangeCorrection(True)
             else:
                 cforce.setNonbondedMethod(mm.CustomNonbondedForce.NoCutoff)
@@ -299,7 +302,7 @@ class OpenMMExporter():
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
         logger.info('Setting up 1-2, 1-3 and 1-4 exceptions...')
         custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
-        pair12, pair13, pair14 = system._topology.get_12_13_14_pairs()
+        pair12, pair13, pair14 = top.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
             nbforce.addException(atom1.id, atom2.id, 0.0, 1.0, 0.0)
             for f in custom_nb_forces:
@@ -308,16 +311,16 @@ class OpenMMExporter():
         # This is required by OpenMM's internal implementation.
         # Even though NonbondedForce can handle 1-4 vdW, we use it only for 1-4 Coulomb.
         # And use CustomBondForce to handle 1-4 vdW, which makes it more clear for energy decomposition.
-        if system._ff.scale_14_vdw != 1 or system._ff.scale_14_coulomb != 1:
+        if ff.scale_14_vdw != 1 or ff.scale_14_coulomb != 1:
             pair14_forces = {}  # {VdwTerm: mm.NbForce}
             for atom1, atom2 in pair14:
-                charge_prod = atom1.charge * atom2.charge * system._ff.scale_14_coulomb
+                charge_prod = atom1.charge * atom2.charge * ff.scale_14_coulomb
                 nbforce.addException(atom1.id, atom2.id, charge_prod, 1.0, 0.0)
                 for f in custom_nb_forces:
                     f.addExclusion(atom1.id, atom2.id)
-                if system._ff.scale_14_vdw == 0:
+                if ff.scale_14_vdw == 0:
                     continue
-                vdw = system._ff.get_vdw_term(atom1.type, atom2.type)
+                vdw = ff.get_vdw_term(ff.atom_types[atom1.type], ff.atom_types[atom2.type])
                 # We generalize LJ126Term and MieTerm because of minimal computational cost for 1-4 vdW
                 if type(vdw) in (LJ126Term, MieTerm):
                     cbforce = pair14_forces.get(MieTerm)
@@ -332,7 +335,7 @@ class OpenMMExporter():
                         cbforce.setForceGroup(ForceGroup.VDW)
                         omm_system.addForce(cbforce)
                         pair14_forces[MieTerm] = cbforce
-                    epsilon = vdw.epsilon * system._ff.scale_14_vdw
+                    epsilon = vdw.epsilon * ff.scale_14_vdw
                     if type(vdw) == LJ126Term:
                         cbforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
                     elif type(vdw) == MieTerm:
@@ -393,7 +396,7 @@ class OpenMMExporter():
                     if drude1 is not None and drude2 is not None:
                         drude_exclusions14.append((drude1, drude2))
                 for a1, a2 in drude_exclusions14:
-                    charge_prod = a1.charge * a2.charge * system._ff.scale_14_coulomb
+                    charge_prod = a1.charge * a2.charge * ff.scale_14_coulomb
                     nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
                     for f in custom_nb_forces:
                         f.addExclusion(a1.id, a2.id)
