@@ -160,7 +160,7 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out = None, mol2_out 
     except:
         raise OpenBabelError('Invalid SMILES')
 
-    from .saved_mol2 import smiles_mol2_dict
+    from .data.saved_mol2 import smiles_mol2_dict
 
     canSMILES = py_mol.write('can').strip()
     saved_mol2 = smiles_mol2_dict.get(canSMILES)
