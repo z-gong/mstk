@@ -1,5 +1,4 @@
-import math
-import numpy as np
+import io
 from .atom import Atom
 from .molecule import Molecule
 from .unitcell import UnitCell
@@ -16,7 +15,8 @@ class Msd():
 
     Parameters
     ----------
-    file : str
+    file : str or file-like object
+        MSD file
     kwargs : dict
         Ignored
 
@@ -32,12 +32,19 @@ class Msd():
     '''
 
     def __init__(self, file, **kwargs):
-        self.topology = Topology()
-        self._parse(file)
+        if type(file) is str:
+            with open(file) as f:
+                content = f.read()
+        elif isinstance(file, io.IOBase):
+            content = file.read()
+        else:
+            raise Exception('A filename or a file object required')
 
-    def _parse(self, file):
-        with open(file) as f:
-            lines = f.read().splitlines()
+        self.topology = Topology()
+        self._parse(content)
+
+    def _parse(self, content):
+        lines = content.splitlines()
         # Ignore the first three lines
         # The forth line could be cell information or atom number
         line = lines[3]

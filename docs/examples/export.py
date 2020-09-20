@@ -1,3 +1,4 @@
+import io
 from mstools.topology import Molecule, Topology, UnitCell
 from mstools.forcefield import ForceField, ZftTyper
 from mstools.simsys import System
@@ -18,7 +19,7 @@ c_4
     c_4h2
     c_4h3
 '''
-typer = ZftTyper(content=definition)
+typer = ZftTyper(io.StringIO(definition))
 
 butane = Molecule.from_smiles('CCCC    butane')
 typer.type_molecule(butane)

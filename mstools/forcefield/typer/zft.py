@@ -1,3 +1,4 @@
+import io
 from .typer import Typer
 from ..errors import *
 
@@ -11,10 +12,11 @@ else:
 
 
 class TypeDefine():
-    def __init__(self, name, smarts, charge):
+    def __init__(self, name, smarts):
         self.name = name
+        self.smarts = smarts
         self.obsmarts = None
-        self.charge = charge
+        # smarts not provided means this is a fake root define
         if smarts is not None:
             self.obsmarts = ob.OBSmartsPattern()
             if not self.obsmarts.Init(smarts):
@@ -24,7 +26,7 @@ class TypeDefine():
         self.parent: TypeDefine = None
 
     def __repr__(self):
-        return '<TypeDefine: %s>' % self.name
+        return '<TypeDefine: %s %s>' % (self.name, self.smarts)
 
     def add_child(self, define):
         if define not in self.children:
@@ -42,12 +44,12 @@ class ZftTyper(Typer):
     --------
     >>> TypeDefinition
 
-    >>> H_1 [#1]              0
-    >>> C_4 [#6X4]            0
-    >>> HC  [H][CX4]         0
-    >>> CT  [CX4;H3]         0
-    >>> CS  [CX4;H2]         0
-    >>> HT  [H][CX4]c1ccccc1 0
+    >>> H_1 [#1]
+    >>> C_4 [#6X4]
+    >>> HC  [H][CX4]
+    >>> CT  [CX4;H3]
+    >>> CS  [CX4;H2]
+    >>> HT  [H][CX4]c1ccccc1
 
 
     >>> HierarchicalTree
@@ -61,8 +63,7 @@ class ZftTyper(Typer):
 
     This is a sample type definition file for hydrocarbons with OPLS force field.
     Two sections are required: `TypeDefinition` and `HierarchicalTree`.
-    `TypeDefinition` determines which type the atom can be by matching SMARTS and formal charge.
-    Currently, charge information is ignored, but it should be provided in the file.
+    `TypeDefinition` determines which type the atom can be by matching SMARTS.
     A atom can match several different atom types defined in `TypeDefinition` section.
     e.g. Hydrogen atoms with one neighbour will match type `H_1`, and carbon atoms with four neighbour will match type `C_4`.
     Hydrogen atoms bonded with four neighboured carbon will also match type `HC`.
@@ -86,8 +87,8 @@ class ZftTyper(Typer):
 
     Parameters
     ----------
-    file : str, optional
-        Name of type definition file
+    file : str or file-like object, optional
+        Type definition file
     content : str, optional
         Content of type definition file
 
@@ -98,16 +99,20 @@ class ZftTyper(Typer):
 
     '''
 
-    def __init__(self, file=None, content=None):
+    def __init__(self, file=None):
         if not OPENBABEL_IMPORTED:
             raise Exception('Cannot import openbabel')
 
         self.defines: {str: TypeDefine} = {}
-        self.define_root = TypeDefine('UNDEFINED', None, 0)
-        if file is not None:
+        self.define_root = TypeDefine('UNDEFINED', None)
+
+        content = None
+        if type(file) is str:
             with open(file) as f:
                 content = f.read()
-        elif content is None:
+        elif isinstance(file, io.IOBase):
+            content = file.read()
+        if content is None:
             raise Exception('Argument file or string should be provided')
 
         self._parse(content)
@@ -129,10 +134,10 @@ class ZftTyper(Typer):
                 continue
             if section == 'TypeDefinition':
                 try:
-                    name, smarts, charge = line.strip().split()
+                    name, smarts = line.strip().split()[:2]
                 except:
-                    raise Exception('smarts and charge should be provided: %s' % line)
-                self.defines[name] = TypeDefine(name, smarts, charge)
+                    raise Exception('smarts should be provided: %s' % line)
+                self.defines[name] = TypeDefine(name, smarts)
             if section == 'HierarchicalTree':
                 tree_lines.append(line.rstrip())
 
@@ -158,6 +163,13 @@ class ZftTyper(Typer):
             except:
                 raise Exception('Atom type not found in TypeDefinition section: %s' % line)
             parent.add_child(last_define)
+
+    def add_define(self, name, smarts, parent):
+        if name in self.defines:
+            raise Exception('TypeDefine %s already exist' % self.defines[name])
+        define = TypeDefine(name, smarts)
+        self.defines[name] = define
+        parent.add_child(define)
 
     def type_molecule(self, molecule):
         '''

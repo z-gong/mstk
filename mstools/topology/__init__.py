@@ -4,6 +4,7 @@ from .connectivity import *
 from .molecule import  Molecule
 from .topology import Topology
 from .lammps import LammpsData
+from .msd import Msd
 from .psf import Psf
 from .pdb import Pdb
 from .xyz import XyzTopology

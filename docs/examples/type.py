@@ -1,3 +1,4 @@
+import io
 from mstools.forcefield import ZftTyper
 from mstools.topology import Molecule
 
@@ -17,7 +18,7 @@ c_4
     c_4h2
     c_4h3
 '''
-typer = ZftTyper(content=definition)
+typer = ZftTyper(io.StringIO(definition))
 
 # Initialize a molecule from SMILES string
 butane = Molecule.from_smiles('CCCC    butane')
