@@ -2,6 +2,7 @@ import traceback
 from .forcefield import ForceField
 from .ffterm import *
 from .element import Element
+from .errors import *
 from .. import logger
 
 
@@ -163,11 +164,11 @@ class Ppf():
             elif line.term == 'BINC':
                 try:
                     term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
-                except:
-                    logger.error('Invalid BINC line: %s' % line.key)
-                    raise
-                term.version = line.version
-                ff.bci_terms[term.name] = term
+                except ChargeIncrementNonZeroError:
+                    logger.warning('Invalid BINC line ignored: %s' % line.key)
+                else:
+                    term.version = line.version
+                    ff.bci_terms[term.name] = term
             elif line.term == 'N12_6':
                 at = line.get_names()[0]
                 r_min, epsilon = line.get_float_values()

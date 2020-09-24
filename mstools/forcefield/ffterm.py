@@ -1,6 +1,7 @@
 from collections import namedtuple
 import math
 from distutils.util import strtobool
+from .errors import *
 from ..constant import *
 
 
@@ -344,7 +345,7 @@ class ChargeIncrementTerm(FFTerm):
     def __init__(self, type1, type2, value):
         super().__init__()
         if type1 == type2 and value != 0:
-            raise Exception('Non-zero charge increment between same atom types')
+            raise ChargeIncrementNonZeroError('Non-zero charge increment between atoms of same type')
 
         at1, at2 = sorted([type1, type2])
         self.type1 = at1
