@@ -577,9 +577,9 @@ class ForceField():
 
         return iterm
 
-    def get_charge_increment(self, bond):
+    def get_eqt_for_bci(self, bond):
         '''
-        Get the charge increment between the two atoms in a bond.
+        Get the equivalent atom types for charge increment parameters of the two atoms in a bond.
 
         Parameters
         ----------
@@ -587,21 +587,47 @@ class ForceField():
 
         Returns
         -------
-        offset : float
-            The charge transferred from the second atom to the first atom in this bond.
-
+        type1 : str
+            The equivalent atom type for charge increment parameters of the first atom in this bond.
+        type2 : str
+            The equivalent atom type for charge increment parameters of the second atom in this bond.
         '''
         try:
             at1 = self.atom_types.get(bond.atom1.type).eqt_q_inc
             at2 = self.atom_types.get(bond.atom2.type).eqt_q_inc
         except:
             raise FFTermNotFoundError(
-                f'AtomType {bond.atom1.type} or {bond.atom2.type} not found in FF')
+                f'Atom type {bond.atom1.type} or {bond.atom2.type} not found in FF')
+        return at1, at2
+
+    def get_bci_term(self, type1, type2):
+        '''
+        Get the charge increment term for the bond formed by two atom types.
+        A direction will also be returned, which equal to 1 if type1 in the charge increment term matches type1 in arguments, -1 otherwise.
+
+        If not found, an Exception will be raised.
+
+        Parameters
+        ----------
+        type1 : AtomType or str
+            If type1 is a AtomType object, then will search for its equivalent type for charge increment parameters.
+            If type1 is a str, then will match exactly this type.
+        type2 : AtomType or str
+            If type2 is a AtomType object, then will search for its equivalent type for charge increment parameters.
+            If type2 is a str, them will match exactly this type.
+
+        Returns
+        -------
+        term : subclass of BondTerm
+        direction : [1, -1]
+        '''
+        at1: str = type1.eqt_q_inc if type(type1) is AtomType else type1
+        at2: str = type2.eqt_q_inc if type(type2) is AtomType else type2
         qterm = ChargeIncrementTerm(at1, at2, 0)
+        direction = 1 if qterm.type1 == at1 else -1
         try:
             qterm = self.bci_terms[qterm.name]
         except:
             raise FFTermNotFoundError(f'{str(qterm)} not found in FF')
 
-        direction = 1 if at1 == qterm.type1 else -1
-        return qterm.value * direction
+        return qterm, direction

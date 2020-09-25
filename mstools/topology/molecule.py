@@ -6,9 +6,7 @@ from .atom import Atom
 from .virtualsite import *
 from .connectivity import *
 from .unitcell import UnitCell
-from ..forcefield import ForceField, Element
-from ..forcefield.ffterm import *
-from ..forcefield.errors import *
+from ..forcefield import *
 from ..utils import create_mol_from_smiles
 from .. import logger
 
@@ -933,7 +931,7 @@ class Molecule():
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge_from_ff(self, ff):
+    def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
         '''
         Assign charges of all atoms from the force field.
 
@@ -944,9 +942,16 @@ class Molecule():
         and the the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
 
+        If charge increment parameters required by the topology are not found in the force field,
+        `mstools` can try to transfer parameters from more general terms in the force field.
+        e.g. if bci term between 'c_4o2' and 'n_3' is not found, the bci term between 'c_4' and 'n_3' will be used.
+        This mechanism is initially designed for TEAM force field.
+        It is disabled by default, and can be enabled by setting argument `transfer_bci_terms` to True.
+
         Parameters
         ----------
         ff : ForceField
+        transfer_bci_terms : bool, optional
         '''
         _assigned = [False] * self.n_atom
         for atom in self._atoms:
@@ -962,10 +967,20 @@ class Molecule():
 
         if len(ff.bci_terms) > 0:
             for bond in filter(lambda x: not x.is_drude, self._bonds):
+                ats = ff.get_eqt_for_bci(bond)
+                increment = 0
                 try:
-                    increment = ff.get_charge_increment(bond)
+                    qterm, direction = ff.get_bci_term(*ats)
+                    increment = qterm.value * direction
                 except FFTermNotFoundError:
-                    increment = 0
+                    if transfer_bci_terms:
+                        _term = ChargeIncrementTerm(*ats, 0)
+                        matched, score = dff_fuzzy_match(_term, ff)
+                        if matched is not None:
+                            direction = 1 if _term.type1 == ats[0] else -1
+                            increment = matched.value * direction
+                            logger.warning(f'{_term} not found in FF. Transferred from {matched} with score {score}')
+
                 bond.atom1.charge += increment
                 bond.atom2.charge -= increment
                 if increment != 0:

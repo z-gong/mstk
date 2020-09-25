@@ -201,16 +201,18 @@ class System():
                 continue
             _found = False
             ats = ff.get_eqt_for_bond(bond)
+            _term = BondTerm(*ats, 0)
             try:
                 bterm = ff.get_bond_term(*ats)
                 _found = True
             except:
                 if transfer_bonded_terms:
-                    bterm, score = dff_fuzzy_match(BondTerm(*ats, 0), ff)
+                    bterm, score = dff_fuzzy_match(_term, ff)
                     if bterm is not None:
                         _found = True
+                        logger.warning(f'{_term} not found in FF. Transferred from {bterm} with score {score}')
             if not _found:
-                _bterm_not_found.add(BondTerm(*ats, 0).name)
+                _bterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(bterm, replace=True)
                 self.bond_terms[id(bond)] = bterm
@@ -221,16 +223,18 @@ class System():
         for angle in self._topology.angles:
             _found = False
             ats = ff.get_eqt_for_angle(angle)
+            _term = AngleTerm(*ats, 0)
             try:
                 aterm = ff.get_angle_term(*ats)
                 _found = True
             except:
                 if transfer_bonded_terms:
-                    aterm, score = dff_fuzzy_match(AngleTerm(*ats, 0), ff)
+                    aterm, score = dff_fuzzy_match(_term, ff)
                     if aterm is not None:
                         _found = True
+                        logger.warning(f'{_term} not found in FF. Transferred from {aterm} with score {score}')
             if not _found:
-                _aterm_not_found.add(AngleTerm(*ats, 0).name)
+                _aterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(aterm, replace=True)
                 self.angle_terms[id(angle)] = aterm
@@ -248,6 +252,7 @@ class System():
         for dihedral in self._topology.dihedrals:
             _found = False
             ats_list = ff.get_eqt_for_dihedral(dihedral)
+            _term = DihedralTerm(*ats_list[0])
             for ats in ats_list:
                 try:
                     dterm = ff.get_dihedral_term(*ats)
@@ -258,11 +263,12 @@ class System():
                     break
             else:
                 if transfer_bonded_terms:
-                    dterm, score = dff_fuzzy_match(DihedralTerm(*ats_list[0]), ff)
+                    dterm, score = dff_fuzzy_match(_term, ff)
                     if dterm is not None:
                         _found = True
+                        logger.warning(f'{_term} not found in FF. Transferred from {dterm} with score {score}')
             if not _found:
-                _dterm_not_found.add(DihedralTerm(*ats_list[0]).name)
+                _dterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(dterm, replace=True)
                 self.dihedral_terms[id(dihedral)] = dterm
@@ -271,6 +277,7 @@ class System():
         for improper in self._topology.impropers:
             _found = False
             ats_list = ff.get_eqt_for_improper(improper)
+            _term = ImproperTerm(*ats_list[0])
             for ats in ats_list:
                 try:
                     iterm = ff.get_improper_term(*ats)
@@ -281,11 +288,12 @@ class System():
                     break
             else:
                 if transfer_bonded_terms:
-                    iterm, score = dff_fuzzy_match(ImproperTerm(*ats_list[0]), ff)
+                    iterm, score = dff_fuzzy_match(_term, ff)
                     if iterm is not None:
                         _found = True
+                        logger.warning(f'{_term} not found in FF. Transferred from {iterm} with score {score}')
             if not _found:
-                _iterm_not_found.add(ImproperTerm(*ats_list[0]).name)
+                _iterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(iterm, replace=True)
                 self.improper_terms[id(improper)] = iterm

@@ -675,7 +675,7 @@ class Topology():
         for mol in self._molecules:
             mol.assign_mass_from_ff(ff)
 
-    def assign_charge_from_ff(self, ff):
+    def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
         '''
         Assign charges for all atoms and Drude particles from the AtomType saved in force field.
 
@@ -688,4 +688,4 @@ class Topology():
         Molecule.assign_charge_from_ff
         '''
         for mol in self._molecules:
-            mol.assign_charge_from_ff(ff)
+            mol.assign_charge_from_ff(ff, transfer_bci_terms)

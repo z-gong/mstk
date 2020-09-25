@@ -12,7 +12,7 @@ def dff_fuzzy_match(term, ff):
 
     Parameters
     ----------
-    term : BondTerm or AngleTerm or DihedralTerm or ImproperTerm
+    term : BondTerm or AngleTerm or DihedralTerm or ImproperTerm or ChargeIncrementTerm
     ff : ForceField
 
     Returns
@@ -24,10 +24,11 @@ def dff_fuzzy_match(term, ff):
     best_score = 0
     best_match = None
     term_candidates = {
-        BondTerm    : ff.bond_terms,
-        AngleTerm   : ff.angle_terms,
-        DihedralTerm: ff.dihedral_terms,
-        ImproperTerm: ff.improper_terms,
+        BondTerm           : ff.bond_terms,
+        AngleTerm          : ff.angle_terms,
+        DihedralTerm       : ff.dihedral_terms,
+        ImproperTerm       : ff.improper_terms,
+        ChargeIncrementTerm: ff.bci_terms,
     }
     for term_type, candidates in term_candidates.items():
         if type(term) is term_type:
@@ -42,20 +43,26 @@ def dff_fuzzy_match(term, ff):
 
 
 def dff_fuzzy_compare(term, candidate, max_score):
-    if isinstance(term, BondTerm) and isinstance(candidate, BondTerm):
+    if type(term) is ChargeIncrementTerm and isinstance(candidate, ChargeIncrementTerm):
         score1 = dff_fuzzy_score(term.type1, candidate.type1, max_score, 3)
         score2 = dff_fuzzy_score(term.type2, candidate.type2, max_score, 3)
         if score1 * score2 == 0:
             return 0
         return score1 + score2
-    elif isinstance(term, AngleTerm) and isinstance(candidate, AngleTerm):
+    if type(term) is BondTerm and isinstance(candidate, BondTerm):
+        score1 = dff_fuzzy_score(term.type1, candidate.type1, max_score, 3)
+        score2 = dff_fuzzy_score(term.type2, candidate.type2, max_score, 3)
+        if score1 * score2 == 0:
+            return 0
+        return score1 + score2
+    elif type(term) is AngleTerm and isinstance(candidate, AngleTerm):
         score1 = dff_fuzzy_score(term.type1, candidate.type1, max_score, 2)
         score2 = dff_fuzzy_score(term.type2, candidate.type2, max_score, 3)
         score3 = dff_fuzzy_score(term.type3, candidate.type3, max_score, 2)
         if score1 * score2 * score3 == 0:
             return 0
         return score1 + score2 + score3
-    elif isinstance(term, DihedralTerm) and isinstance(candidate, DihedralTerm):
+    elif type(term) is DihedralTerm and isinstance(candidate, DihedralTerm):
         score1 = dff_fuzzy_score(term.type1, candidate.type1, max_score, 2)
         score2 = dff_fuzzy_score(term.type2, candidate.type2, max_score, 3)
         score3 = dff_fuzzy_score(term.type3, candidate.type3, max_score, 3)
@@ -67,7 +74,7 @@ def dff_fuzzy_compare(term, candidate, max_score):
         if score1 * score2 * score3 * score4 == 0:
             return 0
         return score1 + score2 + score3 + score4
-    elif isinstance(term, ImproperTerm) and isinstance(candidate, ImproperTerm):
+    elif type(term) is ImproperTerm and isinstance(candidate, ImproperTerm):
         score1 = dff_fuzzy_score(term.type1, candidate.type1, max_score, 3)
         score2 = dff_fuzzy_score(term.type2, candidate.type2, max_score, 2)
         score3 = dff_fuzzy_score(term.type3, candidate.type3, max_score, 2)
