@@ -206,11 +206,9 @@ class System():
                 _found = True
             except:
                 if transfer_bonded_terms:
-                    try:
-                        bterm = ff.get_bond_term(*(at[:3] for at in ats))
+                    bterm, score = dff_fuzzy_match(BondTerm(*ats, 0), ff)
+                    if bterm is not None:
                         _found = True
-                    except:
-                        pass
             if not _found:
                 _bterm_not_found.add(BondTerm(*ats, 0).name)
             else:
@@ -228,11 +226,9 @@ class System():
                 _found = True
             except:
                 if transfer_bonded_terms:
-                    try:
-                        aterm = ff.get_angle_term(*(at[:3] for at in ats))
+                    aterm, score = dff_fuzzy_match(AngleTerm(*ats, 0), ff)
+                    if aterm is not None:
                         _found = True
-                    except:
-                        pass
             if not _found:
                 _aterm_not_found.add(AngleTerm(*ats, 0).name)
             else:
@@ -251,7 +247,6 @@ class System():
         _dterm_not_found = set()
         for dihedral in self._topology.dihedrals:
             _found = False
-            dterm = None
             ats_list = ff.get_eqt_for_dihedral(dihedral)
             for ats in ats_list:
                 try:
@@ -263,14 +258,9 @@ class System():
                     break
             else:
                 if transfer_bonded_terms:
-                    for ats in ats_list:
-                        try:
-                            dterm = ff.get_dihedral_term(*(at[:3] for at in ats))
-                            _found = True
-                        except:
-                            pass
-                        else:
-                            break
+                    dterm, score = dff_fuzzy_match(DihedralTerm(*ats_list[0]), ff)
+                    if dterm is not None:
+                        _found = True
             if not _found:
                 _dterm_not_found.add(DihedralTerm(*ats_list[0]).name)
             else:
@@ -280,7 +270,6 @@ class System():
         _iterm_not_found = set()
         for improper in self._topology.impropers:
             _found = False
-            iterm = None
             ats_list = ff.get_eqt_for_improper(improper)
             for ats in ats_list:
                 try:
@@ -292,13 +281,9 @@ class System():
                     break
             else:
                 if transfer_bonded_terms:
-                    try:
-                        iterm = ff.get_improper_term(*(at[:3] for at in ats))
+                    iterm, score = dff_fuzzy_match(ImproperTerm(*ats_list[0]), ff)
+                    if iterm is not None:
                         _found = True
-                    except:
-                        pass
-                    else:
-                        break
             if not _found:
                 _iterm_not_found.add(ImproperTerm(*ats_list[0]).name)
             else:

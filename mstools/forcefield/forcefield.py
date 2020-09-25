@@ -502,7 +502,7 @@ class ForceField():
         try:
             dterm = self.dihedral_terms[dterm.name]
         except:
-            raise FFTermNotFoundError(f'{str(dterm)} with or w/o wildcard not found in FF')
+            raise FFTermNotFoundError(f'{str(dterm)} not found in FF. You may use wildcard (*) for side atoms')
 
         return dterm
 
@@ -573,7 +573,7 @@ class ForceField():
         try:
             iterm = self.improper_terms[iterm.name]
         except:
-            raise FFTermNotFoundError(f'{str(iterm)} with or w/o wildcard not found in FF')
+            raise FFTermNotFoundError(f'{str(iterm)} not found in FF. You may use wildcard (*) for side atoms')
 
         return iterm
 
