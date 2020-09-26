@@ -20,6 +20,17 @@ def get_omm_integrator_platform():
     return integrator, platform
 
 
+def test_transfer_bonded_terms():
+    top = Topology.open(cwd + '/../topology/files/c_3oh.msd')
+    ff = ForceField.open(cwd + '/../topology/files/c_3oh.ppf')
+    top.assign_charge_from_ff(ff, transfer_bci_terms=True)
+    system = System(top, ff, transfer_bonded_terms=True)
+    angle = next(a for a in system.topology.angles if a.name == 'C2-C3-H8')
+    assert ff.get_eqt_for_angle(angle) == ('c_3', 'c_3o', 'h_1')
+    aterm = system.angle_terms[id(angle)]
+    assert aterm.name == 'c_3,c_3,h_1'
+
+
 def test_team():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)

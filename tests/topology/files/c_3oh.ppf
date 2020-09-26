@@ -1,0 +1,49 @@
+#DFF:EQT
+#AAT                :	NB	ATC	BINC	Bond	A/C	A/S	T/C	T/S	O/C	O/S
+c_3h                 :	c_3h	c_3h	c_3	c_3	c_3	c_3	c_3	c_3	c_3	c_3: V 1.0, S MGI, C D, R R1
+c_3h2                :	c_3h2	c_3h2	c_3	c_3	c_3	c_3	c_3	c_3	c_3	c_3: V 1.0, S MGI, C D, R R1
+c_3oh                :	c_3oh	c_3oh	c_3oh	c_3o	c_3o	c_3o	c_3o	c_3	c_3o	c_3: V 1.0, S MGI, C D, R R1
+h_1                  :	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1	h_1: V 1.0, S MGI, C D, R R1
+o_1                  :	o_1	o_1	o_1	o_1	o_1	o_1	o_1	o_1	o_1	o_1: V 1.0, S MGI, C D, R R1
+#DFF:PPF
+#PROTOCOL = AMBER
+#TYPINGRULE =
+ATYPE: c_3h:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
+ATYPE: c_3h2:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
+ATYPE: c_3oh:    6.00000*,  12.01100*: V 1.0, S MGI, C D, R R1
+ATYPE: h_1:    1.00000*,   1.00790*: V 1.0, S MGI, C D, R R1
+ATYPE: o_1:    8.00000*,  15.99940*: V 1.0, S MGI, C D, R R1
+ATC: c_3h:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: c_3h2:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: c_3oh:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: h_1:    0.00000*: V 1.0, S MGI, C D, R R1
+ATC: o_1:    0.00000*: V 1.0, S MGI, C D, R R1
+BINC: c_3, c_3:    0.00000*: V 1.0, S MGI, C D, R R1
+BINC: c_3, c_3ohxx:   1.0*: !Faked parameter for testing transfer_bci_terms()
+BINC: c_3, c_3o:   -0.03540*:
+BINC: c_3, h_1:   -0.16000*: V 1.0, S MGI, C D, R R1
+BINC: c_3oh, h_1:    0.02910*: V 1.0, S MGI, C D, R R1
+BINC: c_3oh, o_1:    0.45000*: V 1.0, S MGI, C D, R R1
+N12_6: c_3h:    3.99394*,   0.08093*: V 1.83, S MGI, C D, R R9
+N12_6: c_3h2:    4.12434*,   0.08752*: V 1.83, S MGI, C D, R R9
+N12_6: c_3oh:    3.99210*,   0.10480*: V 1.81, S MGI, C D, R R9
+N12_6: h_1:    2.73172*,   0.02125*: V 1.78, S MGI, C D, R R9
+N12_6: o_1:    3.18061*,   0.15903*: V 1.81, S MGI, C D, R R9
+BHARM: c_3, c_3:    1.33280*, 631.84030*: V 1.0, S MGI, C D, R R1
+BHARM: c_3, c_3o:    1.48150*, 255.20730*: V 1.0, S MGI, C D, R R1
+BHARM: c_3, h_1:    1.08930*, 388.47430*: V 1.0, S MGI, C D, R R1
+BHARM: c_3o, h_1:    1.11910*, 318.88820*: V 1.0, S MGI, C D, R R1
+BHARM: c_3o, o_1:    1.21410*, 884.15980*: V 1.0, S MGI, C D, R R1
+AHARM: c_3, c_3, c_3o:  118.81770*,  89.58780*: V 1.0, S MGI, C D, R R1
+AHARM: c_3, c_3oxx, h_1:  119.10270*,  35.54310*: !Faked parameter for testing transfer_bonded_terms()
+AHARM: c_3, c_3, h_1:  119.10270*,  35.54310*: V 1.0, S MGI, C D, R R1
+AHARM: c_3, c_3o, o_1:  125.89090*,  51.50440*: V 1.0, S MGI, C D, R R1
+AHARM: c_3o, c_3, h_1:  116.64320*,  40.50880*: V 1.0, S MGI, C D, R R1
+AHARM: h_1, c_3, h_1:  115.65010*,  32.11610*: V 1.0, S MGI, C D, R R1
+AHARM: h_1, c_3o, o_1:  120.23800*,  58.02860*: V 1.0, S MGI, C D, R R1
+TCOSP: X, c_3, c_3, X:  180.00000*,   7.79420*,   2.00000*: V 1.52, S MGI, C D, R R9
+TCOSP: X, c_3, c_3o, X:  180.00000*,   3.31080*,   2.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: c_3, c_3, c_3o, o_1:  180.00000*,   2.13000*,   2.00000*,   0.00000*,  -2.55870*,   1.00000*,   0.00000*,   1.13570*,   3.00000*: V 1.0, S MGI, C D, R R1
+TCOSP: h_1, c_3, c_3o, o_1:  180.00000*,   0.12860*,   2.00000*,   0.00000*,  -0.44580*,   1.00000*,   0.00000*,   0.55990*,   3.00000*: V 1.0, S MGI, C D, R R1
+IBCOS: X, X, c_3, X:  180.00000*,   4.00000*,   2.00000*: V 1.98, S MGI, C D, R R7
+IBCOS: X, X, c_3o, X:  180.00000*,  18.00000*,   2.00000*: V 1.106, S MGI, C D, R R7

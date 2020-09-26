@@ -953,7 +953,7 @@ class Molecule():
         ff : ForceField
         transfer_bci_terms : bool, optional
         '''
-        _assigned = [False] * self.n_atom
+        _q_zero = []
         for atom in self._atoms:
             if atom.is_drude:
                 continue
@@ -962,40 +962,51 @@ class Molecule():
             except:
                 raise Exception(f'Atom type {atom.type} not found in FF')
             atom.charge = charge
-            if charge != 0:
-                _assigned[atom.id_in_mol] = True
+            if charge == 0:
+                _q_zero.append(atom)
 
-        if len(ff.bci_terms) > 0:
-            for bond in filter(lambda x: not x.is_drude, self._bonds):
-                ats = ff.get_eqt_for_bci(bond)
-                increment = 0
-                try:
-                    qterm, direction = ff.get_bci_term(*ats)
-                    increment = qterm.value * direction
-                except FFTermNotFoundError:
-                    if transfer_bci_terms:
-                        _term = ChargeIncrementTerm(*ats, 0)
-                        matched, score = dff_fuzzy_match(_term, ff)
-                        if matched is not None:
-                            direction = 1 if _term.type1 == ats[0] else -1
-                            increment = matched.value * direction
-                            logger.warning(f'{_term} not found in FF. Transferred from {matched} with score {score}')
-
-                bond.atom1.charge += increment
-                bond.atom2.charge -= increment
-                if increment != 0:
-                    _assigned[bond.atom1.id_in_mol] = True
-                    _assigned[bond.atom2.id_in_mol] = True
-
-        _atoms_unassigned = [atom.name for (i, atom) in enumerate(self._atoms)
-                             if not atom.is_drude and not _assigned[i]]
-        if len(_atoms_unassigned) > 0:
-            msg = f'Charge not assigned for %i atoms in {str(self)}. ' \
-                  'Make sure FF is correct: %s' % (
-                      len(_atoms_unassigned), ' '.join(_atoms_unassigned[:10]))
-            if len(_atoms_unassigned) > 10:
+        if len(ff.bci_terms) == 0 and len(_q_zero) > 0:
+            msg = '%i atoms in %s have zero charge. But charge increment terms not found in FF: %s' % (
+                len(_q_zero), self, ' '.join([a.name for a in _q_zero[:10]]))
+            if len(_q_zero) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
+
+        if len(ff.bci_terms) > 0:
+            _qterm_not_found = set()
+            _qterm_transferred = set()
+            for bond in filter(lambda x: not x.is_drude, self._bonds):
+                _found = False
+                ats = ff.get_eqt_for_bci(bond)
+                if ats[0] == ats[1]:
+                    continue
+                _term = ChargeIncrementTerm(*ats, 0)
+                try:
+                    qterm, direction = ff.get_bci_term(*ats)
+                    _found = True
+                except FFTermNotFoundError:
+                    if transfer_bci_terms:
+                        qterm, score = dff_fuzzy_match(_term, ff)
+                        if qterm is not None:
+                            direction = 1 if _term.type1 == ats[0] else -1
+                            _found = True
+                            _qterm_transferred.add((_term.name, qterm.name, score))
+
+                if _found:
+                    increment = qterm.value * direction
+                    bond.atom1.charge += increment
+                    bond.atom2.charge -= increment
+                else:
+                    _qterm_not_found.add(_term.name)
+
+            if len(_qterm_transferred) > 0:
+                logger.warning('%i charge increment terms not found in FF. Transferred from similar terms with score\n'
+                               '        %s' % (len(_qterm_transferred),
+                                               '\n        '.join(['%-16s %-16s %i' % x for x in _qterm_transferred])))
+            if len(_qterm_not_found) > 0:
+                logger.warning('%i charge increment terms not found in FF. Make sure FF is correct\n'
+                               '        %s' % (len(_qterm_not_found),
+                                               '\n        '.join(_qterm_not_found)))
 
         for parent, drude in self.get_drude_pairs():
             atype = ff.atom_types[parent.type]

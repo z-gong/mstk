@@ -12,6 +12,18 @@ from mstools.wrapper.packmol import Packmol
 cwd = os.path.dirname(os.path.abspath(__file__))
 
 
+def test_assign_charge():
+    top = Topology.open(cwd + '/files/c_3oh.msd')
+    ff = ForceField.open(cwd + '/files/c_3oh.ppf')
+    top.assign_charge_from_ff(ff)
+    charges = [atom.charge for atom in top.atoms]
+    assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.16, 0.4791, -0.45, 0.16, 0.16, 0.16, -0.0291]
+
+    top.assign_charge_from_ff(ff, transfer_bci_terms=True)
+    charges = [atom.charge for atom in top.atoms]
+    assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.1954, 0.5145, -0.45, 0.16, 0.16, 0.16, -0.0291]
+
+
 def test_compress():
     top = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp', improper_center=3)
     molecules = top.molecules

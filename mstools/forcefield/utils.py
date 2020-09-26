@@ -99,6 +99,6 @@ def dff_fuzzy_score(name1, name2, max_score, min_length):
     elif len1 == len2:
         return dff_fuzzy_score(name1[:-1], name2[:-1], max_score - 2, min_length)
     elif len1 > len2:
-        return dff_fuzzy_score(name1[:len2], name2, max_score - 1, min_length)
+        return dff_fuzzy_score(name1[:len2], name2, max_score - (len1 - len2), min_length)
     else:
-        return dff_fuzzy_score(name1, name2[:len1], max_score - 1, min_length)
+        return dff_fuzzy_score(name1, name2[:len1], max_score - (len2 - len1), min_length)
