@@ -670,10 +670,9 @@ class Topology():
 
         See Also
         --------
-        Molecule.assign_mass_from_ff
+        ForceField.assign_mass
         '''
-        for mol in self._molecules:
-            mol.assign_mass_from_ff(ff)
+        ff.assign_mass(self)
 
     def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
         '''
@@ -682,10 +681,10 @@ class Topology():
         Parameters
         ----------
         ff : ForceField
+        transfer_bci_terms : bool, optional
 
         See Also
         --------
-        Molecule.assign_charge_from_ff
+        ForceField.assign_charge
         '''
-        for mol in self._molecules:
-            mol.assign_charge_from_ff(ff, transfer_bci_terms)
+        ff.assign_charge(self, transfer_bci_terms)

@@ -882,143 +882,29 @@ class Molecule():
 
     def assign_mass_from_ff(self, ff):
         '''
-        Assign masses of all atoms from the force field.
-
-        The atom types should have been defined, and the AtomType in FF should carry mass information.
-        The masses of Drude particles will be determined ONLY from the DrudeTerm,
-        and the the same amount of mass will be subtracted from the parent atoms.
-        That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
+        Assign masses for all atoms and Drude particles from the force field.
 
         Parameters
         ----------
         ff : ForceField
+
+        See Also
+        --------
+        ForceField.assign_mass
         '''
-        _atype_not_found = set()
-        _atype_no_mass = set()
-        _zero_mass = set()
-        for atom in self._atoms:
-            if atom.is_drude:
-                continue
-            atype = ff.atom_types.get(atom.type)
-            if atype is None:
-                _atype_not_found.add(atom.type)
-                continue
-            elif atype.mass == -1:
-                _atype_no_mass.add(atom.type)
-            elif atype.mass == 0:
-                _zero_mass.add(atom.type)
-            atom.mass = atype.mass
-
-        if _atype_not_found != set():
-            logger.error('%i atom types not found: %s' % (
-                len(_atype_not_found), ' '.join(_atype_not_found)))
-            raise Exception(f'Assign mass for {str(self)} failed')
-        if _atype_no_mass != set():
-            logger.error('%i atom types in FF do not carry mass information: %s' % (
-                len(_atype_no_mass), ' '.join(_atype_no_mass)))
-            raise Exception(f'Assign mass {str(self)}  failed')
-        if _zero_mass != set():
-            logger.warning(f'%i atoms in {str(self)} carry zero mass: %s' % (
-                len(_zero_mass), ' '.join(_zero_mass)))
-
-        for parent, drude in self.get_drude_pairs():
-            atype = ff.atom_types[parent.type]
-            pterm = ff.polarizable_terms.get(atype.eqt_polar)
-            if pterm is None:
-                raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudeTerm:
-                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
-            drude.mass = pterm.mass
-            parent.mass -= pterm.mass
+        ff.assign_mass(self)
 
     def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
         '''
-        Assign charges of all atoms from the force field.
-
-        The atom types should have been defined.
-        The charge of corresponding AtomType in FF will be assigned to the atoms first.
-        Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
-        The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
-        and the the same amount of charge will be subtracted from the parent atoms.
-        That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
-
-        If charge increment parameters required by the topology are not found in the force field,
-        `mstools` can try to transfer parameters from more general terms in the force field.
-        e.g. if bci term between 'c_4o2' and 'n_3' is not found, the bci term between 'c_4' and 'n_3' will be used.
-        This mechanism is initially designed for TEAM force field.
-        It is disabled by default, and can be enabled by setting argument `transfer_bci_terms` to True.
+        Assign charges for all atoms and Drude particles from the force field.
 
         Parameters
         ----------
         ff : ForceField
         transfer_bci_terms : bool, optional
+
+        See Also
+        --------
+        ForceField.assign_charge
         '''
-        _q_zero = []
-        for atom in self._atoms:
-            if atom.is_drude:
-                continue
-            try:
-                charge = ff.atom_types[atom.type].charge
-            except:
-                raise Exception(f'Atom type {atom.type} not found in FF')
-            atom.charge = charge
-            if charge == 0:
-                _q_zero.append(atom)
-
-        if len(ff.bci_terms) == 0 and len(_q_zero) > 0:
-            msg = '%i atoms in %s have zero charge. But charge increment terms not found in FF: %s' % (
-                len(_q_zero), self, ' '.join([a.name for a in _q_zero[:10]]))
-            if len(_q_zero) > 10:
-                msg += ' and more ...'
-            logger.warning(msg)
-
-        if len(ff.bci_terms) > 0:
-            _qterm_not_found = set()
-            _qterm_transferred = set()
-            for bond in filter(lambda x: not x.is_drude, self._bonds):
-                _found = False
-                ats = ff.get_eqt_for_bci(bond)
-                if ats[0] == ats[1]:
-                    continue
-                _term = ChargeIncrementTerm(*ats, 0)
-                try:
-                    qterm, direction = ff.get_bci_term(*ats)
-                    _found = True
-                except FFTermNotFoundError:
-                    if transfer_bci_terms:
-                        qterm, score = dff_fuzzy_match(_term, ff)
-                        if qterm is not None:
-                            direction = 1 if _term.type1 == ats[0] else -1
-                            _found = True
-                            _qterm_transferred.add((_term.name, qterm.name, score))
-
-                if _found:
-                    increment = qterm.value * direction
-                    bond.atom1.charge += increment
-                    bond.atom2.charge -= increment
-                else:
-                    _qterm_not_found.add(_term.name)
-
-            if len(_qterm_transferred) > 0:
-                logger.warning('%i charge increment terms not found in FF. Transferred from similar terms with score\n'
-                               '        %s' % (len(_qterm_transferred),
-                                               '\n        '.join(['%-16s %-16s %i' % x for x in _qterm_transferred])))
-            if len(_qterm_not_found) > 0:
-                logger.warning('%i charge increment terms not found in FF. Make sure FF is correct\n'
-                               '        %s' % (len(_qterm_not_found),
-                                               '\n        '.join(_qterm_not_found)))
-
-        for parent, drude in self.get_drude_pairs():
-            atype = ff.atom_types[parent.type]
-            pterm = ff.polarizable_terms.get(atype.eqt_polar)
-            if pterm is None:
-                raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudeTerm:
-                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
-            n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
-            alpha = pterm.alpha + n_H * pterm.merge_alpha_H
-            drude.charge = -pterm.get_charge(alpha)
-            parent.charge += pterm.get_charge(alpha)
-            # update alpha and thole for Drude parent particle
-            parent.alpha = alpha
-            parent.thole = pterm.thole
+        ff.assign_charge(self, transfer_bci_terms)
