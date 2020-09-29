@@ -182,7 +182,7 @@ class System():
             try:
                 vdw = ff.get_vdw_term(atype, atype)
             except Exception as e:
-                _vdw_not_found.add(VdwTerm(atype.eqt_vdw, atype.eqt_vdw))
+                _vdw_not_found.add(atype.eqt_vdw)
             else:
                 self._ff.add_term(vdw, replace=True)
 
@@ -211,9 +211,9 @@ class System():
                     bterm, score = dff_fuzzy_match(_term, ff)
                     if bterm is not None:
                         _found = True
-                        _bterm_transferred.add((_term, bterm, score))
+                        _bterm_transferred.add((_term.name, bterm.name, score))
             if not _found:
-                _bterm_not_found.add(_term)
+                _bterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(bterm, replace=True)
                 self.bond_terms[id(bond)] = bterm
@@ -234,9 +234,9 @@ class System():
                     aterm, score = dff_fuzzy_match(_term, ff)
                     if aterm is not None:
                         _found = True
-                        _aterm_transferred.add((_term, aterm, score))
+                        _aterm_transferred.add((_term.name, aterm.name, score))
             if not _found:
-                _aterm_not_found.add(_term)
+                _aterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(aterm, replace=True)
                 self.angle_terms[id(angle)] = aterm
@@ -269,9 +269,9 @@ class System():
                     dterm, score = dff_fuzzy_match(_term, ff)
                     if dterm is not None:
                         _found = True
-                        _dterm_transferred.add((_term, dterm, score))
+                        _dterm_transferred.add((_term.name, dterm.name, score))
             if not _found:
-                _dterm_not_found.add(_term)
+                _dterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(dterm, replace=True)
                 self.dihedral_terms[id(dihedral)] = dterm
@@ -295,39 +295,52 @@ class System():
                     iterm, score = dff_fuzzy_match(_term, ff)
                     if iterm is not None:
                         _found = True
-                        _iterm_transferred.add((_term, iterm, score))
+                        _iterm_transferred.add((_term.name, iterm.name, score))
             if not _found:
-                _iterm_not_found.add(_term)
+                _iterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(iterm, replace=True)
                 self.improper_terms[id(improper)] = iterm
 
         _pterm_not_found = set()
         for parent in self.drude_pairs.keys():
-            pterm = PolarizableTerm(ff.atom_types[parent.type].eqt_polar)
+            _term = PolarizableTerm(ff.atom_types[parent.type].eqt_polar)
             try:
-                pterm = ff.polarizable_terms[pterm.name]
+                pterm = ff.polarizable_terms[_term.name]
             except:
-                _pterm_not_found.add(pterm)
+                _pterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(pterm, replace=True)
                 self.polarizable_terms[parent] = pterm
 
         ### print all transferred terms
-        _term_transferred = list(_bterm_transferred) + list(_aterm_transferred) \
-                            + list(_dterm_transferred) + list(_iterm_transferred)
-        if len(_term_transferred) > 0:
-            logger.warning('%i bonded terms not found in FF. Transferred from similar terms with score\n'
-                           '        %s' % (len(_term_transferred),
-                                           '\n        '.join(['%-16s %-16s %i' % x for x in _term_transferred])))
+        _n_transferred = 0
+        msg = ''
+        for k, v in {'Bond'    : _bterm_transferred,
+                     'Angle'   : _aterm_transferred,
+                     'Dihedral': _dterm_transferred,
+                     'Improper': _iterm_transferred}.items():
+            for i in v:
+                _n_transferred += 1
+                msg += '        %-10s %-20s %-20s %i\n' % (k, *i)
+        if _n_transferred > 0:
+            logger.warning(
+                '%i bonded terms not found in FF. Transferred from similar terms with score\n' % _n_transferred + msg)
 
         ### print all the missing terms
-        _term_not_found = list(_vdw_not_found) + list(_bterm_not_found) + list(_aterm_not_found) \
-                          + list(_dterm_not_found) + list(_iterm_not_found) + list(_pterm_not_found)
-        if len(_term_not_found) > 0:
-            logger.error('%i terms not found in FF\n'
-                         '        %s' % (len(_term_not_found),
-                                         '\n        '.join(map(str, _term_not_found))))
+        _n_missing = 0
+        msg = ''
+        for k, v in {'vdW'        : _vdw_not_found,
+                     'Bond'       : _bterm_not_found,
+                     'Angle'      : _aterm_not_found,
+                     'Dihedral'   : _dterm_not_found,
+                     'Improper'   : _iterm_not_found,
+                     'Polarizable': _pterm_not_found}.items():
+            for i in v:
+                _n_missing += 1
+                msg += '        %-10s %-20s\n' % (k, i)
+        if _n_missing > 0:
+            logger.error('%i terms not found in FF\n' % _n_missing + msg)
             raise Exception('Parameter missing')
 
         self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
