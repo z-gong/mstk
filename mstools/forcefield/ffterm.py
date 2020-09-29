@@ -549,6 +549,20 @@ class DihedralTerm(FFTerm):
         return [self.type1, self.type2, self.type3, self.type4] \
                > [other.type1, other.type2, other.type3, other.type4]
 
+    @property
+    def is_zero(self):
+        '''
+        Whether or not this dihedral terms always give zero energy.
+
+        For linear groups like alkyne and nitrile, dihedral terms are presented in topology.
+        But the parameters for these terms usually equal to zero.
+
+        Returns
+        -------
+        is :  bool
+        '''
+        return False
+
 
 class ImproperTerm(FFTerm):
     '''
@@ -1057,6 +1071,13 @@ class PeriodicDihedralTerm(DihedralTerm):
             else:
                 if para.k != 0:
                     return False
+        return True
+
+    @property
+    def is_zero(self):
+        for para in self.parameters:
+            if para.k != 0:
+                return False
         return True
 
     def get_opls_parameters(self):

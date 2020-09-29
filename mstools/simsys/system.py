@@ -252,6 +252,8 @@ class System():
 
         _dterm_not_found = set()
         _dterm_transferred = set()
+        _dihedral_to_remove = []
+        _dterm_to_remove = set()
         for dihedral in self._topology.dihedrals:
             _found = False
             ats_list = ff.get_eqt_for_dihedral(dihedral)
@@ -273,8 +275,23 @@ class System():
             if not _found:
                 _dterm_not_found.add(_term.name)
             else:
-                self._ff.add_term(dterm, replace=True)
-                self.dihedral_terms[id(dihedral)] = dterm
+                if dterm.is_zero:
+                    # remove dihedrals that have zero energy contributions
+                    # in case linear groups like alkyne and nitrile give energy of NaN
+                    _dihedral_to_remove.append(dihedral)
+                    _dterm_to_remove.add(dterm.name)
+                else:
+                    self._ff.add_term(dterm, replace=True)
+                    self.dihedral_terms[id(dihedral)] = dterm
+
+        # remove dihedrals that have zero energy contributions
+        for dihedral in _dihedral_to_remove:
+            for mol in self._topology.molecules:
+                if dihedral in mol.dihedrals:
+                    mol.remove_connectivity(dihedral)
+        if len(_dihedral_to_remove) > 0:
+            logger.warning('%i dihedrals removed because they have zero energy contributions\n'
+                           '        %s' % (len(_dihedral_to_remove), '\n        '.join(_dterm_to_remove)))
 
         _iterm_not_found = set()
         _iterm_transferred = set()
