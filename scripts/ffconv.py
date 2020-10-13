@@ -22,7 +22,7 @@ print('\nForce field info:\n'
       '%6i improper terms\n'
       '%6i polarizable terms' % (
           len(ff.atom_types), len(ff.vdw_terms), len(ff.pairwise_vdw_terms),
-          len(ff.charge_increment_terms), len(ff.bond_terms), len(ff.angle_terms),
+          len(ff.bci_terms), len(ff.bond_terms), len(ff.angle_terms),
           len(ff.dihedral_terms), len(ff.improper_terms), len(ff.polarizable_terms)
       ))
 

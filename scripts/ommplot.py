@@ -10,23 +10,23 @@ parser = argparse.ArgumentParser()
 parser.add_argument('input', type=str, help='data file')
 parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this step')
 parser.add_argument('-e', '--end', default=-1, type=float, help='end at this step')
-parser.add_argument('-c', '--converge', default=False, action='store_true',
-                    help='detect convergence')
+parser.add_argument('-c', '--converge', default=False, action='store_true', help='detect convergence')
 parser.add_argument('-p', '--plot', default=False, action='store_true', help='plot data')
-parser.add_argument('-r', '--reciprocal', default=False, action='store_true',
-                    help='calculate reciprocal')
+parser.add_argument('-r', '--reciprocal', default=False, action='store_true', help='calculate reciprocal')
+parser.add_argument('-d', '--dist', default=False, action='store_true', help='plot distribution')
 args = parser.parse_args()
 
 
 def read_log(log_file):
-    types: [str] = []
+    labels: [str] = []
     data_list: [[float]] = []
     _START = False
     for line in open(log_file):
         if line.startswith('#"'):
-            types = [s.strip('"') for s in line.strip('#').strip().split('\t')]
-            data_list = [[] for _ in types]
-            _START = True
+            if not _START:
+                labels = [s.strip('"') for s in line.strip('#').strip().split('\t')]
+                data_list = [[] for _ in labels]
+                _START = True
             continue
         if _START:
             words = line.strip().split()
@@ -38,9 +38,9 @@ def read_log(log_file):
                 continue
             if args.end > 0 and step > args.end:
                 break
-            for i in range(len(types)):
+            for i in range(len(labels)):
                 data_list[i].append(float(words[i]))
-    return types, data_list
+    return labels, data_list
 
 
 def detect_converge(data_list, when_list):
@@ -78,14 +78,14 @@ def show_data(types, data_list, when_list):
         ave, stderr, var_block, var_stderr = block_average(data)
         var = np.var(data)
         if not args.reciprocal:
-            option += '%6i: %14s %10.4g %10.4g %10.4g %10.4g %10.4g\n' % (
+            option += '%6i: %14s %10.5g %6.2g %10.4g %6.2g %8.4g\n' % (
                 i, types[i], ave, stderr, var, var_stderr, data_list[0][when])
         else:
             ave_block, var_block = average_of_blocks(data)
             inv_blocks = 1000 / ave_block
             inv_ave = inv_blocks.mean()
             inv_stderr = inv_blocks.std(ddof=1) / math.sqrt(len(inv_blocks))
-            option += '%6i: %14s %10.4g %10.4g 1E3/ %10.4g %10.4g %10.4g\n' % (
+            option += '%6i: %14s %10.5g %6.2g 1E3/ %10.4g %6.2g %8.4g\n' % (
                 i, types[i], ave, stderr, inv_ave, inv_stderr, data_list[0][when])
 
     print(option, end='')
@@ -104,18 +104,26 @@ def plot_data(types, data, when_list):
         else:
             import matplotlib.pyplot as plt
             when = when_list[plottype]
-            plt.plot(data[0][:when], data[plottype][:when])
-            plt.plot(data[0][when:], data[plottype][when:])
-            plt.xlabel(data[0])
-            plt.ylabel(types[plottype])
+            if not args.dist:
+                fig, (ax1) = plt.subplots(1, 1, figsize=(5, 4))
+            else:
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+                ax2.hist(data[plottype][when:], density=True, bins=40, color='C1')
+                ax2.set_xlabel(types[plottype])
+                ax2.set_ylabel('Probability')
+            ax1.plot(data[0][:when], data[plottype][:when])
+            ax1.plot(data[0][when:], data[plottype][when:])
+            ax1.set_xlabel(types[0])
+            ax1.set_ylabel(types[plottype])
+            fig.tight_layout()
             plt.show()
 
 
 if __name__ == '__main__':
-    types, data = read_log(args.input)
+    labels, data = read_log(args.input)
     when_list = [0] * len(data)
     if args.converge:
         detect_converge(data, when_list)
-    show_data(types, data, when_list)
+    show_data(labels, data, when_list)
     if args.plot:
-        plot_data(types, data, when_list)
+        plot_data(labels, data, when_list)

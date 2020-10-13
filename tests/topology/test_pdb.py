@@ -2,19 +2,32 @@
 
 import os
 import pytest
+import tempfile
+import filecmp
 from mstools.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tempdir = tempfile.mkdtemp()
 
 
 def test_read():
-    pass
+    pdb = Topology.open(cwd + '/files/test.pdb')
+    assert pdb.n_atom == 16
+    assert pytest.approx(pdb.cell.volume, abs=1E-6) == 0.06
+
+    mol = pdb.molecules[0]
+    assert mol.name == 'c1c1'
+
+    atom = pdb.atoms[-1]
+    assert atom.name == 'H16'
+    assert atom.type == ''
+    assert atom.symbol == 'H'
+    assert pytest.approx(atom.position, abs=1E-6) == [0.3369, 0.2249, -0.0890]
+    assert atom.has_position
 
 
 def test_write():
     zmat = Topology.open(cwd + '/files/Im11.zmat')
-    zmat.write(cwd + '/files/zmat-out.pdb')
-    mol = Molecule.from_smiles('C[n+]1cn(cc1)CCCC[B-](F)(F)F')
-    top = Topology()
-    top.update_molecules([mol])
-    top.write(cwd + '/files/smi-out.pdb')
+    tmp = os.path.join(tempdir, 'zmat-out.pdb')
+    zmat.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/zmat-out.pdb')

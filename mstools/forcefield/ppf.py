@@ -1,6 +1,8 @@
+import traceback
 from .forcefield import ForceField
 from .ffterm import *
 from .element import Element
+from .errors import *
 from .. import logger
 
 
@@ -34,25 +36,59 @@ class PpfLine():
         return [float(x.strip().strip('*')) for x in self.value.split(',')]
 
 
-class Ppf(ForceField):
+class Ppf():
     '''
-    In PPF format, there is no 1/2 for all energy terms
+    Parse ForceField from PPF file.
+
+    PPF is the native format of `Direct Force Field`.
+    Currently, only the DFF-AMBER functional form of PPF is supported,
+    which contains following terms:
+
+    * :class:`~mstools.forcefield.AtomType` with equivalent tables, masses and partial charges
+    * :class:`~mstools.forcefield.ChargeIncrementTerm`
+    * :class:`~mstools.forcefield.HarmonicBondTerm`
+    * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.PeriodicDihedralTerm`
+    * :class:`~mstools.forcefield.PeriodicImproperTerm`
+
+    Several files can be read at one time.
+    Only one ForceField object will be created and it will contain force field terms from all of the files.
+
+    PPF format can optionally store the version of parameters.
+    If a force field term describing one topology element appear several times,
+    only the one with the latest version will be loaded.
+    If there are duplicated terms without version record, an Exception will be raised.
+
+    Parameters
+    ----------
+    files : list of str
+
+    Attributes
+    ----------
+    forcefield : ForceField
+
+    Notes
+    -----
+    In PPF file, there is no 1/2 for all energy terms
+
     '''
 
     def __init__(self, *files):
-        super().__init__()
-        self.lj_mixing_rule = self.LJ_MIXING_LB
-        self.vdw_long_range = self.VDW_LONGRANGE_CORRECT
-        self.vdw_cutoff = 1.2  # nm
-        self.scale_14_vdw = 0.5
-        self.scale_14_coulomb = 1.0 / 1.2
+        ff = ForceField()
+        ff.lj_mixing_rule = ForceField.LJ_MIXING_LB
+        ff.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
+        ff.vdw_cutoff = 1.2  # nm
+        ff.scale_14_vdw = 0.5
+        ff.scale_14_coulomb = 1.0 / 1.2
 
         # save all lines to this so that we can keep only the latest version
         self._ppf_lines = {}
         for file in files:
             self._parse(file)
 
-        self._setup()
+        self._setup(ff)
+
+        self.forcefield = ff
 
     def _parse(self, file):
         with open(file) as f:
@@ -102,7 +138,7 @@ class Ppf(ForceField):
             if float(ppf_line.version) > float(old_line.version):
                 self._ppf_lines[ppf_line.name] = ppf_line
 
-    def _setup(self):
+    def _setup(self, ff):
         for line in self._ppf_lines.values():
             if line.term != 'EQT':
                 continue
@@ -112,34 +148,38 @@ class Ppf(ForceField):
              atype.eqt_ang_c, atype.eqt_ang_s, atype.eqt_dih_c, atype.eqt_dih_s,
              atype.eqt_imp_c, atype.eqt_imp_s) = line.value.split()
             atype.version = line.version
-            self.atom_types[atype.name] = atype
+            ff.atom_types[atype.name] = atype
 
         for line in self._ppf_lines.values():
             if line.term == 'ATYPE':
-                atype = self.atom_types.get(line.key)
+                atype = ff.atom_types.get(line.key)
                 if atype is None:
                     continue
                 number, mass = line.get_float_values()
                 atype.mass = mass
             elif line.term == 'ATC':
-                for atype in self.atom_types.values():
+                for atype in ff.atom_types.values():
                     if atype._eqt_charge_ == line.key:
                         atype.charge = line.get_float_values()[0]
             elif line.term == 'BINC':
-                term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
-                term.version = line.version
-                self.charge_increment_terms[term.name] = term
+                try:
+                    term = ChargeIncrementTerm(*line.get_names(), *line.get_float_values())
+                except ChargeIncrementNonZeroError:
+                    logger.warning('Invalid BINC line ignored: %s' % line.key)
+                else:
+                    term.version = line.version
+                    ff.bci_terms[term.name] = term
             elif line.term == 'N12_6':
                 at = line.get_names()[0]
                 r_min, epsilon = line.get_float_values()
                 term = LJ126Term(at, at, epsilon * 4.184, r_min / 2 ** (1 / 6) / 10)
                 term.version = line.version
-                self.vdw_terms[term.name] = term
+                ff.vdw_terms[term.name] = term
             elif line.term == 'P12_6':
                 r_min, epsilon = line.get_float_values()
                 term = LJ126Term(*line.get_names(), epsilon * 4.184, r_min / 2 ** (1 / 6) / 10)
                 term.version = line.version
-                self.pairwise_vdw_terms[term.name] = term
+                ff.pairwise_vdw_terms[term.name] = term
             elif line.term == 'BHARM':
                 length, k = line.get_float_values()
                 at1, at2 = line.get_names()
@@ -147,7 +187,7 @@ class Ppf(ForceField):
                 fixed = at1.startswith('h_1') or at2.startswith('h_1')
                 term = HarmonicBondTerm(at1, at2, length / 10, k * 4.184 * 100, fixed=fixed)
                 term.version = line.version
-                self.bond_terms[term.name] = term
+                ff.bond_terms[term.name] = term
             elif line.term == 'AHARM':
                 theta, k = line.get_float_values()
                 at1, at2, at3 = line.get_names()
@@ -155,7 +195,7 @@ class Ppf(ForceField):
                 fixed = at1.startswith('h_1') and at2.startswith('o_2') and at3.startswith('h_1')
                 term = HarmonicAngleTerm(at1, at2, at3, theta, k * 4.184, fixed=fixed)
                 term.version = line.version
-                self.angle_terms[term.name] = term
+                ff.angle_terms[term.name] = term
             elif line.term == 'TCOSP':
                 values = line.get_float_values()
                 count = len(values) // 3
@@ -167,7 +207,7 @@ class Ppf(ForceField):
                         continue
                     term.add_parameter(phi, k, n)
                 term.version = line.version
-                self.dihedral_terms[term.name] = term
+                ff.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':
                 # the third atom is the center atom for IBCOS improper term
                 a1, a2, a3, a4 = line.get_names()
@@ -179,18 +219,26 @@ class Ppf(ForceField):
                     raise Exception('IBCOS should have phi=180 and n=2: %s' % line.key)
                 term = OplsImproperTerm(a3, a1, a2, a4, k * 4.184)
                 term.version = line.version
-                self.improper_terms[term.name] = term
+                ff.improper_terms[term.name] = term
 
         # update the mass based on eqt_vdw
-        for atype in self.atom_types.values():
+        for atype in ff.atom_types.values():
             if atype.eqt_vdw != atype.name:
-                atype_eq = self.atom_types.get(atype.eqt_vdw)
+                atype_eq = ff.atom_types.get(atype.eqt_vdw)
                 if atype_eq is None:
                     raise Exception('vdW equivalent type for %s not found in PPF' % (str(atype)))
                 atype.mass = atype_eq.mass
 
     @staticmethod
-    def save_to(ff: ForceField, file):
+    def save_to(ff, file):
+        '''
+        Save ForceField to a PPF file
+
+        Parameters
+        ----------
+        ff : ForceField
+        file : str
+        '''
         line = '#DFF:EQT\n'
         line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
         for atype in ff.atom_types.values():
@@ -207,7 +255,7 @@ class Ppf(ForceField):
             line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, atype.mass)
         for atype in ff.atom_types.values():
             line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)
-        for binc in ff.charge_increment_terms.values():
+        for binc in ff.bci_terms.values():
             line += 'BINC: %s, %s: %.5f: ' % (binc.type1, binc.type2, binc.value)
         for vdw in ff.vdw_terms.values():
             if isinstance(vdw, LJ126Term):
@@ -255,5 +303,5 @@ class Ppf(ForceField):
         if len(ff.polarizable_terms) > 0:
             logger.warning('Polarizable parameters are ignored because PPF does not support them')
 
-        with open(file, 'w') as f:
-            f.write(line)
+        with open(file, 'wb') as f:
+            f.write(line.encode())

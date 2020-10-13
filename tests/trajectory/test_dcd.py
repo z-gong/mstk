@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
-from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-
-top = Topology.open(cwd + '/files/100-SPCE.psf')
-omm_top = top.to_omm_topology()
-top = Topology()
-top.init_from_omm_topology(omm_top)
-
+tempdir = tempfile.mkdtemp()
 
 def test_read():
     dcd = Trajectory.open(cwd + '/files/100-SPCE.dcd')
@@ -31,8 +27,11 @@ def test_read():
 
 def test_write():
     gro = Trajectory.open(cwd + '/files/100-SPCE.gro')
-    dcd = Trajectory.open(cwd + '/files/gro-out.dcd', 'w')
-
+    tmp = os.path.join(tempdir, 'gro-out.dcd')
+    dcd = Trajectory.open(tmp, 'w')
     for i in range(gro.n_frame):
         frame = gro.read_frame(i)
         dcd.write_frame(frame)
+    dcd.close()
+    # It's annoying that DCD files generated are different every time. Compare the size instead of the content.
+    assert os.path.getsize(tmp) == os.path.getsize(cwd + '/files/baselines/gro-out.dcd')

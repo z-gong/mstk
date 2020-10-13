@@ -6,15 +6,63 @@ from ...utils import create_mol_from_smiles, generate_conformers
 
 
 class Cv(GaussSimulation):
+    '''
+    Cv protocol enables calculation of intramolecular heat capacity through frequency analysis.
+
+    Essentially, geometry optimization will be performed followed by frequency calculation.
+    The frequency is then used to determine the intramolecular heat capacity of the molecule.
+
+    The calculation is performed at B3LYP/6-31G(d) level of theory.
+    Hindered rotor model is used to describe the dihedral vibrations.
+    The frequency is scaled by 0.9613 before thermodynamic analysis.
+
+    Parameters
+    ----------
+    gauss_bin : str
+        The binary of Gaussian
+    gauss_scrdir : str
+        The scratch directory to be used by Gaussian calculation
+    jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    gauss : Gauss
+    jobmanager : subclass of JobManager
+    logs : list of str
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'cv'
         self.logs = ['conf-0.log']
 
-    def build(self, export=True, ppf=None, minimize=False):
-        pass
+    def set_system(self, smiles_list, n_mol_list=None, **kwargs):
+        if n_mol_list is None:
+            n_mol_list = [1] * len(smiles_list)
+        super().set_system(smiles_list, n_mol_list)
 
-    def prepare(self, gjf_name=None, n_conformer=0, T_list: [float] = None, jobname=None) -> [str]:
+    def prepare(self, T_list, gjf_name=None, n_conformer=0, jobname=None):
+        '''
+        Prepare the input files for running Gaussian CV calculation.
+
+        In order to consider the different conformers of flexible molecules,
+        argument `n_conformer` can be set to generate several conformations randomly,
+        and calculate this conformers one by one.
+
+        The temperature range should be provided so that the thermodynamic analysis is perform at
+        a series of temperatures, which allows for interpolation.
+
+        Parameters
+        ----------
+        T_list : list of float
+        gjf_name : str
+        n_conformer : int
+        jobname : str
+
+        Returns
+        -------
+        commands : list of str
+        '''
         if gjf_name is None:
             gjf_name = 'conf'
         self.logs = ['%s-%i.log' % (gjf_name, i) for i in range(n_conformer)]
@@ -41,7 +89,21 @@ class Cv(GaussSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def analyze(self, dirs=None, logs: [str] = None):
+    def run(self):
+        super().run()
+
+    def analyze(self, dirs=None, logs=None):
+        '''
+        Analyze the results of Gaussian CV calculation.
+
+        Parameters
+        ----------
+        dirs : list of str, optional
+            Deprecated.
+        logs : list of str, optional
+            Log files of Gaussian calculation.
+        '''
+
         def process_log(log):
             T_list = []
             scale_list = []
@@ -122,6 +184,3 @@ class Cv(GaussSimulation):
             'Cv'          : Cv_ave,
             'Cv-corrected': Cv_corr_ave,
         }
-
-    def clean(self):
-        pass

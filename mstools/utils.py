@@ -1,3 +1,7 @@
+'''
+A set of commonly used small functions.
+'''
+
 import math
 import os
 import random
@@ -7,7 +11,14 @@ from .errors import OpenBabelError
 
 def greatest_common_divisor(numbers):
     '''
-    calculate the greatest common divisor
+    Calculate the greatest common divisor.
+
+    Parameters
+    ----------
+    numbers : list of int
+
+    Returns
+    divisor : int
     '''
     minimal = min(numbers)
     for i in range(minimal, 1, -1):
@@ -21,11 +32,30 @@ def greatest_common_divisor(numbers):
 
 
 def random_string(length=8):
+    '''
+    Generate a random string in specified length. The string contains only upper and lower case ascii letters.
+
+
+    Parameters
+    ----------
+    length : int
+
+    Returns
+    -------
+    string : str
+    '''
     import random, string
     return ''.join(random.sample(string.ascii_letters, length))
 
 
 def cd_or_create_and_cd(dir):
+    '''
+    Go to the target directory. If not exist, create this directory and go to it.
+
+    Parameters
+    ----------
+    dir : str
+    '''
     if not os.path.exists(dir):
         try:
             os.makedirs(dir)
@@ -104,24 +134,21 @@ def get_P_list_from_range(p_min, p_max, multiple=(5,)) -> [int]:
     return P_list
 
 
-def get_TP_corner(TP_list: [tuple]) -> [tuple]:
-    TP_corner = []
-    for t, p in TP_list:
-        p_list = [TP[1] for TP in TP_list if TP[0] == t]
-        if min(p_list) < p and max(p_list) > p:
-            continue
-        t_list = [TP[0] for TP in TP_list if TP[1] == p]
-        if min(t_list) < t and max(t_list) > t:
-            continue
-        else:
-            TP_corner.append((t, p))
-    return TP_corner
-
-
-def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2_out: str = None,
-                           resname: str = None):
+def create_mol_from_smiles(smiles: str, minimize=True, pdb_out = None, mol2_out = None, resname = None):
     '''
-    resname only set for mol2_out
+    Create a openbabel molecule object from SMILES string.
+
+    Parameters
+    ----------
+    smiles : str
+    minimize : bool
+    pdb_out : str, optional
+    mol2_out : str, optional
+    resname : str, optional
+
+    Returns
+    -------
+    mol : pybel.Molecule
     '''
     try:
         import pybel
@@ -133,7 +160,7 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out: str = None, mol2
     except:
         raise OpenBabelError('Invalid SMILES')
 
-    from .saved_mol2 import smiles_mol2_dict
+    from .data.saved_mol2 import smiles_mol2_dict
 
     canSMILES = py_mol.write('can').strip()
     saved_mol2 = smiles_mol2_dict.get(canSMILES)

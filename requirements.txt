@@ -1,10 +1,10 @@
-python>=3.6
-openbabel
 numpy
 pandas
 scipy
-pymbar
+openbabel
 scikit-learn
+pytest # for unit test
+sphinx # for generating docs
+pymbar # for analyzer
 physical_validation # for validate NPT ensemble
 mdtraj # for debug NVT_SLAB phase equilibration
-pytest # for unit test

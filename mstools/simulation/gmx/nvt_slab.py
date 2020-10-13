@@ -9,12 +9,38 @@ from ...wrapper.ppf import delta_ppf
 
 
 class NvtSlab(GmxSimulation):
+    '''
+    Nvt slab simulation with GROMACS enables the calculation of surface tension and liquid-vapor phase equilibrium,
+    which can be used to derive critical temperature and critical density.
+
+    Parameters
+    ----------
+    packmol : Packmol
+    dff : DFF
+    gmx : GMX
+    jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    packmol : Packmol
+    dff : Packmol
+    gmx : GMX
+    jobmanager : subclass of JobManager
+    n_atom_default : int
+    n_mol_default : int
+    n_mol_list : list of int
+    logs : list of str
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt-slab'
         self.logs = ['nvt.log']
         self.n_atom_default = 12000
         self.n_mol_default = 400
+
+    def set_system(self, smiles_list, **kwargs):
+        super().set_system(smiles_list, **kwargs)
 
     def build(self, export=True, ppf=None, length=None):
         if length is None:
@@ -28,21 +54,26 @@ class NvtSlab(GmxSimulation):
                                size=[i - 2 for i in self.box], slab=slab, silent=True)
 
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr='init.pdb', size=self.box)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd,
+                                         mol_corr='init.pdb', size=self.box)
 
         # build msd for fast export
-        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb, size=self.box,
+        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb,
+                               size=self.box,
                                inp_file='build_single.inp', silent=True)
         self.dff.build_box_after_packmol(self.mol2_list, [1] * len(self.pdb_list), self._single_msd,
                                          mol_corr=self._single_pdb, size=self.box)
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
-            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True)  # A to nm
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box],
+                             silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None, TANNEAL=None,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(4E6), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(5E2),
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, jobname=None,
+                TANNEAL=None,
+                dt=0.002, nst_eq=int(4E5), nst_run=int(4E6), nst_edr=100, nst_trr=int(5E4),
+                nst_xtc=int(5E2),
                 drde=False, **kwargs) -> [str]:
         if os.path.abspath(model_dir) != os.getcwd():
             shutil.copy(os.path.join(model_dir, gro), gro)
@@ -74,9 +105,11 @@ class NvtSlab(GmxSimulation):
         gro_em = 'em.gro'
         # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
         if TANNEAL is not None:
-            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
+            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T,
+                                               TANNEAL=TANNEAL,
                                                nsteps=int(1E5), nstxtcout=0)
-            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
+            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top,
+                                  tpr_out='anneal.tpr', get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
@@ -84,15 +117,18 @@ class NvtSlab(GmxSimulation):
             gro_em = 'anneal.gro'
 
         # NVT equilibrium
-        self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-eq.mdp', T=T, nsteps=nst_eq, nstxtcout=0)
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
+        self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-eq.mdp', T=T,
+                                           nsteps=nst_eq, nstxtcout=0)
+        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr',
+                              get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
         # NVT production
         self.gmx.prepare_mdp_from_template('t_nvt_slab.mdp', mdp_out='grompp-nvt.mdp', T=T,
-                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
+                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr,
+                                           nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
         cmd = self.gmx.grompp(mdp='grompp-nvt.mdp', gro='eq.gro', top=top, tpr_out='nvt.tpr',
                               cpt='eq.cpt', get_cmd=True)
@@ -102,6 +138,9 @@ class NvtSlab(GmxSimulation):
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
+
+    def run(self):
+        super().run()
 
     def extend(self, extend=2000, jobname=None, sh=None) -> [str]:
         '''
@@ -237,8 +276,10 @@ class NvtSlab(GmxSimulation):
             _min = min(density_series)
             _c = (_max + _min) / 2
             _A = (_max - _min) / 2
-            _coef1, _score1 = fit_vle_tanh(dens_series_left.index, dens_series_left, guess=[_c, -_A, nodes[0], 1])
-            _coef2, _score1 = fit_vle_tanh(dens_series_righ.index, dens_series_righ, guess=[_c, _A, nodes[1], 1])
+            _coef1, _score1 = fit_vle_tanh(dens_series_left.index, dens_series_left,
+                                           guess=[_c, -_A, nodes[0], 1])
+            _coef2, _score1 = fit_vle_tanh(dens_series_righ.index, dens_series_righ,
+                                           guess=[_c, _A, nodes[1], 1])
             # if debug:
             #     print(dens_series_left)
             #     print(dens_series_righ)
@@ -255,7 +296,8 @@ class NvtSlab(GmxSimulation):
                 continue
 
             mul = 2.6466524123622457  # arctanh(0.99)
-            lz_liq = r1 - density_series.index[0] + density_series.index[-1] - r2 + dz - s1 * mul - s2 * mul
+            lz_liq = r1 - density_series.index[0] + density_series.index[
+                -1] - r2 + dz - s1 * mul - s2 * mul
             lz_gas = r2 - r1 - s1 * mul - s2 * mul
             lz_int = (s1 + s2) * mul * 2  # thickness of two interfaces
             if debug:
@@ -333,7 +375,8 @@ class NvtSlab(GmxSimulation):
 
         temperature_and_stderr, pressure_and_stderr, pzz_and_stderr, st_and_stderr, potential_and_stderr = \
             self.gmx.get_properties_stderr('nvt.edr',
-                                           ['Temperature', 'Pressure', 'Pres-ZZ', '#Surf*SurfTen', 'Potential'],
+                                           ['Temperature', 'Pressure', 'Pres-ZZ', '#Surf*SurfTen',
+                                            'Potential'],
                                            begin=when)
         return {
             'length'     : length,
@@ -376,12 +419,14 @@ class NvtSlab(GmxSimulation):
         st___list = [i[0] for i in st___stderr_list]
         pzz__list = [i[0] for i in pzz__stderr_list]
 
-        coeff_dminus, score_dminus = fit_vle_dminus(T_list, np.array(dliq_list) - np.array(dgas_list))  # Tc, B
+        coeff_dminus, score_dminus = fit_vle_dminus(T_list, np.array(dliq_list) - np.array(
+            dgas_list))  # Tc, B
         Tc = coeff_dminus[0]
         if Tc < 0 or Tc > 1200:
             return None, 'Fit VLE density failed'
 
-        coeff_dplus, score_dplus = fit_vle_dplus(T_list, np.array(dliq_list) + np.array(dgas_list), Tc)  # Dc, A
+        coeff_dplus, score_dplus = fit_vle_dplus(T_list, np.array(dliq_list) + np.array(dgas_list),
+                                                 Tc)  # Dc, A
         Dc = coeff_dplus[0]
         if Dc < 0 or Dc > 3.0:
             return None, 'Fit VLE density failed'

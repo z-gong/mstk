@@ -62,9 +62,9 @@ import pandas
  enxDHHIST, # BAR histogram
  enxDH,     # BAR raw delta H data
  enxNR      # Total number of extra blocks in the current code,
-            # note that the enxio code can read files written by
-            # future code which contain more blocks.
-) = range(8)
+ # note that the enxio code can read files written by
+ # future code which contain more blocks.
+ ) = range(8)
 
 # xdr_datatype
 # note that there is no data type 'real' because
@@ -82,16 +82,16 @@ class EDRFile(object):
     def __init__(self, path):
         with open(path, 'rb') as infile:
             content = infile.read()
-        self.data = xdrlib.Unpacker(content)
+        self.data = GMX_Unpacker(content)
         self.do_enxnms()
-        self.frame = Frame()
 
     def __iter__(self):
         while True:
             try:
+                self.frame = Frame()
                 self.do_enx()
             except EOFError:
-                raise StopIteration
+                return
             else:
                 yield self.frame
 
@@ -139,15 +139,21 @@ class EDRFile(object):
         bWrongPrecision = False
         bOK = True
 
-        first_real_to_check = data.unpack_float()  # should be unpack_real
+        # We decide now whether we're single- or double-precision. Just peek
+        # ahead and see whether we find the magic number where it should.
+        base_pos = data.get_position()
+        data.set_position(base_pos + 4)
+        data.gmx_double = not is_frame_magic(data)
+        data.set_position(base_pos)
+
+        first_real_to_check = data.unpack_real()
         if first_real_to_check > -1e-10:
             # Assume we are reading an old format
             file_version = 1
             fr.t = first_real_to_check
             fr.step = data.unpack_int()
         else:
-            magic = data.unpack_int()
-            if magic != -7777777:
+            if not is_frame_magic(data):
                 raise ValueError("Energy header magic number mismatch, this is not a GROMACS edr file")
             file_version = data.unpack_int()
             if file_version > ENX_VERSION:
@@ -177,8 +183,8 @@ class EDRFile(object):
             fr.nblock += 1
         # Frames could have nre=0, so we can not rely only on the fr.nre check
         if (nre_test >= 0
-            and ((fr.nre > 0 and fr.nre != nre_test)
-                 or fr.nre < 0 or ndisre < 0 or fr.nblock < 0)):
+                and ((fr.nre > 0 and fr.nre != nre_test)
+                     or fr.nre < 0 or ndisre < 0 or fr.nblock < 0)):
             bWrongPrecision = True
             return
         #  we now know what these should be, or we've already bailed out because
@@ -248,10 +254,10 @@ class EDRFile(object):
                 fr.ener.append(Energy(0, 0, 0))
             fr.e_alloc = fr.nre
         for i in range(fr.nre):
-            fr.ener[i].e = data.unpack_float()  # Should be unpack_real
+            fr.ener[i].e = data.unpack_real()
             if file_version == 1 or fr.nsum > 0:
-                fr.ener[i].eav = data.unpack_float()  # Should be unpack_real
-                fr.ener[i].esum = data.unpack_float() # Should be unpack_real
+                fr.ener[i].eav = data.unpack_real()
+                fr.ener[i].esum = data.unpack_real()
                 if file_version == 1:
                     # Old, unused real
                     data.unpack_real()
@@ -287,7 +293,7 @@ class SubBlock(object):
     def __init__(self):
         self.nr = 0
         self.type = xdr_datatype_float  # should be double
-                                        # if compile in double
+        # if compile in double
         self.val = []
         self.val_alloc = 0
 
@@ -304,6 +310,14 @@ class Block(object):
         self.sub = []
         self.nsub_alloc = 0
 
+    def add_subblocks(self, final_number):
+        # See add_subblocks_enxblock
+        self.nsub = final_number
+        if final_number > self.nsub_alloc:
+            for _ in range(final_number - self.nsub_alloc):
+                self.sub.append(SubBlock())
+            self.nsub_alloc = final_number
+
 
 class Frame(object):
     def __init__(self):
@@ -318,39 +332,53 @@ class Frame(object):
         # See add_blocks_enxframe
         self.nblock = final_number
         if final_number > self.nblock_alloc:
-            for _ in range(self.nblock_alloc - final_number):
+            for _ in range(final_number - self.nblock_alloc):
                 self.block.append(Block())
             self.nblock_alloc = final_number
 
 
+class GMX_Unpacker(xdrlib.Unpacker):
+    """xdrlib.Unpacker subclass that implements `unpack_real`
+
+    Decision on whether to return 32- or 64-bit reals is controlled by the
+    `gmx_double` attribute, set to ``False`` by default.
+    """
+    gmx_double = False
+
+    def unpack_real(self):
+        if self.gmx_double:
+            return self.unpack_double()
+        return self.unpack_float()
+
+
 def ndo_int(data, n):
     """mimic of gmx_fio_ndo_int in gromacs"""
-    return [data.unpack_int() for i in xrange(n)]
+    return [data.unpack_int() for i in range(n)]
 
 
 def ndo_float(data, n):
     """mimic of gmx_fio_ndo_float in gromacs"""
-    return [data.unpack_float() for i in xrange(n)]
+    return [data.unpack_float() for i in range(n)]
 
 
 def ndo_double(data, n):
     """mimic of gmx_fio_ndo_double in gromacs"""
-    return [data.unpack_double() for i in xrange(n)]
+    return [data.unpack_double() for i in range(n)]
 
 
 def ndo_int64(data, n):
     """mimic of gmx_fio_ndo_int64 in gromacs"""
-    return [data.unpack_huge() for i in xrange(n)]
+    return [data.unpack_huge() for i in range(n)]
 
 
 def ndo_char(data, n):
     """mimic of gmx_fio_ndo_char in gromacs"""
-    return [data.unpack_char() for i in xrange(n)]
+    return [data.unpack_char() for i in range(n)]
 
 
 def ndo_string(data, n):
     """mimic of gmx_fio_ndo_string in gromacs"""
-    return [data.unpack_string() for i in xrange(n)]
+    return [data.unpack_string() for i in range(n)]
 
 
 def edr_strings(data, file_version, n):
@@ -365,9 +393,18 @@ def edr_strings(data, file_version, n):
     return nms
 
 
+def is_frame_magic(data):
+    """Unpacks an int and checks whether it matches the EDR frame magic number
+
+    Does not roll the reading position back.
+    """
+    magic = data.unpack_int()
+    return magic == -7777777
+
+
 def edr_to_df(path, verbose=False):
     begin = time.time()
-    edr_file = EDRFile(path)
+    edr_file = EDRFile(str(path))
     all_energies = []
     all_names = [u'Time'] + [nm.name for nm in edr_file.nms]
     times = []
@@ -378,8 +415,10 @@ def edr_to_df(path, verbose=False):
                     (ifr < 2000 or ifr % 1000 == 0)):
                 print('\rRead frame : {},  time : {} ps'.format(ifr, frame.t),
                       end='', file=sys.stderr)
-        times.append(frame.t)
-        all_energies.append([frame.t] + [ener.e for ener in frame.ener])
+        if frame.ener:
+            # Export only frames that contain energies
+            times.append(frame.t)
+            all_energies.append([frame.t] + [ener.e for ener in frame.ener])
 
     end = time.time()
     if verbose:

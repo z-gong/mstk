@@ -46,3 +46,20 @@ def test_read():
     assert pytest.approx(atom.position, abs=1E-6) == [2.4257, 0.3594, 0.3218]
     atom = lmp.atoms[-1]
     assert pytest.approx(atom.position, abs=1E-6) == [1.6725, 2.1756, 0.5918]
+
+
+def test_improper():
+    lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp')
+    assert lmp.n_improper == 10
+    improper = lmp.impropers[0]
+    assert improper.atom1.id + 1 == 32
+    assert improper.atom2.id + 1 == 34
+    assert improper.atom3.id + 1 == 31
+    assert improper.atom4.id + 1 == 35
+
+    lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp', improper_center=3)
+    improper = lmp.impropers[0]
+    assert improper.atom1.id + 1 == 31
+    assert improper.atom2.id + 1 == 32
+    assert improper.atom3.id + 1 == 34
+    assert improper.atom4.id + 1 == 35

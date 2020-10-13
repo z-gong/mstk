@@ -8,11 +8,19 @@ from ..utils import create_mol_from_smiles, random_string
 
 
 class Gauss:
-    TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gauss/')
     '''
-    wrappers for Gaussian
+    Wrapper for Gaussian for quantum calculations
+
+    Parameters
+    ----------
+    gauss_bin : str
+        Path of the Gaussian binary executable
+    scrdir : str, optional
+        Path of the scratch dir for Gaussian calculations.
+        If not provided, the ramdisk `/dev/shm` will be used.
     '''
-    pass
+
+    _TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/gauss/')
 
     def __init__(self, gauss_bin, scrdir=None):
         if scrdir is None:
@@ -21,7 +29,32 @@ class Gauss:
         self.GAUSS_ROOT = os.path.dirname(gauss_bin)
         self.SCRDIR = scrdir
 
-    def generate_gjf_cv(self, name, py_mol, method='B3LYP', basis='6-31G*', scale=0.9613, T_list=[298]):
+    def generate_gjf_cv(self, name, py_mol, method='B3LYP', basis='6-31G*', scale=0.9613,
+                        T_list=None):
+        '''
+        Genrate GJF input file for calculating heat capacity with Gaussian
+
+        The molecule is provided through a pybel.Molecule object.
+        Therefore, openbabel should be installed.
+        The pybel.Molecule object should contain information about positions of all atoms.
+
+        The hindered-rotor model is used to describing the low-frequency dihedral vibrations.
+
+        A list of temperature can be provided.
+        Then the thermodynamic analysis will be performed at all the provided temperatures,
+        so that the result at intermediate temperature can be interpolated.
+
+        Parameters
+        ----------
+        name : str
+        py_mol : pybel.Molecule
+        method : str
+        basis : str
+        scale : float
+        T_list : list of float, optional
+        '''
+        if T_list is None:
+            T_list = [298]
         gjf = name + '.gjf'
         with open(gjf, 'w') as f:
             f.write('%%chk=%(name)s.chk\n'
@@ -30,12 +63,12 @@ class Gauss:
                     'Title\n'
                     '\n'
                     '%(charge)i %(multiplicity)i\n'
-                    % ({'name': name,
-                        'method': method,
-                        'basis': basis,
-                        'scale': scale,
-                        'T': T_list[0],
-                        'charge': py_mol.charge,
+                    % ({'name'        : name,
+                        'method'      : method,
+                        'basis'       : basis,
+                        'scale'       : scale,
+                        'T'           : T_list[0],
+                        'charge'      : py_mol.charge,
                         'multiplicity': py_mol.spin
                         })
                     )
@@ -48,13 +81,36 @@ class Gauss:
                         '%%chk=%(name)s.chk\n'
                         '# freq=(readfc,hindrot) geom=allcheck scale=%(scale).4f temperature=%(T).2f\n'
                         '\n'
-                        % ({'name': name,
+                        % ({'name' : name,
                             'scale': scale,
-                            'T': T
+                            'T'    : T
                             })
                         )
 
-    def run_gjf(self, gjf, nprocs=1, memMB: int = 1000, get_cmd=False, sh_out=None):
+    def run_gjf(self, gjf, nprocs=1, memMB=1000, get_cmd=False, sh_out=None):
+        '''
+        Process the GJF file so that it is ready for multi-core Gaussian calculation, and then return the commands for calculation.
+
+        The commands return can be feed into a :class:`~mstools.jobmanager.JobManager` for running on a HPC.
+
+        Parameters
+        ----------
+        gjf : str
+            The GJF file to be processed
+        nprocs : str
+            Number of cores to use
+        memMB : int
+            Maxium size of memory to use in unit of MB
+        get_cmd : bool
+            Whether or not return the commands for running Gaussian calculation
+        sh_out : str, optional
+            If provided, the commmands for running Gaussian calculation will be written to this shell script
+
+        Returns
+        -------
+        commands : list of str, or None
+            If `get_cmd` is True, the commands for running Gaussian will be returned
+        '''
         with open(gjf) as f:
             content = f.read()
         with open(gjf, 'w') as f:

@@ -177,6 +177,16 @@ def get_atom_hybridization(key):
 
 
 class PPF():
+    '''
+    Parser for PPF file of DFF.
+
+    Parameters
+    ----------
+    ppf_file : str, optional
+        The file name of PPF file to be loaded.
+    string : str, optional
+        The content string of a PPF to be loaded.
+    '''
     def __init__(self, ppf_file=None, string=None):
         lines = []
         if ppf_file is not None:
@@ -205,10 +215,25 @@ class PPF():
         return string
 
     def write(self, ppf_out):
+        '''
+        Write the PPF object into a PPF file.
+
+        Parameters
+        ----------
+        ppf_out : str
+            File name of the output
+        '''
         with open(ppf_out, 'w') as f:
             f.write(str(self))
 
     def get_adj_nb_paras(self) -> OrderedDict:
+        '''
+        Get the unfrozen N12_6 and BINC parameters.
+
+        Returns
+        -------
+        parameters : dict, [str, float]
+        '''
         adj_paras = OrderedDict()
         for term in self.terms:
             if term.term == 'N12_6':

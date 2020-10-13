@@ -3,6 +3,30 @@ from .gmx import GmxSimulation
 
 
 class Nvt(GmxSimulation):
+    '''
+    Nvt simulation with GROMACS enables the calculation of transport properties
+    like diffusion coefficient, shear viscosity, conductivity, etc...
+
+    Parameters
+    ----------
+    packmol : Packmol
+    dff : DFF
+    gmx : GMX
+    jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    packmol : Packmol
+    dff : Packmol
+    gmx : GMX
+    jobmanager : subclass of JobManager
+    n_atom_default : int
+    n_mol_default : int
+    n_mol_list : list of int
+    logs : list of str
+
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'nvt'
@@ -10,6 +34,9 @@ class Nvt(GmxSimulation):
 
     def build(self, ppf=None, minimize=False):
         pass
+
+    def set_system(self, smiles_list, **kwargs):
+        super().set_system(smiles_list, **kwargs)
 
     def prepare(self, prior_job_dir=None, gro='npt.gro', top='topol.top', T=298, jobname=None,
                 n_msd=0, nst_msd=int(1E6),
@@ -34,33 +61,43 @@ class Nvt(GmxSimulation):
         commands = []
 
         if n_msd > 0 or n_velacc > 0:
-            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-eq.mdp', T=T, nsteps=int(5E4),
+            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-eq.mdp', T=T,
+                                               nsteps=int(5E4),
                                                nstxtcout=0, tcoupl='nose-hoover')
             # equilibrium
-            cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro, top=top, tpr_out='eq.tpr', get_cmd=True)
+            cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro, top=top, tpr_out='eq.tpr',
+                                  get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
         if n_msd > 0:
-            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-msd.mdp', T=T, nsteps=nst_msd,
+            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-msd.mdp', T=T,
+                                               nsteps=nst_msd,
                                                nstxtcout=10000, tcoupl='nose-hoover', restart=True)
-            cmd = self.gmx.grompp(mdp='grompp-msd.mdp', gro='eq.gro', top=top, tpr_out='nvt-msd.tpr',
+            cmd = self.gmx.grompp(mdp='grompp-msd.mdp', gro='eq.gro', top=top,
+                                  tpr_out='nvt-msd.tpr',
                                   cpt='eq.cpt', get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name='nvt-msd', nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
         if n_velacc > 0:
-            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-velacc.mdp', T=T, nsteps=nst_velacc,
-                                               nstvout=nstvout_velacc, tcoupl='nose-hoover', restart=True)
-            cmd = self.gmx.grompp(mdp='grompp-velacc.mdp', gro='eq.gro', top=top, tpr_out='nvt-velacc.tpr',
+            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-velacc.mdp', T=T,
+                                               nsteps=nst_velacc,
+                                               nstvout=nstvout_velacc, tcoupl='nose-hoover',
+                                               restart=True)
+            cmd = self.gmx.grompp(mdp='grompp-velacc.mdp', gro='eq.gro', top=top,
+                                  tpr_out='nvt-velacc.tpr',
                                   cpt='eq.cpt', get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name='nvt-velacc', nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
         if n_vis > 0:
-            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, nsteps=int(1.5E5))
-            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-vis.mdp', T=T, nsteps=nst_vis,
-                                               nstenergy=nstenergy_vis, tcoupl='nose-hoover', restart=True)
+            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T,
+                                               nsteps=int(1.5E5))
+            self.gmx.prepare_mdp_from_template('t_nvt.mdp', mdp_out='grompp-vis.mdp', T=T,
+                                               nsteps=nst_vis,
+                                               nstenergy=nstenergy_vis, tcoupl='nose-hoover',
+                                               restart=True)
         for i in range(n_vis):
             gro_anneal = 'anneal%i.gro' % i
             name_anneal = 'anneal%i' % i
@@ -69,7 +106,8 @@ class Nvt(GmxSimulation):
             tpr_vis = name_vis + '.tpr'
 
             # equilibrium
-            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro=gro, top=top, tpr_out=tpr_anneal, get_cmd=True)
+            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro=gro, top=top, tpr_out=tpr_anneal,
+                                  get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name=name_anneal, nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
@@ -84,5 +122,5 @@ class Nvt(GmxSimulation):
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
 
-    def analyze(self, dirs=None):
-        pass
+    def run(self):
+        super().run()

@@ -9,7 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_read():
-    ff = Padua(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     br = ff.atom_types['Br']
     assert br.mass == 79.904
     assert br.charge == -1.0
@@ -36,7 +36,7 @@ def test_read():
     assert angle.k == 313.8 / 2
 
     dihedral = ff.dihedral_terms['CT,CT,CT,HC']
-    assert dihedral.follow_opls_convention
+    assert dihedral.is_opls_convention
     k1, k2, k3, k4 = dihedral.get_opls_parameters()
     assert k1 == 0
     assert k2 == 0
@@ -44,7 +44,7 @@ def test_read():
     assert k4 == 0
 
     dihedral = ff.dihedral_terms['CT,CT,CT,CT']
-    assert dihedral.follow_opls_convention
+    assert dihedral.is_opls_convention
     k1, k2, k3, k4 = dihedral.get_opls_parameters()
     assert k1 == 5.4392 / 2
     assert k2 == -0.2092 / 2
@@ -76,16 +76,3 @@ def test_ljscaler():
     assert pytest.approx(vdw.sigma, abs=1E-5) == 3.784243 / 10 / 2 ** (1 / 6)
     assert vdw.comments == ['eps*0.686', 'sig*0.985']
 
-    # another way of parsing lj scaling
-    ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff',
-                         cwd + '/files/CLPol-ljscale.ff')
-
-    vdw = ff.get_vdw_term('C1', 'C1')
-    assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.047123 * 4.184
-    assert pytest.approx(vdw.sigma, abs=1E-5) == 3.869688 / 10 / 2 ** (1 / 6)
-    assert vdw.comments == ['eps*0.714', 'sig*0.985']
-
-    vdw = ff.get_vdw_term('CR', 'CZA')
-    assert pytest.approx(vdw.epsilon, abs=1E-5) == 0.046627 * 4.184
-    assert pytest.approx(vdw.sigma, abs=1E-5) == 3.784243 / 10 / 2 ** (1 / 6)
-    assert vdw.comments == ['eps*0.686', 'sig*0.985']

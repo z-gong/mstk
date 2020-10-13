@@ -8,9 +8,59 @@ from ..errors import JobManagerError
 
 
 class Torque(JobManager):
+    '''
+    Torque job scheduler.
+
+    Since the development of Torque has stopped since long time ago,
+    the support for Torque will be deprecated in the future.
+
+    Parameters
+    ----------
+    queue : str
+        The jobs will be submitted to this queue.
+    nprocs : int
+        The CPU cores a job can use.
+        In most case, it should be equal to :attr:`nprocs_request`.
+        If hyper-threading is on, and the simulation software makes good use of hyper-threading, and CGroup is not enabled by the job scheduler,
+        it can be two times of :attr:`nprocs_request` for better performance.
+    ngpu : int
+        The GPU card a job can use.
+    nprocs_request : int
+        The CPU cores a job will request from job scheduler.
+        It must be smaller than the CPU cores on one node.
+    env_cmd : str
+        The commands for setting up the environment before running real calculations.
+        It will be inserted on the top of job scripts.
+
+    Attributes
+    ----------
+    queue : str
+        The jobs will be submitted on this queue.
+    nprocs : int
+        The CPU cores (or threads if hyper-threading is enabled) a job can use.
+    ngpu : int
+        The GPU card a job can use.
+    nprocs_request : int
+        The CPU cores a job will request from job scheduler.
+    env_cmd : str
+        The commands for setting up the environment before running real calculations.
+    sotred_jobs_expire : int
+        The lifetime of cached jobs in seconds.
+    time : int
+        The wall time limit for a job.
+    sh : str
+        The default name of the job script.
+    '''
+
+    #: Whether or not this is a remote job scheduler
+    is_remote = False
+
     def __init__(self, queue, nprocs, ngpu, nprocs_request, **kwargs):
         super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
         self.sh = '_job_torque.sh'
+
+    def is_working(self):
+        return True
 
     def generate_sh(self, workdir, commands, name, sh=None, **kwargs):
         if sh is None:
@@ -105,7 +155,10 @@ class Torque(JobManager):
                     jobs.append(job)
         return jobs
 
-    def get_nodes(self):
+    def _get_nodes(self):
+        '''
+        Deprecated
+        '''
         def parse_used_cores(line):
             n_used = 0
             jobs = line.split('=')[-1].strip().split(',')
@@ -143,10 +196,13 @@ class Torque(JobManager):
 
         return nodes
 
-    def get_available_queues(self):
+    def _get_available_queues(self):
+        '''
+        Deprecated
+        '''
         queues = {}
         try:
-            nodes = self.get_nodes()
+            nodes = self._get_nodes()
         except Exception as e:
             print(str(e))
         else:

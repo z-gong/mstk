@@ -6,18 +6,36 @@ from .topology import Topology
 from ..forcefield import Element
 
 
-class Zmat(Topology):
-    """
-    z-matrix representing a molecule, read from .zmat file
-    the algorithm of generate cartesian coordinates from zmatrix is copied from fftool of Agilio Padua
-    the first column will be treated as atom type
-    """
+class Zmat():
+    '''
+    Generate Topology from ZMAT file.
+
+    All of the atoms are assumed to be in the same molecule.
+    The first line is treated as the name of the molecule.
+    The positions will be generated from Z-matrix, with the algorithm copied from fftool of Agilio Padua.
+    The first column is treated as atom type.
+
+    Parameters
+    ----------
+    file : str
+    kwargs : dict
+        Ignored
+
+    Attributes
+    ----------
+    topology : Topology
+
+    Examples
+    --------
+    >>> zmat = Zmat('input.zmat')
+    >>> topology = zmat.topology
+    '''
 
     def __init__(self, file, **kwargs):
-        super().__init__()
-        self.parse(file)
+        self.topology = Topology()
+        self._parse(file)
 
-    def parse(self, file):
+    def _parse(self, file):
         f = open(file)
 
         mol = Molecule()
@@ -216,4 +234,5 @@ class Zmat(Topology):
                 mol.atoms[i].position = vA
 
         mol.generate_angle_dihedral_improper()
-        self.update_molecules([mol])
+
+        self.topology.update_molecules([mol])

@@ -19,7 +19,7 @@ parser.add_argument('-f', '--forcefield', nargs='+', required=True, type=str,
 parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
 parser.add_argument('--typer', type=str,
                     help='typing file. Required if SMILES provided for topology')
-parser.add_argument('--ljscale', type=str, help='input files for empirical LJ scaling')
+parser.add_argument('--ljscale', type=str, help='input file for empirical LJ scaling')
 parser.add_argument('--nodrude', action='store_true',
                     help='disable Drude particles even if it is polarizable model')
 parser.add_argument('--trj', type=str,
@@ -28,6 +28,13 @@ parser.add_argument('--box', nargs=3, type=float,
                     help='periodic box size if not provided by topology or trajectory')
 parser.add_argument('--packmol', action='store_true',
                     help='generate Packmol input files for building coordinates')
+parser.add_argument('--qscale', default=1, type=float, help='scale the charge of atoms')
+parser.add_argument('--scaleeps', type=float, default=1.0,
+                    help='extra scaling parameter for all LJ epsilon')
+parser.add_argument('--scalesig', type=float, default=1.0,
+                    help='extra scaling parameter for all LJ sigma')
+parser.add_argument('--scaleignoreatom', nargs='+', type=str, default=[],
+                    help='ignore these atom types for extra scaling')
 args = parser.parse_args()
 
 if args.number is None:
@@ -65,6 +72,17 @@ if args.nodrude:
 if args.ljscale is not None:
     scaler = PaduaLJScaler(args.ljscale)
     scaler.scale(ff)
+
+if args.scaleeps != 1.0 or args.scalesig != 1.0:
+    for vdw in list(ff.vdw_terms.values()) + list(ff.pairwise_vdw_terms.values()):
+        if vdw.type1 in args.scaleignoreatom or vdw.type2 in args.scaleignoreatom:
+            continue
+        if args.scaleeps != 1.0:
+            vdw.epsilon *= args.scaleeps
+            vdw.comments.append('eps*%.3f' % args.scaleeps)
+        if args.scalesig != 1.0:
+            vdw.sigma *= args.scalesig
+            vdw.comments.append('sig*%.3f' % args.scalesig)
 
 mol_count = top.get_unique_molecules(deepcopy=False)
 for mol in mol_count.keys():
@@ -115,6 +133,7 @@ else:
         if len(frame.positions) == len(atoms_real):
             for i, atom in enumerate(atoms_real):
                 atom.position = frame.positions[i][:]
+            np.random.seed(1)
             for parent, drude in top.get_drude_pairs():
                 drude.position = parent.position + (np.random.random(3) - 0.5) / 100
             _positions_set = True
@@ -124,6 +143,10 @@ else:
             'Numbers of atoms in trajectory (%i) and topology (all: %i, non-Drude: %i) do not match' % (
                 len(frame.positions), top.n_atom, top.n_atom - len(top.get_drude_pairs())))
         sys.exit(1)
+
+for atom in top.atoms:
+    if args.qscale != 1 and atom.type not in args.scaleignoreatom:
+        atom.charge *= args.qscale
 
 system = System(top, ff)
 system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')

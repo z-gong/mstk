@@ -1,3 +1,4 @@
+from .gmx import GmxSimulation
 from .npt import Npt
 from .npt_ppm import NptPPM
 from .nvt import Nvt

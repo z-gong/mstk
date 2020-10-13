@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
 from mstools.topology import Topology
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -49,7 +52,12 @@ def test_read():
 
 
 def test_write():
-    lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp')
-    lmp.write(cwd + '/files/lmp-out.psf')
+    lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp', improper_center=3)
+    tmp = os.path.join(tmpdir, 'lmp-out.psf')
+    lmp.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/lmp-out.psf')
+
     zmat = Topology.open(cwd + '/files/Im11.zmat')
-    zmat.write(cwd + '/files/zmat-out.psf')
+    tmp = os.path.join(tmpdir, 'zmat-out.psf')
+    zmat.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/zmat-out.psf')

@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-
-top = Topology.open(cwd + '/files/100-SPCE.psf')
-omm_top = top.to_omm_topology()
-top = Topology()
-top.init_from_omm_topology(omm_top)
-
+tempdir = tempfile.mkdtemp()
 
 def test_read():
     xtc = Trajectory.open(cwd + '/files/100-SPCE.xtc')
@@ -31,8 +28,10 @@ def test_read():
 
 def test_write():
     gro = Trajectory.open(cwd + '/files/100-SPCE.gro')
-    xtc = Trajectory.open(cwd + '/files/gro-out.xtc', 'w')
-
+    tmp = os.path.join(tempdir, 'gro-out.xtc')
+    xtc = Trajectory.open(tmp, 'w')
     for i in range(gro.n_frame):
         frame = gro.read_frame(i)
         xtc.write_frame(frame)
+    xtc.close()
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/gro-out.xtc')

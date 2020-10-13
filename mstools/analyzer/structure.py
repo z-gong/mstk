@@ -3,23 +3,29 @@ from pandas import Series
 from .ptre import Ptre
 
 
-def is_crystal() -> bool:
-    pass
-
-
-def check_vle_density(series: Series) -> (bool, bool, [float]):
+def check_vle_density(series):
     '''
-    Check in a density series is interface
+    Check whether or not a density profile represents a vapor-liquid interface with canny edge method
 
-    :param series:  density series. The index is the z axis
-    :return: is interface: bool
-             center is gas phase: bool
-             location of changing nodes [float]
+    Parameters
+    ----------
+    series : Series
+        The density series along z axis. The index of the series is z coordinates
+
+    Returns
+    -------
+    is_interface : bool
+        Whether or not there is a vapor-liquid interface
+    is_center_gas : bool
+        Whether or not the center region is gas phase
+    nodes : list of float
+        The location of interfaces in z axis
+
     '''
     interval = series.index[1] - series.index[0]
 
     result, peaks = Ptre.test_data(series, interval)  # the peaks starts from 0, not original index
-    peaks.sort(key=lambda x: x[0])
+    peaks._sort_hill(key=lambda x: x[0])
 
     if result != Ptre._PATTERN_A:
         return False, None, None
@@ -28,12 +34,23 @@ def check_vle_density(series: Series) -> (bool, bool, [float]):
     return True, peaks[0][1] > 0, nodes
 
 
-def N_vaporize_condense(phases) -> (int, int):
+def N_vaporize_condense(phases):
     '''
-    Check the number of vaporize and condensation
+    Check how many times one molecules have vaporized or condensed
 
-    :param list:  ['l', 'i', 'g'], liquid, interface, gas
-    :return: (N_vapor, N_condense)
+    Parameters
+    ----------
+    phases : list of str
+        The time evolution of the phase one molecule stayed in.
+        The elements in this list can only be 'l', 'i' or 'g', which means liquid, interface and gas phase.
+
+    Returns
+    -------
+    N_vapor: int
+        Times of vaporization (transit from liquid to gas phase)
+    N_condense: int
+        Times of condensation (transit from gas to liquid phase)
+
     '''
     N_vapor = N_condense = 0
     phases = [i for i in phases if i != 'i']

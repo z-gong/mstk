@@ -1,56 +1,46 @@
 import numpy as np
 from . import Trajectory, Frame
-
-try:
-    import chemfiles
-except ImportError:
-    _CHEMFILES_FOUND = False
-else:
-    _CHEMFILES_FOUND = True
+from .handler import TrjHandler
 
 
-class Xtc(Trajectory):
+class Xtc(TrjHandler):
     '''
-    Currently mstools use mdtraj to parse XTC format
+    Read and write step, cell and positions from XTC file.
+
+    Simulation time is ignored.
+
+    Currently mstools use chemfiles to support XTC format.
     '''
 
     def __init__(self, file, mode='r'):
         super().__init__()
 
-        if not _CHEMFILES_FOUND:
-            raise ImportError(
-                'Currently mstools use chemfiles to parse XTC format. Cannot import chemfiles')
+        try:
+            import chemfiles
+        except:
+            raise ImportError('Currently mstools use chemfiles to parse XTC format. Cannot import chemfiles')
 
         if mode not in ('r', 'w', 'a'):
             raise Exception('Invalid mode')
 
         self._xtc = chemfiles.Trajectory(file, mode)
-        if mode == 'r':
-            self._get_info()
-
-        self._mode = mode
-        self._opened = True
 
     def close(self):
         try:
             self._xtc.close()
         except:
             pass
-        self._opened = False
 
-    def _get_info(self):
-        '''
-        Read the number of atoms and record the offset of lines and frames,
-        so that we can read arbitrary frame later
-        '''
+    def get_info(self):
         self.n_frame = self._xtc.nsteps
         if self.n_frame == 0:
             raise Exception('Empty XTC file')
         cf_frame = self._xtc.read()
         self.n_atom = len(cf_frame.atoms)
-        self._frame = Frame(self.n_atom)
 
-    def _read_frame(self, i_frame, frame):
+        return self.n_atom, self.n_frame
+
+    def read_frame(self, i_frame, frame):
         cf_frame = self._xtc.read_step(i_frame)
         cf_cell = cf_frame.cell
         lengths = [i / 10 for i in cf_cell.lengths]
@@ -59,7 +49,19 @@ class Xtc(Trajectory):
         frame.cell.set_box([lengths, angles])
         frame.step = frame.step
 
-    def _write_frame(self, frame, topology=None, subset=None, **kwargs):
+    def write_frame(self, frame, subset=None, **kwargs):
+        '''
+        Write a frame into the opened XTC file
+
+        Parameters
+        ----------
+        frame : Frame
+        subset : list of int, optional
+        kwargs : dict
+            Ignored
+        '''
+        import chemfiles
+
         if subset is None:
             positions = frame.positions
         else:
@@ -72,3 +74,5 @@ class Xtc(Trajectory):
         cf_frame.step = frame.step
 
         self._xtc.write(cf_frame)
+
+TrjHandler.register_format('.xtc', Xtc)

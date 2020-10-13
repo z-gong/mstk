@@ -2,13 +2,26 @@
 
 import os
 import sys
+import shutil
 import pytest
 from mstools.topology import Topology, UnitCell
-from mstools.forcefield import Ppf, Padua, Zfp
+from mstools.forcefield import ForceField
 from mstools.simsys import System
 from mstools.wrapper.packmol import Packmol
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+
+
+def test_assign_charge():
+    top = Topology.open(cwd + '/files/c_3oh.msd')
+    ff = ForceField.open(cwd + '/files/c_3oh.ppf')
+    top.assign_charge_from_ff(ff)
+    charges = [atom.charge for atom in top.atoms]
+    assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.16, 0.4791, -0.45, 0.16, 0.16, 0.16, -0.0291]
+
+    top.assign_charge_from_ff(ff, transfer_bci_terms=True)
+    charges = [atom.charge for atom in top.atoms]
+    assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.1954, 0.5145, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
 
 def test_compress():
@@ -37,7 +50,15 @@ def test_compress():
 
 
 def test_scale():
-    packmol = Packmol(r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe')
+    if os.path.exists(r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'):
+        path = r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'
+    else:
+        path = shutil.which('packmol')
+        if path is None:
+            print('Packmol not found')
+            assert 0
+
+    packmol = Packmol(path)
     top = Topology.open(cwd + '/files/Im11.zmat')
     top.cell.set_box([3, 3, 3])
     top.scale_with_packmol(10, packmol)
@@ -47,7 +68,7 @@ def test_scale():
 def test_guess_connectivity():
     top = Topology.open(cwd + '/files/MoS2-13x8-layer1.xyz')
     top.cell.set_box([4.109, 4.380, 1.230])
-    ff = Padua(cwd + '/files/MoS2.ff')
+    ff = ForceField.open(cwd + '/files/MoS2.ff')
     top.guess_connectivity_from_ff(ff, angle_tolerance=15, pbc='xy')
     assert top.n_bond == 1248
     assert top.n_angle == 3120

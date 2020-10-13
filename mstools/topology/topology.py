@@ -7,17 +7,44 @@ from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
 from ..forcefield import ForceField
-from .. import logger
 
 
 class Topology():
-    def __init__(self, molecules=None):
+    '''
+    A topology is a combination of molecules and unit cell.
+
+    Parameters
+    ----------
+    molecules : list of Molecule, optional
+        If molecules not provided, the topology should be initialized by calling update_molecules().
+    numbers : list of int, optional
+        The number of each molecule you want to put in this topology.
+    cell : UnitCell, optional
+        If cell not provided, a default cell with zero volume will be assumed.
+
+    Notes
+    -----
+    All the molecules will be deep copied if there are identical molecules in the list, or if numbers is not None.
+    The cell will always be deep copied if provided.
+
+    Attributes
+    ----------
+    remark : str
+        A short remark for this topology. Only used for output topology file
+    cell : UnitCell
+        Unit cell of this topology. Required for output simulation files and guessing connectivity
+    '''
+
+    def __init__(self, molecules=None, numbers=None, cell=None):
         self.remark = ''
-        self.cell = UnitCell([0, 0, 0])
         self._molecules: [Molecule] = []
         self._atoms: [Atom] = []
         if molecules is not None:
-            self.update_molecules(molecules)
+            self.update_molecules(molecules, numbers)
+        if cell is not None:
+            self.cell = UnitCell(cell.vectors)
+        else:
+            self.cell = UnitCell()
 
     def __deepcopy__(self, memodict={}):
         top = Topology()
@@ -26,12 +53,23 @@ class Topology():
         top.update_molecules(self._molecules, deepcopy=True)
         return top
 
-    def update_molecules(self, molecules: [Molecule], numbers=None, deepcopy=False):
+    def update_molecules(self, molecules, numbers=None, deepcopy=False):
         '''
-        Initialize a topology from a bunch of molecule.
+        Update the molecules contained in this topology.
+
+        The index of molecules and atoms will be updated.
+        Therefore, this method should be called as long as atoms or molecules are added to or removed from topology.
+
+        Parameters
+        ----------
+        molecules : list of Molecule
+        numbers : list of int
+        deepcopy : bool
+
+        Notes
+        -----
         The molecules and atoms are deep copied if numbers is not None or deepcopy is True.
-        The molecules and atoms are deep copied if there are duplicated molecules.
-        This method should be called as long as atoms or molecules are added to or removed from topology.
+        The molecules and atoms are deep copied if there are identical molecules in the list.
         '''
         if not isinstance(molecules, (list, tuple)) \
                 or any(type(mol) is not Molecule for mol in molecules):
@@ -67,10 +105,20 @@ class Topology():
         for i, atom in enumerate(self._atoms):
             atom.id = i
 
-    def add_molecule(self, molecule: Molecule):
+    def add_molecule(self, molecule):
         '''
-        Add molecule into topology.
-        Note that the molecule and atoms are not deep copied, the reference are passed.
+        Add a molecule into this topology.
+
+        The index of the added molecule and atoms will be updated.
+
+        Parameters
+        ----------
+        molecule : Molecule
+
+        Notes
+        -----
+        The molecule and atoms are not deep copied, the references are passed.
+
         '''
         molecule.id = self.n_molecule
         molecule._topology = self
@@ -80,22 +128,38 @@ class Topology():
             self._atoms.append(atom)
 
     def set_positions(self, positions):
+        '''
+        Set the positions of all atoms in this topology
+
+        Parameters
+        ----------
+        positions : array_like
+        '''
         if self.n_atom != len(positions):
             raise Exception('Length of positions should equal to the number of atoms')
         for i, atom in enumerate(self.atoms):
             atom.position = np.array(positions[i])
 
-    def get_unique_molecules(self, deepcopy=True) -> {Molecule: int}:
+    def get_unique_molecules(self, deepcopy=True):
         '''
         Get the unique molecules and the number of molecules that are similar to these unique molecules.
+
         This is mainly used for exporting GROMACS topol file.
-        By default, the unique molecules are deep copied
+        By default, the unique molecules are deep copied.
+
+        Parameters
+        ----------
+        deepcopy : bool
+
+        Returns
+        -------
+        molecule_number : dict [Molecule, int]
         '''
         mols_unique = []
         flags = [-1] * self.n_molecule
         mol_last: Molecule = None
         for i, mol in enumerate(self._molecules):
-            if mol_last is not None and mol.similar_to(mol_last):
+            if mol_last is not None and mol.is_similar_to(mol_last):
                 flags[mol.id] = flags[mol_last.id]
             else:
                 mols_unique.append(mol)
@@ -108,6 +172,26 @@ class Topology():
             return {mol: flags.count(mol.id) for mol in mols_unique}
 
     def scale_with_packmol(self, numbers, packmol=None):
+        '''
+        Enlarge the number of molecules in this topology with Packmol.
+
+        It is used for building real simulation box from several different molecules.
+        It generates molecules with appropriate positions and addes them into the topology.
+        The unit cell should already be defined, and it will not be touched during the scaling.
+
+        If packmol is provided, then it will be invoked to pack the simulation box,
+        and the generated positions will be loaded back to the topology.
+        Otherwise, the topology will be enlarged without correct positions,
+        and a input file for packmol and xyz files for molecules will be saved in current folder
+        so that positions can be built manually and loaded back to the topology later
+
+        Parameters
+        ----------
+        numbers : int or list of int
+            If numbers is a int, the topology will be scaled by this times.
+            If numbers is a list of int, the each molecule will be scaled by corresponding times.
+        packmol : Packmol
+        '''
         if type(numbers) is int:
             numbers = [numbers] * self.n_molecule
         else:
@@ -117,21 +201,25 @@ class Topology():
                 raise Exception('Numbers should be list of integers')
 
         if self.cell.volume == 0:
-            raise Exception('unitcell should be defined first')
+            raise Exception('Unit cell should be defined first')
 
         if not self.cell.is_rectangular:
-            raise Exception('triclinic unitcell haven\'t been implemented')
+            raise Exception('Triclinic unit cell haven\'t been implemented')
+
+        if not self.has_position:
+            raise Exception('Positions are required for scaling box')
 
         from ..wrapper.packmol import Packmol
-        packmol: Packmol
+        if packmol is not None and not isinstance(packmol, Packmol):
+            raise Exception('Invalid Packmol')
 
         xyz_files = []
         for i, mol in enumerate(self._molecules):
             _top = Topology([mol])
-            if packmol is None:
-                xyz = '_MO_%i.xyz' % i
-            else:
+            if packmol is not None:
                 xyz = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='in-').name
+            else:
+                xyz = '_MO_%i.xyz' % i
             _top.write(xyz)
             xyz_files.append(xyz)
 
@@ -139,8 +227,8 @@ class Topology():
             print('Build with Packmol ...')
             tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack-').name
             tmp_out = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out-').name
-            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out,
-                              inp_file=tmp_inp, silent=True)
+            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out, inp_file=tmp_inp,
+                              silent=True)
             try:
                 xyz = Topology.open(tmp_out)
             except:
@@ -152,101 +240,240 @@ class Topology():
 
             self.update_molecules(self._molecules, numbers)
             self.set_positions(xyz.positions)
-
         else:
             tmp_inp = '_pack.inp'
             tmp_out = '_out.xyz'
-            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out,
-                            inp_file=tmp_inp)
+            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out, inp_file=tmp_inp)
 
     @property
     def n_molecule(self):
+        '''
+        Number of molecules belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._molecules)
 
     @property
     def n_atom(self):
+        '''
+        Number of atoms belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return len(self._atoms)
 
     @property
     def molecules(self):
+        '''
+        List of molecules belong to this topology
+
+        Returns
+        -------
+        molecules : list of Molecule
+        '''
         return self._molecules
 
     @property
     def atoms(self):
+        '''
+        List of atoms belong to this topology
+
+        Returns
+        -------
+        atoms: list of Atom
+        '''
         return self._atoms
 
     @property
     def n_bond(self):
+        '''
+        Number of bonds belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return sum([mol.n_bond for mol in self._molecules])
 
     @property
     def n_angle(self):
+        '''
+        Number of angles belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return sum([mol.n_angle for mol in self._molecules])
 
     @property
     def n_dihedral(self):
+        '''
+        Number of dihedrals belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return sum([mol.n_dihedral for mol in self._molecules])
 
     @property
     def n_improper(self):
+        '''
+        Number of impropers belong to this topology
+
+        Returns
+        -------
+        n : int
+        '''
         return sum([mol.n_improper for mol in self._molecules])
 
     @property
     def bonds(self):
+        '''
+        List of bonds belong to this topology
+
+        Returns
+        -------
+        bonds : list of Bond
+        '''
         return [bond for mol in self._molecules for bond in mol.bonds]
 
     @property
     def angles(self):
+        '''
+        List of angles belong to this topology
+
+        Returns
+        -------
+        angles : list of Angle
+        '''
         return [angle for mol in self._molecules for angle in mol.angles]
 
     @property
     def dihedrals(self):
+        '''
+        List of dihedrals belong to this topology
+
+        Returns
+        -------
+        dihedrals : list of Dihedral
+        '''
         return [dihedral for mol in self._molecules for dihedral in mol.dihedrals]
 
     @property
     def impropers(self):
+        '''
+        List of impropers belong to this topology
+
+        Returns
+        -------
+        impropers : list of Improper
+        '''
         return [improper for mol in self._molecules for improper in mol.impropers]
 
     @property
     def has_position(self):
+        '''
+        Whether or not all the atoms in the topology have positions
+
+        Returns
+        -------
+        has : bool
+        '''
         return all(atom.has_position for atom in self.atoms)
 
     @property
     def positions(self):
         '''
-        positions should always be numpy array
+        Positions of all the atoms in this topology
+
+        Returns
+        -------
+        positions : array_like
         '''
         return np.array([atom.position for atom in self.atoms])
 
     @property
     def is_drude(self):
+        '''
+        Whether or not this topology represents a Drude model
+
+        Returns
+        -------
+        is : bool
+        '''
         return any(atom.is_drude for atom in self._atoms)
+
+    @property
+    def has_virtual_site(self):
+        '''
+        Whether or not this topology contains virtual site
+
+        Returns
+        -------
+        has : bool
+        '''
+        return any(atom.virtual_site is not None for atom in self._atoms)
 
     @staticmethod
     def open(file, **kwargs):
+        '''
+        Load topology from a file or smiles string
+
+        The format will be determined from the extension of the file.
+
+        Parameters
+        ----------
+        file : str
+            If start with ':', then it will be treated as SMLIES string.
+            Otherwise, it is the file to be read.
+        kwargs : dict, optional
+
+        Returns
+        -------
+        topology : Topology
+        '''
         from .psf import Psf
         from .pdb import Pdb
         from .lammps import LammpsData
         from .xyz import XyzTopology
         from .zmat import Zmat
+        from .msd import Msd
 
         if file.startswith(':'):
             mol = Molecule.from_smiles(file[1:])
             return Topology([mol])
         elif file.endswith('.psf'):
-            return Psf(file, **kwargs)
+            return Psf(file, **kwargs).topology
         elif file.endswith('.pdb'):
-            return Pdb(file, **kwargs)
+            return Pdb(file, **kwargs).topology
         elif file.endswith('.lmp'):
-            return LammpsData(file, **kwargs)
+            return LammpsData(file, **kwargs).topology
         elif file.endswith('.xyz'):
-            return XyzTopology(file, **kwargs)
+            return XyzTopology(file, **kwargs).topology
         elif file.endswith('.zmat'):
-            return Zmat(file, **kwargs)
+            return Zmat(file, **kwargs).topology
+        elif file.endswith('.msd'):
+            return Msd(file, **kwargs).topology
         else:
             raise Exception('Unsupported format')
 
     def write(self, file):
+        '''
+        Write topology to a file.
+
+        The format will be determined from the extension of the file.
+
+        Parameters
+        ----------
+        file : str
+        '''
         from . import Psf, Pdb, XyzTopology
 
         if file.endswith('.psf'):
@@ -266,6 +493,13 @@ class Topology():
         raise NotImplementedError('This method haven\'t been implemented')
 
     def to_omm_topology(self):
+        '''
+        Generate OpenMM topology from this topology
+
+        Returns
+        -------
+        omm_topology : mm.app.Topology
+        '''
         try:
             from simtk.openmm import app as omm_app
             from simtk.openmm.app.element import Element as omm_Element
@@ -293,7 +527,14 @@ class Topology():
 
     def init_from_omm_topology(self, omm_top):
         '''
-        This is only used for write trajectory, therefore the connectivity in OpenMM topology are ignored
+        Init the topology from OpenMM topology.
+
+        This is only used for write trajectory, therefore only the atomic symbol is loaded.
+        It should not be used for other purpose.
+
+        Parameters
+        ----------
+        omm_top : mm.app.Topology
         '''
         from simtk.openmm.app import Topology as ommTopology, Residue as ommResidue, Atom as ommAtom
         molecules = []
@@ -312,9 +553,21 @@ class Topology():
             molecules.append(mol)
         self.update_molecules(molecules)
 
-    def get_12_13_14_pairs(self) -> ([(Atom, Atom)], [(Atom, Atom)], [(Atom, Atom)]):
+    def get_12_13_14_pairs(self):
         '''
+        Retrieve all the 1-2, 1-3 and 1-4 pairs based on the bond information.
+
         The pairs only concerns real atoms. Drude particles  will be ignored.
+
+        Returns
+        -------
+        pairs12 : list of tuple of Atom
+        pairs13 : list of tuple of Atom
+        pairs14 : list of tuple of Atom
+
+        See Also
+        --------
+        Molecule.get_12_13_14_pairs
         '''
         pair_12_list = []
         pair_13_list = []
@@ -327,39 +580,111 @@ class Topology():
             pair_14_list += pairs_14
         return pair_12_list, pair_13_list, pair_14_list
 
-    def get_drude_pairs(self) -> [(Atom, Atom)]:
+    def get_drude_pairs(self):
         '''
-        [(parent, drude)]
+        Retrieve all the Drude dipole pairs belong to this topology
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, drude)]
+
+        See Also
+        --------
+        Molecule.get_drude_pairs
         '''
         return [pair for mol in self._molecules for pair in mol.get_drude_pairs()]
 
     def generate_angle_dihedral_improper(self):
+        '''
+        Generate angles, dihedrals and impropers from bonds.
+
+        See Also
+        --------
+        Molecule.generate_angle_dihedral_improper
+        '''
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper()
 
-    def guess_connectivity_from_ff(self, ff: ForceField, bond_limit=0.25, bond_tolerance=0.025,
-                                   angle_tolerance=None, pbc=''):
+    def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None, pbc=''):
+        '''
+        Guess the connectivity between atoms from force field parameters.
+
+        Parameters
+        ----------
+        ff : ForceField
+        bond_limit : float
+        bond_tolerance : float
+        angle_tolerance : float
+        pbc : str
+
+        See Also
+        --------
+        Molecule.guess_connectivity_from_ff
+        '''
         mol: Molecule
         for mol in self._molecules:
             mol.guess_connectivity_from_ff(ff, bond_limit, bond_tolerance,
                                            angle_tolerance, pbc, self.cell)
 
-    def generate_drude_particles(self, ff: ForceField, **kwargs):
+    def generate_drude_particles(self, ff, **kwargs):
+        '''
+        Generate Drude particles from DrudeTerms in a polarizable force field
+
+        Parameters
+        ----------
+        ff : ForceField
+        kwargs : dict
+
+        See Also
+        --------
+        Molecule.generate_drude_particles
+        '''
         mol: Molecule
         for mol in self._molecules:
             mol.generate_drude_particles(ff, update_topology=False)
         self.update_molecules(self._molecules, deepcopy=False)
 
     def remove_drude_particles(self):
+        '''
+        Remove all the Drude particles from this topology
+
+        It is useful for build non-polarizable model from polarizable model
+
+        See Also
+        --------
+        Molecule.remove_drude_particles
+        '''
         mol: Molecule
         for mol in self._molecules:
             mol.remove_drude_particles(update_topology=False)
         self.update_molecules(self._molecules, deepcopy=False)
 
-    def assign_mass_from_ff(self, ff: ForceField):
-        for mol in self._molecules:
-            mol.assign_mass_from_ff(ff)
+    def assign_mass_from_ff(self, ff):
+        '''
+        Assign masses for all atoms and Drude particles from the AtomType saved in force field.
 
-    def assign_charge_from_ff(self, ff: ForceField):
-        for mol in self._molecules:
-            mol.assign_charge_from_ff(ff)
+        Parameters
+        ----------
+        ff : ForceField
+
+        See Also
+        --------
+        ForceField.assign_mass
+        '''
+        ff.assign_mass(self)
+
+    def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
+        '''
+        Assign charges for all atoms and Drude particles from the AtomType saved in force field.
+
+        Parameters
+        ----------
+        ff : ForceField
+        transfer_bci_terms : bool, optional
+
+        See Also
+        --------
+        ForceField.assign_charge
+        '''
+        ff.assign_charge(self, transfer_bci_terms)

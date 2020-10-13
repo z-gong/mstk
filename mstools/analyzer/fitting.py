@@ -1,15 +1,20 @@
-def polyfit(x: [float], y: [float], degree: int, weight: [float] = None):
-    """
-    least squares polynomial fit
-    when degree ==n, y = c0 + c1 * x + c2 * x**2 + ... + cn * x**n
+def polyfit(x, y, degree, weight=None):
+    '''
+    Least square n-th order polynomial fitting:
+    y = c0 + c1 * x + c2 * x**2 + ... + cn * x**n
 
-    :param x:
-    :param y:
-    :param degree:
-    :param weight:
-    :return: coeff: array, np.array([c0, c1, ... , cn])
-             score: int
-    """
+    Parameters
+    ----------
+    x : list of float
+    y : list of float
+    degree : int
+    weight : list of float, optional
+
+    Returns
+    -------
+    coeff : ndarray
+    rsq : float
+    '''
     import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
@@ -28,23 +33,38 @@ def polyfit(x: [float], y: [float], degree: int, weight: [float] = None):
 
 
 def polyval(x, coeff):
+    '''
+    Evaluate the n-th order polynomial result:
+    y = c0 + c1 * x + c2 * x**2 + ... + cn * x**n
+
+    Parameters
+    ----------
+    x : float
+    coeff : list of float
+
+    Returns
+    -------
+    y : float
+    '''
     from numpy.polynomial.polynomial import polyval as np_polyval
     return np_polyval(x, coeff)
 
 
-def polyval_derivative(x: float, coeff: [float]) -> (float, float):
+def polyval_derivative(x, coeff):
     '''
-    when degree == 2, len(coeff) = 3,
-        y = c0 + c1 * x + c2 * xx
-        dy/dx = c1 + 2*c2 * x
-    when degree == 3, len(coeff) = 4,
-        y = c0 + c1 * x + c2 * xx + c3 * xxx
-        dy/dx = c1 + 2*c2 * x + 3*c3 * xx
+    Evaluate the n-th order polynomial result and derivative:
+    y = c0 + c1 * x + c2 * x**2 + ... + cn * x**n;
+    dy/dx = c1 + 2*c2 * x + ... + n*cn * x**(n-1)
 
-    :param x:
-    :param coeff: [c0, c1, c2, ...]
-    :return: y: float
-             dy/dx: float
+    Parameters
+    ----------
+    x : float
+    coeff : list of float
+
+    Returns
+    -------
+    y : float
+    dy/dx : float
     '''
     from numpy.polynomial.polynomial import polyval as np_polyval
     y = np_polyval(x, coeff)
@@ -57,20 +77,25 @@ def polyval_derivative(x: float, coeff: [float]) -> (float, float):
     return y, dydx
 
 
-def polyfit_2d(x: [float], y: [float], z: [float], degree: int, weight: [float] = None):
-    """
-    least squares polynomial fit
-    when degree == 3, z = c0 + c1 * x + c2 * y + c3 * xx + c4 * xy + c5 * yy + c6 * xxx + c7 * xxy + c8 * xyy + c9 * yyy
-    when degree == 4, z = ...
+def polyfit_2d(x, y, z, degree, weight=None):
+    '''
+    Least square n-th order 2-D polynomial fitting.
+    e.g. the 3rd polynomial fitting:
+    z = c0 + c1 * x + c2 * y + c3 * xx + c4 * xy + c5 * yy + c6 * xxx + c7 * xxy + c8 * xyy + c9 * yyy
 
-    :param x:
-    :param y:
-    :param z:
-    :param degree:
-    :param weight:
-    :return: coeff: array, np.array([c0, c1, c2, ...])
-             score: int
-    """
+    Parameters
+    ----------
+    x : list of float
+    y : list of float
+    z : list of float
+    degree : int
+    weight : list of float, optional
+
+    Returns
+    -------
+    coeff : ndarray
+    rsq : float
+    '''
     import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
@@ -88,18 +113,24 @@ def polyfit_2d(x: [float], y: [float], z: [float], degree: int, weight: [float] 
     return clf.coef_, clf.score(skx_, skv)
 
 
-def polyval_derivative_2d(x: float, y: float, degree: int, coeff: [float]) -> (float, float, float):
+def polyval_derivative_2d(x, y, degree, coeff):
     '''
-    when degree == 3, z = c0 + c1 * x + c2 * y + c3 * xx + c4 * xy + c5 * yy + c6 * xxx + c7 * xxy + c8 * xyy + c9 * yyy
-    when degree == 4, z = ...
+    Evaluate the n-th order 2-D polynomial result and derivative. Only 3-rd and 4-th order are supported.
+    e.g. the 3rd polynomial fitting:
+    z = c0 + c1 * x + c2 * y + c3 * xx + c4 * xy + c5 * yy + c6 * xxx + c7 * xxy + c8 * xyy + c9 * yyy
 
-    :param x:
-    :param y:
-    :param degree:
-    :param coeff: [c0, c1, c2, ...]
-    :return: z: float
-             dz/dx: float
-             dz/dy: float
+    Parameters
+    ----------
+    x : float
+    y : float
+    degree : [3, 4]
+    coeff : list of float
+
+    Returns
+    -------
+    z : float
+    dz/dx : float
+    dz/dy : float
     '''
     if degree == 3:
         k0, k1, k2, k3, k4, k5, k6, k7, k8, k9 = coeff
@@ -128,7 +159,23 @@ def polyval_derivative_2d(x: float, y: float, degree: int, coeff: [float]) -> (f
     return z, dzdx, dzdy
 
 
-def curve_fit_rsq(func, x_list, y_list, guess=None, bounds=None) -> ((float), float):
+def curve_fit_rsq(func, x_list, y_list, guess=None, bounds=None):
+    '''
+    Least square curve fitting
+
+    Parameters
+    ----------
+    func : function
+    x_list : list of float
+    y_list : list of float
+    guess : list of float, optional
+    bounds : list of float, optional
+
+    Returns
+    -------
+    coeff: tuple of float
+    rsq : float
+    '''
     import numpy as np
     from scipy.optimize import curve_fit
 
@@ -154,7 +201,7 @@ def logistic_derivative(x, A1, A2, x0, p):
     return y, dydx
 
 
-def fit_logistic(x_list: [float], y_list: [float], guess: [float] = None, bounds=None) -> ((float), float):
+def fit_logistic(x_list, y_list, guess=None, bounds=None):
     import numpy as np
 
     guess = guess or [y_list[0], 2 * y_list[-1] - y_list[0], x_list[-1], 1.0]
@@ -163,7 +210,7 @@ def fit_logistic(x_list: [float], y_list: [float], guess: [float] = None, bounds
     return curve_fit_rsq(logistic, x_list, y_list, guess, bounds)
 
 
-def fit_vle_tanh(x_list: [float], d_list: [float], guess: [float] = None, bounds=None) -> ((float), float):
+def fit_vle_tanh(x_list, d_list, guess=None, bounds=None):
     import numpy as np
 
     def func(x, c, A, r, s):
@@ -179,14 +226,23 @@ def vle_dminus(T, Tc, B):
     return B * (1 - T / Tc) ** 0.325
 
 
-def fit_vle_dminus(T_list: [float], dminus_list: [float], guess=None, bounds=None) -> ((float), float):
+def fit_vle_dminus(T_list, dminus_list, guess=None, bounds=None):
     '''
-    Fit critical temperature using VLE density
+    Fit critical temperature using VLE density:
     dliq - dgas = B(1-T/Tc)**0.325
 
-    :param x: [float], temperatures
-    :param y: [float], dliq - dgas
-    :return: ((Tc, B), score)
+    Parameters
+    ----------
+    T_list : list of float
+    dminus_list : list of float
+    guess : list of float, optional
+    bounds : list of float, optional
+
+    Returns
+    -------
+    coeff : tuple of float
+        Tc and B
+    rsq : float
     '''
     import numpy as np
 
@@ -200,15 +256,24 @@ def vle_dplus(T, Dc, A, Tc):
     return 2 * (Dc + A * (1 - T / Tc))
 
 
-def fit_vle_dplus(T_list: [float], dplus_list: [float], Tc, guess=None, bounds=None) -> ((float), float):
+def fit_vle_dplus(T_list, dplus_list, Tc, guess=None, bounds=None):
     '''
-    Fit critical density using VLE density and critical temperature
+    Fit critical density using VLE density and critical temperature:
     dliq + dgas = 2(Dc+A(1-T/Tc))
 
-    :param x:  [float], temperatures
-    :param y: [float], dliq + dgas
-    :param Tc: float, critical temperature
-    :return: ((Dc, A), score)
+    Parameters
+    ----------
+    T_list : list of float
+    dplus_list : list of float
+    Tc : float
+    guess : list of float, optional
+    bounds : list of float, optional
+
+    Returns
+    coeff : tuple of float
+        Tc and B
+    rsq : float
+    -------
     '''
     import numpy as np
 

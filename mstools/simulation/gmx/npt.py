@@ -7,6 +7,29 @@ from ...wrapper.ppf import delta_ppf
 
 
 class Npt(GmxSimulation):
+    '''
+    Npt simulation with GROMACS enables the calculation of equation of states, cohesive energy,
+    which can be used to derive heat of vaporization, thermal expansion, compressibility, etc...
+
+    Parameters
+    ----------
+    packmol : Packmol
+    dff : DFF
+    gmx : GMX
+    jobmanager : subclass of JobManager
+
+    Attributes
+    ----------
+    packmol : Packmol
+    dff : Packmol
+    gmx : GMX
+    jobmanager : subclass of JobManager
+    n_atom_default : int
+    n_mol_default : int
+    n_mol_list : list of int
+    logs : list of str
+    '''
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.procedure = 'npt'
@@ -14,25 +37,47 @@ class Npt(GmxSimulation):
         self.n_atom_default = 3000
         self.n_mol_default = 75
 
+    def set_system(self, smiles_list, **kwargs):
+        super().set_system(smiles_list, **kwargs)
+
     def build(self, export=True, ppf=None):
+        '''
+        Generate control scripts for simulation engine. e.g. mdp files for GROMACS.
+        Also generate force field files for target temperatures if force field is temperature dependent.
+
+        Parameters
+        ----------
+        export
+        ppf
+
+        Returns
+        -------
+
+        '''
         print('Build coordinates using Packmol: %s molecules ...' % self.n_mol_list)
-        self.packmol.build_box(self.pdb_list, self.n_mol_list, self.pdb, size=[i - 2 for i in self.box], silent=True)
+        self.packmol.build_box(self.pdb_list, self.n_mol_list, self.pdb,
+                               size=[i - 2 for i in self.box], silent=True)
         print('Create box using DFF ...')
-        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd, mol_corr=self.pdb, size=self.box)
+        self.dff.build_box_after_packmol(self.mol2_list, self.n_mol_list, self.msd,
+                                         mol_corr=self.pdb, size=self.box)
 
         # build msd for fast export
-        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb, size=self.box,
+        self.packmol.build_box(self.pdb_list, [1] * len(self.pdb_list), self._single_pdb,
+                               size=self.box,
                                inp_file='build_single.inp', silent=True)
         self.dff.build_box_after_packmol(self.mol2_list, [1] * len(self.pdb_list), self._single_msd,
                                          mol_corr=self._single_pdb, size=self.box)
 
         if export:
             self.fast_export_single(ppf=ppf, gro_out='_single.gro', top_out='topol.top')
-            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box], silent=True)  # A to nm
+            self.gmx.pdb2gro(self.pdb, 'conf.gro', [i / 10 for i in self.box],
+                             silent=True)  # A to nm
             self.gmx.modify_top_mol_numbers('topol.top', self.n_mol_list)
 
-    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None, TANNEAL=800,
-                dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4), nst_xtc=int(1E3),
+    def prepare(self, model_dir='.', gro='conf.gro', top='topol.top', T=298, P=1, jobname=None,
+                TANNEAL=800,
+                dt=0.002, nst_eq=int(4E5), nst_run=int(5E5), nst_edr=100, nst_trr=int(5E4),
+                nst_xtc=int(1E3),
                 drde=False, **kwargs) -> [str]:
         if os.path.abspath(model_dir) != os.getcwd():
             shutil.copy(os.path.join(model_dir, gro), gro)
@@ -63,9 +108,11 @@ class Npt(GmxSimulation):
         gro_em = 'em.gro'
         # NVT annealing from 0 to TANNEAL to target T with Langevin thermostat
         if TANNEAL is not None:
-            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T, TANNEAL=TANNEAL,
+            self.gmx.prepare_mdp_from_template('t_nvt_anneal.mdp', mdp_out='grompp-anneal.mdp', T=T,
+                                               TANNEAL=TANNEAL,
                                                nsteps=int(1E5), nstxtcout=0)
-            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top, tpr_out='anneal.tpr', get_cmd=True)
+            cmd = self.gmx.grompp(mdp='grompp-anneal.mdp', gro='em.gro', top=top,
+                                  tpr_out='anneal.tpr', get_cmd=True)
             commands.append(cmd)
             cmd = self.gmx.mdrun(name='anneal', nprocs=nprocs, get_cmd=True)
             commands.append(cmd)
@@ -75,14 +122,16 @@ class Npt(GmxSimulation):
         # NPT equilibrium with Langevin thermostat and Berendsen barostat
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-eq.mdp', T=T, P=P,
                                            nsteps=nst_eq, nstxtcout=0, pcoupl='berendsen')
-        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr', get_cmd=True)
+        cmd = self.gmx.grompp(mdp='grompp-eq.mdp', gro=gro_em, top=top, tpr_out='eq.tpr',
+                              get_cmd=True)
         commands.append(cmd)
         cmd = self.gmx.mdrun(name='eq', nprocs=nprocs, get_cmd=True)
         commands.append(cmd)
 
         # NPT production with Langevin thermostat and Parrinello-Rahman barostat
         self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-npt.mdp', T=T, P=P,
-                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr, nstxout=nst_trr, nstvout=nst_trr,
+                                           dt=dt, nsteps=nst_run, nstenergy=nst_edr,
+                                           nstxout=nst_trr, nstvout=nst_trr,
                                            nstxtcout=nst_xtc, restart=True)
         cmd = self.gmx.grompp(mdp='grompp-npt.mdp', gro='eq.gro', top=top, tpr_out='npt.tpr',
                               cpt='eq.cpt', get_cmd=True)
@@ -95,15 +144,21 @@ class Npt(GmxSimulation):
 
         top_hvap = 'topol-hvap.top'
         self.gmx.generate_top_for_hvap(top, top_hvap)
-        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-hvap.mdp', nstxtcout=0, restart=True)
-        cmd = self.gmx.grompp(mdp='grompp-hvap.mdp', gro='eq.gro', top=top_hvap, tpr_out='hvap.tpr', get_cmd=True)
+        self.gmx.prepare_mdp_from_template('t_npt.mdp', mdp_out='grompp-hvap.mdp', nstxtcout=0,
+                                           restart=True)
+        cmd = self.gmx.grompp(mdp='grompp-hvap.mdp', gro='eq.gro', top=top_hvap, tpr_out='hvap.tpr',
+                              get_cmd=True)
         commands.append(cmd)
         # Use OpenMP instead of MPI when rerun hvap
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc', get_cmd=True)
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc',
+                             get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure)
         return commands
+
+    def run(self):
+        super().run()
 
     def extend(self, extend=500, jobname=None, sh=None) -> [str]:
         '''
@@ -120,7 +175,8 @@ class Npt(GmxSimulation):
         # Rerun enthalpy of vaporization
         commands.append('export GMX_MAXCONSTRWARN=-1')
         # Use OpenMP instead of MPI when rerun hvap
-        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc', get_cmd=True)
+        cmd = self.gmx.mdrun(name='hvap', nprocs=nprocs, n_omp=nprocs, rerun='npt.xtc',
+                             get_cmd=True)
         commands.append(cmd)
 
         self.jobmanager.generate_sh(os.getcwd(), commands, name=jobname or self.procedure, sh=sh)
@@ -244,7 +300,8 @@ class Npt(GmxSimulation):
 
         ### einter divided by number of molecules
         dens_stderr_list = [list(map(round3, result['density'])) for result in result_list]
-        eint_stderr_list = [list(map(lambda x: round3(x / n_mol_list[0]), result['einter'])) for result in result_list]
+        eint_stderr_list = [list(map(lambda x: round3(x / n_mol_list[0]), result['einter'])) for
+                            result in result_list]
         comp_stderr_list = [list(map(round3, result['compress'])) for result in result_list]
 
         dens_list = [i[0] for i in dens_stderr_list]
@@ -288,9 +345,12 @@ class Npt(GmxSimulation):
             _t_eint_coeff, _t_eint_score = polyfit(_t_list, _eint_list, 3)
             _t_comp_coeff, _t_comp_score = polyfit(_t_list, _comp_list, 3)
 
-            t_dens_poly3[p] = [list(map(round3, _t_dens_coeff)), round3(_t_dens_score), min(_t_list), max(_t_list)]
-            t_eint_poly3[p] = [list(map(round3, _t_eint_coeff)), round3(_t_eint_score), min(_t_list), max(_t_list)]
-            t_comp_poly3[p] = [list(map(round3, _t_comp_coeff)), round3(_t_comp_score), min(_t_list), max(_t_list)]
+            t_dens_poly3[p] = [list(map(round3, _t_dens_coeff)), round3(_t_dens_score),
+                               min(_t_list), max(_t_list)]
+            t_eint_poly3[p] = [list(map(round3, _t_eint_coeff)), round3(_t_eint_score),
+                               min(_t_list), max(_t_list)]
+            t_comp_poly3[p] = [list(map(round3, _t_comp_coeff)), round3(_t_comp_score),
+                               min(_t_list), max(_t_list)]
 
         post_result = {
             'density'         : t_p_dens_stderr_list,
@@ -303,11 +363,13 @@ class Npt(GmxSimulation):
             'compress-t-poly3': t_comp_poly3,
         }
 
-        return post_result, 'density-poly4-score %.4f einter-poly4-score %.4f' % (score_dens, score_eint)
+        return post_result, 'density-poly4-score %.4f einter-poly4-score %.4f' % (
+            score_dens, score_eint)
 
     @staticmethod
     def get_post_data(post_result, T, P, smiles_list, **kwargs) -> dict:
-        from mstools.analyzer.fitting import polyval_derivative_2d, polyval, polyval_derivative, polyfit
+        from mstools.analyzer.fitting import polyval_derivative_2d, polyval, polyval_derivative, \
+            polyfit
 
         ### Calculate with T,P-poly4. Not accurate enough, especially for expansion and compressibility
         coeff_dens, score_dens = post_result['density-poly4']

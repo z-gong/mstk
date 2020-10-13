@@ -1,36 +1,45 @@
 import itertools
-import numpy as np
 from .system import System
-from ..forcefield.ffterm import *
-from ..forcefield import ForceField
-from ..topology import Pdb, Psf
-from ..trajectory import Frame, Trajectory, Gro
+from ..forcefield import *
+from ..topology import *
 from .. import logger
 
 
 class CharmmExporter():
+    '''
+    CharmmExporter export a :class:`System` to input files for CHARMM.
+
+    The following potential functions are currently supported:
+
+    * :class:`~mstools.forcefield.LJ126Term`
+    * :class:`~mstools.forcefield.HarmonicBondTerm`
+    * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.PeriodicDihedralTerm`
+    * :class:`~mstools.forcefield.HarmonicImproperTerm`
+    * :class:`~mstools.forcefield.DrudeTerm`
+
+    The :class:`~mtools.forcefield.OplsImproperTerm` can be exported, but it will be in the harmonic form.
+    Usually it is acceptable if the improper to be described is planer and quite rigid.
+    '''
+
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system: System, pdb_out, psf_out, prm_out):
-        if pdb_out is not None:
-            CharmmExporter.export_pdb(system, pdb_out)
-        if psf_out is not None:
-            CharmmExporter.export_psf(system, psf_out)
-        if prm_out is not None:
-            CharmmExporter.export_prm(system, prm_out)
+    def export(system, pdb_out, psf_out, prm_out):
+        '''
+        Generate input files for CHARMM from a system
 
-    @staticmethod
-    def export_pdb(self, pdb_out='conf.pdb'):
-        Pdb.save_to(self._topology, pdb_out)
+        Parameters
+        ----------
+        system : System
+        pdb_out : str or None
+        psf_out : str or None
+        prm_out : str or None
+        '''
+        if not system.use_pbc:
+            raise Exception('PBC required for exporting CHARMM')
 
-    @staticmethod
-    def export_psf(self, psf_out='topol.psf'):
-        Psf.save_to(self._topology, psf_out)
-
-    @staticmethod
-    def export_prm(system, prm_out='ff.prm'):
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,
@@ -39,13 +48,28 @@ class CharmmExporter():
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
-            raise Exception('Unsupported FF terms: %s'
-                            % (', '.join(map(lambda x: x.__name__, unsupported))))
+            raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if OplsImproperTerm in system.ff_classes:
-            logger.warning('OplsImproperTerm not supported by CHARMM. '
-                           'Will be exported in harmonic form')
+            logger.warning('OplsImproperTerm not supported by CHARMM. Will be exported in harmonic form')
 
+        if pdb_out is not None:
+            CharmmExporter._export_pdb(system, pdb_out)
+        if psf_out is not None:
+            CharmmExporter._export_psf(system, psf_out)
+        if prm_out is not None:
+            CharmmExporter._export_prm(system, prm_out)
+
+    @staticmethod
+    def _export_pdb(self, pdb_out='conf.pdb'):
+        Pdb.save_to(self._topology, pdb_out)
+
+    @staticmethod
+    def _export_psf(self, psf_out='topol.psf'):
+        Psf.save_to(self._topology, psf_out)
+
+    @staticmethod
+    def _export_prm(system: System, prm_out='ff.prm'):
         string = '* Created by mstools\n'
         string += '*\n'
 
@@ -60,29 +84,29 @@ class CharmmExporter():
             if name not in unique_bonds and tuple(reversed(name)) not in unique_bonds:
                 if bond.is_drude:
                     parent = bond.atom2 if bond.atom1.is_drude else bond.atom1
-                    pterm = system._polarizable_terms[parent]
+                    pterm = system.polarizable_terms[parent]
                     bterm = HarmonicBondTerm(name[0], name[1], 0.0, pterm.k)
                 else:
-                    bterm = system._bond_terms[id(bond)]
+                    bterm = system.bond_terms[id(bond)]
                 unique_bonds[name] = bterm
 
         unique_angles = {}
         for angle in system._topology.angles:
             name = (angle.atom1.type, angle.atom2.type, angle.atom3.type)
             if name not in unique_angles and tuple(reversed(name)) not in unique_angles:
-                unique_angles[name] = system._angle_terms[id(angle)]
+                unique_angles[name] = system.angle_terms[id(angle)]
         unique_dihedrals = {}
         for dihedral in system._topology.dihedrals:
             name = (dihedral.atom1.type, dihedral.atom2.type,
                     dihedral.atom3.type, dihedral.atom4.type)
             if name not in unique_dihedrals and tuple(reversed(name)) not in unique_dihedrals:
-                unique_dihedrals[name] = system._dihedral_terms[id(dihedral)]
+                unique_dihedrals[name] = system.dihedral_terms[id(dihedral)]
         unique_impropers = {}
         for improper in system._topology.impropers:
             name = (improper.atom1.type, improper.atom2.type,
                     improper.atom3.type, improper.atom4.type)
             if name not in unique_impropers and tuple(reversed(name)) not in unique_impropers:
-                unique_impropers[name] = system._improper_terms[id(improper)]
+                unique_impropers[name] = system.improper_terms[id(improper)]
 
         string += '\nBONDS\n'
         string += '''!V(bond) = Kb(b - b0)**2
@@ -173,5 +197,5 @@ class CharmmExporter():
 
         string += '\nEND\n'
 
-        with open(prm_out, 'w') as f:
-            f.write(string)
+        with open(prm_out, 'wb') as f:
+            f.write(string.encode())

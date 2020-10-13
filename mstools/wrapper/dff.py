@@ -8,11 +8,22 @@ from ..utils import random_string
 
 
 class DFF:
-    TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/dff/')
     '''
-    wrappers for DFF
+    Wrapper for DFF
+
+    Parameters
+    ----------
+    dff_root : str
+        Root directory of DFF
+    default_db : str, optional
+        Default database to use for checking out PPF from DFF.
+        If not set, will use `TEAMFF` database.
+    default_table : str, optional
+        Default force field table to use for checking out PPF from DFF.
+        If not set, will use `MGI` table.
     '''
-    pass
+
+    _TEMPLATE_DIR = os.path.abspath(os.path.dirname(__file__) + os.sep + '../template/dff/')
 
     def __init__(self, dff_root, default_db=None, default_table=None):
         self.DFF_ROOT = os.path.abspath(dff_root)
@@ -32,7 +43,19 @@ class DFF:
         self.default_table = default_table or 'MGI'
 
     def convert_model_to_msd(self, model, msd_out, dfi_name='convert'):
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_convert.dfi')).read()
+        '''
+        Convert a molecule file in MOL2 format into MSD format.
+
+        Parameters
+        ----------
+        model : str
+            The MOL2 file to be converted.
+        msd_out : str
+            The file name of the generated MSD file.
+        dfi_name : str, optional
+            The base name of the DFI file for running DFF.
+        '''
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_convert.dfi')).read()
         dfi = dfi.replace('%MODEL%', model).replace('%OUTPUTMODEL%', msd_out)
         with open(dfi_name + '.dfi', 'w') as f:
             f.write(dfi)
@@ -41,7 +64,58 @@ class DFF:
         if err.decode() != '':
             raise DffError('Convert failed: %s' % err.decode())
 
-    def checkout(self, models: [str], db=None, table=None, ppf_out=None, dfi_name='checkout'):
+    def set_formal_charge(self, models, dfi_name='setfc'):
+        '''
+        Calculate the formal charges of atoms in MSD files.
+
+        The formal charges will be calculated from the elements of atoms and their connectivity.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files to be processed.
+        dfi_name : str
+            The base name of the DFI file for running DFF.
+        '''
+        model_path = []
+        for model in models:
+            model_path.append(os.path.abspath(model))
+        log = os.path.abspath(dfi_name + '.dfo')
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_set_formal_charge.dfi')).read()
+        dfi = dfi.replace('%MODELS%', '\n'.join(model_path)).replace('%LOG%', log)
+        with open(dfi_name + '.dfi', 'w') as f:
+            f.write(dfi)
+        sp = subprocess.Popen([self.DFFJOB_BIN, dfi_name], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        out, err = sp.communicate()
+        if err.decode() != '':
+            raise DffError('Set formal charge failed: %s' % err.decode())
+
+    def checkout(self, models, db=None, table=None, ppf_out=None, dfi_name='checkout'):
+        '''
+        Checkout force field parameters for molecules.
+
+        The atom types will be assigned first based on the typing rule bundled with the force field database and table.
+        Then a PPF file containing force field parameters will be generated.
+        At last, charges of the MSD files will be assigned based on the parameters in the generated PPF file.
+
+        Note that the formal charge of atoms should be set before checkouting parameters by calling :func:`set_formal_charge`.
+        Otherwise, the atom types may not be assigned correctly.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files to be processed.
+        db : str, optional
+            Force field database to use.
+            If not set, will use the default database.
+        table : str
+            Force field table to use.
+            If not set, will use the default table.
+        ppf_out : str
+            The file name of the generated PPF file.
+        dfi_name : str
+            The base name of the DFI file for running DFF.
+        '''
         if db is None:
             db = os.path.join(self.DFF_ROOT, 'database', '%s.dffdb' % self.default_db)
         if table is None:
@@ -53,7 +127,7 @@ class DFF:
             model_path.append(os.path.abspath(model))
         db = os.path.abspath(db)
         ppf_out = os.path.abspath(ppf_out)
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_checkout.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_checkout.dfi')).read()
         dfi = dfi.replace('%DATABASE%', db).replace('%TABLE%', table).replace('%MODELS%', '\n'.join(model_path)) \
             .replace('%OUTPUT%', ppf_out).replace('%LOG%', os.path.abspath('checkout.dfo'))
         with open(dfi_name + '.dfi', 'w') as f:
@@ -63,21 +137,20 @@ class DFF:
         if err.decode() != '':
             raise DffError('Checkout failed: %s' % err.decode())
 
-    def set_formal_charge(self, models: [str], dfi_name='setfc'):
-        model_path = []
-        for model in models:
-            model_path.append(os.path.abspath(model))
-        log = os.path.abspath(dfi_name + '.dfo')
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_set_formal_charge.dfi')).read()
-        dfi = dfi.replace('%MODELS%', '\n'.join(model_path)).replace('%LOG%', log)
-        with open(dfi_name + '.dfi', 'w') as f:
-            f.write(dfi)
-        sp = subprocess.Popen([self.DFFJOB_BIN, dfi_name], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        out, err = sp.communicate()
-        if err.decode() != '':
-            raise DffError('Set formal charge failed: %s' % err.decode())
+    def typing(self, models, rule=None, dfi_name='typing'):
+        '''
+        Assign the atom types for atoms in MSD files.
 
-    def typing(self, models: [str], rule=None, dfi_name='typing'):
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files to be processed.
+        rule : str
+            The typing rule to use.
+            If not set, the one bundled with default database and default table will be used.
+        dfi_name : str
+            The base name of the DFI file for running DFF.
+        '''
         model_path = []
         for model in models:
             model_path.append(os.path.abspath(model))
@@ -87,7 +160,7 @@ class DFF:
         else:
             rule = os.path.abspath(rule)
         log = os.path.abspath(dfi_name + '.dfo')
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_typing.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_typing.dfi')).read()
         dfi = dfi.replace('%MODELS%', '\n'.join(model_path)).replace('%RULE%', rule).replace('%LOG%', log)
         with open(dfi_name + '.dfi', 'w') as f:
             f.write(dfi)
@@ -96,13 +169,25 @@ class DFF:
         if err.decode() != '':
             raise DffError('Typing failed: %s' % err.decode())
 
-    def set_charge(self, models: [str], ppf, dfi_name='set_charge'):
+    def set_charge(self, models, ppf, dfi_name='set_charge'):
+        '''
+        Set the charges of atoms in MSD files based on the force field parameters in PPF file.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files
+        ppf : str
+            PPF file containing force field parameters
+        dfi_name : str
+            The base name of the DFI file for running DFF.
+        '''
         model_path = []
         for model in models:
             model_path.append(os.path.abspath(model))
         ppf = os.path.abspath(ppf)
         log = os.path.abspath(dfi_name + '.dfo')
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_set_charge.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_set_charge.dfi')).read()
         dfi = dfi.replace('%MODELS%', '\n'.join(model_path)).replace('%PPF%', ppf).replace('%LOG%', log)
         with open(dfi_name + '.dfi', 'w') as f:
             f.write(dfi)
@@ -112,6 +197,22 @@ class DFF:
             raise DffError('Set charge failed: %s' % err.decode())
 
     def export_lammps(self, model, ppf, data_out='data', lmp_out='in.lmp', dfi_name='export_lammps'):
+        '''
+        Export a model and force field parameters to Lammps input files.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files
+        ppf : str
+            PPF file containing force field parameters
+        data_out : str
+            File name of exported Lammps data
+        lmp_out : str
+            File name of exported Lammps control script
+        dfi_name : str
+            The base name of the DFI file for running DFF
+        '''
         model = os.path.abspath(model)
         ppf = os.path.abspath(ppf)
         data_out = os.path.abspath(data_out)
@@ -119,7 +220,7 @@ class DFF:
 
         fftype = self.get_ff_type_from_ppf(ppf)
 
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_export_lammps.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_export_lammps.dfi')).read()
         dfi = dfi.replace('%ROOT%', self.DFF_ROOT).replace('%MODEL%', model).replace('%PPF%', ppf) \
             .replace('%TEMPLATE%', 'LAMMPS.Opt').replace('%FFTYPE%', fftype) \
             .replace('%DATAFILE%', data_out).replace('%INFILE%', lmp_out)
@@ -132,6 +233,24 @@ class DFF:
 
     def export_gmx(self, model, ppf, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp',
                    dfi_name='export_gmx'):
+        '''
+        Export a model and force field parameters to GROMACS input files.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files
+        ppf : str
+            PPF file containing force field parameters
+        gro_out : str
+            File name of exported GROMACS gro file
+        top_out : str
+            File name of exported GROMACS topol file
+        mdp_out : str
+            File name of exported GROMACS control script
+        dfi_name : str
+            The base name of the DFI file for running DFF
+        '''
         model = os.path.abspath(model)
         ppf = os.path.abspath(ppf)
         gro_out = os.path.abspath(gro_out)
@@ -141,7 +260,7 @@ class DFF:
 
         fftype = self.get_ff_type_from_ppf(ppf)
 
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_export_gmx.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_export_gmx.dfi')).read()
         dfi = dfi.replace('%ROOT%', self.DFF_ROOT).replace('%MODEL%', model).replace('%PPF%', ppf) \
             .replace('%TEMPLATE%', 'GROMACS.Opt').replace('%FFTYPE%', fftype) \
             .replace('%GROFILE%', gro_out).replace('%TOPFILE%', top_out).replace('%MDPFILE%', mdp_out) \
@@ -153,8 +272,32 @@ class DFF:
         if err.decode() != '':
             raise DffError('Export failed: %s' % err.decode())
 
-    def build_box_after_packmol(self, models: [str], numbers: [int], msd_out, mol_corr,
-                                size: [float] = None, length: float = None, dfi_name='set_corr'):
+    def build_box_after_packmol(self, models, numbers, msd_out, mol_corr, size=None, length=None, dfi_name='set_corr'):
+        '''
+        Build simulation box by utilizing the pre-packed coordinates.
+
+        Packmol is more efficient for building box.
+        Therefore, it's a good idea to build box with Packmol and use the generated coordinates to build a MSD box.
+
+        Parameters
+        ----------
+        models : list of str
+            List of MSD files to pack
+        numbers : list of int
+            Number of each MSD to pack
+        msd_out : str
+            File name of the generated new MSD box
+        mol_corr : str
+            Pre-packed PDB file containing coordinates to be loaded
+        size : list of float, optional
+            Three lengths of the packed rectangular box.
+            If not provided, `length` argument should be provided instead.
+        length : float, optional
+            Length of the packed cubic box.
+            If not provided, `size` argument should be provided instead.
+        dfi_name : str
+            The base name of the DFI file for running DFF
+        '''
         if size != None:
             if len(size) != 3:
                 raise DffError('Invalid box size')
@@ -177,7 +320,7 @@ class DFF:
         msd_tmp = os.path.abspath(random_string() + '.msd')
         msd_out = os.path.abspath(msd_out)
         mol_corr = os.path.abspath(mol_corr)
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_packmol.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_packmol.dfi')).read()
         dfi = dfi.replace('%MODEL_LIST%', model_list_str).replace('%NUMBER_LIST%', number_list_str) \
             .replace('%MSD_TMP%', msd_tmp).replace('%OUT%', msd_out) \
             .replace('%CORRMOL%', mol_corr).replace('%PBC%', ' '.join(map(str, box)))
@@ -194,9 +337,32 @@ class DFF:
             pass
 
     def fit_torsion(self, qmd, msd, ppf_in, ppf_out, torsion, dfi_name='fit_torsion'):
-        'TORS C1 C2 C3 C4 1000.0 180.0 15.0 12'
+        '''
+        Fit dihedral parameter against quantum scan data in QMD file.
+
+        The dihedral to be fitted should be provided with `torsion` argument in DFF format.
+        e.g. 'TORS C1 C2 C3 C4 1000.0 180.0 15.0 12' means fit the dihedral `C1-C2-C3-C4`.
+        This dihedral will be scanned from 180.0 degree, for 12 steps with a step size of 15.0 degree.
+        A harmonic restraint with force constant of 1000.0 kcal/mol/rad^2 will be applied on the dihedral during the scan.
+        Other degree of freedoms will be relaxed at each step of the scan.
+
+        Parameters
+        ----------
+        qmd : str
+            Reference quantum data for dihedral energy surface
+        msd : str
+            The MSD file describing the molecule
+        ppf_in : str
+            The PPF file to be fitted
+        ppf_out : str
+            File name of the output PPF file which contains fitted parameters
+        torsion : str
+            The dihedral to be fitted
+        dfi_name : str
+            The base name of the DFI file for running DFF
+        '''
         fftype = self.get_ff_type_from_ppf(ppf_in)
-        dfi = open(os.path.join(DFF.TEMPLATE_DIR, 't_fit_torsion.dfi')).read()
+        dfi = open(os.path.join(DFF._TEMPLATE_DIR, 't_fit_torsion.dfi')).read()
         dfi = dfi.replace('%ROOT%', self.DFF_ROOT).replace('%QMD%', qmd).replace('%MSD%', msd) \
             .replace('%FFTYPE%', fftype).replace('%PPF_IN%', ppf_in).replace('%PPF_OUT%', ppf_out) \
             .replace('%TORSION%', torsion)
@@ -209,6 +375,17 @@ class DFF:
 
     @staticmethod
     def get_ff_type_from_ppf(ppf):
+        '''
+        Read the force field type from PPF file.
+
+        Parameters
+        ----------
+        ppf : str
+
+        Returns
+        -------
+        fftype : str
+        '''
         with open(ppf) as f_ppf:
             for line in f_ppf:
                 if line.startswith('#PROTOCOL'):

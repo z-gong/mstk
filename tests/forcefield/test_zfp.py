@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+import tempfile
+import filecmp
 import pytest
 
-from mstools.forcefield import Padua, Ppf, Zfp, ForceField
+from mstools.forcefield import ForceField, Zfp
 from mstools.forcefield.ffterm import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
+tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -23,12 +26,12 @@ def test_read():
     assert atype.eqt_imp_s == 's_1'
     assert atype.eqt_imp_c == 's_1-'
 
-    term = ff.charge_increment_terms['b_4-,c_2nb']
+    term = ff.bci_terms['b_4-,c_2nb']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'c_2nb'
     assert term.value == 0.262
 
-    term = ff.charge_increment_terms['b_4-,f_1']
+    term = ff.bci_terms['b_4-,f_1']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'f_1'
     assert term.value == 0.4215
@@ -39,7 +42,7 @@ def test_read():
     assert term.type2 == 's_4o'
     assert term.type3 == 'n_2-'
     assert term.type4 == 's_4'
-    assert term.follow_opls_convention
+    assert term.is_opls_convention
     assert pytest.approx(term.get_opls_parameters(), abs=1E-4) == [12.9809, 7.9709, 1.6389, 0]
 
     term = ff.improper_terms['c_3a,c_3a,c_3a,h_1']
@@ -50,18 +53,19 @@ def test_read():
     assert term.type4 == 'h_1'
     assert pytest.approx(term.k, abs=1E-4) == 7.1270
 
-    ff.write(cwd + '/files/zfp-out.zfp')
-
 
 def test_write():
-    clp = Padua(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
-    Zfp.save_to(clp, cwd + '/files/out-CLPol.zfp')
+    clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
+    tmp = os.path.join(tmpdir, 'out-CLPol.zfp')
+    Zfp.save_to(clp, tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLPol.zfp')
 
-    il = Ppf(cwd + '/files/TEAM_IL.ppf')
-    Zfp.save_to(il, cwd + '/files/out-TEAM_IL.zfp')
+    il = ForceField.open(cwd + '/files/TEAM_IL.ppf')
+    tmp = os.path.join(tmpdir, 'out-TEAM_IL.zfp')
+    Zfp.save_to(il, tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-TEAM_IL.zfp')
 
     spce = ForceField.open(cwd + '/files/SPCE.ppf')
-    spce.write(cwd + '/files/out-SPCE.zfp')
-
-mgi = ForceField.open(cwd + '/files/dump-MGI.ppf')
-mgi.write(cwd + '/files/out-MGI.zfp')
+    tmp = os.path.join(tmpdir, 'out-SPCE.zfp')
+    spce.write(tmp)
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-SPCE.zfp')
