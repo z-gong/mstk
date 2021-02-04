@@ -729,22 +729,24 @@ class Molecule():
                     angles_removed.append(angle)
 
         for dihedral in self._dihedrals[:]:
-            at1 = ff.atom_types[dihedral.atom1.type].eqt_dih_s
-            at2 = ff.atom_types[dihedral.atom2.type].eqt_dih_c
-            at3 = ff.atom_types[dihedral.atom3.type].eqt_dih_c
-            at4 = ff.atom_types[dihedral.atom4.type].eqt_dih_s
-            dterm = DihedralTerm(at1, at2, at3, at4)
-            if dterm.name not in ff.dihedral_terms.keys():
+            # consider wildcards in force field
+            ats_list = ff.get_eqt_for_dihedral(dihedral)
+            for ats in ats_list:
+                dterm = DihedralTerm(*ats)
+                if dterm.name in ff.dihedral_terms.keys():
+                    break
+            else:
                 self.remove_connectivity(dihedral)
                 dihedrals_removed.append(dihedral)
 
         for improper in self._impropers[:]:
-            at1 = ff.atom_types[improper.atom1.type].eqt_imp_c
-            at2 = ff.atom_types[improper.atom2.type].eqt_imp_s
-            at3 = ff.atom_types[improper.atom3.type].eqt_imp_s
-            at4 = ff.atom_types[improper.atom4.type].eqt_imp_s
-            iterm = ImproperTerm(at1, at2, at3, at4)
-            if iterm.name not in ff.improper_terms.keys():
+            # consider wildcards in force field
+            ats_list = ff.get_eqt_for_improper(improper)
+            for ats in ats_list:
+                iterm = ImproperTerm(*ats)
+                if iterm.name in ff.improper_terms.keys():
+                    break
+            else:
                 self.remove_connectivity(improper)
                 impropers_removed.append(improper)
 
