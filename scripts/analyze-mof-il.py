@@ -38,9 +38,11 @@ args = parser.parse_args()
 top = Topology.open(args.topology)
 charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
 
+idx_zif = np.array([atom.id for atom in top.atoms if atom.molecule.name == 'ZIF8'])
+idx_sol = np.array([atom.id for atom in top.atoms if atom.molecule.name != 'ZIF8'])
 idx_zn1 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 0])
 idx_zn2 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 1])
-idx_p = np.array([atom.id for atom in top.atoms if atom.symbol == 'P'])
+idx_p = np.array([atom.id for atom in top.atoms if atom.symbol == 'P' and atom.molecule.name == 'P66614'])
 idx_n = np.array([atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'NTF2'])
 idx_o = np.array([atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'PEG500'])
 idx_list = [idx_p, idx_n, idx_o]
@@ -75,7 +77,7 @@ min_z = -5
 r_list = [(i + 0.5) * dr for i in range(int(max_r / dr))]
 z_list = [(i + 0.5) * dr + min_z for i in range(int((max_z - min_z) / dr))]
 densities = [np.zeros([len(z_list), len(r_list)]) for l in idx_list]
-density_charge = np.zeros([len(z_list), len(r_list)])
+density_charges = [np.zeros([len(z_list), len(r_list)]) for i in range(2)]
 
 points = []
 
@@ -117,12 +119,13 @@ for i in range(args.begin, args.end, args.skip):
                     density[int((_z - min_z) / dr)][idx_r] += 1 / (2 * np.pi * r_list[idx_r] * dr * dr) / rho
 
     elif args.cmd == 'charge':
-        for i in range(top.n_atom):
-            vec = frame.positions[i] - com_zn
-            _r, _z = calc_r_z(vec, vec_unit)
-            if _r < max_r and _z < max_z and _z > min_z:
-                idx_r = int(_r / dr)
-                density_charge[int((_z - min_z) / dr)][idx_r] += charges[i] / (2 * np.pi * r_list[idx_r] * dr * dr)
+        for idx, density in zip([idx_zif, idx_sol], density_charges):
+            for i in idx:
+                vec = frame.positions[i] - com_zn
+                _r, _z = calc_r_z(vec, vec_unit)
+                if _r < max_r and _z < max_z and _z > min_z:
+                    idx_r = int(_r / dr)
+                    density[int((_z - min_z) / dr)][idx_r] += charges[i] / (2 * np.pi * r_list[idx_r] * dr * dr)
 
 if args.cmd == 'dist':
     for i, density in enumerate(densities):
@@ -135,10 +138,11 @@ if args.cmd == 'dist':
             plt.show()
 
 elif args.cmd == 'charge':
-    fig, ax = plt.subplots(1, 1, figsize=(5, 10))
-    ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
-    im = ax.pcolormesh(r_list, z_list, density_charge / n_frame, shading='nearest', cmap='PiYG', vmin=-20, vmax=20)
-    fig.colorbar(im, ax=ax)
-    fig.savefig('dist-charge.png')
-    if platform.system() != 'Linux':
-        plt.show()
+    for i, density in enumerate(density_charges + [np.sum(density_charges, axis=0)]):
+        fig, ax = plt.subplots(1, 1, figsize=(5, 10))
+        ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
+        im = ax.pcolormesh(r_list, z_list, density / n_frame, shading='nearest', cmap='PiYG', vmin=-20, vmax=20)
+        fig.colorbar(im, ax=ax)
+        fig.savefig('dist-charge-%i.png' % i)
+        if platform.system() != 'Linux':
+            plt.show()
