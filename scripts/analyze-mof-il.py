@@ -43,10 +43,11 @@ idx_sol = np.array([atom.id for atom in top.atoms if atom.molecule.name != 'ZIF8
 idx_zn1 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 0])
 idx_zn2 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 1])
 idx_p = np.array([atom.id for atom in top.atoms if atom.symbol == 'P' and atom.molecule.name == 'P66614'])
+idx_c = np.array([atom.id for atom in top.atoms if atom.symbol == 'C' and atom.molecule.name == 'P66614'])
 idx_o = np.array([atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'NTF2'])
 idx_n = np.array([atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'NTF2'])
 idx_e = np.array([atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'PEG500'])
-idx_list = [idx_p, idx_o, idx_n, idx_e]
+idx_list = [idx_p, idx_c, idx_o, idx_n, idx_e]
 
 print(len(idx_zn1), len(idx_zn2))
 print([len(l) for l in idx_list])
@@ -146,6 +147,7 @@ if args.cmd == 'dist':
         ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
         im = ax.pcolormesh(r_list, z_list, density / n_frame, shading='nearest', vmin=0, vmax=4)
         fig.colorbar(im, ax=ax)
+        fig.tight_layout()
         fig.savefig('dist-%i.png' % i)
         if platform.system() != 'Linux':
             plt.show()
@@ -156,6 +158,7 @@ elif args.cmd == 'charge':
         ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
         im = ax.pcolormesh(r_list, z_list, density / n_frame, shading='nearest', cmap='PiYG', vmin=-4, vmax=4)
         fig.colorbar(im, ax=ax)
+        fig.tight_layout()
         fig.savefig('dist-charge-%i.png' % i)
         if platform.system() != 'Linux':
             plt.show()
