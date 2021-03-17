@@ -141,7 +141,7 @@ else:
             for parent, drude in top.get_drude_pairs():
                 drude.position = parent.position + (np.random.random(3) - 0.5) / 100
             for parent, vsite in top.get_virtual_site_pairs():
-                vsite.position = parent.virtual_site.calc_positions()
+                vsite.position = vsite.virtual_site.calc_position()
             _positions_set = True
 
     if not _positions_set:
@@ -156,6 +156,6 @@ for atom in top.atoms:
         atom.charge *= args.qscale
 
 system = System(top, ff)
-system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')
 system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
 system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')
+system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')
