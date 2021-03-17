@@ -64,6 +64,7 @@ class Zfp():
 
         tags = {
             'AtomTypes'           : ff.atom_types,
+            'VirtualSiteTerms'    : ff.virtual_site_terms,
             'ChargeIncrementTerms': ff.bci_terms,
             'VdwTerms'            : ff.vdw_terms,
             'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
@@ -117,6 +118,7 @@ class Zfp():
 
         tags = {
             'AtomTypes'           : ff.atom_types,
+            'VirtualSiteTerms'    : ff.virtual_site_terms,
             'ChargeIncrementTerms': ff.bci_terms,
             'VdwTerms'            : ff.vdw_terms,
             'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,

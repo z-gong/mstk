@@ -1311,3 +1311,70 @@ class DrudeTerm(PolarizableTerm):
 
 
 FFTermFactory.register(DrudeTerm)
+
+
+class VirtualSiteTerm(FFTerm):
+    '''
+    Base class for all virtual site terms.
+
+    Subclasses should be implemented for each functional form,
+    e.g. :class:`TIP4PTerm`.
+
+    Parameters
+    ----------
+    type : str
+
+    Attributes
+    ----------
+    type : str
+    '''
+
+    def __init__(self, type):
+        super().__init__()
+        self.type = type
+
+    @property
+    def name(self):
+        return self.type
+
+    def __lt__(self, other):
+        return self.type < other.type
+
+    def __gt__(self, other):
+        return self.type > other.type
+
+
+class TIP4PSiteTerm(VirtualSiteTerm):
+    '''
+    TIP4P style virtual site term.
+
+    Parameters
+    ----------
+    type : str
+    type_O : str
+    type_H : str
+    d : float
+
+    Attributes
+    ----------
+    type : str
+    type_O : str
+    type_H : str
+    d : float
+    '''
+
+    _zfp_attrs = {
+        'type'  : str,
+        'type_O': str,
+        'type_H': str,
+        'd'     : float,
+    }
+
+    def __init__(self, type: str, type_O: str, type_H: str, d: float):
+        super().__init__(type)
+        self.type_O = type_O
+        self.type_H = type_H
+        self.d = d
+
+
+FFTermFactory.register(TIP4PSiteTerm)

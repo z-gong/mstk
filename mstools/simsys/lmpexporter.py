@@ -52,6 +52,9 @@ class LammpsExporter():
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        if system.topology.has_virtual_site:
+            raise Exception('Virtual sites not supported by LAMMPS')
+
         top = system.topology
         ff = system.ff
 

@@ -27,6 +27,18 @@ Connectivity
     Dihedral
     Improper
 
+Virtual site
+------------
+
+.. currentmodule:: mstools.topology
+
+.. autosummary::
+    :toctree: _generated/
+
+    VirtualSiteFactory
+    VirtualSite
+    TIP4PSite
+
 Topology parser
 ---------------
 

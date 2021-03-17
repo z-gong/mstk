@@ -87,7 +87,8 @@ class Molecule():
             if vsite is not None:
                 new_atom = mol.atoms[i]
                 new_parents = [mol.atoms[p.id_in_mol] for p in vsite.parents]
-                new_atom.virtual_site = VirtualSiteFactory.create(vsite.site_type, new_parents, vsite.parameters)
+                new_atom.virtual_site = VirtualSiteFactory.create(vsite.__class__.__name__, new_parents,
+                                                                  vsite.parameters)
 
         return mol
 
@@ -544,6 +545,21 @@ class Molecule():
                 pairs.append((bond.atom1, bond.atom2))
         return pairs
 
+    def get_virtual_site_pairs(self):
+        '''
+        Retrieve all the virtual site pairs belong to this molecule
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, atom_virtual_site)]
+        '''
+        pairs = []
+        for atom in self._atoms:
+            if atom.virtual_site is not None:
+                pairs.append((atom.virtual_site.parents[0], atom))
+        return pairs
+
     def get_12_13_14_pairs(self):
         '''
         Retrieve all the 1-2, 1-3 and 1-4 pairs based on the bond information.
@@ -879,6 +895,58 @@ class Molecule():
             parent.charge += drude.charge
             self.remove_connectivity(drude._bonds[0])
             self.remove_atom(drude, update_topology=False)
+        if self._topology is not None and update_topology:
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+    def generate_virtual_sites(self, ff, update_topology=True):
+        '''
+        Generate virtual sites from VirtualSiteTerms in force field.
+
+        The atom types should have been defined already.
+        Note that The existing virtual sites will be removed before generating.
+
+        Currently, only TIP4PSiteTerm has been implemented.
+        # TODO Support other virtual site terms.
+
+        Parameters
+        ----------
+        ff : ForceField
+        update_topology : bool
+        '''
+        if len(ff.virtual_site_terms) == 0:
+            raise Exception('Virtual site terms not found in force field')
+
+        self.remove_virtual_sites(update_topology=False)
+
+        for term in ff.virtual_site_terms.values():
+            if type(term) is not TIP4PSiteTerm:
+                raise Exception('Virtual sites terms other than TIP4PSiteTerm haven\'t been implemented')
+
+        for term in ff.virtual_site_terms.values():
+            for angle in self._angles:
+                if angle.atom2.type != term.type_O or angle.atom1.type != term.type_H or angle.atom3.type != term.type_H:
+                    continue
+                atom_vsite = Atom('VS' + str(angle.atom2.id_in_mol + 1))
+                atom_vsite.symbol = 'VS'
+                atom_vsite.type = term.type
+                atom_vsite.virtual_site = TIP4PSite([angle.atom2, angle.atom1, angle.atom3], [term.d])
+                atom_vsite.position = atom_vsite.virtual_site.calc_position()
+                self.add_atom(atom_vsite, update_topology=False)
+
+        if self._topology is not None and update_topology:
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+    def remove_virtual_sites(self, update_topology=True):
+        '''
+        Remove all virtual sites.
+
+        Parameters
+        ----------
+        update_topology : bool
+        '''
+        for atom in self._atoms:
+            if atom.virtual_site is not None:
+                self.remove_atom(atom, update_topology=False)
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 

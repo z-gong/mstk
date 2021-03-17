@@ -21,7 +21,7 @@ parser.add_argument('--typer', type=str,
                     help='typing file. Required if SMILES provided for topology')
 parser.add_argument('--ljscale', type=str, help='input file for empirical LJ scaling')
 parser.add_argument('--nodrude', action='store_true',
-                    help='disable Drude particles even if it is polarizable model')
+                    help='disable Drude particles and virtual sites even if present in force field')
 parser.add_argument('--trj', type=str,
                     help='trajectory file for positions and box. The last frame will be used')
 parser.add_argument('--box', nargs=3, type=float,
@@ -57,6 +57,7 @@ for inp, n in zip(args.input, args.number):
     molecules += top.molecules * n
 top = Topology(molecules)
 top.remove_drude_particles()
+top.remove_virtual_sites()
 
 if args.trj is not None:
     frame = Trajectory.read_frame_from_file(args.trj, -1)
@@ -69,6 +70,7 @@ if args.box is not None:
 ff = ForceField.open(*args.forcefield)
 if args.nodrude:
     ff.polarizable_terms.clear()
+    ff.virtual_site_terms.clear()
 if args.ljscale is not None:
     scaler = PaduaLJScaler(args.ljscale)
     scaler.scale(ff)
@@ -108,6 +110,8 @@ for mol in mol_count.keys():
 
     if ff.is_polarizable:
         mol.generate_drude_particles(ff)
+    if ff.has_virtual_site:
+        mol.generate_virtual_sites(ff)
     mol.assign_mass_from_ff(ff)
     mol.assign_charge_from_ff(ff)
 
@@ -128,20 +132,23 @@ else:
     if len(frame.positions) == top.n_atom:
         top.set_positions(frame.positions)
         _positions_set = True
-    elif ff.is_polarizable:
-        atoms_real = [atom for atom in top.atoms if not atom.is_drude]
+    elif ff.is_polarizable or ff.has_virtual_site:
+        atoms_real = [atom for atom in top.atoms if not atom.is_drude and atom.virtual_site is None]
         if len(frame.positions) == len(atoms_real):
             for i, atom in enumerate(atoms_real):
                 atom.position = frame.positions[i][:]
             np.random.seed(1)
             for parent, drude in top.get_drude_pairs():
                 drude.position = parent.position + (np.random.random(3) - 0.5) / 100
+            for parent, vsite in top.get_virtual_site_pairs():
+                vsite.position = parent.virtual_site.calc_positions()
             _positions_set = True
 
     if not _positions_set:
         logger.error(
-            'Numbers of atoms in trajectory (%i) and topology (all: %i, non-Drude: %i) do not match' % (
-                len(frame.positions), top.n_atom, top.n_atom - len(top.get_drude_pairs())))
+            'Numbers of atoms in trajectory (%i) and topology (all: %i, real: %i) do not match' % (
+                len(frame.positions), top.n_atom,
+                top.n_atom - len(top.get_drude_pairs()) - len(top.get_virtual_site_pairs())))
         sys.exit(1)
 
 for atom in top.atoms:

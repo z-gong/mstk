@@ -54,6 +54,15 @@ Polarization terms
     PolarizableTerm
     DrudeTerm
 
+Virtual site terms
+~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+    :toctree: _generated/
+
+    VirtualSiteTerm
+    TIP4PSiteTerm
+
 Bond terms
 ~~~~~~~~~~
 

@@ -3,6 +3,7 @@ from ..forcefield import Element
 from .atom import Atom
 from .molecule import Molecule
 from .topology import Topology
+from .virtualsite import TIP4PSite
 
 
 class Psf():
@@ -18,7 +19,8 @@ class Psf():
     Each residue is treated as one molecule.
     So if there are bonds between residues, there might be bugs.
 
-    * Todo Support inter-residue bonds
+    * TODO Support inter-residue bonds
+    * TODO Support reading virtual sites
 
     Parameters
     ----------
@@ -254,6 +256,22 @@ class Psf():
         string += '%8i !NDON: donors\n\n' % 0
         string += '%8i !NACC: acceptors\n\n' % 0
         string += '%8i !NNB\n\n\n' % 0
+
+        vsite_pairs = top.get_virtual_site_pairs()
+        n_vsite = len(vsite_pairs)
+        string += '%8i %i !NUMLP NUMLPH\n' % (n_vsite, 4 * n_vsite)
+        for parent, vsite in vsite_pairs:
+            if type(vsite.virtual_site) is not TIP4PSite:
+                raise Exception('Virtual site other than TIP4PSite not supported for PSF')
+            string += '%8i %8i F %10.6f %10.6f %10.6f\n' % (
+                3, parent.id + 1, -vsite.virtual_site.parameters[0] * 10, 0, 0)
+        for i, (parent, site) in enumerate(vsite_pairs):
+            O, H1, H2 = site.virtual_site.parents
+            string += '%8i%8i%8i%8i' % (site.id + 1, O.id + 1, H1.id + 1, H2.id + 1)
+            if (i + 1) % 2 == 0 or i + 1 == n_vsite:
+                string += '\n'
+        string += '\n'
+
         string += '%8i !NUMANISO\n\n' % 0
 
         with open(file, 'wb') as f:

@@ -5,6 +5,7 @@
     <AtomType charge="0.0" eqt_ang_c="h_1" eqt_ang_s="h_1" eqt_bond="h_1" eqt_dih_c="h_1" eqt_dih_s="h_1" eqt_imp_c="h_1" eqt_imp_s="h_1" eqt_polar="h_1o" eqt_q_inc="h_1o" eqt_vdw="h_1o" mass="1.0079" name="h_1o"/>
     <AtomType charge="0.0" eqt_ang_c="o_2w" eqt_ang_s="o_2w" eqt_bond="o_2w" eqt_dih_c="o_2w" eqt_dih_s="o_2" eqt_imp_c="o_2w" eqt_imp_s="o_2" eqt_polar="o_2w" eqt_q_inc="o_2w" eqt_vdw="o_2w" mass="15.9994" name="o_2w"/>
   </AtomTypes>
+  <VirtualSiteTerms/>
   <ChargeIncrementTerms>
     <ChargeIncrementTerm type1="h_1o" type2="o_2w" value="0.4238"/>
   </ChargeIncrementTerms>

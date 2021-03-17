@@ -38,6 +38,8 @@ class GromacsExporter():
         '''
         Generate input files for Gromacs from a system
 
+        # TODO Export virtual site
+
         Parameters
         ----------
         system : System
@@ -62,6 +64,9 @@ class GromacsExporter():
             logger.warning('MieTerm not supported by GROMACS. Will be exported in LJ-12-6 form')
         if SDKAngleTerm in system.ff_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Will be exported in harmonic form')
+
+        if system.topology.has_virtual_site:
+            logger.warning('Virtual sites haven\'t been implemented for exporting GROMACS')
 
         if gro_out is not None:
             GromacsExporter._export_gro(system, gro_out)

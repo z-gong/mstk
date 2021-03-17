@@ -1,3 +1,4 @@
+import numpy as np
 from .atom import Atom
 
 
@@ -91,7 +92,7 @@ class TwoLineSite(VirtualSite):
             raise Exception('Position for parent atoms are required')
 
         a1, a2 = self.parents
-        p1 = self.parameters
+        p1 = self.parameters[0]
         return a1.position * p1 + a2.position * (1 - p1)
 
 
@@ -126,3 +127,35 @@ class ThreePlaneSite(VirtualSite):
 
 
 VirtualSiteFactory.register(ThreePlaneSite)
+
+
+class TIP4PSite(VirtualSite):
+    '''
+    A virtual site used in TIP4P model. This is a special case of ThreePlaneSite.
+
+    Parameters
+    ----------
+    parents : list of Atom
+    parameters : list of float
+    '''
+
+    def __init__(self, parents, parameters):
+        if len(parents) != 3 or len(parameters) != 1:
+            raise Exception('Invalid number of parents or parameters')
+
+        super().__init__()
+        self.parents = parents[:]
+        self.parameters = parameters[:]
+
+    def calc_position(self):
+        if not all(atom.has_position for atom in self.parents):
+            raise Exception('Position for parent atoms are required')
+
+        a_O, a_H1, a_H2 = self.parents
+        d = self.parameters[0]
+        vec = a_H1.position + a_H2.position - 2 * a_O.position
+        vec_unit = vec / np.sqrt(vec.dot(vec))
+        return a_O.position + d * vec_unit
+
+
+VirtualSiteFactory.register(TIP4PSite)

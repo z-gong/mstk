@@ -553,6 +553,37 @@ class Topology():
             molecules.append(mol)
         self.update_molecules(molecules)
 
+    def get_drude_pairs(self):
+        '''
+        Retrieve all the Drude dipole pairs belong to this topology
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, drude)]
+
+        See Also
+        --------
+        Molecule.get_drude_pairs
+        '''
+        return [pair for mol in self._molecules for pair in mol.get_drude_pairs()]
+
+    def get_virtual_site_pairs(self):
+        '''
+        Retrieve all the virtual site pairs belong to this topology
+        # TODO Assume no more than one virtual site is attached to each atom
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, atom_virtual_site)]
+
+        See Also
+        --------
+        Molecule.get_virtual_site_pairs
+        '''
+        return [pair for mol in self._molecules for pair in mol.get_virtual_site_pairs()]
+
     def get_12_13_14_pairs(self):
         '''
         Retrieve all the 1-2, 1-3 and 1-4 pairs based on the bond information.
@@ -579,21 +610,6 @@ class Topology():
             pair_13_list += pairs_13
             pair_14_list += pairs_14
         return pair_12_list, pair_13_list, pair_14_list
-
-    def get_drude_pairs(self):
-        '''
-        Retrieve all the Drude dipole pairs belong to this topology
-
-        Returns
-        -------
-        pairs :  list of tuple of Atom
-            [(parent, drude)]
-
-        See Also
-        --------
-        Molecule.get_drude_pairs
-        '''
-        return [pair for mol in self._molecules for pair in mol.get_drude_pairs()]
 
     def generate_angle_dihedral_improper(self):
         '''
@@ -658,6 +674,39 @@ class Topology():
         mol: Molecule
         for mol in self._molecules:
             mol.remove_drude_particles(update_topology=False)
+        self.update_molecules(self._molecules, deepcopy=False)
+
+    def generate_virtual_sites(self, ff, **kwargs):
+        '''
+        Generate virtual sites from VirtualSiteTerms in a force field
+
+        Parameters
+        ----------
+        ff : ForceField
+        kwargs : dict
+
+        See Also
+        --------
+        Molecule.generate_virtual_sites
+        '''
+        mol: Molecule
+        for mol in self._molecules:
+            mol.generate_virtual_sites(ff, update_topology=False)
+        self.update_molecules(self._molecules, deepcopy=False)
+
+    def remove_virtual_sites(self):
+        '''
+        Remove all the virtual sites from this topology
+
+        It is useful for build non-virtual-site model from virtual-site model
+
+        See Also
+        --------
+        Molecule.remove_virtual_sites
+        '''
+        mol: Molecule
+        for mol in self._molecules:
+            mol.remove_virtual_sites(update_topology=False)
         self.update_molecules(self._molecules, deepcopy=False)
 
     def assign_mass_from_ff(self, ff):

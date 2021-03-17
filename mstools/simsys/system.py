@@ -115,6 +115,7 @@ class System():
         self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
         self.polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
         self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
+        self.vsite_pairs: {Atom: Atom} = dict(self.topology.get_virtual_site_pairs())  # {parent: atom_virtual_site}
         self.constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
         self.constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
 
