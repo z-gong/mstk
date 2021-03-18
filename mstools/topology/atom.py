@@ -29,8 +29,10 @@ class Atom():
         Charge assigned. Required for output simulation files
     alpha : float
         Isotropic polarizability. Required for output Drude polarizable simulation files
+        This property is set for parent atom, not Drude particle
     thole : float
         Thole screening for induced dipole. Required for output Drude polarizable simulation files
+        This property is set for parent atom, not Drude particle
     formal_charge : float
         Formal charge calculated from valence bond theory. Optionally required by typing engine
     is_drude : bool
@@ -50,8 +52,8 @@ class Atom():
         self.symbol = 'UNK'
         self.mass = 0.
         self.charge = 0.
-        self.alpha = 0.
-        self.thole = 0.
+        self.alpha = 0.  # this property is set for parent atom, not Drude particle
+        self.thole = 0.  # this property is set for parent atom, not Drude particle
         self.formal_charge = 0.
         self.is_drude = False
         self.virtual_site = None

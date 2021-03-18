@@ -10,17 +10,17 @@ class Psf():
     '''
     Generate Topology from PSF file.
 
-    Atoms, bonds, angles, dihedrals and impropers are parsed.
+    Atoms, bonds, angles, dihedrals, impropers and virtual sites are parsed.
     Polarizability and thole parameters for Drude model are parsed,
-    but anisotroic polarizability are ignored
-    All others like hydrogen bonds are ignored
+    but anisotroic polarizability are ignored.
+    All others like hydrogen bonds are ignored.
 
     This parser is designed for non-biological system.
     Each residue is treated as one molecule.
     So if there are bonds between residues, there might be bugs.
 
     * TODO Support inter-residue bonds
-    * TODO Support reading virtual sites
+    * TODO Support virtual sites other than TIP4P
 
     Parameters
     ----------
@@ -54,12 +54,12 @@ class Psf():
         is_drude = 'DRUDE' in words
 
         # there are other sections, but i don't care
-        _sections = ['!NTITLE', '!NATOM', '!NBOND', '!NTHETA', '!NPHI', '!NIMPHI']
+        _sections = ['NTITLE', 'NATOM', 'NBOND', 'NTHETA', 'NPHI', 'NIMPHI', 'NUMLP NUMLPH']
 
         # record the line number (starts from 0) of section headers
         _iline_section = []
         for i, line in enumerate(lines):
-            words = line.strip().split()
+            words = line.strip().split('!')
             if len(words) < 2:
                 continue
             word = words[1].split(':')[0]
@@ -71,19 +71,21 @@ class Psf():
                 iline_next = _iline_section[i + 1][0]
             else:
                 iline_next = len(lines)
-            if section == '!NTITLE':
+            if section == 'NTITLE':
                 # the number at section line indicates the line counts of the section
                 self._parse_title(lines[iline: iline_next])
-            if section == '!NATOM':
+            if section == 'NATOM':
                 self._parse_atoms(lines[iline: iline_next], is_drude)
-            if section == '!NBOND':
+            if section == 'NBOND':
                 self._parse_bonds(lines[iline: iline_next])
-            if section == '!NTHETA':
+            if section == 'NTHETA':
                 self._parse_angles(lines[iline: iline_next])
-            if section == '!NPHI':
+            if section == 'NPHI':
                 self._parse_dihedrals(lines[iline: iline_next])
-            if section == '!NIMPHI':
+            if section == 'NIMPHI':
                 self._parse_impropers(lines[iline: iline_next])
+            if section == 'NUMLP NUMLPH':
+                self._parse_virtual_sites(lines[iline: iline_next])
 
     def _parse_title(self, lines):
         nline = int(lines[0].strip().split()[0])
@@ -186,6 +188,36 @@ class Psf():
                                              atoms[int(words[j * 4 + 3]) - 1]
                 atom1.molecule.add_improper(atom1, atom2, atom3, atom4)
 
+    def _parse_virtual_sites(self, lines):
+        '''
+        Currently only TIP4P style virtual sites are parsed
+        '''
+        n_vsite, n_holder = map(int, lines[0].strip().split()[:2])
+        if n_holder != 4 * n_vsite:
+            raise Exception('Only TIP4P style virtual sites supported: ' + lines[0])
+
+        d_list = [0] * n_vsite
+        for i in range(n_vsite):
+            words = lines[i + 1].strip().split()
+            if len(words) != 6 or words[0] != '3' or words[2] != 'F':
+                raise Exception('Only TIP4P style virtual sites supported: ' + lines[i + 1])
+            d, theta, phi = map(float, words[-3:])
+            if theta != 0 or phi != 0:
+                raise Exception('Only TIP4P style virtual sites supported: ' + lines[i + 1])
+            d_list[i] = -d / 10  # convert from A to nm
+
+        atoms = self.topology.atoms
+        for i in range(math.ceil(n_vsite / 2)):
+            words = lines[i + 1 + n_vsite].strip().split()
+            for j in range(2):
+                if i * 2 + j + 1 > n_vsite:
+                    break
+                atom1, atom2, atom3, atom4 = atoms[int(words[j * 4 + 0]) - 1], \
+                                             atoms[int(words[j * 4 + 1]) - 1], \
+                                             atoms[int(words[j * 4 + 2]) - 1], \
+                                             atoms[int(words[j * 4 + 3]) - 1]
+                atom1.virtual_site = TIP4PSite([atom2, atom3, atom4], [d_list[i * 2 + j]])
+
     @staticmethod
     def save_to(top, file):
         '''
@@ -260,14 +292,14 @@ class Psf():
         vsite_pairs = top.get_virtual_site_pairs()
         n_vsite = len(vsite_pairs)
         string += '%8i %i !NUMLP NUMLPH\n' % (n_vsite, 4 * n_vsite)
-        for parent, vsite in vsite_pairs:
-            if type(vsite.virtual_site) is not TIP4PSite:
+        for parent, avsite in vsite_pairs:
+            if type(avsite.virtual_site) is not TIP4PSite:
                 raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
-            string += '%8i %8i F %10.6f %10.6f %10.6f\n' % (
-                3, parent.id + 1, -vsite.virtual_site.parameters[0] * 10, 0, 0)
-        for i, (parent, site) in enumerate(vsite_pairs):
-            O, H1, H2 = site.virtual_site.parents
-            string += '%8i%8i%8i%8i' % (site.id + 1, O.id + 1, H1.id + 1, H2.id + 1)
+            string += '%8i%8i  F %10.6f %10.6f %10.6f\n' % (
+                3, parent.id + 1, -avsite.virtual_site.parameters[0] * 10, 0, 0)
+        for i, (parent, avsite) in enumerate(vsite_pairs):
+            O, H1, H2 = avsite.virtual_site.parents
+            string += '%8i%8i%8i%8i' % (avsite.id + 1, O.id + 1, H1.id + 1, H2.id + 1)
             if (i + 1) % 2 == 0 or i + 1 == n_vsite:
                 string += '\n'
         string += '\n'
