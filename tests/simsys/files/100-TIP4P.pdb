@@ -1,0 +1,502 @@
+REMARK   Created by mstools
+CRYST1   30.000   30.000   30.000  90.00  90.00  90.00 P 1           1 
+HETATM    1   O1  SOL    1       4.606   0.830   2.285                       O
+HETATM    2   H2  SOL    1       4.893   1.628   2.729                       H
+HETATM    3   H3  SOL    1       5.410   0.330   2.146                       H
+HETATM    4  VS1  SOL    1       4.745   0.868   2.324                      VS
+HETATM    5   O1  SOL    2      13.054  12.715  26.651                       O
+HETATM    6   H2  SOL    2      12.121  12.572  26.497                       H
+HETATM    7   H3  SOL    2      13.429  11.835  26.688                       H
+HETATM    8  VS1  SOL    2      12.983  12.584  26.636                      VS
+HETATM    9   O1  SOL    3       7.952   7.456  22.943                       O
+HETATM   10   H2  SOL    3       8.815   7.067  22.799                       H
+HETATM   11   H3  SOL    3       8.134   8.373  23.150                       H
+HETATM   12  VS1  SOL    3       8.086   7.524  22.951                      VS
+HETATM   13   O1  SOL    4      18.956  20.886  22.125                       O
+HETATM   14   H2  SOL    4      19.544  20.902  21.369                       H
+HETATM   15   H3  SOL    4      19.535  20.990  22.880                       H
+HETATM   16  VS1  SOL    4      19.105  20.901  22.125                      VS
+HETATM   17   O1  SOL    5      23.582  10.320   8.500                       O
+HETATM   18   H2  SOL    5      23.489   9.447   8.880                       H
+HETATM   19   H3  SOL    5      24.500  10.549   8.647                       H
+HETATM   20  VS1  SOL    5      23.688  10.237   8.567                      VS
+HETATM   21   O1  SOL    6      17.005  20.676  12.991                       O
+HETATM   22   H2  SOL    6      16.748  21.317  12.328                       H
+HETATM   23   H3  SOL    6      16.504  19.890  12.773                       H
+HETATM   24  VS1  SOL    6      16.908  20.658  12.878                      VS
+HETATM   25   O1  SOL    7       7.002   7.883  13.651                       O
+HETATM   26   H2  SOL    7       6.728   8.756  13.371                       H
+HETATM   27   H3  SOL    7       6.191   7.376  13.685                       H
+HETATM   28  VS1  SOL    7       6.863   7.930  13.619                      VS
+HETATM   29   O1  SOL    8       9.044  17.322  18.135                       O
+HETATM   30   H2  SOL    8       8.260  16.785  18.252                       H
+HETATM   31   H3  SOL    8       8.714  18.220  18.086                       H
+HETATM   32  VS1  SOL    8       8.901  17.368  18.144                      VS
+HETATM   33   O1  SOL    9      16.044   9.213  17.459                       O
+HETATM   34   H2  SOL    9      15.735   9.300  18.360                       H
+HETATM   35   H3  SOL    9      15.325   9.551  16.925                       H
+HETATM   36  VS1  SOL    9      15.913   9.267  17.506                      VS
+HETATM   37   O1  SOL   10      25.316  19.054   0.459                       O
+HETATM   38   H2  SOL   10      24.771  18.272   0.548                       H
+HETATM   39   H3  SOL   10      24.763  19.769   0.775                       H
+HETATM   40  VS1  SOL   10      25.175  19.046   0.511                      VS
+HETATM   41   O1  SOL   11       0.499  21.231  18.888                       O
+HETATM   42   H2  SOL   11       1.224  21.758  18.553                       H
+HETATM   43   H3  SOL   11       0.632  20.366  18.501                       H
+HETATM   44  VS1  SOL   11       0.609  21.188  18.796                      VS
+HETATM   45   O1  SOL   12      10.338  15.504  10.810                       O
+HETATM   46   H2  SOL   12      11.245  15.677  11.062                       H
+HETATM   47   H3  SOL   12      10.302  14.557  10.677                       H
+HETATM   48  VS1  SOL   12      10.449  15.405  10.825                      VS
+HETATM   49   O1  SOL   13      20.040  11.840  20.778                       O
+HETATM   50   H2  SOL   13      20.954  11.558  20.813                       H
+HETATM   51   H3  SOL   13      19.594  11.146  20.291                       H
+HETATM   52  VS1  SOL   13      20.100  11.715  20.720                      VS
+HETATM   53   O1  SOL   14      24.461   6.064  13.688                       O
+HETATM   54   H2  SOL   14      24.125   5.905  14.569                       H
+HETATM   55   H3  SOL   14      23.693   5.996  13.121                       H
+HETATM   56  VS1  SOL   14      24.320   6.035  13.728                      VS
+HETATM   57   O1  SOL   15      13.378  19.881  21.177                       O
+HETATM   58   H2  SOL   15      12.473  20.061  21.430                       H
+HETATM   59   H3  SOL   15      13.677  20.689  20.762                       H
+HETATM   60  VS1  SOL   15      13.301  20.007  21.156                      VS
+HETATM   61   O1  SOL   16       6.507  27.599   4.401                       O
+HETATM   62   H2  SOL   16       6.063  27.482   3.561                       H
+HETATM   63   H3  SOL   16       5.815  27.499   5.055                       H
+HETATM   64  VS1  SOL   16       6.362  27.572   4.377                      VS
+HETATM   65   O1  SOL   17       6.540  24.804   2.550                       O
+HETATM   66   H2  SOL   17       6.216  25.055   3.415                       H
+HETATM   67   H3  SOL   17       6.248  25.508   1.971                       H
+HETATM   68  VS1  SOL   17       6.461  24.926   2.587                      VS
+HETATM   69   O1  SOL   18       2.129  20.307   3.114                       O
+HETATM   70   H2  SOL   18       1.906  19.446   2.760                       H
+HETATM   71   H3  SOL   18       2.824  20.630   2.541                       H
+HETATM   72  VS1  SOL   18       2.190  20.238   2.996                      VS
+HETATM   73   O1  SOL   19      26.383  13.147  16.277                       O
+HETATM   74   H2  SOL   19      25.796  13.447  16.971                       H
+HETATM   75   H3  SOL   19      26.237  12.202  16.233                       H
+HETATM   76  VS1  SOL   19      26.289  13.064  16.360                      VS
+HETATM   77   O1  SOL   20      11.057   4.074  12.836                       O
+HETATM   78   H2  SOL   20      10.257   3.939  12.328                       H
+HETATM   79   H3  SOL   20      10.769   4.552  13.614                       H
+HETATM   80  VS1  SOL   20      10.918   4.118  12.870                      VS
+HETATM   81   O1  SOL   21      25.464   7.247   8.227                       O
+HETATM   82   H2  SOL   21      24.928   8.016   8.423                       H
+HETATM   83   H3  SOL   21      26.321   7.450   8.601                       H
+HETATM   84  VS1  SOL   21      25.505   7.372   8.300                      VS
+HETATM   85   O1  SOL   22       3.285   0.508  27.304                       O
+HETATM   86   H2  SOL   22       2.462   0.417  26.823                       H
+HETATM   87   H3  SOL   22       3.934   0.070  26.754                       H
+HETATM   88  VS1  SOL   22       3.263   0.441  27.172                      VS
+HETATM   89   O1  SOL   23      24.644  16.309  19.384                       O
+HETATM   90   H2  SOL   23      25.566  16.309  19.642                       H
+HETATM   91   H3  SOL   23      24.163  16.350  20.210                       H
+HETATM   92  VS1  SOL   23      24.701  16.314  19.523                      VS
+HETATM   93   O1  SOL   24       1.819   2.917   1.788                       O
+HETATM   94   H2  SOL   24       2.087   2.554   0.944                       H
+HETATM   95   H3  SOL   24       2.629   2.971   2.294                       H
+HETATM   96  VS1  SOL   24       1.957   2.877   1.744                      VS
+HETATM   97   O1  SOL   25       8.478  15.684   2.527                       O
+HETATM   98   H2  SOL   25       8.076  15.204   3.251                       H
+HETATM   99   H3  SOL   25       7.992  16.507   2.486                       H
+HETATM  100  VS1  SOL   25       8.364  15.728   2.614                      VS
+HETATM  101   O1  SOL   26      21.604  12.526  12.003                       O
+HETATM  102   H2  SOL   26      20.747  12.864  12.265                       H
+HETATM  103   H3  SOL   26      22.035  12.303  12.828                       H
+HETATM  104  VS1  SOL   26      21.549  12.541  12.142                      VS
+HETATM  105   O1  SOL   27       8.415  13.330   9.014                       O
+HETATM  106   H2  SOL   27       7.622  13.087   8.535                       H
+HETATM  107   H3  SOL   27       8.481  12.681   9.714                       H
+HETATM  108  VS1  SOL   27       8.322  13.216   9.042                      VS
+HETATM  109   O1  SOL   28      14.896   3.315   1.058                       O
+HETATM  110   H2  SOL   28      14.524   4.170   1.275                       H
+HETATM  111   H3  SOL   28      14.137   2.766   0.861                       H
+HETATM  112  VS1  SOL   28      14.751   3.354   1.060                      VS
+HETATM  113   O1  SOL   29      23.095  15.310  15.569                       O
+HETATM  114   H2  SOL   29      23.705  14.984  16.231                       H
+HETATM  115   H3  SOL   29      23.189  14.702  14.836                       H
+HETATM  116  VS1  SOL   29      23.185  15.190  15.560                      VS
+HETATM  117   O1  SOL   30      11.820   6.379  23.744                       O
+HETATM  118   H2  SOL   30      10.975   6.829  23.747                       H
+HETATM  119   H3  SOL   30      12.393   6.941  24.265                       H
+HETATM  120  VS1  SOL   30      11.785   6.509  23.811                      VS
+HETATM  121   O1  SOL   31      17.341  23.444   6.467                       O
+HETATM  122   H2  SOL   31      17.012  24.330   6.618                       H
+HETATM  123   H3  SOL   31      16.555  22.916   6.332                       H
+HETATM  124  VS1  SOL   31      17.199  23.490   6.469                      VS
+HETATM  125   O1  SOL   32      13.357  12.630  14.977                       O
+HETATM  126   H2  SOL   32      13.265  11.680  15.060                       H
+HETATM  127   H3  SOL   32      14.216  12.752  14.573                       H
+HETATM  128  VS1  SOL   32      13.455  12.524  14.936                      VS
+HETATM  129   O1  SOL   33      16.222  16.034  19.075                       O
+HETATM  130   H2  SOL   33      16.257  16.944  19.371                       H
+HETATM  131   H3  SOL   33      17.081  15.877  18.682                       H
+HETATM  132  VS1  SOL   33      16.337  16.130  19.063                      VS
+HETATM  133   O1  SOL   34      12.130   9.520  21.690                       O
+HETATM  134   H2  SOL   34      11.485  10.227  21.731                       H
+HETATM  135   H3  SOL   34      12.970   9.954  21.836                       H
+HETATM  136  VS1  SOL   34      12.155   9.666  21.714                      VS
+HETATM  137   O1  SOL   35      10.080  15.381  16.054                       O
+HETATM  138   H2  SOL   35      10.841  14.845  16.276                       H
+HETATM  139   H3  SOL   35       9.377  14.748  15.905                       H
+HETATM  140  VS1  SOL   35      10.087  15.231  16.063                      VS
+HETATM  141   O1  SOL   36       8.210   2.414  22.849                       O
+HETATM  142   H2  SOL   36       7.819   1.540  22.834                       H
+HETATM  143   H3  SOL   36       8.946   2.336  23.455                       H
+HETATM  144  VS1  SOL   36       8.254   2.292  22.924                      VS
+HETATM  145   O1  SOL   37       1.572  25.010  17.018                       O
+HETATM  146   H2  SOL   37       2.309  24.659  17.518                       H
+HETATM  147   H3  SOL   37       1.654  24.605  16.154                       H
+HETATM  148  VS1  SOL   37       1.677  24.913  16.971                      VS
+HETATM  149   O1  SOL   38       2.671   4.686   7.679                       O
+HETATM  150   H2  SOL   38       2.011   3.996   7.613                       H
+HETATM  151   H3  SOL   38       3.208   4.581   6.893                       H
+HETATM  152  VS1  SOL   38       2.655   4.585   7.570                      VS
+HETATM  153   O1  SOL   39       9.491  11.863  11.423                       O
+HETATM  154   H2  SOL   39       9.103  12.718  11.607                       H
+HETATM  155   H3  SOL   39      10.092  12.024  10.696                       H
+HETATM  156  VS1  SOL   39       9.518  11.993  11.354                      VS
+HETATM  157   O1  SOL   40      14.327   2.531  24.372                       O
+HETATM  158   H2  SOL   40      15.012   2.544  23.703                       H
+HETATM  159   H3  SOL   40      14.104   1.605  24.468                       H
+HETATM  160  VS1  SOL   40      14.386   2.414  24.298                      VS
+HETATM  161   O1  SOL   41      26.279  13.523   0.001                       O
+HETATM  162   H2  SOL   41      25.471  13.442   0.507                       H
+HETATM  163   H3  SOL   41      26.961  13.657   0.659                       H
+HETATM  164  VS1  SOL   41      26.263  13.530   0.150                      VS
+HETATM  165   O1  SOL   42      11.370   9.765   4.502                       O
+HETATM  166   H2  SOL   42      10.874   9.212   5.107                       H
+HETATM  167   H3  SOL   42      10.798   9.860   3.740                       H
+HETATM  168  VS1  SOL   42      11.233   9.706   4.482                      VS
+HETATM  169   O1  SOL   43      22.755  19.351   1.479                       O
+HETATM  170   H2  SOL   43      21.852  19.058   1.605                       H
+HETATM  171   H3  SOL   43      22.798  20.195   1.928                       H
+HETATM  172  VS1  SOL   43      22.645  19.421   1.553                      VS
+HETATM  173   O1  SOL   44      17.358   3.653  23.397                       O
+HETATM  174   H2  SOL   44      16.571   3.969  22.952                       H
+HETATM  175   H3  SOL   44      17.123   2.778  23.708                       H
+HETATM  176  VS1  SOL   44      17.227   3.581  23.380                      VS
+HETATM  177   O1  SOL   45      14.855  23.861  12.365                       O
+HETATM  178   H2  SOL   45      15.429  23.319  11.825                       H
+HETATM  179   H3  SOL   45      14.006  23.419  12.332                       H
+HETATM  180  VS1  SOL   45      14.820  23.735  12.292                      VS
+HETATM  181   O1  SOL   46      22.079  23.988  14.216                       O
+HETATM  182   H2  SOL   46      22.909  23.516  14.151                       H
+HETATM  183   H3  SOL   46      22.317  24.908  14.106                       H
+HETATM  184  VS1  SOL   46      22.216  24.045  14.194                      VS
+HETATM  185   O1  SOL   47      14.598  15.598   3.271                       O
+HETATM  186   H2  SOL   47      14.123  16.428   3.318                       H
+HETATM  187   H3  SOL   47      13.916  14.936   3.163                       H
+HETATM  188  VS1  SOL   47      14.450  15.620   3.263                      VS
+HETATM  189   O1  SOL   48       6.138  14.533  20.744                       O
+HETATM  190   H2  SOL   48       7.032  14.834  20.577                       H
+HETATM  191   H3  SOL   48       6.202  13.578  20.741                       H
+HETATM  192  VS1  SOL   48       6.261  14.450  20.722                      VS
+HETATM  193   O1  SOL   49      18.438  26.278   4.828                       O
+HETATM  194   H2  SOL   49      18.992  27.051   4.934                       H
+HETATM  195   H3  SOL   49      18.677  25.710   5.560                       H
+HETATM  196  VS1  SOL   49      18.539  26.305   4.935                      VS
+HETATM  197   O1  SOL   50      11.137   4.634  10.479                       O
+HETATM  198   H2  SOL   50      11.931   4.707   9.949                       H
+HETATM  199   H3  SOL   50      10.653   5.439  10.298                       H
+HETATM  200  VS1  SOL   50      11.176   4.746  10.388                      VS
+HETATM  201   O1  SOL   51       2.630  26.690  27.150                       O
+HETATM  202   H2  SOL   51       1.702  26.813  27.352                       H
+HETATM  203   H3  SOL   51       2.702  25.767  26.906                       H
+HETATM  204  VS1  SOL   51       2.521  26.588  27.145                      VS
+HETATM  205   O1  SOL   52      11.137   7.467   9.490                       O
+HETATM  206   H2  SOL   52      12.012   7.467   9.101                       H
+HETATM  207   H3  SOL   52      10.597   6.983   8.866                       H
+HETATM  208  VS1  SOL   52      11.180   7.405   9.360                      VS
+HETATM  209   O1  SOL   53      18.671  27.104  26.806                       O
+HETATM  210   H2  SOL   53      18.843  27.509  27.656                       H
+HETATM  211   H3  SOL   53      19.376  26.466  26.697                       H
+HETATM  212  VS1  SOL   53      18.783  27.074  26.901                      VS
+HETATM  213   O1  SOL   54      24.057  10.939  13.338                       O
+HETATM  214   H2  SOL   54      24.548  10.207  13.711                       H
+HETATM  215   H3  SOL   54      24.643  11.691  13.429                       H
+HETATM  216  VS1  SOL   54      24.195  10.942  13.397                      VS
+HETATM  217   O1  SOL   55       2.728  10.097  19.348                       O
+HETATM  218   H2  SOL   55       3.152   9.240  19.328                       H
+HETATM  219   H3  SOL   55       2.840  10.441  18.461                       H
+HETATM  220  VS1  SOL   55       2.796  10.032  19.232                      VS
+HETATM  221   O1  SOL   56      14.297   8.463   9.089                       O
+HETATM  222   H2  SOL   56      14.545   9.170   8.494                       H
+HETATM  223   H3  SOL   56      13.742   8.886   9.745                       H
+HETATM  224  VS1  SOL   56      14.258   8.608   9.097                      VS
+HETATM  225   O1  SOL   57      15.992  26.451  19.810                       O
+HETATM  226   H2  SOL   57      15.795  26.329  18.881                       H
+HETATM  227   H3  SOL   57      15.735  25.625  20.221                       H
+HETATM  228  VS1  SOL   57      15.934  26.330  19.744                      VS
+HETATM  229   O1  SOL   58      14.987  17.969  10.071                       O
+HETATM  230   H2  SOL   58      15.587  18.151   9.348                       H
+HETATM  231   H3  SOL   58      15.141  17.049  10.285                       H
+HETATM  232  VS1  SOL   58      15.084  17.875  10.006                      VS
+HETATM  233   O1  SOL   59      13.243  25.361   6.116                       O
+HETATM  234   H2  SOL   59      12.699  25.645   5.383                       H
+HETATM  235   H3  SOL   59      14.135  25.591   5.856                       H
+HETATM  236  VS1  SOL   59      13.288  25.426   5.989                      VS
+HETATM  237   O1  SOL   60       6.635  21.341  19.497                       O
+HETATM  238   H2  SOL   60       6.147  20.587  19.166                       H
+HETATM  239   H3  SOL   60       6.984  21.765  18.713                       H
+HETATM  240  VS1  SOL   60       6.617  21.299  19.355                      VS
+HETATM  241   O1  SOL   61       0.272  27.568  21.931                       O
+HETATM  242   H2  SOL   61       1.064  27.901  21.508                       H
+HETATM  243   H3  SOL   61       0.564  26.793  22.410                       H
+HETATM  244  VS1  SOL   61       0.411  27.512  21.938                      VS
+HETATM  245   O1  SOL   62      16.303   5.721   8.817                       O
+HETATM  246   H2  SOL   62      16.984   6.344   9.071                       H
+HETATM  247   H3  SOL   62      16.370   5.668   7.863                       H
+HETATM  248  VS1  SOL   62      16.399   5.794   8.727                      VS
+HETATM  249   O1  SOL   63      25.261  21.329   8.033                       O
+HETATM  250   H2  SOL   63      25.359  20.382   8.135                       H
+HETATM  251   H3  SOL   63      26.151  21.648   7.885                       H
+HETATM  252  VS1  SOL   63      25.387  21.248   8.027                      VS
+HETATM  253   O1  SOL   64      10.865  12.863  16.152                       O
+HETATM  254   H2  SOL   64      11.691  13.066  16.590                       H
+HETATM  255   H3  SOL   64      11.116  12.647  15.253                       H
+HETATM  256  VS1  SOL   64      11.003  12.861  16.093                      VS
+HETATM  257   O1  SOL   65      12.322  24.735  17.044                       O
+HETATM  258   H2  SOL   65      12.394  23.781  17.070                       H
+HETATM  259   H3  SOL   65      13.228  25.044  17.070                       H
+HETATM  260  VS1  SOL   65      12.448  24.653  17.051                      VS
+HETATM  261   O1  SOL   66       1.488   6.288  11.873                       O
+HETATM  262   H2  SOL   66       2.162   6.566  11.253                       H
+HETATM  263   H3  SOL   66       1.299   5.381  11.632                       H
+HETATM  264  VS1  SOL   66       1.550   6.208  11.763                      VS
+HETATM  265   O1  SOL   67      20.923   7.305   1.075                       O
+HETATM  266   H2  SOL   67      20.105   6.814   1.151                       H
+HETATM  267   H3  SOL   67      21.542   6.682   0.695                       H
+HETATM  268  VS1  SOL   67      20.897   7.162   1.036                      VS
+HETATM  269   O1  SOL   68      23.419  17.103   2.158                       O
+HETATM  270   H2  SOL   68      23.118  16.838   1.289                       H
+HETATM  271   H3  SOL   68      24.374  17.094   2.095                       H
+HETATM  272  VS1  SOL   68      23.503  17.068   2.039                      VS
+HETATM  273   O1  SOL   69      24.675  15.136  10.839                       O
+HETATM  274   H2  SOL   69      23.937  15.123  11.449                       H
+HETATM  275   H3  SOL   69      24.981  16.043  10.854                       H
+HETATM  276  VS1  SOL   69      24.619  15.251  10.919                      VS
+HETATM  277   O1  SOL   70       0.811  25.701   0.324                       O
+HETATM  278   H2  SOL   70       0.643  26.624   0.136                       H
+HETATM  279   H3  SOL   70       1.735  25.671   0.572                       H
+HETATM  280  VS1  SOL   70       0.908  25.815   0.332                      VS
+HETATM  281   O1  SOL   71      19.994  21.126  14.072                       O
+HETATM  282   H2  SOL   71      19.586  20.263  14.138                       H
+HETATM  283   H3  SOL   71      19.278  21.712  13.826                       H
+HETATM  284  VS1  SOL   71      19.850  21.090  14.049                      VS
+HETATM  285   O1  SOL   72      12.124   3.317  15.195                       O
+HETATM  286   H2  SOL   72      11.699   2.486  15.410                       H
+HETATM  287   H3  SOL   72      13.056   3.155  15.342                       H
+HETATM  288  VS1  SOL   72      12.189   3.190  15.242                      VS
+HETATM  289   O1  SOL   73      21.343  23.963  16.513                       O
+HETATM  290   H2  SOL   73      21.178  23.422  17.285                       H
+HETATM  291   H3  SOL   73      21.851  24.705  16.844                       H
+HETATM  292  VS1  SOL   73      21.387  23.989  16.655                      VS
+HETATM  293   O1  SOL   74      15.734   2.309   6.358                       O
+HETATM  294   H2  SOL   74      16.316   1.704   6.818                       H
+HETATM  295   H3  SOL   74      16.252   2.621   5.615                       H
+HETATM  296  VS1  SOL   74      15.875   2.271   6.322                      VS
+HETATM  297   O1  SOL   75      25.166  10.742  21.421                       O
+HETATM  298   H2  SOL   75      24.284  10.619  21.771                       H
+HETATM  299   H3  SOL   75      25.576  11.368  22.017                       H
+HETATM  300  VS1  SOL   75      25.106  10.806  21.542                      VS
+HETATM  301   O1  SOL   76       7.238  24.041   9.608                       O
+HETATM  302   H2  SOL   76       6.358  23.855   9.935                       H
+HETATM  303   H3  SOL   76       7.096  24.423   8.742                       H
+HETATM  304  VS1  SOL   76       7.108  24.066   9.539                      VS
+HETATM  305   O1  SOL   77      20.026   0.329  26.735                       O
+HETATM  306   H2  SOL   77      20.939   0.477  26.983                       H
+HETATM  307   H3  SOL   77      19.629   1.200  26.752                       H
+HETATM  308  VS1  SOL   77      20.092   0.460  26.769                      VS
+HETATM  309   O1  SOL   78      10.521  24.405  13.367                       O
+HETATM  310   H2  SOL   78       9.970  23.990  12.703                       H
+HETATM  311   H3  SOL   78      11.263  23.809  13.468                       H
+HETATM  312  VS1  SOL   78      10.545  24.276  13.295                      VS
+HETATM  313   O1  SOL   79      15.742   1.444  11.227                       O
+HETATM  314   H2  SOL   79      16.523   1.445  11.782                       H
+HETATM  315   H3  SOL   79      15.474   2.362  11.189                       H
+HETATM  316  VS1  SOL   79      15.808   1.562  11.293                      VS
+HETATM  317   O1  SOL   80       2.999  13.121  17.603                       O
+HETATM  318   H2  SOL   80       2.925  12.734  18.475                       H
+HETATM  319   H3  SOL   80       3.324  12.410  17.052                       H
+HETATM  320  VS1  SOL   80       3.032  12.981  17.644                      VS
+HETATM  321   O1  SOL   81       9.496  15.209  18.435                       O
+HETATM  322   H2  SOL   81       9.558  14.374  17.970                       H
+HETATM  323   H3  SOL   81      10.398  15.527  18.478                       H
+HETATM  324  VS1  SOL   81       9.620  15.143  18.381                      VS
+HETATM  325   O1  SOL   82      12.629   9.662  16.676                       O
+HETATM  326   H2  SOL   82      12.007  10.197  16.183                       H
+HETATM  327   H3  SOL   82      12.252   9.605  17.554                       H
+HETATM  328  VS1  SOL   82      12.501   9.724  16.725                      VS
+HETATM  329   O1  SOL   83       8.992   0.889   4.823                       O
+HETATM  330   H2  SOL   83       9.472   0.208   5.295                       H
+HETATM  331   H3  SOL   83       8.253   0.429   4.425                       H
+HETATM  332  VS1  SOL   83       8.959   0.743   4.832                      VS
+HETATM  333   O1  SOL   84      24.848  13.091   6.537                       O
+HETATM  334   H2  SOL   84      25.674  12.888   6.977                       H
+HETATM  335   H3  SOL   84      24.609  12.279   6.090                       H
+HETATM  336  VS1  SOL   84      24.923  12.961   6.536                      VS
+HETATM  337   O1  SOL   85      19.393   8.028   7.763                       O
+HETATM  338   H2  SOL   85      19.844   7.807   6.949                       H
+HETATM  339   H3  SOL   85      18.944   8.852   7.572                       H
+HETATM  340  VS1  SOL   85      19.393   8.105   7.634                      VS
+HETATM  341   O1  SOL   86      17.793  20.201   3.035                       O
+HETATM  342   H2  SOL   86      17.138  19.539   2.815                       H
+HETATM  343   H3  SOL   86      17.285  20.937   3.377                       H
+HETATM  344  VS1  SOL   86      17.644  20.210   3.051                      VS
+HETATM  345   O1  SOL   87      12.168  13.506  19.218                       O
+HETATM  346   H2  SOL   87      12.519  14.318  19.583                       H
+HETATM  347   H3  SOL   87      11.397  13.780  18.722                       H
+HETATM  348  VS1  SOL   87      12.114  13.645  19.201                      VS
+HETATM  349   O1  SOL   88       5.235  17.651   4.409                       O
+HETATM  350   H2  SOL   88       4.351  18.004   4.503                       H
+HETATM  351   H3  SOL   88       5.797  18.424   4.345                       H
+HETATM  352  VS1  SOL   88       5.194  17.795   4.413                      VS
+HETATM  353   O1  SOL   89      15.117   5.033  26.390                       O
+HETATM  354   H2  SOL   89      15.519   5.869  26.154                       H
+HETATM  355   H3  SOL   89      14.643   5.214  27.201                       H
+HETATM  356  VS1  SOL   89      15.108   5.163  26.463                      VS
+HETATM  357   O1  SOL   90      17.547   8.589   9.391                       O
+HETATM  358   H2  SOL   90      18.243   8.265   9.962                       H
+HETATM  359   H3  SOL   90      17.647   9.541   9.407                       H
+HETATM  360  VS1  SOL   90      17.649   8.669   9.466                      VS
+HETATM  361   O1  SOL   91      11.485  18.530  13.525                       O
+HETATM  362   H2  SOL   91      10.940  19.309  13.638                       H
+HETATM  363   H3  SOL   91      12.150  18.792  12.889                       H
+HETATM  364  VS1  SOL   91      11.500  18.663  13.458                      VS
+HETATM  365   O1  SOL   92      12.133   3.368  20.872                       O
+HETATM  366   H2  SOL   92      11.537   2.697  21.207                       H
+HETATM  367   H3  SOL   92      11.560   4.091  20.615                       H
+HETATM  368  VS1  SOL   92      11.983   3.375  20.882                      VS
+HETATM  369   O1  SOL   93      23.134  17.542  10.083                       O
+HETATM  370   H2  SOL   93      22.816  16.647  10.199                       H
+HETATM  371   H3  SOL   93      23.732  17.489   9.337                       H
+HETATM  372  VS1  SOL   93      23.170  17.421  10.003                      VS
+HETATM  373   O1  SOL   94      25.127   3.968  25.954                       O
+HETATM  374   H2  SOL   94      24.276   3.987  25.517                       H
+HETATM  375   H3  SOL   94      25.641   4.641  25.508                       H
+HETATM  376  VS1  SOL   94      25.084   4.057  25.841                      VS
+HETATM  377   O1  SOL   95       3.130   4.444   3.713                       O
+HETATM  378   H2  SOL   95       2.294   4.732   3.347                       H
+HETATM  379   H3  SOL   95       2.926   3.620   4.155                       H
+HETATM  380  VS1  SOL   95       2.997   4.375   3.723                      VS
+HETATM  381   O1  SOL   96      22.584   9.698  15.122                       O
+HETATM  382   H2  SOL   96      21.846  10.275  14.927                       H
+HETATM  383   H3  SOL   96      23.236  10.269  15.528                       H
+HETATM  384  VS1  SOL   96      22.573   9.845  15.149                      VS
+HETATM  385   O1  SOL   97      13.365   1.288  21.838                       O
+HETATM  386   H2  SOL   97      13.530   2.012  21.235                       H
+HETATM  387   H3  SOL   97      12.890   0.643  21.314                       H
+HETATM  388  VS1  SOL   97      13.326   1.298  21.694                      VS
+HETATM  389   O1  SOL   98       5.154   4.843  25.521                       O
+HETATM  390   H2  SOL   98       5.174   3.957  25.882                       H
+HETATM  391   H3  SOL   98       4.771   5.377  26.217                       H
+HETATM  392  VS1  SOL   98       5.108   4.798  25.656                      VS
+HETATM  393   O1  SOL   99      24.474   0.950  10.202                       O
+HETATM  394   H2  SOL   99      24.079   0.525  10.964                       H
+HETATM  395   H3  SOL   99      24.240   0.386   9.465                       H
+HETATM  396  VS1  SOL   99      24.394   0.823  10.206                      VS
+HETATM  397   O1  SOL  100       4.105   2.737  20.623                       O
+HETATM  398   H2  SOL  100       3.408   2.093  20.751                       H
+HETATM  399   H3  SOL  100       4.915   2.232  20.696                       H
+HETATM  400  VS1  SOL  100       4.119   2.589  20.648                      VS
+CONECT    1    2    3
+CONECT    5    6    7
+CONECT    9   10   11
+CONECT   13   14   15
+CONECT   17   18   19
+CONECT   21   22   23
+CONECT   25   26   27
+CONECT   29   30   31
+CONECT   33   34   35
+CONECT   37   38   39
+CONECT   41   42   43
+CONECT   45   46   47
+CONECT   49   50   51
+CONECT   53   54   55
+CONECT   57   58   59
+CONECT   61   62   63
+CONECT   65   66   67
+CONECT   69   70   71
+CONECT   73   74   75
+CONECT   77   78   79
+CONECT   81   82   83
+CONECT   85   86   87
+CONECT   89   90   91
+CONECT   93   94   95
+CONECT   97   98   99
+CONECT  101  102  103
+CONECT  105  106  107
+CONECT  109  110  111
+CONECT  113  114  115
+CONECT  117  118  119
+CONECT  121  122  123
+CONECT  125  126  127
+CONECT  129  130  131
+CONECT  133  134  135
+CONECT  137  138  139
+CONECT  141  142  143
+CONECT  145  146  147
+CONECT  149  150  151
+CONECT  153  154  155
+CONECT  157  158  159
+CONECT  161  162  163
+CONECT  165  166  167
+CONECT  169  170  171
+CONECT  173  174  175
+CONECT  177  178  179
+CONECT  181  182  183
+CONECT  185  186  187
+CONECT  189  190  191
+CONECT  193  194  195
+CONECT  197  198  199
+CONECT  201  202  203
+CONECT  205  206  207
+CONECT  209  210  211
+CONECT  213  214  215
+CONECT  217  218  219
+CONECT  221  222  223
+CONECT  225  226  227
+CONECT  229  230  231
+CONECT  233  234  235
+CONECT  237  238  239
+CONECT  241  242  243
+CONECT  245  246  247
+CONECT  249  250  251
+CONECT  253  254  255
+CONECT  257  258  259
+CONECT  261  262  263
+CONECT  265  266  267
+CONECT  269  270  271
+CONECT  273  274  275
+CONECT  277  278  279
+CONECT  281  282  283
+CONECT  285  286  287
+CONECT  289  290  291
+CONECT  293  294  295
+CONECT  297  298  299
+CONECT  301  302  303
+CONECT  305  306  307
+CONECT  309  310  311
+CONECT  313  314  315
+CONECT  317  318  319
+CONECT  321  322  323
+CONECT  325  326  327
+CONECT  329  330  331
+CONECT  333  334  335
+CONECT  337  338  339
+CONECT  341  342  343
+CONECT  345  346  347
+CONECT  349  350  351
+CONECT  353  354  355
+CONECT  357  358  359
+CONECT  361  362  363
+CONECT  365  366  367
+CONECT  369  370  371
+CONECT  373  374  375
+CONECT  377  378  379
+CONECT  381  382  383
+CONECT  385  386  387
+CONECT  389  390  391
+CONECT  393  394  395
+CONECT  397  398  399

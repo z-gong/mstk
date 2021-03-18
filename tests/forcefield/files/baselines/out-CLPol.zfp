@@ -106,6 +106,7 @@
     <AtomType charge="0.06" eqt_ang_c="HC" eqt_ang_s="HC" eqt_bond="HC" eqt_dih_c="HC" eqt_dih_s="HC" eqt_imp_c="HC" eqt_imp_s="HC" eqt_polar="HTS" eqt_q_inc="HTS" eqt_vdw="HTS" mass="1.008" name="HTS"/>
     <AtomType charge="0" eqt_ang_c="DP_" eqt_ang_s="DP_" eqt_bond="DP_" eqt_dih_c="DP_" eqt_dih_s="DP_" eqt_imp_c="DP_" eqt_imp_s="DP_" eqt_polar="DP_" eqt_q_inc="DP_" eqt_vdw="DP_" mass="-1" name="DP_"/>
   </AtomTypes>
+  <VirtualSiteTerms/>
   <ChargeIncrementTerms/>
   <VdwTerms>
     <LJ126Term epsilon="0.27614" sigma="0.35" type1="C1" type2="C1"/>

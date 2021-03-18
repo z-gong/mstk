@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<ForceFieldTerms>
+  <Setting lj_mixing_rule="lorentz-berthelot" scale_14_coulomb="0.8333333333333334" scale_14_vdw="0.5" vdw_cutoff="1.2" vdw_long_range="correct"/>
+  <AtomTypes>
+    <AtomType charge="0" eqt_ang_c="OW" eqt_ang_s="OW" eqt_bond="OW" eqt_dih_c="OW" eqt_dih_s="OW" eqt_imp_c="OW" eqt_imp_s="OW" eqt_polar="OW" eqt_q_inc="OW" eqt_vdw="OW" mass="15.9994" name="OW"/>
+    <AtomType charge="0.55733" eqt_ang_c="HW" eqt_ang_s="HW" eqt_bond="HW" eqt_dih_c="HW" eqt_dih_s="HW" eqt_imp_c="HW" eqt_imp_s="HW" eqt_polar="HW" eqt_q_inc="HW" eqt_vdw="HW" mass="1.0079" name="HW"/>
+    <AtomType charge="-1.11466" eqt_ang_c="VS_OW" eqt_ang_s="VS_OW" eqt_bond="VS_OW" eqt_dih_c="VS_OW" eqt_dih_s="VS_OW" eqt_imp_c="VS_OW" eqt_imp_s="VS_OW" eqt_polar="VS_OW" eqt_q_inc="VS_OW" eqt_vdw="VS_OW" mass="15.9994" name="VS_OW"/>
+  </AtomTypes>
+  <VirtualSiteTerms>
+    <TIP4PSiteTerm type="VS_OW" type_O="OW" type_H="HW" d="0.024034"/>
+  </VirtualSiteTerms>
+  <ChargeIncrementTerms/>
+  <VdwTerms>
+    <LJ126Term epsilon="0.88257296" sigma="0.318395" type1="OW" type2="OW"/>
+    <LJ126Term epsilon="0" sigma="0" type1="HW" type2="HW"/>
+    <LJ126Term epsilon="0" sigma="0" type1="VS_OW" type2="VS_OW"/>
+  </VdwTerms>
+  <PairwiseVdwTerms/>
+  <BondTerms>
+    <HarmonicBondTerm fixed="True" k="251208.0" length="0.09572" type1="HW" type2="OW"/>
+  </BondTerms>
+  <AngleTerms>
+    <HarmonicAngleTerm fixed="True" k="314.01" theta="104.52" type1="HW" type2="OW" type3="HW"/>
+  </AngleTerms>
+  <DihedralTerms/>
+  <ImproperTerms/>
+  <PolarizableTerms>
+    <DrudeTerm alpha="0.0009782" k="209200.0" mass="0.4" merge_alpha_H="0" thole="2.6" type="OW"/>
+  </PolarizableTerms>
+</ForceFieldTerms>

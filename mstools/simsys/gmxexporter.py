@@ -38,6 +38,8 @@ class GromacsExporter():
         '''
         Generate input files for Gromacs from a system
 
+        # TODO Export virtual site
+
         Parameters
         ----------
         system : System
@@ -62,6 +64,9 @@ class GromacsExporter():
             logger.warning('MieTerm not supported by GROMACS. Will be exported in LJ-12-6 form')
         if SDKAngleTerm in system.ff_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Will be exported in harmonic form')
+
+        if system.vsite_types - {TIP4PSite} != set():
+            raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
 
         if gro_out is not None:
             GromacsExporter._export_gro(system, gro_out)
@@ -137,24 +142,59 @@ class GromacsExporter():
                 string += '%6i %10s %6i %10s %6s %6i %12.6f %10.4f\n' % (
                     j + 1, atom.type, 1, mol.name, atom.symbol, j + 1, atom.charge, mass)
 
+            if TIP4PSite in system.vsite_types:
+                string += '\n[ virtual_sites3 ]\n'
+                string += ';%5s %6s %6s %6s %6s %12s %12s\n' % ('Vsite', 'from1', 'from2', 'from3', 'funct', 'a', 'b')
+                for atom in mol.atoms:
+                    vsite = atom.virtual_site
+                    if type(vsite) is TIP4PSite:
+                        O, H1, H2 = vsite.parents
+                        w_O, w_H1, w_H2 = system.get_TIP4P_linear_coeffs(atom)
+                        string += '%6i %6i %6i %6i %6i %12.6f %12.6f\n' % (
+                            atom.id_in_mol + 1, O.id_in_mol + 1, H1.id_in_mol + 1, H2.id_in_mol + 1, 1, w_H1, w_H2)
+                    elif vsite is not None:
+                        raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
+
             string += '\n[ pairs ]\n'
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
             for a1, a2 in pairs14:
                 string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
 
-            if DrudeTerm in system.ff_classes:
-                drude_pairs = dict(mol.get_drude_pairs())
-                _pairs14_drude = []
-                for a1, a2 in pairs14:
-                    if a1 in drude_pairs:
-                        _pairs14_drude.append((drude_pairs[a1], a2))
-                    if a2 in drude_pairs:
-                        _pairs14_drude.append((a1, drude_pairs[a2]))
-                    if a1 in drude_pairs and a2 in drude_pairs:
-                        _pairs14_drude.append((drude_pairs[a1], drude_pairs[a2]))
-                for a1, a2 in _pairs14_drude:
-                    string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
+            # 1-4 pairs concerning Drude particles
+            drude_pairs = dict(mol.get_drude_pairs())
+            _pairs14_drude = []
+            for a1, a2 in pairs14:
+                if a1 in drude_pairs:
+                    _pairs14_drude.append((drude_pairs[a1], a2))
+                if a2 in drude_pairs:
+                    _pairs14_drude.append((a1, drude_pairs[a2]))
+                if a1 in drude_pairs and a2 in drude_pairs:
+                    _pairs14_drude.append((drude_pairs[a1], drude_pairs[a2]))
 
+            # 1-4 pairs concerning virtual sites
+            vsite_pairs = dict(mol.get_virtual_site_pairs())
+            _pairs14_vsite = []
+            for atom1, atom2 in pairs14:
+                vsite1 = vsite_pairs.get(atom1)
+                vsite2 = vsite_pairs.get(atom2)
+                drude1 = drude_pairs.get(atom1)
+                drude2 = drude_pairs.get(atom2)
+                if vsite1 is not None:
+                    _pairs14_vsite.append((vsite1, atom2))
+                    if drude2 is not None:
+                        _pairs14_vsite.append((vsite1, drude2))
+                if vsite2 is not None:
+                    _pairs14_vsite.append((vsite2, atom1))
+                    if drude1 is not None:
+                        _pairs14_vsite.append((vsite2, drude1))
+                if None not in [vsite1, vsite2]:
+                    _pairs14_vsite.append((vsite1, vsite2))
+
+            for a1, a2 in _pairs14_drude + _pairs14_vsite:
+                string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
+
+            ### Drude polarization #############################################
+            if DrudeTerm in system.ff_classes:
                 string += '\n[ polarization ]\n'
                 string += ';  ai    aj   func    alpha     delta     khyp\n'
                 for parent, drude in drude_pairs.items():
@@ -200,29 +240,54 @@ class GromacsExporter():
                 else:
                     raise Exception('Unsupported bond term')
 
-            if DrudeTerm in system.ff_classes:
+            # Exclusions concerning Drude particles
+            _exclusions_drude = {}  # {drude1: [atom2, drude2, atom3, drude3, ...]}
+            for a1, a2 in pairs12 + pairs13 + pairs14:
+                if a1 in drude_pairs:
+                    d1 = drude_pairs[a1]
+                    if d1 not in _exclusions_drude:
+                        _exclusions_drude[d1] = []
+                    _exclusions_drude[d1].append(a2)
+                if a2 in drude_pairs:
+                    d2 = drude_pairs[a2]
+                    if d2 not in _exclusions_drude:
+                        _exclusions_drude[d2] = []
+                    _exclusions_drude[d2].append(a1)
+                if a1 in drude_pairs and a2 in drude_pairs:
+                    _exclusions_drude[d1].append(d2)
+
+            # Exclusions concerning virtual sites
+            _exclusions_vsite = {}  # {avsite1: [atom1, drude1, atom2, drude2, avsite2, ...]}
+            for atom, vsite in vsite_pairs.items():
+                _exclusions_vsite[vsite] = [atom]
+                drude = drude_pairs.get(atom)
+                if drude is not None:
+                    _exclusions_vsite[vsite].append(drude)
+            for atom1, atom2 in pairs12 + pairs13:
+                vsite1 = vsite_pairs.get(atom1)
+                vsite2 = vsite_pairs.get(atom2)
+                drude1 = drude_pairs.get(atom1)
+                drude2 = drude_pairs.get(atom2)
+                if vsite1 is not None:
+                    _exclusions_vsite[vsite1].append(atom2)
+                    if drude2 is not None:
+                        _exclusions_vsite[vsite1].append(drude2)
+                if vsite2 is not None:
+                    _exclusions_vsite[vsite2].append(atom1)
+                    if drude1 is not None:
+                        _exclusions_vsite[vsite2].append(drude1)
+                if None not in [vsite1, vsite2]:
+                    _exclusions_vsite[vsite1].append(vsite2)
+
+            _exclusions = {**_exclusions_drude, **_exclusions_vsite}
+            if len(_exclusions) > 0:
                 string += '\n[ exclusions ]\n'
                 string += ';  ai    aj    ...\n'
-                _exclusions_drude = {}  # {drude1: [atom2, drude2, atom3, drude3, ...]}
-                for a1, a2 in pairs12 + pairs13 + pairs14:
-                    if a1 in drude_pairs:
-                        d1 = drude_pairs[a1]
-                        if d1 not in _exclusions_drude:
-                            _exclusions_drude[d1] = []
-                        _exclusions_drude[d1].append(a2)
-                    if a2 in drude_pairs:
-                        d2 = drude_pairs[a2]
-                        if d2 not in _exclusions_drude:
-                            _exclusions_drude[d2] = []
-                        _exclusions_drude[d2].append(a1)
-                    if a1 in drude_pairs and a2 in drude_pairs:
-                        _exclusions_drude[d1].append(d2)
-                for d1 in _exclusions_drude.keys():
-                    string += '%5d' % (d1.id_in_mol + 1)
-                    for d2 in _exclusions_drude[d1]:
-                        string += ' %5d' % (d2.id_in_mol + 1)
+                for a1, a2_list in _exclusions.items():
+                    string += '%5d' % (a1.id_in_mol + 1)
+                    for a2 in a2_list:
+                        string += ' %5d' % (a2.id_in_mol + 1)
                     string += '\n'
-                string += '\n'
 
             string += '\n[ angles ]\n'
             for angle in mol.angles:

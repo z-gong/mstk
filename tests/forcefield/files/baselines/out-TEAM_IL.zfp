@@ -66,6 +66,7 @@
     <AtomType charge="-1.0" eqt_ang_c="s_1-" eqt_ang_s="s_1-" eqt_bond="s_1-" eqt_dih_c="s_1-" eqt_dih_s="s_1" eqt_imp_c="s_1-" eqt_imp_s="s_1" eqt_polar="s_1-" eqt_q_inc="s_1-" eqt_vdw="s_1-" mass="32.066" name="s_1-"/>
     <AtomType charge="0.0" eqt_ang_c="s_4o" eqt_ang_s="s_4o" eqt_bond="s_4o" eqt_dih_c="s_4o" eqt_dih_s="s_4" eqt_imp_c="s_4o" eqt_imp_s="s_4" eqt_polar="s_4o" eqt_q_inc="s_4o" eqt_vdw="s_4o" mass="32.066" name="s_4o"/>
   </AtomTypes>
+  <VirtualSiteTerms/>
   <ChargeIncrementTerms>
     <ChargeIncrementTerm type1="b_4-" type2="c_2n" value="0.2834"/>
     <ChargeIncrementTerm type1="b_4-" type2="c_2nb" value="0.262"/>

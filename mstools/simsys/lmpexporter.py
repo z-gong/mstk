@@ -1,3 +1,4 @@
+import os
 from .system import System
 from ..forcefield import *
 from ..topology import *
@@ -51,6 +52,9 @@ class LammpsExporter():
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
+
+        if system.topology.has_virtual_site:
+            raise Exception('Virtual sites not supported by LAMMPS')
 
         top = system.topology
         ff = system.ff
@@ -252,7 +256,7 @@ pair_style lj/cut/coul/long 12.0
 pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
-read_data data.lmp
+read_data {os.path.basename(data_out)}
 
 {cmd_pair}
 '''
@@ -285,7 +289,7 @@ pair_style lj/cut/thole/long 2.6 12.0
 pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
-read_data data.lmp extra/special/per/atom 99
+read_data {os.path.basename(data_out)} extra/special/per/atom 99
 
 {cmd_pair}
 group ATOMS type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x != 'D']))}
@@ -298,7 +302,7 @@ fix DRUDE all drude {' '.join(fix_drude_list)}
         if len(lmp_shake_bonds) > 0:
             cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
             if len(lmp_shake_angles) > 0:
-                cmd_shake += 'a ' + ' '.join(map(str, lmp_shake_angles))
+                cmd_shake += ' a ' + ' '.join(map(str, lmp_shake_angles))
         string += f'''
 variable T equal 300
 variable P equal 1

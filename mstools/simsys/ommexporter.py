@@ -54,6 +54,9 @@ class OpenMMExporter():
             raise Exception('Unsupported FF terms: %s'
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        if system.vsite_types - {TIP4PSite} != set():
+            raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
+
         top = system.topology
         ff = system.ff
 
@@ -70,6 +73,7 @@ class OpenMMExporter():
                 bforce = mm.HarmonicBondForce()
                 for bond in top.bonds:
                     if bond.is_drude:
+                        # DrudeForce will handle the bond between Drude pair
                         continue
                     bterm = system.bond_terms[id(bond)]
                     if type(bterm) != HarmonicBondTerm:
@@ -385,23 +389,88 @@ class OpenMMExporter():
 
                 # scale the non-boned interactions concerning Drude particles in 1-4 pairs
                 # pairs formed by real atoms have already been handled above
-                drude_exclusions14 = []
+                drude_exceptions14 = []
                 for atom1, atom2 in pair14:
                     drude1 = system.drude_pairs.get(atom1)
                     drude2 = system.drude_pairs.get(atom2)
                     if drude1 is not None:
-                        drude_exclusions14.append((drude1, atom2))
+                        drude_exceptions14.append((drude1, atom2))
                     if drude2 is not None:
-                        drude_exclusions14.append((atom1, drude2))
+                        drude_exceptions14.append((atom1, drude2))
                     if drude1 is not None and drude2 is not None:
-                        drude_exclusions14.append((drude1, drude2))
-                for a1, a2 in drude_exclusions14:
+                        drude_exceptions14.append((drude1, drude2))
+                for a1, a2 in drude_exceptions14:
                     charge_prod = a1.charge * a2.charge * ff.scale_14_coulomb
                     nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
                     for f in custom_nb_forces:
                         f.addExclusion(a1.id, a2.id)
             else:
                 raise Exception('Polarizable terms other that DrudeTerm haven\'t been implemented')
+
+        ### Set up virtual sites ################################################################
+        if top.has_virtual_site:
+            logger.info('Setting up virtual sites...')
+            for atom in top.atoms:
+                vsite = atom.virtual_site
+                if type(vsite) == TIP4PSite:
+                    O, H1, H2 = vsite.parents
+                    coeffs = system.get_TIP4P_linear_coeffs(atom)
+                    omm_vsite = mm.ThreeParticleAverageSite(O.id, H1.id, H2.id, *coeffs)
+                    omm_system.setVirtualSite(atom.id, omm_vsite)
+                elif vsite is not None:
+                    raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
+
+            # exclude the non-boned interactions between virtual sites and parents
+            # and particles (atoms, drude particles, virtual sites) in 1-2 and 1-3 pairs
+            # TODO Assume no more than one virtual site is attached to each atom
+            vsite_exclusions = list(system.vsite_pairs.items())
+            for atom, vsite in system.vsite_pairs.items():
+                drude = system.drude_pairs.get(atom)
+                if drude is not None:
+                    vsite_exclusions.append((vsite, drude))
+            for atom1, atom2 in pair12 + pair13:
+                vsite1 = system.vsite_pairs.get(atom1)
+                vsite2 = system.vsite_pairs.get(atom2)
+                drude1 = system.drude_pairs.get(atom1)
+                drude2 = system.drude_pairs.get(atom2)
+                if vsite1 is not None:
+                    vsite_exclusions.append((vsite1, atom2))
+                    if drude2 is not None:
+                        vsite_exclusions.append((vsite1, drude2))
+                if vsite2 is not None:
+                    vsite_exclusions.append((vsite2, atom1))
+                    if drude1 is not None:
+                        vsite_exclusions.append((vsite2, drude1))
+                if None not in [vsite1, vsite2]:
+                    vsite_exclusions.append((vsite1, vsite2))
+            for a1, a2 in vsite_exclusions:
+                nbforce.addException(a1.id, a2.id, 0, 1.0, 0)
+                for f in custom_nb_forces:
+                    f.addExclusion(a1.id, a2.id)
+
+            # scale the non-boned interactions between virtual sites and particles in 1-4 pairs
+            # TODO Assume no 1-4 LJ interactions on virtual sites
+            vsite_exceptions14 = []
+            for atom1, atom2 in pair14:
+                vsite1 = system.vsite_pairs.get(atom1)
+                vsite2 = system.vsite_pairs.get(atom2)
+                drude1 = system.drude_pairs.get(atom1)
+                drude2 = system.drude_pairs.get(atom2)
+                if vsite1 is not None:
+                    vsite_exceptions14.append((vsite1, atom2))
+                    if drude2 is not None:
+                        vsite_exceptions14.append((vsite1, drude2))
+                if vsite2 is not None:
+                    vsite_exceptions14.append((vsite2, atom1))
+                    if drude1 is not None:
+                        vsite_exceptions14.append((vsite2, drude1))
+                if None not in [vsite1, vsite2]:
+                    vsite_exceptions14.append((vsite1, vsite2))
+            for a1, a2 in vsite_exceptions14:
+                charge_prod = a1.charge * a2.charge * ff.scale_14_coulomb
+                nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
+                for f in custom_nb_forces:
+                    f.addExclusion(a1.id, a2.id)
 
         ### Remove COM motion ###################################################################
         logger.info('Setting up COM motion remover...')

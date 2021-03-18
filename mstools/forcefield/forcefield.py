@@ -41,6 +41,11 @@ class ForceField():
         For each key value pair, the value is a object of subclass of PolarizableTerm.
         the key is the :attr:`~PolarizableTerm.name` of the object.
         Currently, isotropic Drude model is implemented.
+    virtual_site_terms: dict, [str, subclass of VirtualSiteTerm]
+        Virtual site terms for delocalized interaction center.
+        For each key value pair, the value is a object of subclass of VirtualSiteTerm.
+        the key is the :attr:`~VirtualSiteTerm.name` of the object.
+        Currently, TIP4P model is implemented.
     bond_terms : dict, [str, subclass of BondTerm]
         Bond terms between two atom types.
         For each key value pair, the value is a object of subclass of BondTerm.
@@ -94,6 +99,7 @@ class ForceField():
         self.vdw_terms: {str: VdwTerm} = {}
         self.pairwise_vdw_terms: {str: VdwTerm} = {}
         self.polarizable_terms: {str: PolarizableTerm} = {}
+        self.virtual_site_terms: {str: VirtualSiteTerm} = {}
 
         self.vdw_cutoff = 1.2  # nm
         self.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
@@ -171,6 +177,19 @@ class ForceField():
         is : bool
         '''
         return len(self.polarizable_terms) != 0
+
+    @property
+    def has_virtual_site(self):
+        '''
+        Whether or not this force field contains virtual sites.
+
+        Return True as long as the :attr:`virtual_site_terms` is not empty.
+
+        Returns
+        -------
+        is : bool
+        '''
+        return len(self.virtual_site_terms) != 0
 
     def get_settings(self):
         '''
@@ -259,6 +278,11 @@ class ForceField():
         elif isinstance(term, PolarizableTerm):
             if term.name not in self.polarizable_terms or replace:
                 self.polarizable_terms[term.name] = term
+            else:
+                _duplicated = True
+        elif isinstance(term, VirtualSiteTerm):
+            if term.name not in self.virtual_site_terms or replace:
+                self.virtual_site_terms[term.name] = term
             else:
                 _duplicated = True
         else:

@@ -87,7 +87,8 @@ class Molecule():
             if vsite is not None:
                 new_atom = mol.atoms[i]
                 new_parents = [mol.atoms[p.id_in_mol] for p in vsite.parents]
-                new_atom.virtual_site = VirtualSiteFactory.create(vsite.site_type, new_parents, vsite.parameters)
+                new_atom.virtual_site = VirtualSiteFactory.create(vsite.__class__.__name__, new_parents,
+                                                                  vsite.parameters)
 
         return mol
 
@@ -544,6 +545,21 @@ class Molecule():
                 pairs.append((bond.atom1, bond.atom2))
         return pairs
 
+    def get_virtual_site_pairs(self):
+        '''
+        Retrieve all the virtual site pairs belong to this molecule
+
+        Returns
+        -------
+        pairs :  list of tuple of Atom
+            [(parent, atom_virtual_site)]
+        '''
+        pairs = []
+        for atom in self._atoms:
+            if atom.virtual_site is not None:
+                pairs.append((atom.virtual_site.parents[0], atom))
+        return pairs
+
     def get_12_13_14_pairs(self):
         '''
         Retrieve all the 1-2, 1-3 and 1-4 pairs based on the bond information.
@@ -729,22 +745,24 @@ class Molecule():
                     angles_removed.append(angle)
 
         for dihedral in self._dihedrals[:]:
-            at1 = ff.atom_types[dihedral.atom1.type].eqt_dih_s
-            at2 = ff.atom_types[dihedral.atom2.type].eqt_dih_c
-            at3 = ff.atom_types[dihedral.atom3.type].eqt_dih_c
-            at4 = ff.atom_types[dihedral.atom4.type].eqt_dih_s
-            dterm = DihedralTerm(at1, at2, at3, at4)
-            if dterm.name not in ff.dihedral_terms.keys():
+            # consider wildcards in force field
+            ats_list = ff.get_eqt_for_dihedral(dihedral)
+            for ats in ats_list:
+                dterm = DihedralTerm(*ats)
+                if dterm.name in ff.dihedral_terms.keys():
+                    break
+            else:
                 self.remove_connectivity(dihedral)
                 dihedrals_removed.append(dihedral)
 
         for improper in self._impropers[:]:
-            at1 = ff.atom_types[improper.atom1.type].eqt_imp_c
-            at2 = ff.atom_types[improper.atom2.type].eqt_imp_s
-            at3 = ff.atom_types[improper.atom3.type].eqt_imp_s
-            at4 = ff.atom_types[improper.atom4.type].eqt_imp_s
-            iterm = ImproperTerm(at1, at2, at3, at4)
-            if iterm.name not in ff.improper_terms.keys():
+            # consider wildcards in force field
+            ats_list = ff.get_eqt_for_improper(improper)
+            for ats in ats_list:
+                iterm = ImproperTerm(*ats)
+                if iterm.name in ff.improper_terms.keys():
+                    break
+            else:
                 self.remove_connectivity(improper)
                 impropers_removed.append(improper)
 
@@ -877,6 +895,60 @@ class Molecule():
             parent.charge += drude.charge
             self.remove_connectivity(drude._bonds[0])
             self.remove_atom(drude, update_topology=False)
+        if self._topology is not None and update_topology:
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+    def generate_virtual_sites(self, ff, update_topology=True):
+        '''
+        Generate virtual sites from VirtualSiteTerms in force field.
+
+        The atom types should have been defined already.
+        Note that The existing virtual sites will be removed before generating.
+        The charge won't be assigned by this method.
+        Therefore `assign_charge_from_ff` should be called to assign the charges on virtual sites.
+
+        Currently, only TIP4PSiteTerm has been implemented.
+        # TODO Support other virtual site terms.
+
+        Parameters
+        ----------
+        ff : ForceField
+        update_topology : bool
+        '''
+        if len(ff.virtual_site_terms) == 0:
+            raise Exception('Virtual site terms not found in force field')
+
+        self.remove_virtual_sites(update_topology=False)
+
+        for term in ff.virtual_site_terms.values():
+            if type(term) is not TIP4PSiteTerm:
+                raise Exception('Virtual sites terms other than TIP4PSiteTerm haven\'t been implemented')
+
+        for term in ff.virtual_site_terms.values():
+            for angle in self._angles:
+                if angle.atom2.type != term.type_O or angle.atom1.type != term.type_H or angle.atom3.type != term.type_H:
+                    continue
+                atom_vsite = Atom('VS' + str(angle.atom2.id_in_mol + 1))
+                atom_vsite.symbol = 'VS'
+                atom_vsite.type = term.type
+                atom_vsite.virtual_site = TIP4PSite([angle.atom2, angle.atom1, angle.atom3], [term.d])
+                atom_vsite.position = atom_vsite.virtual_site.calc_position()
+                self.add_atom(atom_vsite, update_topology=False)
+
+        if self._topology is not None and update_topology:
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+    def remove_virtual_sites(self, update_topology=True):
+        '''
+        Remove all virtual sites.
+
+        Parameters
+        ----------
+        update_topology : bool
+        '''
+        for atom in self._atoms:
+            if atom.virtual_site is not None:
+                self.remove_atom(atom, update_topology=False)
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
