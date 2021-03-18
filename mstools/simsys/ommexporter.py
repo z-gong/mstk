@@ -54,6 +54,9 @@ class OpenMMExporter():
             raise Exception('Unsupported FF terms: %s'
                             % (', '.join(map(lambda x: x.__name__, unsupported))))
 
+        if system.vsite_types - {TIP4PSite} != set():
+            raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
+
         top = system.topology
         ff = system.ff
 
@@ -386,17 +389,17 @@ class OpenMMExporter():
 
                 # scale the non-boned interactions concerning Drude particles in 1-4 pairs
                 # pairs formed by real atoms have already been handled above
-                drude_exclusions14 = []
+                drude_exceptions14 = []
                 for atom1, atom2 in pair14:
                     drude1 = system.drude_pairs.get(atom1)
                     drude2 = system.drude_pairs.get(atom2)
                     if drude1 is not None:
-                        drude_exclusions14.append((drude1, atom2))
+                        drude_exceptions14.append((drude1, atom2))
                     if drude2 is not None:
-                        drude_exclusions14.append((atom1, drude2))
+                        drude_exceptions14.append((atom1, drude2))
                     if drude1 is not None and drude2 is not None:
-                        drude_exclusions14.append((drude1, drude2))
-                for a1, a2 in drude_exclusions14:
+                        drude_exceptions14.append((drude1, drude2))
+                for a1, a2 in drude_exceptions14:
                     charge_prod = a1.charge * a2.charge * ff.scale_14_coulomb
                     nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
                     for f in custom_nb_forces:
@@ -407,35 +410,15 @@ class OpenMMExporter():
         ### Set up virtual sites ################################################################
         if top.has_virtual_site:
             logger.info('Setting up virtual sites...')
-            for mol in top.molecules:
-                # iterate inside molecule to make bond and angle matching for TIP4P easier
-                for atom in mol.atoms:
-                    if atom.virtual_site is None:
-                        continue
-                    if type(atom.virtual_site) == TIP4PSite:
-                        O, H1, H2 = atom.virtual_site.parents
-                        bond_OH = Bond(O, H1)
-                        for bond in mol.bonds:
-                            if bond == bond_OH:
-                                bterm = system.bond_terms[id(bond)]
-                                break
-                        else:
-                            raise Exception('Corresponding O-H bond not found for TIP4PSite')
-
-                        angle_HOH = Angle(H1, O, H2)
-                        for angle in mol.angles:
-                            if angle == angle_HOH:
-                                aterm = system.angle_terms[id(angle)]
-                                break
-                        else:
-                            raise Exception('Corresponding H-O-H angle not found for TIP4PSite')
-
-                        offset = atom.virtual_site.parameters[0]
-                        c = offset / bterm.length / 2 / math.cos(aterm.theta / 2 * PI / 180)
-                        omm_vsite = mm.ThreeParticleAverageSite(O.id, H1.id, H2.id, 1 - 2 * c, c, c)
-                        omm_system.setVirtualSite(atom.id, omm_vsite)
-                    else:
-                        raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
+            for atom in top.atoms:
+                vsite = atom.virtual_site
+                if type(vsite) == TIP4PSite:
+                    O, H1, H2 = vsite.parents
+                    coeffs = system.get_TIP4P_linear_coeffs(atom)
+                    omm_vsite = mm.ThreeParticleAverageSite(O.id, H1.id, H2.id, *coeffs)
+                    omm_system.setVirtualSite(atom.id, omm_vsite)
+                elif vsite is not None:
+                    raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
 
             # exclude the non-boned interactions between virtual sites and parents
             # and particles (atoms, drude particles, virtual sites) in 1-2 and 1-3 pairs
@@ -466,24 +449,24 @@ class OpenMMExporter():
                     f.addExclusion(a1.id, a2.id)
 
             # scale the non-boned interactions between virtual sites and particles in 1-4 pairs
-            # TODO Assume no LJ interaction on virtual sites
-            vsite_exclusions14 = []
+            # TODO Assume no 1-4 LJ interactions on virtual sites
+            vsite_exceptions14 = []
             for atom1, atom2 in pair14:
                 vsite1 = system.vsite_pairs.get(atom1)
                 vsite2 = system.vsite_pairs.get(atom2)
                 drude1 = system.drude_pairs.get(atom1)
                 drude2 = system.drude_pairs.get(atom2)
                 if vsite1 is not None:
-                    vsite_exclusions14.append((vsite1, atom2))
+                    vsite_exceptions14.append((vsite1, atom2))
                     if drude2 is not None:
-                        vsite_exclusions14.append((vsite1, drude2))
+                        vsite_exceptions14.append((vsite1, drude2))
                 if vsite2 is not None:
-                    vsite_exclusions14.append((vsite2, atom1))
+                    vsite_exceptions14.append((vsite2, atom1))
                     if drude1 is not None:
-                        vsite_exclusions14.append((vsite2, drude1))
+                        vsite_exceptions14.append((vsite2, drude1))
                 if None not in [vsite1, vsite2]:
-                    vsite_exclusions14.append((vsite1, vsite2))
-            for a1, a2 in vsite_exclusions14:
+                    vsite_exceptions14.append((vsite1, vsite2))
+            for a1, a2 in vsite_exceptions14:
                 charge_prod = a1.charge * a2.charge * ff.scale_14_coulomb
                 nbforce.addException(a1.id, a2.id, charge_prod, 1.0, 0.0)
                 for f in custom_nb_forces:

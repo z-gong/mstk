@@ -904,6 +904,8 @@ class Molecule():
 
         The atom types should have been defined already.
         Note that The existing virtual sites will be removed before generating.
+        The charge won't be assigned by this method.
+        Therefore `assign_charge_from_ff` should be called to assign the charges on virtual sites.
 
         Currently, only TIP4PSiteTerm has been implemented.
         # TODO Support other virtual site terms.

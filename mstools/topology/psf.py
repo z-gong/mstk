@@ -262,7 +262,7 @@ class Psf():
         string += '%8i %i !NUMLP NUMLPH\n' % (n_vsite, 4 * n_vsite)
         for parent, vsite in vsite_pairs:
             if type(vsite.virtual_site) is not TIP4PSite:
-                raise Exception('Virtual site other than TIP4PSite not supported for PSF')
+                raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
             string += '%8i %8i F %10.6f %10.6f %10.6f\n' % (
                 3, parent.id + 1, -vsite.virtual_site.parameters[0] * 10, 0, 0)
         for i, (parent, site) in enumerate(vsite_pairs):

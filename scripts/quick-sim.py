@@ -158,4 +158,7 @@ for atom in top.atoms:
 system = System(top, ff)
 system.export_gromacs(gro_out='_conf.gro', top_out='_topol.top', mdp_out='_grompp.mdp')
 system.export_charmm(pdb_out=None, psf_out='_topol.psf', prm_out='_ff.prm')
-system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')
+if top.has_virtual_site:
+    logger.warning('Will not export to LAMMPS because virtual site is not supported')
+else:
+    system.export_lammps(data_out='_data.lmp', in_out='_in.lmp')

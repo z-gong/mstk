@@ -1,3 +1,4 @@
+import os
 from .system import System
 from ..forcefield import *
 from ..topology import *
@@ -255,7 +256,7 @@ pair_style lj/cut/coul/long 12.0
 pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
-read_data data.lmp
+read_data {os.path.basename(data_out)}
 
 {cmd_pair}
 '''
@@ -288,7 +289,7 @@ pair_style lj/cut/thole/long 2.6 12.0
 pair_modify mix {cmd_mix} tail yes
 kspace_style pppm 1.0e-4
 
-read_data data.lmp extra/special/per/atom 99
+read_data {os.path.basename(data_out)} extra/special/per/atom 99
 
 {cmd_pair}
 group ATOMS type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x != 'D']))}

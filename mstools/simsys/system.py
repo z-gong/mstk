@@ -108,14 +108,18 @@ class System():
         if abs(charge_total) > 1E-8:
             logger.warning('System is not charge neutral. Charge = %.6f' % charge_total)
 
+        # prebuild topology information
+        self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: atom_drude}
+        self.vsite_pairs: {Atom: Atom} = dict(self._topology.get_virtual_site_pairs())  # {parent: atom_vsite}
+        # records the types of VirtualSite in topology. It is NOT the VirtualSiteTerm in force field
+        self.vsite_types = set([type(atom.virtual_site) for atom in self.vsite_pairs.values()])
+
         # bind FF terms with topological elements
         self.bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included
         self.angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
         self.dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
         self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
         self.polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
-        self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: drude}
-        self.vsite_pairs: {Atom: Atom} = dict(self.topology.get_virtual_site_pairs())  # {parent: atom_virtual_site}
         self.constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
         self.constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
 
@@ -425,3 +429,31 @@ class System():
         '''
         from .ommexporter import OpenMMExporter
         return OpenMMExporter.export(self)
+
+    def get_TIP4P_linear_coeffs(self, atom: Atom):
+        vsite: TIP4PSite = atom.virtual_site
+        if type(vsite) != TIP4PSite:
+            raise Exception(f'{repr(atom)} is not a TIP4PSite')
+
+        O, H1, H2 = vsite.parents
+        mol = atom.molecule
+        bond_OH = Bond(O, H1)
+        for bond in mol.bonds:
+            if bond == bond_OH:
+                bterm = self.bond_terms[id(bond)]
+                break
+        else:
+            raise Exception(f'Corresponding O-H bond not found for virtual atom {repr(atom)}')
+
+        angle_HOH = Angle(H1, O, H2)
+        for angle in mol.angles:
+            if angle == angle_HOH:
+                aterm = self.angle_terms[id(angle)]
+                break
+        else:
+            raise Exception(f'Corresponding H-O-H angle not found for virtual atom {repr(atom)}')
+
+        offset = atom.virtual_site.parameters[0]
+        c = offset / bterm.length / 2 / math.cos(aterm.theta / 2 * PI / 180)
+
+        return 1 - 2 * c, c, c

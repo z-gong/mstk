@@ -42,6 +42,24 @@ def test_gmx_drude():
     assert filecmp.cmp(tmptop, cwd + '/files/baselines/topol-drude.top')
     assert filecmp.cmp(tmpmdp, cwd + '/files/baselines/grompp-drude.mdp')
 
+def test_gmx_tip4p():
+    mol = Topology.open(cwd + '/../topology/files/TIP3P.zmat').molecules[0]
+    ff = ForceField.open(cwd + '/../forcefield/files/TIP4P.zfp')
+    mol.generate_virtual_sites(ff)
+    mol.assign_charge_from_ff(ff)
+
+    top = Topology([mol], numbers=[100], cell=UnitCell([3, 3, 3]))
+    top.set_positions(Topology.open(cwd + '/files/100-TIP4P.pdb').positions)
+
+    system = System(top, ff)
+    tmpgro = os.path.join(tmpdir, 'conf-vsite.gro')
+    tmptop = os.path.join(tmpdir, 'topol-vsite.top')
+    tmpmdp = os.path.join(tmpdir, 'grompp-vsite.mdp')
+    system.export_gromacs(gro_out=tmpgro, top_out=tmptop, mdp_out=tmpmdp)
+    assert filecmp.cmp(tmpgro, cwd + '/files/baselines/conf-vsite.gro')
+    assert filecmp.cmp(tmptop, cwd + '/files/baselines/topol-vsite.top')
+    assert filecmp.cmp(tmpmdp, cwd + '/files/baselines/grompp-vsite.mdp')
+
 
 def test_lmp_drude():
     ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')

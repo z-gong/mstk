@@ -9,7 +9,7 @@ from mstools.simsys import System
 
 import simtk.openmm as mm
 from simtk.openmm import app
-from simtk.unit import kilocalorie_per_mole as kcal_mol
+from simtk.unit import kilocalorie_per_mole as kcal_mol, kilojoule_per_mole as kJ_mol
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
@@ -112,6 +112,26 @@ def test_drude():
     assert pytest.approx(pe, rel=0.001) == 100.8
 
 
+def test_tip4p():
+    mol = Topology.open(cwd + '/../topology/files/TIP3P.zmat').molecules[0]
+    ff = ForceField.open(cwd + '/../forcefield/files/TIP4P.zfp')
+    mol.generate_virtual_sites(ff)
+    mol.assign_charge_from_ff(ff)
+
+    top = Topology([mol], numbers=[100], cell=UnitCell([3, 3, 3]))
+    top.set_positions(Topology.open(cwd + '/files/100-TIP4P.pdb').positions)
+
+    system = System(top, ff)
+
+    context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
+    context.setPositions(top.positions)
+
+    print_energy_terms(context)
+
+    pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kJ_mol)
+    assert pytest.approx(pe, rel=0.001) == 383.796  # results of GROMACS
+
+
 def test_sdk():
     ff = ForceField.open(cwd + '/../forcefield/files/SPICA_v1.zfp')
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
@@ -143,6 +163,6 @@ def print_energy_terms(context):
     print('E_angle    : ', state2.getPotentialEnergy().value_in_unit(kcal_mol))
     print('E_dihedral : ', state3.getPotentialEnergy().value_in_unit(kcal_mol))
     print('E_improper : ', state4.getPotentialEnergy().value_in_unit(kcal_mol))
-    print('E_vdw      : ', state6.getPotentialEnergy().value_in_unit(kcal_mol))
-    print('E_coul     : ', state5.getPotentialEnergy().value_in_unit(kcal_mol))
+    print('E_vdw      : ', state5.getPotentialEnergy().value_in_unit(kcal_mol))
+    print('E_coul     : ', state6.getPotentialEnergy().value_in_unit(kcal_mol))
     print('E_drude    : ', state7.getPotentialEnergy().value_in_unit(kcal_mol))
