@@ -151,7 +151,7 @@ def create_mol_from_smiles(smiles: str, minimize=True, pdb_out = None, mol2_out 
     mol : pybel.Molecule
     '''
     try:
-        import pybel
+        from .wrapper.openbabel import pybel
     except ImportError:
         raise ImportError('OpenBabel is required for parsing SMILES')
 
@@ -223,7 +223,7 @@ def generate_conformers(py_mol, number: int, redundant: int = 0):
 
 
 def is_alkane(py_mol) -> bool:
-    import pybel
+    from .wrapper.openbabel import pybel
     from .formula import Formula
     atom_set = set(Formula(py_mol.formula).atomdict.keys())
     if atom_set != {'C', 'H'}:

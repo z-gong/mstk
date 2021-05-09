@@ -379,7 +379,7 @@ class Npt(GmxSimulation):
         expansion4 = -1 / density4 * dDdT4  # K^-1
         compressibility4 = 1 / density4 * dDdP4  # bar^-1
 
-        import pybel
+        from ...wrapper.openbabel import pybel
         py_mol = pybel.readstring('smi', smiles_list[0])
         cp_inter4 = dEdT4 * 1000  # J/mol.K
         cp_pv4 = - py_mol.molwt * P / density4 ** 2 * dDdT4 * 0.1  # J/mol/K
