@@ -19,3 +19,11 @@ def test_smiles():
     assert bf4.n_atom == 5
     assert bf4.name == 'BF4-'
     assert bf4.n_improper == 0
+
+
+def test_connectivity():
+    ethane = Topology.open(cwd + '/files/CH3NH2.pdb').molecules[0]
+    assert pytest.approx(ethane.bonds[0].evaluate(), abs=1E-4) == 0.1070
+    assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278
+    assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301
+    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == 33.0905

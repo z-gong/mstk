@@ -1,3 +1,4 @@
+import numpy as np
 from .atom import Atom
 
 
@@ -21,6 +22,7 @@ class Bond():
     atom1 : Atom
     atom2 : Atom
     '''
+
     def __init__(self, atom1, atom2):
         self.atom1 = atom1
         self.atom2 = atom2
@@ -54,6 +56,17 @@ class Bond():
         is : bool
         '''
         return self.atom1.is_drude or self.atom2.is_drude
+
+    def evaluate(self):
+        '''
+        Evaluate the length of this bond
+
+        Returns
+        -------
+        value : np.float32
+        '''
+        delta = self.atom2.position - self.atom1.position
+        return np.sqrt(delta.dot(delta))
 
 
 class Angle():
@@ -93,7 +106,7 @@ class Angle():
         return {self.atom1, self.atom3} == {other.atom1, other.atom3}
 
     @property
-    def name(self) -> str:
+    def name(self):
         '''
         Name of this angle
 
@@ -102,6 +115,18 @@ class Angle():
         name : str
         '''
         return '%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name)
+
+    def evaluate(self):
+        '''
+        Evaluate the value of this angle
+
+        Returns
+        -------
+        value : np.float32
+        '''
+        vec1 = self.atom1.position - self.atom2.position
+        vec2 = self.atom3.position - self.atom2.position
+        return np.arccos(vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))) / np.pi * 180
 
 
 class Dihedral():
@@ -155,6 +180,21 @@ class Dihedral():
         return '%s-%s-%s-%s' \
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
+    def evaluate(self):
+        '''
+        Evaluate the value of this dihedral
+
+        Returns
+        -------
+        value : np.float32
+        '''
+        vec1 = self.atom2.position - self.atom1.position
+        vec2 = self.atom3.position - self.atom2.position
+        vec3 = self.atom4.position - self.atom3.position
+        n1 = np.cross(vec1, vec2)
+        n2 = np.cross(vec2, vec3)
+        return np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+
 
 class Improper():
     '''
@@ -207,3 +247,18 @@ class Improper():
         name : str
         '''
         return '%s-%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
+
+    def evaluate(self):
+        '''
+        Evaluate the value of this improper torsion defined as the angle between plane a1-a2-a3 and a2-a3-a4
+
+        Returns
+        -------
+        value : np.float32
+        '''
+        vec1 = self.atom2.position - self.atom1.position
+        vec2 = self.atom3.position - self.atom2.position
+        vec3 = self.atom4.position - self.atom3.position
+        n1 = np.cross(vec1, vec2)
+        n2 = np.cross(vec2, vec3)
+        return np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
