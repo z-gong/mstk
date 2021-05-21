@@ -26,4 +26,5 @@ def test_connectivity():
     assert pytest.approx(ethane.bonds[0].evaluate(), abs=1E-4) == 0.1070
     assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278
     assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301
-    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == 33.0905
+    assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159
+    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905

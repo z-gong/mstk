@@ -193,7 +193,9 @@ class Dihedral():
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        return np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        sign = 1 if vec1.dot(n2) >= 0 else -1
+        return sign * value
 
 
 class Improper():
@@ -261,4 +263,6 @@ class Improper():
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        return np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        sign = 1 if vec1.dot(n2) >= 0 else -1
+        return sign * value

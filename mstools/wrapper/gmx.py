@@ -952,8 +952,8 @@ class GMX:
                         # set n_mpi equal to n_multi
                         n_thread = n_procs // n_mpi
 
-                cmd = re.sub('mpirun\s+-np\s+[0-9]+', '', cmd)  # remove mpirun -np xx
-                cmd = re.sub('-ntomp\s+[0-9]+', '', cmd)  # remove -ntomp xx
+                cmd = re.sub(r'mpirun\s+-np\s+[0-9]+', '', cmd)  # remove mpirun -np xx
+                cmd = re.sub(r'-ntomp\s+[0-9]+', '', cmd)  # remove -ntomp xx
 
                 cmd = 'mpirun -np %i %s' % (n_mpi, cmd)  # add mpirun -np xx
                 cmd += ' -multidir ' + ' '.join(dirs)  # add -multidir xx xx xx
