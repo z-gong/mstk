@@ -206,9 +206,9 @@ def distribution():
             theta_dict[name] = []
 
     all_frames = list(range(args.begin, args.end, args.skip))
-    n_group = math.ceil(len(all_frames) / args.nprocs)
+    n_group = math.ceil(len(all_frames) / args.nproc)
     for i_group in range(n_group):
-        i_frames = all_frames[i_group * args.nprocs: (i_group + 1) * args.nprocs]
+        i_frames = all_frames[i_group * args.nproc: (i_group + 1) * args.nproc]
         frames = trj.read_frames(i_frames)
         sys.stdout.write('\r    frames %s' % ' '.join(map(str, i_frames)))
 

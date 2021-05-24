@@ -16,15 +16,12 @@ def test_typing():
     fsi = Molecule.from_smiles('FS(=O)(=O)[N-]S(=O)(=O)F')
     top = Topology([im2eben, fsi])
 
-    if os.path.exists(r'D:\Projects\DFF\Developing'):
-        dff_root = pathlib.Path(r'D:\Projects\DFF\Developing')
+    path = shutil.which('dffjob.exe')
+    if path is not None:
+        dff_root = pathlib.Path(path).parent.parent
     else:
-        path = shutil.which('dffjob.exe')
-        if path is not None:
-            dff_root = pathlib.Path(path).parent.parent
-        else:
-            print('DFF not found')
-            assert 0
+        print('DFF not found')
+        assert 0
 
     dff = DFF(dff_root)
     typer = DffTyper(dff, dff_root.joinpath('database/TEAMFF.ref/IL/IL.ext'))

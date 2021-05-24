@@ -3,8 +3,7 @@ from .typer import Typer
 from ..errors import *
 
 try:
-    import openbabel as ob
-    import pybel
+    from ...wrapper.openbabel import openbabel as ob, pybel
 except:
     OPENBABEL_IMPORTED = False
 else:
