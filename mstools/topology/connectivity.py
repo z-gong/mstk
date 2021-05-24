@@ -47,6 +47,17 @@ class Bond():
         return '%s-%s' % (self.atom1.name, self.atom2.name)
 
     @property
+    def id_atoms(self):
+        '''
+        The ids of atoms forming this bond
+
+        Returns
+        -------
+        id_tuple : tuple of int
+        '''
+        return self.atom1.id, self.atom2.id
+
+    @property
     def is_drude(self):
         '''
         Whether or not this bond is a Drude dipole bond
@@ -116,6 +127,17 @@ class Angle():
         '''
         return '%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name)
 
+    @property
+    def id_atoms(self):
+        '''
+        The ids of atoms forming this angle
+
+        Returns
+        -------
+        id_tuple : tuple of int
+        '''
+        return self.atom1.id, self.atom2.id, self.atom3.id
+
     def evaluate(self):
         '''
         Evaluate the value of this angle
@@ -126,7 +148,7 @@ class Angle():
         '''
         vec1 = self.atom1.position - self.atom2.position
         vec2 = self.atom3.position - self.atom2.position
-        return np.arccos(vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))) / np.pi * 180
+        return np.arccos(vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2)))
 
 
 class Dihedral():
@@ -180,6 +202,17 @@ class Dihedral():
         return '%s-%s-%s-%s' \
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
+    @property
+    def id_atoms(self):
+        '''
+        The ids of atoms forming this dihedral
+
+        Returns
+        -------
+        id_tuple : tuple of int
+        '''
+        return self.atom1.id, self.atom2.id, self.atom3.id, self.atom4.id
+
     def evaluate(self):
         '''
         Evaluate the value of this dihedral
@@ -193,7 +226,7 @@ class Dihedral():
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2)))
         sign = 1 if vec1.dot(n2) >= 0 else -1
         return sign * value
 
@@ -250,6 +283,17 @@ class Improper():
         '''
         return '%s-%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
+    @property
+    def id_atoms(self):
+        '''
+        The ids of atoms forming this improper torsion
+
+        Returns
+        -------
+        id_tuple : tuple of int
+        '''
+        return self.atom1.id, self.atom2.id, self.atom3.id, self.atom4.id
+
     def evaluate(self):
         '''
         Evaluate the value of this improper torsion defined as the angle between plane a1-a2-a3 and a2-a3-a4
@@ -263,6 +307,6 @@ class Improper():
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))) * 180 / np.pi
+        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2)))
         sign = 1 if vec1.dot(n2) >= 0 else -1
         return sign * value
