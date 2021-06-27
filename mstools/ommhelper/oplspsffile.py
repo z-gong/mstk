@@ -937,7 +937,7 @@ class OplsPsfFile(object):
 
         # Set up the constraints
         def _is_bond_in_water(bond):
-            return bond.atom1.residue.resname in WATNAMES[:4] and \
+            return bond.atom1.residue.resname[:4] in WATNAMES and \
                    tuple(sorted([bond.atom1.type.atomic_number, bond.atom2.type.atomic_number])) == (1, 8)
 
         n_cons_bond = n_cons_angle = 0
