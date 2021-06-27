@@ -11,7 +11,7 @@ def ew_dot(vec1, vec2):
 
 class HarmonicBondKernel():
     '''
-    E = 0.5 * k (r-r0)^2
+    E = k (r-r0)^2
 
     Parameters
     ----------
@@ -33,9 +33,9 @@ class HarmonicBondKernel():
         delta = self.positions[self.a2] - self.positions[self.a1]
         rsq = ew_dot(delta, delta)
         r = np.sqrt(rsq)
-        energy = 0.5 * self.k * (r - self.r0) ** 2
+        energy = self.k * (r - self.r0) ** 2
 
-        forces_a1 = (self.k * (r - self.r0) / r)[:, np.newaxis] * delta
+        forces_a1 = (2 * self.k * (r - self.r0) / r)[:, np.newaxis] * delta
 
         forces = np.zeros(self.positions.shape, dtype=np.float64)
         # TODO vectorize this loop
@@ -48,7 +48,7 @@ class HarmonicBondKernel():
 
 class HarmonicAngleKernel():
     '''
-    E = 0.5 * k (theta-theta0)^2
+    E = k (theta-theta0)^2
 
     '''
 
@@ -70,12 +70,12 @@ class HarmonicAngleKernel():
         cos = ew_dot(vec1, vec2) / r1 / r2
         np.clip(cos, -1, 1, out=cos)
         theta = np.arccos(cos)
-        energy = 0.5 * self.k * (theta - self.theta0) ** 2
+        energy = self.k * (theta - self.theta0) ** 2
 
         sin = np.sqrt(1 - cos * cos)
         sin[sin < 1E-4] = 1E-4
 
-        factor = self.k * (theta - self.theta0) / sin
+        factor = 2 * self.k * (theta - self.theta0) / sin
         c11 = -factor * cos / r1 / r1
         c12 = factor / r1 / r2
         c31 = -factor * cos / r2 / r2
@@ -175,7 +175,7 @@ class OplsTorsionKernel():
 
 class HarmonicTorsionKernel():
     '''
-    E = 0.5 * k (phi-phi0)^2
+    E = k (phi-phi0)^2
 
     '''
 
@@ -208,10 +208,10 @@ class HarmonicTorsionKernel():
         d_phi_abs = np.abs(d_phi)
         d_phi_2pi = 2 * np.pi - d_phi_abs
         d_phi_min = np.min([d_phi_abs, d_phi_2pi], axis=0)
-        energy = 0.5 * self.k * d_phi_min ** 2
+        energy = self.k * d_phi_min ** 2
 
         ### (-dE / d phi)
-        factor = -self.k * d_phi_min
+        factor = - 2 * self.k * d_phi_min
 
         sign.fill(1)
         sign[d_phi_2pi < d_phi_abs] = -1

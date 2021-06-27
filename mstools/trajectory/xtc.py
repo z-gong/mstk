@@ -70,7 +70,7 @@ class Xtc(TrjHandler):
         cf_frame = chemfiles.Frame()
         cf_frame.resize(len(positions))
         cf_frame.positions[:] = positions * 10
-        cf_frame.cell = chemfiles.UnitCell(*(frame.cell.lengths * 10), *frame.cell.angles)
+        cf_frame.cell = chemfiles.UnitCell(frame.cell.lengths * 10, frame.cell.angles)
         cf_frame.step = frame.step
 
         self._xtc.write(cf_frame)

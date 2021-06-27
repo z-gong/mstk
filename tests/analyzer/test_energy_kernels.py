@@ -34,7 +34,7 @@ def calc_energy_with_omm(force, positions):
 def test_harmonic_bond_kernel():
     kernel = HarmonicBondKernel(top.positions,
                                 [bond.id_atoms for bond in top.bonds],
-                                [[0.1 + 0.01 * i, 100 + 10 * i] for i in range(top.n_bond)],
+                                [[0.1 + 0.01 * i, 50 + 5 * i] for i in range(top.n_bond)],
                                 )
     r, energy, forces = kernel.evaluate()
     print()
@@ -56,7 +56,7 @@ def test_harmonic_bond_kernel():
 def test_harmonic_angle_kernel():
     kernel = HarmonicAngleKernel(top.positions,
                                  [angle.id_atoms for angle in top.angles],
-                                 [[1 + 0.1 * i, 100 + 10 * i] for i in range(top.n_angle)],
+                                 [[1 + 0.1 * i, 50 + 5 * i] for i in range(top.n_angle)],
                                  )
     theta, energy, forces = kernel.evaluate()
     print()
@@ -103,7 +103,7 @@ def test_opls_torsion_kernel():
 def test_harmonic_torsion_kernel():
     kernel = HarmonicTorsionKernel(top.positions,
                                    [dihedral.id_atoms for dihedral in top.dihedrals],
-                                   [[1 + 0.1 * i, 2 + 0.1 * i] for i in range(top.n_dihedral)]
+                                   [[1 + 0.1 * i, 1 + 0.05 * i] for i in range(top.n_dihedral)]
                                    )
     phi, energy, forces = kernel.evaluate()
     print()
