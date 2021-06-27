@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import math
 import tempfile
 import filecmp
 import pytest
@@ -24,7 +25,7 @@ def test_smiles():
 def test_connectivity():
     ethane = Topology.open(cwd + '/files/CH3NH2.pdb').molecules[0]
     assert pytest.approx(ethane.bonds[0].evaluate(), abs=1E-4) == 0.1070
-    assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278
-    assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301
-    assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159
-    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905
+    assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278 / 180 * math.pi
+    assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301 / 180 * math.pi
+    assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159 / 180 * math.pi
+    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905 / 180 * math.pi
