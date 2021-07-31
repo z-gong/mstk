@@ -3,8 +3,8 @@ pandas
 scipy
 openbabel
 scikit-learn
-pytest # for unit test
+pytest
 sphinx # for generating docs
 pymbar # for analyzer
-physical_validation # for validate NPT ensemble
-mdtraj # for debug NVT_SLAB phase equilibration
+mdtraj # for read/write DCD trajectory file
+chemfiles # for read/write XTC trajectory file

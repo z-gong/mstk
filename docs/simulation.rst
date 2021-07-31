@@ -9,21 +9,7 @@ They are designed for high-throughput prediction of liquid properties.
 GROMACS protocols
 -----------------
 
-Currently, these MD simulation protocols are hardcoded with DFF typing engine and TEAM force field.
-It will be subject to refactor in the future to support different typing engines and force fields.
-
-.. currentmodule:: mstools.simulation.gmx
-
-.. autosummary::
-    :toctree: _generated/
-
-    GmxSimulation
-    Npt
-    NvtSlab
-    NptPPM
-    Nvt
-    NvtVacuum
-    NvtGas
+To be re-implemented.
 
 Gaussian protocols
 ------------------

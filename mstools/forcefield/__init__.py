@@ -4,5 +4,5 @@ from .forcefield import ForceField
 from .ppf import Ppf
 from .padua import Padua, PaduaLJScaler
 from .zfp import Zfp
-from .typer import ZftTyper, DffTyper
+from .typer import ZftTyper
 from .utils import *
