@@ -12,7 +12,7 @@ if platform.system() == 'Linux':
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-plt.rcParams.update({'font.size': 15})
+plt.rcParams.update({'font.size': 18})
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
@@ -38,19 +38,25 @@ args = parser.parse_args()
 top = Topology.open(args.topology)
 charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
 
-idx_zif = np.array([atom.id for atom in top.atoms if atom.molecule.name == 'ZIF8'])
-idx_sol = np.array([atom.id for atom in top.atoms if atom.molecule.name != 'ZIF8'])
-idx_zn1 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 0])
-idx_zn2 = np.array([atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 1])
-idx_p = np.array([atom.id for atom in top.atoms if atom.symbol == 'P' and atom.molecule.name == 'P66614'])
-idx_c = np.array([atom.id for atom in top.atoms if atom.symbol == 'C' and atom.molecule.name == 'P66614'])
-idx_o = np.array([atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'NTF2'])
-idx_n = np.array([atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'NTF2'])
-idx_e = np.array([atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'PEG500'])
-idx_list = [idx_p, idx_c, idx_o, idx_n, idx_e]
+idx_zif = [atom.id for atom in top.atoms if atom.molecule.name == 'ZIF8']
+idx_sol = [atom.id for atom in top.atoms if atom.molecule.name != 'ZIF8']
+idx_zn1 = [atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 0]
+idx_zn2 = [atom.id for atom in top.atoms if atom.symbol == 'Zn' and atom.molecule.id == 1]
+idx_dict = {"solvent" : idx_sol,
+            "P66614-P": [atom.id for atom in top.atoms if atom.symbol == 'P' and atom.molecule.name == 'P66614'],
+            "P66614-C": [atom.id for atom in top.atoms if atom.symbol == 'C' and atom.molecule.name == 'P66614'],
+            "NTF2-O"  : [atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'NTF2'],
+            "PEG-O"   : [atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'PEG500'],
+            "PEG-C"   : [atom.id for atom in top.atoms if atom.symbol == 'C' and atom.molecule.name == 'PEG500'],
+            "Im21-N"  : [atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'c2c1im'],
+            "DCA-N"   : [atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'dca'],
+            "EAN-N"   : [atom.id for atom in top.atoms if atom.symbol == 'N' and atom.molecule.name == 'N0002'],
+            "EAN-O"   : [atom.id for atom in top.atoms if atom.symbol == 'O' and atom.molecule.name == 'NO3'],
+            }
+idx_dict = {k: v for k, v in idx_dict.items() if v}
 
 print(len(idx_zn1), len(idx_zn2))
-print([len(l) for l in idx_list])
+print({k: len(l) for k, l in idx_dict.items()})
 
 trj = Trajectory.open(args.input)
 
@@ -93,7 +99,7 @@ max_z = 4.5
 min_z = -4.5
 r_list = [(i + 0.5) * dr for i in range(int(max_r / dr))]
 z_list = [(i + 0.5) * dr + min_z for i in range(int((max_z - min_z) / dr))]
-densities = [np.zeros([len(z_list), len(r_list)]) for l in idx_list]
+densities = [np.zeros([len(z_list), len(r_list)]) for _ in idx_dict]
 density_charges = [np.zeros([len(z_list), len(r_list)]) for i in range(2)]
 
 points = []
@@ -121,9 +127,7 @@ for i in range(args.begin, args.end, args.skip):
     positions = wrap_pbc(frame.positions, com_zn, frame.cell)
 
     if args.cmd == 'dist':
-        for idx, density in zip(idx_list, densities):
-            if len(idx) == 0:
-                continue
+        for (name, idx), density in zip(idx_dict.items(), densities):
             rho = len(idx) / frame.cell.volume
             r_array, z_array = cartesian2cylindrical(positions[idx], com_zn, vec_unit)
             for ii, i in enumerate(idx):
@@ -142,23 +146,27 @@ for i in range(args.begin, args.end, args.skip):
                     density[int((_z - min_z) / dr)][idx_r] += charges[i] / (2 * np.pi * r_list[idx_r] * dr * dr)
 
 if args.cmd == 'dist':
-    for i, density in enumerate(densities):
+    for (name, idx), density in zip(idx_dict.items(), densities):
+        with open('dist_%s.txt' % name, 'w') as f:
+            np.savetxt(f, density / n_frame)
         fig, ax = plt.subplots(1, 1, figsize=(5, 10))
         ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
         im = ax.pcolormesh(r_list, z_list, density / n_frame, shading='nearest', vmin=0, vmax=4)
         fig.colorbar(im, ax=ax)
         fig.tight_layout()
-        fig.savefig('dist-%i.png' % i)
+        fig.savefig('dist_%s.png' % name)
         if platform.system() != 'Linux':
             plt.show()
 
 elif args.cmd == 'charge':
     for i, density in enumerate(density_charges + [np.sum(density_charges, axis=0)]):
+        with open('dist-charge_%i.txt' % i, 'w') as f:
+            np.savetxt(f, density / n_frame)
         fig, ax = plt.subplots(1, 1, figsize=(5, 10))
-        ax.set(xlim=[0, max_r], ylim=[min_z, max_z])
+        ax.set(xlim=[0, max_r], ylim=[min_z, max_z], xlabel='r (nm)', ylabel='z (nm)')
         im = ax.pcolormesh(r_list, z_list, density / n_frame, shading='nearest', cmap='PiYG', vmin=-4, vmax=4)
         fig.colorbar(im, ax=ax)
         fig.tight_layout()
-        fig.savefig('dist-charge-%i.png' % i)
+        fig.savefig('dist-charge_%i.png' % i)
         if platform.system() != 'Linux':
             plt.show()
