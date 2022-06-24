@@ -1,9 +1,8 @@
-import shutil
+import os
 import numpy as np
 import copy
 import tempfile
 from .atom import Atom
-from .connectivity import *
 from .molecule import Molecule
 from .unitcell import UnitCell
 from ..forcefield import ForceField
@@ -35,6 +34,12 @@ class Topology():
         Unit cell of this topology. Required for output simulation files and guessing connectivity
     '''
 
+    _class_map = {}
+
+    @staticmethod
+    def register_format(extension, cls):
+        Topology._class_map[extension] = cls
+
     def __init__(self, molecules=None, numbers=None, cell=None):
         self.remark = ''
         self._molecules: [Molecule] = []
@@ -45,6 +50,9 @@ class Topology():
             self.cell = UnitCell(cell.vectors)
         else:
             self.cell = UnitCell()
+
+    def __repr__(self):
+        return f'<Topology: {self.n_molecule} molecules {self.n_residue} residues {self.n_atom} atoms>'
 
     def __deepcopy__(self, memodict={}):
         top = Topology()
@@ -98,12 +106,14 @@ class Topology():
 
     def _assign_id(self):
         '''
-        Assign the id of molecules and atoms belongs to this topology
+        Assign the id of molecules, atoms and residues belonging to this topology
         '''
         for i, mol in enumerate(self._molecules):
             mol.id = i
         for i, atom in enumerate(self._atoms):
             atom.id = i
+        for i, residue in enumerate(self.residues):
+            residue.id = i
 
     def add_molecule(self, molecule):
         '''
@@ -138,7 +148,7 @@ class Topology():
         if self.n_atom != len(positions):
             raise Exception('Length of positions should equal to the number of atoms')
         for i, atom in enumerate(self.atoms):
-            atom.position = np.array(positions[i])
+            atom.position = positions[i]
 
     def get_unique_molecules(self, deepcopy=True):
         '''
@@ -227,8 +237,8 @@ class Topology():
             print('Build with Packmol ...')
             tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack-').name
             tmp_out = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out-').name
-            packmol.build_box(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out, inp_file=tmp_inp,
-                              silent=True)
+            packmol.build_box(xyz_files, numbers, tmp_out,
+                              size=self.cell.size * 10 - 2.0, inp_file=tmp_inp, seed=1, silent=True)
             try:
                 xyz = Topology.open(tmp_out)
             except:
@@ -243,7 +253,41 @@ class Topology():
         else:
             tmp_inp = '_pack.inp'
             tmp_out = '_out.xyz'
-            Packmol.gen_inp(xyz_files, numbers, size=self.cell.size * 10 - 2.0, output=tmp_out, inp_file=tmp_inp)
+            Packmol.gen_inp(xyz_files, numbers, tmp_out,
+                            size=self.cell.size * 10 - 2.0, inp_file=tmp_inp, seed=1)
+
+    def scale_box(self, scale, rigid_group='atom'):
+        '''
+        Scale the box and positions of atoms
+
+        Parameters
+        ----------
+        scale : float or np.array of shape (3,)
+        rigid_group : ['atom', 'molecule', 'residue']
+            If set to atom, the positions of all atoms will be equally scaled
+            If set to molecule, each molecule will be treated as a rigid body during scaling
+            If set to residue, each residue will be treated as a rigid body during scaling
+        '''
+        self.cell.set_box(self.cell.vectors * scale)
+        if rigid_group == 'atom':
+            for atom in self.atoms:
+                atom.position = atom.position * scale
+                return None
+
+        if rigid_group == 'molecule':
+            groups = self.molecules
+        elif rigid_group == 'residue':
+            groups = self.residues
+        else:
+            raise Exception(f'Invalid rigid_group: {rigid_group}')
+
+        positions = self.positions
+        masses = np.array([a.mass for a in self.atoms])
+        for group in groups:
+            ids = [a.id for a in group.atoms]
+            pos_com = np.sum(positions[ids] * masses[ids, np.newaxis], axis=0) / np.sum(masses[ids])
+            for atom in group.atoms:
+                atom.position = pos_com * scale + atom.position - pos_com
 
     @property
     def n_molecule(self):
@@ -288,6 +332,24 @@ class Topology():
         atoms: list of Atom
         '''
         return self._atoms
+
+    @property
+    def residues(self):
+        '''
+        List of residues belonging to this topology
+
+        The residue list is generated on the fly because it is called irregularly.
+        Therefore, the performance of this method is not of concern.
+
+        Returns
+        -------
+        residues : list of Residue
+        '''
+        return [residue for mol in self._molecules for residue in mol.residues]
+
+    @property
+    def n_residue(self):
+        return sum(mol.n_residue for mol in self._molecules)
 
     @property
     def n_bond(self):
@@ -439,32 +501,20 @@ class Topology():
         -------
         topology : Topology
         '''
-        from .psf import Psf
-        from .pdb import Pdb
-        from .lammps import LammpsData
-        from .xyz import XyzTopology
-        from .zmat import Zmat
-        from .msd import Msd
-
         if file.startswith(':'):
             mol = Molecule.from_smiles(file[1:])
             return Topology([mol])
-        elif file.endswith('.psf'):
-            return Psf(file, **kwargs).topology
-        elif file.endswith('.pdb'):
-            return Pdb(file, **kwargs).topology
-        elif file.endswith('.lmp'):
-            return LammpsData(file, **kwargs).topology
-        elif file.endswith('.xyz'):
-            return XyzTopology(file, **kwargs).topology
-        elif file.endswith('.zmat'):
-            return Zmat(file, **kwargs).topology
-        elif file.endswith('.msd'):
-            return Msd(file, **kwargs).topology
-        else:
-            raise Exception('Unsupported format')
 
-    def write(self, file):
+        basename, ext = os.path.splitext(file)
+        ext = ext.lower()
+        try:
+            cls = Topology._class_map[ext]
+        except KeyError:
+            raise Exception('Unsupported topology format: ' + file)
+
+        return cls(file, **kwargs).topology
+
+    def write(self, file, **kwargs):
         '''
         Write topology to a file.
 
@@ -474,19 +524,17 @@ class Topology():
         ----------
         file : str
         '''
-        from . import Psf, Pdb, XyzTopology
+        basename, ext = os.path.splitext(file)
+        ext = ext.lower()
+        try:
+            cls = Topology._class_map[ext]
+        except KeyError:
+            raise Exception('Unsupported format for topology: ' + ext)
 
-        if file.endswith('.psf'):
-            Psf.save_to(self, file)
-        elif file.endswith('.pdb'):
-            Pdb.save_to(self, file)
-        elif file.endswith('.xyz'):
-            XyzTopology.save_to(self, file)
-        else:
-            raise Exception('Unsupported format for topology output')
+        cls.save_to(self, file, **kwargs)
 
     @staticmethod
-    def save_to(top, file):
+    def save_to(top, file, **kwargs):
         '''
         This method should be implemented by subclasses
         '''
@@ -501,21 +549,24 @@ class Topology():
         omm_topology : mm.app.Topology
         '''
         try:
-            from simtk.openmm import app as omm_app
-            from simtk.openmm.app.element import Element as omm_Element
+            from openmm import app as omm_app
+            from openmm.app.element import Element as omm_Element
         except ImportError:
             raise Exception('cannot import openmm')
 
         omm_top = omm_app.Topology()
         omm_chain = omm_top.addChain()
-        for mol in self._molecules:
-            omm_residue = omm_top.addResidue(mol.name, omm_chain)
-            for atom in mol.atoms:
-                try:
-                    omm_element = omm_Element.getBySymbol(atom.symbol)
-                except:
-                    omm_element = None
-                omm_top.addAtom(atom.name, omm_element, omm_residue)
+        d_omm_residues = {}
+        for residue in self.residues:
+            omm_res = omm_top.addResidue(residue.name, omm_chain)
+            for atom in residue.atoms:
+                d_omm_residues[atom] = omm_res
+        for atom in self.atoms:
+            try:
+                omm_element = omm_Element.getBySymbol(atom.symbol)
+            except:
+                omm_element = None
+            omm_top.addAtom(atom.name, omm_element, d_omm_residues[atom])
 
         if self.cell.volume != 0:
             omm_top.setPeriodicBoxVectors(self.cell.vectors)
@@ -536,7 +587,7 @@ class Topology():
         ----------
         omm_top : mm.app.Topology
         '''
-        from simtk.openmm.app import Topology as ommTopology, Residue as ommResidue, Atom as ommAtom
+        from openmm.app import Topology as ommTopology, Residue as ommResidue, Atom as ommAtom
         molecules = []
         omm_top: ommTopology
         omm_res: ommResidue
@@ -611,7 +662,7 @@ class Topology():
             pair_14_list += pairs_14
         return pair_12_list, pair_13_list, pair_14_list
 
-    def generate_angle_dihedral_improper(self):
+    def generate_angle_dihedral_improper(self, dihedral=True, improper=True):
         '''
         Generate angles, dihedrals and impropers from bonds.
 
@@ -620,7 +671,7 @@ class Topology():
         Molecule.generate_angle_dihedral_improper
         '''
         for mol in self._molecules:
-            mol.generate_angle_dihedral_improper()
+            mol.generate_angle_dihedral_improper(dihedral=dihedral, improper=improper)
 
     def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None, pbc=''):
         '''
@@ -723,17 +774,17 @@ class Topology():
         '''
         ff.assign_mass(self)
 
-    def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
+    def assign_charge_from_ff(self, ff, transfer_qinc_terms=False):
         '''
         Assign charges for all atoms and Drude particles from the AtomType saved in force field.
 
         Parameters
         ----------
         ff : ForceField
-        transfer_bci_terms : bool, optional
+        transfer_qinc_terms : bool, optional
 
         See Also
         --------
         ForceField.assign_charge
         '''
-        ff.assign_charge(self, transfer_bci_terms)
+        ff.assign_charge(self, transfer_qinc_terms)

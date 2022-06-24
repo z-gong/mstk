@@ -26,7 +26,7 @@ class OpenMMExporter():
         pass
 
     @staticmethod
-    def export(system):
+    def export(system, **kwargs):
         '''
         Generate OpenMM system from a system
 
@@ -36,16 +36,16 @@ class OpenMMExporter():
 
         Returns
         -------
-        omm_system : simtk.openmm.System
+        omm_system : openmm.openmm.System
         '''
         try:
-            import simtk.openmm as mm
+            import openmm.openmm as mm
         except ImportError:
             raise ImportError('Can not import OpenMM')
 
         supported_terms = {LJ126Term, MieTerm,
-                           HarmonicBondTerm,
-                           HarmonicAngleTerm, SDKAngleTerm,
+                           HarmonicBondTerm, MorseBondTerm,
+                           HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
@@ -69,35 +69,57 @@ class OpenMMExporter():
         ### Set up bonds #######################################################################
         for bond_class in system.bond_classes:
             if bond_class == HarmonicBondTerm:
-                logger.info('Setting up harmonic bonds...')
+                logger.debug('Setting up harmonic bonds...')
                 bforce = mm.HarmonicBondForce()
                 for bond in top.bonds:
                     if bond.is_drude:
                         # DrudeForce will handle the bond between Drude pair
                         continue
+                    if id(bond) in system.constrain_bonds:
+                        continue
                     bterm = system.bond_terms[id(bond)]
                     if type(bterm) != HarmonicBondTerm:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
+            elif bond_class == MorseBondTerm:
+                logger.debug('Setting up Morse bonds...')
+                bforce = mm.CustomBondForce('depth*(1-exp(-alpha*(r-b0)))^2;'
+                                            'alpha=(k/depth)^0.5')
+                bforce.addPerBondParameter('b0')
+                bforce.addPerBondParameter('k')
+                bforce.addPerBondParameter('depth')
+                for bond in top.bonds:
+                    if bond.is_drude:
+                        # DrudeForce will handle the bond between Drude pair
+                        continue
+                    if id(bond) in system.constrain_bonds:
+                        continue
+                    bterm = system.bond_terms[id(bond)]
+                    if type(bterm) != MorseBondTerm:
+                        continue
+                    bforce.addBond(bond.atom1.id, bond.atom2.id, [bterm.length, bterm.k, bterm.depth])
             else:
-                raise Exception('Bond terms other that HarmonicBondTerm '
+                raise Exception('Bond terms other that HarmonicBondTerm and MorseBondTerm '
                                 'haven\'t been implemented')
             bforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             bforce.setForceGroup(ForceGroup.BOND)
+            bforce.setName('Bond')
             omm_system.addForce(bforce)
 
         ### Set up angles #######################################################################
         for angle_class in system.angle_classes:
             if angle_class == HarmonicAngleTerm:
-                logger.info('Setting up harmonic angles...')
+                logger.debug('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
                 for angle in top.angles:
+                    if id(angle) in system.constrain_angles:
+                        continue
                     aterm = system.angle_terms[id(angle)]
                     if type(aterm) == HarmonicAngleTerm:
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                                         aterm.theta * PI / 180, aterm.k * 2)
             elif angle_class == SDKAngleTerm:
-                logger.info('Setting up SDK angles...')
+                logger.debug('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
                     3, 'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
                        'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
@@ -109,6 +131,8 @@ class OpenMMExporter():
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
                 for angle in top.angles:
+                    if id(angle) in system.constrain_angles:
+                        continue
                     aterm = system.angle_terms[id(angle)]
                     if type(aterm) != SDKAngleTerm:
                         continue
@@ -117,20 +141,42 @@ class OpenMMExporter():
                         raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id],
                                    [aterm.theta * PI / 180, aterm.k, vdw.epsilon, vdw.sigma])
+            elif angle_class == LinearAngleTerm:
+                logger.debug('Setting up linear angles...')
+                aforce = mm.CustomCompoundBondForce(
+                    3, 'k_linear*r^2;'
+                       'r=pointdistance(xref,yref,zref,x2,y2,z2);'
+                       'xref=x1*a+x3*(1-a);'
+                       'yref=y1*a+y3*(1-a);'
+                       'zref=z1*a+z3*(1-a)')
+                aforce.addPerBondParameter('a')
+                aforce.addPerBondParameter('k_linear')
+                for angle in top.angles:
+                    if id(angle) in system.constrain_angles:
+                        continue
+                    aterm = system.angle_terms[id(angle)]
+                    if type(aterm) != LinearAngleTerm:
+                        continue
+                    bond12, bond23 = angle.bonds
+                    bterm12 = system.bond_terms[id(bond12)]
+                    bterm23 = system.bond_terms[id(bond23)]
+                    a, k_linear = aterm.calc_a_k_linear(bterm12.length, bterm23.length)
+                    aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id], [a, k_linear])
             else:
-                raise Exception('Angle terms other that HarmonicAngleTerm and SDKAngleTerm '
+                raise Exception('Angle terms other that HarmonicAngleTerm, SDKAngleTerm and LinearAngleTerm '
                                 'haven\'t been implemented')
             aforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             aforce.setForceGroup(ForceGroup.ANGLE)
+            aforce.setName('Angle')
             omm_system.addForce(aforce)
 
         ### Set up constraints #################################################################
-        logger.info(f'Setting up {len(system.constrain_bonds)} bond constraints...')
+        logger.debug(f'Setting up {len(system.constrain_bonds)} bond constraints...')
         for bond in top.bonds:
             if id(bond) in system.constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
                                          system.constrain_bonds[id(bond)])
-        logger.info(f'Setting up {len(system.constrain_angles)} angle constraints...')
+        logger.debug(f'Setting up {len(system.constrain_angles)} angle constraints...')
         for angle in top.angles:
             if id(angle) in system.constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
@@ -139,7 +185,7 @@ class OpenMMExporter():
         ### Set up dihedrals ###################################################################
         for dihedral_class in system.dihedral_classes:
             if dihedral_class == PeriodicDihedralTerm:
-                logger.info('Setting up periodic dihedrals...')
+                logger.debug('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in top.dihedrals:
                     dterm = system.dihedral_terms[id(dihedral)]
@@ -154,12 +200,13 @@ class OpenMMExporter():
                                 'haven\'t been implemented')
             dforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             dforce.setForceGroup(ForceGroup.DIHEDRAL)
+            dforce.setName('Dihedral')
             omm_system.addForce(dforce)
 
         ### Set up impropers ####################################################################
         for improper_class in system.improper_classes:
             if improper_class == OplsImproperTerm:
-                logger.info('Setting up periodic impropers...')
+                logger.debug('Setting up periodic impropers...')
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
                 for improper in top.impropers:
@@ -169,7 +216,7 @@ class OpenMMExporter():
                         iforce.addTorsion(improper.atom2.id, improper.atom3.id,
                                           improper.atom1.id, improper.atom4.id, [iterm.k])
             elif improper_class == HarmonicImproperTerm:
-                logger.info('Setting up harmonic impropers...')
+                logger.debug('Setting up harmonic impropers...')
                 iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
                                                f'dtheta=abs(theta-phi0);'
                                                f'pi={PI}')
@@ -186,13 +233,15 @@ class OpenMMExporter():
                                 'HarmonicImproperTerm haven\'t been implemented')
             iforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             iforce.setForceGroup(ForceGroup.IMPROPER)
+            iforce.setName('Improper')
             omm_system.addForce(iforce)
 
         ### Set up non-bonded interactions #########################################################
         # NonbonedForce is not flexible enough. Use it only for Coulomb interactions (including 1-4 Coulomb exceptions)
-        # CustomNonbondedForce handles vdW interactions (including 1-4 LJ exceptions)
+        # CustomNonbondedForce handles vdW interactions
+        # CustomBondForce handles 1-4 vdW exceptions
         cutoff = ff.vdw_cutoff
-        logger.info('Setting up Coulomb interactions...')
+        logger.debug('Setting up Coulomb interactions...')
         nbforce = mm.NonbondedForce()
         if system.use_pbc:
             nbforce.setNonbondedMethod(mm.NonbondedForce.PME)
@@ -207,9 +256,11 @@ class OpenMMExporter():
         else:
             nbforce.setNonbondedMethod(mm.NonbondedForce.NoCutoff)
         nbforce.setForceGroup(ForceGroup.COULOMB)
-        omm_system.addForce(nbforce)
+        nbforce.setName('Coulomb')
         for atom in top.atoms:
             nbforce.addParticle(atom.charge, 1.0, 0.0)
+        if system.charged:
+            omm_system.addForce(nbforce)
 
         ### Set up vdW interactions #########################################################
         atom_types = list(ff.atom_types.values())
@@ -217,7 +268,7 @@ class OpenMMExporter():
         n_type = len(atom_types)
         for vdw_class in system.vdw_classes:
             if vdw_class == LJ126Term:
-                logger.info('Setting up LJ-12-6 vdW interactions...')
+                logger.debug('Setting up LJ-12-6 vdW interactions...')
                 if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     invRc6 = 1 / cutoff ** 6
                     cforce = mm.CustomNonbondedForce(
@@ -249,7 +300,7 @@ class OpenMMExporter():
                     cforce.addParticle([id_type])
 
             elif vdw_class == MieTerm:
-                logger.info('Setting up Mie vdW interactions...')
+                logger.debug('Setting up Mie vdW interactions...')
                 if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce('A(type1,type2)/r^REP(type1,type2)-'
                                                      'B(type1,type2)/r^ATT(type1,type2)-'
@@ -301,10 +352,11 @@ class OpenMMExporter():
             else:
                 cforce.setNonbondedMethod(mm.CustomNonbondedForce.NoCutoff)
             cforce.setForceGroup(ForceGroup.VDW)
+            cforce.setName('vdW')
             omm_system.addForce(cforce)
 
         ### Set up 1-2, 1-3 and 1-4 exceptions ##################################################
-        logger.info('Setting up 1-2, 1-3 and 1-4 exceptions...')
+        logger.debug('Setting up 1-2, 1-3 and 1-4 exceptions...')
         custom_nb_forces = [f for f in omm_system.getForces() if type(f) == mm.CustomNonbondedForce]
         pair12, pair13, pair14 = top.get_12_13_14_pairs()
         for atom1, atom2 in pair12 + pair13:
@@ -337,6 +389,7 @@ class OpenMMExporter():
                         cbforce.addPerBondParameter('m')
                         cbforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
                         cbforce.setForceGroup(ForceGroup.VDW)
+                        cbforce.setName('vdW')
                         omm_system.addForce(cbforce)
                         pair14_forces[MieTerm] = cbforce
                     epsilon = vdw.epsilon * ff.scale_14_vdw
@@ -352,9 +405,10 @@ class OpenMMExporter():
         ### Set up Drude particles ##############################################################
         for polar_class in system.polarizable_classes:
             if polar_class == DrudeTerm:
-                logger.info('Setting up Drude polarizations...')
+                logger.debug('Setting up Drude polarizations...')
                 pforce = mm.DrudeForce()
                 pforce.setForceGroup(ForceGroup.DRUDE)
+                pforce.setName('Drude')
                 omm_system.addForce(pforce)
                 parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
                 for parent, drude in system.drude_pairs.items():
@@ -409,7 +463,7 @@ class OpenMMExporter():
 
         ### Set up virtual sites ################################################################
         if top.has_virtual_site:
-            logger.info('Setting up virtual sites...')
+            logger.debug('Setting up virtual sites...')
             for atom in top.atoms:
                 vsite = atom.virtual_site
                 if type(vsite) == TIP4PSite:
@@ -473,7 +527,7 @@ class OpenMMExporter():
                     f.addExclusion(a1.id, a2.id)
 
         ### Remove COM motion ###################################################################
-        logger.info('Setting up COM motion remover...')
+        logger.debug('Setting up COM motion remover...')
         omm_system.addForce(mm.CMMotionRemover(10))
 
         return omm_system

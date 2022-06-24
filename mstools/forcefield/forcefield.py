@@ -1,8 +1,8 @@
-import math
-from typing import Union
+import os
+from pathlib import Path
 from .ffterm import *
 from .errors import *
-from ..logger import logger
+from mstools import DIR_MSTOOLS, logger
 
 
 class ForceField():
@@ -16,7 +16,7 @@ class ForceField():
         All the atom types in this force field.
         For each key value pair, the value is a AtomType object,
         the key is the :attr:`~AtomType.name` of the object.
-    bci_terms : dict, [str, ChargeIncrementTerm]
+    qinc_terms : dict, [str, ChargeIncrementTerm]
         All the charge increment terms.
         For each key value pair, the value is a ChargeIncrementTerm object,
         the key is the :attr:`~ChargeIncrementTerm.name` of the object.
@@ -89,9 +89,22 @@ class ForceField():
     #: Geometric mixing rule for LJ126 parameters (used by OPLS)
     LJ_MIXING_GEOMETRIC = 'geometric'
 
+    SETTING_ATTRS = {'vdw_cutoff'      : float,
+                     'vdw_long_range'  : str,
+                     'lj_mixing_rule'  : str,
+                     'scale_14_vdw'    : float,
+                     'scale_14_coulomb': float,
+                     }
+
+    _class_map = {}
+
+    @staticmethod
+    def registor_format(extension, cls):
+        ForceField._class_map[extension] = cls
+
     def __init__(self):
         self.atom_types: {str: AtomType} = {}
-        self.bci_terms: {str: ChargeIncrementTerm} = {}
+        self.qinc_terms: {str: ChargeIncrementTerm} = {}
         self.bond_terms: {str: BondTerm} = {}
         self.angle_terms: {str: AngleTerm} = {}
         self.dihedral_terms: {str: DihedralTerm} = {}
@@ -101,26 +114,49 @@ class ForceField():
         self.polarizable_terms: {str: PolarizableTerm} = {}
         self.virtual_site_terms: {str: VirtualSiteTerm} = {}
 
-        self.vdw_cutoff = 1.2  # nm
-        self.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
-        self.lj_mixing_rule = ForceField.LJ_MIXING_NONE
-        self.scale_14_vdw = 1.0
-        self.scale_14_coulomb = 1.0
+        self.vdw_cutoff = 1.0  # nm
+        self._vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
+        self._lj_mixing_rule = ForceField.LJ_MIXING_GEOMETRIC
+        self.scale_14_vdw = 0.5
+        self.scale_14_coulomb = 0.5
+
+    @property
+    def vdw_long_range(self):
+        return self._vdw_long_range
+
+    @vdw_long_range.setter
+    def vdw_long_range(self, val):
+        if val not in [ForceField.VDW_LONGRANGE_CORRECT, ForceField.VDW_LONGRANGE_SHIFT]:
+            raise Exception(f'Invalid vdw_long_range: {val}')
+        self._vdw_long_range = val
+
+    @property
+    def lj_mixing_rule(self):
+        return self._lj_mixing_rule
+
+    @lj_mixing_rule.setter
+    def lj_mixing_rule(self, val):
+        if val not in [ForceField.LJ_MIXING_NONE, ForceField.LJ_MIXING_LB, ForceField.LJ_MIXING_GEOMETRIC]:
+            raise Exception(f'Invalid lj_mixing_rule: {val}')
+        self._lj_mixing_rule = val
 
     @staticmethod
     def open(*files):
         '''
         Load ForceField from files.
 
+        If the file does not exist, will try to locate it from `mstools/data/forcefield`.
+
         The parser for reading the files will be determined from the extension of the first file.
         Therefore, all the files should be in the same format.
 
         Parameters
         ----------
-        files : list of str
-            The files to be read. The extension can be `zfp`, `ppf` or `ff`.
+        files : str
+            The files to be read. The extension can be `zfp`, `zff', `ppf` or `ff`.
 
-            * `zfp` file is the native format of mstools, and will be parsed by :class:`Zfp`.
+            * `zfp` file is the native XML format of mstools, and will be parsed by :class:`Zfp`.
+            * `zff` file is the plain text format of mstools, and will be parsed by :class:`Zff`.
             * `ppf` file will be parsed as DFF format by :class:`Ppf`.
             * `ff` file will be parsed as fftool format by :class:`Padua`.
 
@@ -129,19 +165,23 @@ class ForceField():
         forcefield : ForceField
 
         '''
-        from .zfp import Zfp
-        from .ppf import Ppf
-        from .padua import Padua
+        files_path = [f for f in files]
+        for i, file in enumerate(files_path):
+            if not Path(file).exists():
+                file_internal = Path(DIR_MSTOOLS) / 'data' / 'forcefield' / file
+                if not file_internal.exists():
+                    raise Exception(f'FF file not found: {file}')
+                else:
+                    files_path[i] = file_internal.as_posix()
 
-        file = files[0]
-        if file.endswith('.ff'):
-            return Padua(*files).forcefield
-        elif file.endswith('.ppf'):
-            return Ppf(*files).forcefield
-        elif file.endswith('.zfp'):
-            return Zfp(*files).forcefield
-        else:
-            raise Exception('Unsupported format')
+        file = files_path[0]
+        basename, ext = os.path.splitext(file)
+        try:
+            cls = ForceField._class_map[ext]
+        except KeyError:
+            raise Exception(f'Unsupported FF format: {file}')
+
+        return cls(*files_path).forcefield
 
     def write(self, file):
         '''
@@ -153,17 +193,13 @@ class ForceField():
         ----------
         file : str
         '''
+        basename, ext = os.path.splitext(file)
+        try:
+            cls = ForceField._class_map[ext]
+        except KeyError:
+            raise Exception(f'Unsupported FF format: {file}')
 
-        from .zfp import Zfp
-        from .ppf import Ppf
-        from .padua import Padua
-
-        if file.endswith('.zfp'):
-            Zfp.save_to(self, file)
-        elif file.endswith('.ppf'):
-            Ppf.save_to(self, file)
-        else:
-            raise Exception('Unsupported format for forcefield output')
+        cls.save_to(self, file)
 
     @property
     def is_polarizable(self):
@@ -240,8 +276,8 @@ class ForceField():
             else:
                 _duplicated = True
         elif isinstance(term, ChargeIncrementTerm):
-            if term.name not in self.bci_terms or replace:
-                self.bci_terms[term.name] = term
+            if term.name not in self.qinc_terms or replace:
+                self.qinc_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, BondTerm):
@@ -299,9 +335,10 @@ class ForceField():
         If not found, an Exception will be raised.
         If type1 and type2 are not the same, then will search parameters in :attr:`pairwise_vdw_terms` and return the reference of the term.
         If not found and `mixing` is True and :attr:`lj_mixing_rule` does not equal to :attr:`LJ_MIXING_NONE`,
-        and the vdw terms for both type1 and type2 are :class:`LJ126Term`,
-        then a LJ126Term will be constructed from the mixing rule and be returned.
+        then a vdw term will be constructed from the mixing rule and be returned.
         Otherwise, an Exception will be raised.
+        The constructed vdw term will be :class:`LJ126Term` if vdw for both type1 and type2 are :class:`LJ126Term`,
+        otherwise a :class:`MieTerm` will be constructed.
 
         Parameters
         ----------
@@ -339,8 +376,8 @@ class ForceField():
         lj2 = self.vdw_terms.get(VdwTerm(at2, at2).name)
         if lj1 is None or lj2 is None:
             raise FFTermNotFoundError(f'VdwTerm for {at1} or {at2} not found')
-        if type(lj1) is not LJ126Term or type(lj2) is not LJ126Term:
-            raise Exception('Cannot use mixing rule for vdW terms other than LJ126Term')
+        if type(lj1) not in (LJ126Term, MieTerm) or type(lj2) not in (LJ126Term, MieTerm):
+            raise Exception('Cannot use mixing rule for vdW terms other than LJ126Term and MieTerm')
 
         if self.lj_mixing_rule == self.LJ_MIXING_LB:
             epsilon = math.sqrt(lj1.epsilon * lj2.epsilon)
@@ -349,9 +386,16 @@ class ForceField():
             epsilon = math.sqrt(lj1.epsilon * lj2.epsilon)
             sigma = math.sqrt(lj1.sigma * lj2.sigma)
         else:
-            raise Exception('Unknown mixing rule for LJ126Term')
+            raise Exception('Unknown mixing rule for vdW terms')
 
-        return LJ126Term(at1, at2, epsilon, sigma)
+        if type(lj1) is LJ126Term and type(lj2) is LJ126Term:
+            return LJ126Term(at1, at2, epsilon, sigma)
+
+        repulsion1, attraction1 = (lj1.repulsion, lj1.attraction) if type(lj1) is MieTerm else (12, 6)
+        repulsion2, attraction2 = (lj2.repulsion, lj2.attraction) if type(lj2) is MieTerm else (12, 6)
+        repulsion = math.sqrt(repulsion1 * repulsion2)
+        attraction = math.sqrt(attraction1 * attraction2)
+        return MieTerm(at1, at2, epsilon, sigma, repulsion, attraction)
 
     def get_eqt_for_bond(self, bond):
         '''
@@ -429,7 +473,11 @@ class ForceField():
         except:
             raise FFTermNotFoundError(f'Atom type {angle.atom1.type} or {angle.atom2.type} '
                                       f'or {angle.atom3.type} not found in FF')
-        return at1, at2, at3
+        return [(at1, at2, at3),
+                (at1, at2, '*'),
+                ('*', at2, at3),
+                ('*', at2, '*'),
+                ]
 
     def get_angle_term(self, type1, type2, type3):
         '''
@@ -602,7 +650,7 @@ class ForceField():
 
         return iterm
 
-    def get_eqt_for_bci(self, bond):
+    def get_eqt_for_qinc(self, bond):
         '''
         Get the equivalent atom types for charge increment parameters of the two atoms in a bond.
 
@@ -625,7 +673,7 @@ class ForceField():
                 f'Atom type {bond.atom1.type} or {bond.atom2.type} not found in FF')
         return at1, at2
 
-    def get_bci_term(self, type1, type2):
+    def get_qinc_term(self, type1, type2):
         '''
         Get the charge increment term for the bond formed by two atom types.
         A direction will also be returned, which equal to 1 if type1 in the charge increment term matches type1 in arguments, -1 otherwise.
@@ -651,7 +699,7 @@ class ForceField():
         qterm = ChargeIncrementTerm(at1, at2, 0)
         direction = 1 if qterm.type1 == at1 else -1
         try:
-            qterm = self.bci_terms[qterm.name]
+            qterm = self.qinc_terms[qterm.name]
         except:
             raise FFTermNotFoundError(f'{str(qterm)} not found in FF')
 
@@ -708,7 +756,7 @@ class ForceField():
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge(self, top, transfer_bci_terms=False):
+    def assign_charge(self, top, transfer_qinc_terms=False):
         '''
         Assign charges for all atoms in a topology or molecule from the force field.
 
@@ -721,16 +769,16 @@ class ForceField():
 
         If charge increment parameters required by the topology are not found in the force field,
         `mstools` can try to transfer parameters from more general terms in the force field.
-        e.g. if bci term between 'c_4o2' and 'n_3' is not found, the bci term between 'c_4' and 'n_3' will be used.
+        e.g. if charge increment term between 'c_4o2' and 'n_3' is not found, the term between 'c_4' and 'n_3' will be used.
         This mechanism is initially designed for TEAM force field.
-        It is disabled by default, and can be enabled by setting argument `transfer_bci_terms` to True.
+        It is disabled by default, and can be enabled by setting argument `transfer_qinc_terms` to True.
 
         Parameters
         ----------
         top : Topology or Molecule
-        transfer_bci_terms : bool, optional
+        transfer_qinc_terms : bool, optional
         '''
-        from .utils import dff_fuzzy_match
+        from .dff_utils import dff_fuzzy_match
 
         _q_zero = []
         for atom in top.atoms:
@@ -744,27 +792,27 @@ class ForceField():
             if charge == 0:
                 _q_zero.append(atom)
 
-        if len(self.bci_terms) == 0 and len(_q_zero) > 0:
+        if len(self.qinc_terms) == 0 and len(_q_zero) > 0:
             msg = '%i atoms in %s have zero charge. But charge increment terms not found in FF: %s' % (
                 len(_q_zero), top, ' '.join([a.name for a in _q_zero[:10]]))
             if len(_q_zero) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
 
-        if len(self.bci_terms) > 0:
+        if len(self.qinc_terms) > 0:
             _qterm_not_found = set()
             _qterm_transferred = set()
             for bond in filter(lambda x: not x.is_drude, top.bonds):
                 _found = False
-                ats = self.get_eqt_for_bci(bond)
+                ats = self.get_eqt_for_qinc(bond)
                 if ats[0] == ats[1]:
                     continue
                 _term = ChargeIncrementTerm(*ats, 0)
                 try:
-                    qterm, direction = self.get_bci_term(*ats)
+                    qterm, direction = self.get_qinc_term(*ats)
                     _found = True
                 except FFTermNotFoundError:
-                    if transfer_bci_terms:
+                    if transfer_qinc_terms:
                         qterm, score = dff_fuzzy_match(_term, self)
                         if qterm is not None:
                             direction = 1 if _term.type1 == ats[0] else -1

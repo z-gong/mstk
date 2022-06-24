@@ -1,7 +1,7 @@
 numpy
 pandas
 scipy
-openbabel
+rdkit
 scikit-learn
 pytest
 sphinx # for generating docs

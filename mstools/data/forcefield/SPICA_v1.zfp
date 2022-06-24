@@ -1,0 +1,738 @@
+<?xml version="1.0" ?>
+<ForceFieldTerms>
+  <Setting vdw_cutoff="1.5" vdw_long_range="shift" lj_mixing_rule="none" scale_14_vdw="1.0" scale_14_coulomb="1.0"/>
+  <AtomTypes>
+    <AtomType name="OA" mass="31.034" charge="0.0" eqt_q_inc="OA" eqt_vdw="OA" eqt_bond="OA" eqt_ang_c="OA" eqt_ang_s="OA" eqt_dih_c="OA" eqt_dih_s="OA" eqt_imp_c="OA" eqt_imp_s="OA" eqt_polar="OA"/>
+    <AtomType name="CT" mass="43.088" charge="0.0" eqt_q_inc="CT" eqt_vdw="CT" eqt_bond="CT" eqt_ang_c="CT" eqt_ang_s="CT" eqt_dih_c="CT" eqt_dih_s="CT" eqt_imp_c="CT" eqt_imp_s="CT" eqt_polar="CT"/>
+    <AtomType name="CM" mass="42.08" charge="0.0" eqt_q_inc="CM" eqt_vdw="CM" eqt_bond="CM" eqt_ang_c="CM" eqt_ang_s="CM" eqt_dih_c="CM" eqt_dih_s="CM" eqt_imp_c="CM" eqt_imp_s="CM" eqt_polar="CM"/>
+    <AtomType name="CT2" mass="29.062" charge="0.0" eqt_q_inc="CT2" eqt_vdw="CT2" eqt_bond="CT2" eqt_ang_c="CT2" eqt_ang_s="CT2" eqt_dih_c="CT2" eqt_dih_s="CT2" eqt_imp_c="CT2" eqt_imp_s="CT2" eqt_polar="CT2"/>
+    <AtomType name="SER" mass="31.0344" charge="0.0" eqt_q_inc="SER" eqt_vdw="SER" eqt_bond="SER" eqt_ang_c="SER" eqt_ang_s="SER" eqt_dih_c="SER" eqt_dih_s="SER" eqt_imp_c="SER" eqt_imp_s="SER" eqt_polar="SER"/>
+    <AtomType name="N" mass="28.034" charge="0.0" eqt_q_inc="N" eqt_vdw="N" eqt_bond="N" eqt_ang_c="N" eqt_ang_s="N" eqt_dih_c="N" eqt_dih_s="N" eqt_imp_c="N" eqt_imp_s="N" eqt_polar="N"/>
+    <AtomType name="CMD2" mass="26.038" charge="0.0" eqt_q_inc="CMD2" eqt_vdw="CMD2" eqt_bond="CMD2" eqt_ang_c="CMD2" eqt_ang_s="CMD2" eqt_dih_c="CMD2" eqt_dih_s="CMD2" eqt_imp_c="CMD2" eqt_imp_s="CMD2" eqt_polar="CMD2"/>
+    <AtomType name="CM2" mass="28.054" charge="0.0" eqt_q_inc="CM2" eqt_vdw="CM2" eqt_bond="CM2" eqt_ang_c="CM2" eqt_ang_s="CM2" eqt_dih_c="CM2" eqt_dih_s="CM2" eqt_imp_c="CM2" eqt_imp_s="CM2" eqt_polar="CM2"/>
+    <AtomType name="O" mass="28.01" charge="0.0" eqt_q_inc="O" eqt_vdw="O" eqt_bond="O" eqt_ang_c="O" eqt_ang_s="O" eqt_dih_c="O" eqt_dih_s="O" eqt_imp_c="O" eqt_imp_s="O" eqt_polar="O"/>
+    <AtomType name="EST1" mass="58.0368" charge="0.0" eqt_q_inc="EST1" eqt_vdw="EST1" eqt_bond="EST1" eqt_ang_c="EST1" eqt_ang_s="EST1" eqt_dih_c="EST1" eqt_dih_s="EST1" eqt_imp_c="EST1" eqt_imp_s="EST1" eqt_polar="EST1"/>
+    <AtomType name="CMD3" mass="40.065" charge="0.0" eqt_q_inc="CMD3" eqt_vdw="CMD3" eqt_bond="CMD3" eqt_ang_c="CMD3" eqt_ang_s="CMD3" eqt_dih_c="CMD3" eqt_dih_s="CMD3" eqt_imp_c="CMD3" eqt_imp_s="CMD3" eqt_polar="CMD3"/>
+    <AtomType name="OAB" mass="30.026" charge="0.0" eqt_q_inc="OAB" eqt_vdw="OAB" eqt_bond="OAB" eqt_ang_c="OAB" eqt_ang_s="OAB" eqt_dih_c="OAB" eqt_dih_s="OAB" eqt_imp_c="OAB" eqt_imp_s="OAB" eqt_polar="OAB"/>
+    <AtomType name="CM2R" mass="28.054" charge="0.0" eqt_q_inc="CM2R" eqt_vdw="CM2R" eqt_bond="CM2R" eqt_ang_c="CM2R" eqt_ang_s="CM2R" eqt_dih_c="CM2R" eqt_dih_s="CM2R" eqt_imp_c="CM2R" eqt_imp_s="CM2R" eqt_polar="CM2R"/>
+    <AtomType name="CMDB" mass="39.057" charge="0.0" eqt_q_inc="CMDB" eqt_vdw="CMDB" eqt_bond="CMDB" eqt_ang_c="CMDB" eqt_ang_s="CMDB" eqt_dih_c="CMDB" eqt_dih_s="CMDB" eqt_imp_c="CMDB" eqt_imp_s="CMDB" eqt_polar="CMDB"/>
+    <AtomType name="CTBA" mass="27.046" charge="0.0" eqt_q_inc="CTBA" eqt_vdw="CTBA" eqt_bond="CTBA" eqt_ang_c="CTBA" eqt_ang_s="CTBA" eqt_dih_c="CTBA" eqt_dih_s="CTBA" eqt_imp_c="CTBA" eqt_imp_s="CTBA" eqt_polar="CTBA"/>
+    <AtomType name="CMB" mass="40.065" charge="0.0" eqt_q_inc="CMB" eqt_vdw="CMB" eqt_bond="CMB" eqt_ang_c="CMB" eqt_ang_s="CMB" eqt_dih_c="CMB" eqt_dih_s="CMB" eqt_imp_c="CMB" eqt_imp_s="CMB" eqt_polar="CMB"/>
+    <AtomType name="CMR" mass="41.073" charge="0.0" eqt_q_inc="CMR" eqt_vdw="CMR" eqt_bond="CMR" eqt_ang_c="CMR" eqt_ang_s="CMR" eqt_dih_c="CMR" eqt_dih_s="CMR" eqt_imp_c="CMR" eqt_imp_s="CMR" eqt_polar="CMR"/>
+    <AtomType name="CMR5" mass="41.073" charge="0.0" eqt_q_inc="CMR5" eqt_vdw="CMR5" eqt_bond="CMR5" eqt_ang_c="CMR5" eqt_ang_s="CMR5" eqt_dih_c="CMR5" eqt_dih_s="CMR5" eqt_imp_c="CMR5" eqt_imp_s="CMR5" eqt_polar="CMR5"/>
+    <AtomType name="CTBB" mass="27.046" charge="0.0" eqt_q_inc="CTBB" eqt_vdw="CTBB" eqt_bond="CTBB" eqt_ang_c="CTBB" eqt_ang_s="CTBB" eqt_dih_c="CTBB" eqt_dih_s="CTBB" eqt_imp_c="CTBB" eqt_imp_s="CTBB" eqt_polar="CTBB"/>
+    <AtomType name="CTB" mass="42.081" charge="0.0" eqt_q_inc="CTB" eqt_vdw="CTB" eqt_bond="CTB" eqt_ang_c="CTB" eqt_ang_s="CTB" eqt_dih_c="CTB" eqt_dih_s="CTB" eqt_imp_c="CTB" eqt_imp_s="CTB" eqt_polar="CTB"/>
+    <AtomType name="C2T" mass="43.089" charge="0.0" eqt_q_inc="C2T" eqt_vdw="C2T" eqt_bond="C2T" eqt_ang_c="C2T" eqt_ang_s="C2T" eqt_dih_c="C2T" eqt_dih_s="C2T" eqt_imp_c="C2T" eqt_imp_s="C2T" eqt_polar="C2T"/>
+    <AtomType name="NC" mass="87.1647" charge="1.0" eqt_q_inc="NC" eqt_vdw="NC" eqt_bond="NC" eqt_ang_c="NC" eqt_ang_s="NC" eqt_dih_c="NC" eqt_dih_s="NC" eqt_imp_c="NC" eqt_imp_s="NC" eqt_polar="NC"/>
+    <AtomType name="PH" mass="94.9716" charge="-1.0" eqt_q_inc="PH" eqt_vdw="PH" eqt_bond="PH" eqt_ang_c="PH" eqt_ang_s="PH" eqt_dih_c="PH" eqt_dih_s="PH" eqt_imp_c="PH" eqt_imp_s="PH" eqt_polar="PH"/>
+    <AtomType name="GL" mass="41.0725" charge="0.0" eqt_q_inc="GL" eqt_vdw="GL" eqt_bond="GL" eqt_ang_c="GL" eqt_ang_s="GL" eqt_dih_c="GL" eqt_dih_s="GL" eqt_imp_c="GL" eqt_imp_s="GL" eqt_polar="GL"/>
+    <AtomType name="EST2" mass="58.0358" charge="0.0" eqt_q_inc="EST2" eqt_vdw="EST2" eqt_bond="EST2" eqt_ang_c="EST2" eqt_ang_s="EST2" eqt_dih_c="EST2" eqt_dih_s="EST2" eqt_imp_c="EST2" eqt_imp_s="EST2" eqt_polar="EST2"/>
+    <AtomType name="NH" mass="45.0843" charge="1.0" eqt_q_inc="NH" eqt_vdw="NH" eqt_bond="NH" eqt_ang_c="NH" eqt_ang_s="NH" eqt_dih_c="NH" eqt_dih_s="NH" eqt_imp_c="NH" eqt_imp_s="NH" eqt_polar="NH"/>
+    <AtomType name="PHE" mass="94.9716" charge="-1.0" eqt_q_inc="PHE" eqt_vdw="PHE" eqt_bond="PHE" eqt_ang_c="PHE" eqt_ang_s="PHE" eqt_dih_c="PHE" eqt_dih_s="PHE" eqt_imp_c="PHE" eqt_imp_s="PHE" eqt_polar="PHE"/>
+    <AtomType name="CMD" mass="42.0804" charge="0.0" eqt_q_inc="CMD" eqt_vdw="CMD" eqt_bond="CMD" eqt_ang_c="CMD" eqt_ang_s="CMD" eqt_dih_c="CMD" eqt_dih_s="CMD" eqt_imp_c="CMD" eqt_imp_s="CMD" eqt_polar="CMD"/>
+    <AtomType name="COO" mass="44.0095" charge="-1.0" eqt_q_inc="COO" eqt_vdw="COO" eqt_bond="COO" eqt_ang_c="COO" eqt_ang_s="COO" eqt_dih_c="COO" eqt_dih_s="COO" eqt_imp_c="COO" eqt_imp_s="COO" eqt_polar="COO"/>
+    <AtomType name="COOH" mass="45.0174" charge="0.0" eqt_q_inc="COOH" eqt_vdw="COOH" eqt_bond="COOH" eqt_ang_c="COOH" eqt_ang_s="COOH" eqt_dih_c="COOH" eqt_dih_s="COOH" eqt_imp_c="COOH" eqt_imp_s="COOH" eqt_polar="COOH"/>
+    <AtomType name="CM4" mass="56.108" charge="0.0" eqt_q_inc="CM4" eqt_vdw="CM4" eqt_bond="CM4" eqt_ang_c="CM4" eqt_ang_s="CM4" eqt_dih_c="CM4" eqt_dih_s="CM4" eqt_imp_c="CM4" eqt_imp_s="CM4" eqt_polar="CM4"/>
+    <AtomType name="CLA" mass="35.453" charge="-1.0" eqt_q_inc="CLA" eqt_vdw="CLA" eqt_bond="CLA" eqt_ang_c="CLA" eqt_ang_s="CLA" eqt_dih_c="CLA" eqt_dih_s="CLA" eqt_imp_c="CLA" eqt_imp_s="CLA" eqt_polar="CLA"/>
+    <AtomType name="SOD" mass="77.0342" charge="1.0" eqt_q_inc="SOD" eqt_vdw="SOD" eqt_bond="SOD" eqt_ang_c="SOD" eqt_ang_s="SOD" eqt_dih_c="SOD" eqt_dih_s="SOD" eqt_imp_c="SOD" eqt_imp_s="SOD" eqt_polar="SOD"/>
+    <AtomType name="T1" mass="29.0184" charge="0.0" eqt_q_inc="T1" eqt_vdw="T1" eqt_bond="T1" eqt_ang_c="T1" eqt_ang_s="T1" eqt_dih_c="T1" eqt_dih_s="T1" eqt_imp_c="T1" eqt_imp_s="T1" eqt_polar="T1"/>
+    <AtomType name="T2" mass="30.05" charge="0.0" eqt_q_inc="T2" eqt_vdw="T2" eqt_bond="T2" eqt_ang_c="T2" eqt_ang_s="T2" eqt_dih_c="T2" eqt_dih_s="T2" eqt_imp_c="T2" eqt_imp_s="T2" eqt_polar="T2"/>
+    <AtomType name="EO" mass="44.0534" charge="0.0" eqt_q_inc="EO" eqt_vdw="EO" eqt_bond="EO" eqt_ang_c="EO" eqt_ang_s="EO" eqt_dih_c="EO" eqt_dih_s="EO" eqt_imp_c="EO" eqt_imp_s="EO" eqt_polar="EO"/>
+    <AtomType name="OB" mass="44.0526" charge="0.0" eqt_q_inc="OB" eqt_vdw="OB" eqt_bond="OB" eqt_ang_c="OB" eqt_ang_s="OB" eqt_dih_c="OB" eqt_dih_s="OB" eqt_imp_c="OB" eqt_imp_s="OB" eqt_polar="OB"/>
+    <AtomType name="PHS" mass="94.9714" charge="-1.0" eqt_q_inc="PHS" eqt_vdw="PHS" eqt_bond="PHS" eqt_ang_c="PHS" eqt_ang_s="PHS" eqt_dih_c="PHS" eqt_dih_s="PHS" eqt_imp_c="PHS" eqt_imp_s="PHS" eqt_polar="PHS"/>
+    <AtomType name="GL2" mass="27.0452" charge="0.0" eqt_q_inc="GL2" eqt_vdw="GL2" eqt_bond="GL2" eqt_ang_c="GL2" eqt_ang_s="GL2" eqt_dih_c="GL2" eqt_dih_s="GL2" eqt_imp_c="GL2" eqt_imp_s="GL2" eqt_polar="GL2"/>
+    <AtomType name="OAD" mass="30.026" charge="0.0" eqt_q_inc="OAD" eqt_vdw="OAD" eqt_bond="OAD" eqt_ang_c="OAD" eqt_ang_s="OAD" eqt_dih_c="OAD" eqt_dih_s="OAD" eqt_imp_c="OAD" eqt_imp_s="OAD" eqt_polar="OAD"/>
+    <AtomType name="CMO" mass="40.0639" charge="0.0" eqt_q_inc="CMO" eqt_vdw="CMO" eqt_bond="CMO" eqt_ang_c="CMO" eqt_ang_s="CMO" eqt_dih_c="CMO" eqt_dih_s="CMO" eqt_imp_c="CMO" eqt_imp_s="CMO" eqt_polar="CMO"/>
+    <AtomType name="PEP" mass="43.0247" charge="0.0" eqt_q_inc="PEP" eqt_vdw="PEP" eqt_bond="PEP" eqt_ang_c="PEP" eqt_ang_s="PEP" eqt_dih_c="PEP" eqt_dih_s="PEP" eqt_imp_c="PEP" eqt_imp_s="PEP" eqt_polar="PEP"/>
+    <AtomType name="ABB" mass="71.079" charge="0.0" eqt_q_inc="ABB" eqt_vdw="ABB" eqt_bond="ABB" eqt_ang_c="ABB" eqt_ang_s="ABB" eqt_dih_c="ABB" eqt_dih_s="ABB" eqt_imp_c="ABB" eqt_imp_s="ABB" eqt_polar="ABB"/>
+    <AtomType name="GB1" mass="54.028" charge="0.0" eqt_q_inc="GB1" eqt_vdw="GB1" eqt_bond="GB1" eqt_ang_c="GB1" eqt_ang_s="GB1" eqt_dih_c="GB1" eqt_dih_s="GB1" eqt_imp_c="GB1" eqt_imp_s="GB1" eqt_polar="GB1"/>
+    <AtomType name="AR1" mass="42.081" charge="0.0" eqt_q_inc="AR1" eqt_vdw="AR1" eqt_bond="AR1" eqt_ang_c="AR1" eqt_ang_s="AR1" eqt_dih_c="AR1" eqt_dih_s="AR1" eqt_imp_c="AR1" eqt_imp_s="AR1" eqt_polar="AR1"/>
+    <AtomType name="AR2" mass="59.072" charge="1.0" eqt_q_inc="AR2" eqt_vdw="AR2" eqt_bond="AR2" eqt_ang_c="AR2" eqt_ang_s="AR2" eqt_dih_c="AR2" eqt_dih_s="AR2" eqt_imp_c="AR2" eqt_imp_s="AR2" eqt_polar="AR2"/>
+    <AtomType name="ASN" mass="58.06" charge="0.0" eqt_q_inc="ASN" eqt_vdw="ASN" eqt_bond="ASN" eqt_ang_c="ASN" eqt_ang_s="ASN" eqt_dih_c="ASN" eqt_dih_s="ASN" eqt_imp_c="ASN" eqt_imp_s="ASN" eqt_polar="ASN"/>
+    <AtomType name="ASP" mass="58.036" charge="-1.0" eqt_q_inc="ASP" eqt_vdw="ASP" eqt_bond="ASP" eqt_ang_c="ASP" eqt_ang_s="ASP" eqt_dih_c="ASP" eqt_dih_s="ASP" eqt_imp_c="ASP" eqt_imp_s="ASP" eqt_polar="ASP"/>
+    <AtomType name="GB3" mass="54.028" charge="0.0" eqt_q_inc="GB3" eqt_vdw="GB3" eqt_bond="GB3" eqt_ang_c="GB3" eqt_ang_s="GB3" eqt_dih_c="GB3" eqt_dih_s="GB3" eqt_imp_c="GB3" eqt_imp_s="GB3" eqt_polar="GB3"/>
+    <AtomType name="CYS" mass="47.095" charge="0.0" eqt_q_inc="CYS" eqt_vdw="CYS" eqt_bond="CYS" eqt_ang_c="CYS" eqt_ang_s="CYS" eqt_dih_c="CYS" eqt_dih_s="CYS" eqt_imp_c="CYS" eqt_imp_s="CYS" eqt_polar="CYS"/>
+    <AtomType name="GLN" mass="72.087" charge="0.0" eqt_q_inc="GLN" eqt_vdw="GLN" eqt_bond="GLN" eqt_ang_c="GLN" eqt_ang_s="GLN" eqt_dih_c="GLN" eqt_dih_s="GLN" eqt_imp_c="GLN" eqt_imp_s="GLN" eqt_polar="GLN"/>
+    <AtomType name="GLU" mass="72.063" charge="-1.0" eqt_q_inc="GLU" eqt_vdw="GLU" eqt_bond="GLU" eqt_ang_c="GLU" eqt_ang_s="GLU" eqt_dih_c="GLU" eqt_dih_s="GLU" eqt_imp_c="GLU" eqt_imp_s="GLU" eqt_polar="GLU"/>
+    <AtomType name="GBB" mass="54.028" charge="0.0" eqt_q_inc="GBB" eqt_vdw="GBB" eqt_bond="GBB" eqt_ang_c="GBB" eqt_ang_s="GBB" eqt_dih_c="GBB" eqt_dih_s="GBB" eqt_imp_c="GBB" eqt_imp_s="GBB" eqt_polar="GBB"/>
+    <AtomType name="HI1" mass="26.038" charge="0.0" eqt_q_inc="HI1" eqt_vdw="HI1" eqt_bond="HI1" eqt_ang_c="HI1" eqt_ang_s="HI1" eqt_dih_c="HI1" eqt_dih_s="HI1" eqt_imp_c="HI1" eqt_imp_s="HI1" eqt_polar="HI1"/>
+    <AtomType name="HI2" mass="28.0" charge="0.0" eqt_q_inc="HI2" eqt_vdw="HI2" eqt_bond="HI2" eqt_ang_c="HI2" eqt_ang_s="HI2" eqt_dih_c="HI2" eqt_dih_s="HI2" eqt_imp_c="HI2" eqt_imp_s="HI2" eqt_polar="HI2"/>
+    <AtomType name="HI3" mass="28.0" charge="0.0" eqt_q_inc="HI3" eqt_vdw="HI3" eqt_bond="HI3" eqt_ang_c="HI3" eqt_ang_s="HI3" eqt_dih_c="HI3" eqt_dih_s="HI3" eqt_imp_c="HI3" eqt_imp_s="HI3" eqt_polar="HI3"/>
+    <AtomType name="ILE" mass="57.116" charge="0.0" eqt_q_inc="ILE" eqt_vdw="ILE" eqt_bond="ILE" eqt_ang_c="ILE" eqt_ang_s="ILE" eqt_dih_c="ILE" eqt_dih_s="ILE" eqt_imp_c="ILE" eqt_imp_s="ILE" eqt_polar="ILE"/>
+    <AtomType name="LEU" mass="57.116" charge="0.0" eqt_q_inc="LEU" eqt_vdw="LEU" eqt_bond="LEU" eqt_ang_c="LEU" eqt_ang_s="LEU" eqt_dih_c="LEU" eqt_dih_s="LEU" eqt_imp_c="LEU" eqt_imp_s="LEU" eqt_polar="LEU"/>
+    <AtomType name="LY1" mass="42.081" charge="0.0" eqt_q_inc="LY1" eqt_vdw="LY1" eqt_bond="LY1" eqt_ang_c="LY1" eqt_ang_s="LY1" eqt_dih_c="LY1" eqt_dih_s="LY1" eqt_imp_c="LY1" eqt_imp_s="LY1" eqt_polar="LY1"/>
+    <AtomType name="LY2" mass="31.058" charge="1.0" eqt_q_inc="LY2" eqt_vdw="LY2" eqt_bond="LY2" eqt_ang_c="LY2" eqt_ang_s="LY2" eqt_dih_c="LY2" eqt_dih_s="LY2" eqt_imp_c="LY2" eqt_imp_s="LY2" eqt_polar="LY2"/>
+    <AtomType name="GB2" mass="54.028" charge="0.0" eqt_q_inc="GB2" eqt_vdw="GB2" eqt_bond="GB2" eqt_ang_c="GB2" eqt_ang_s="GB2" eqt_dih_c="GB2" eqt_dih_s="GB2" eqt_imp_c="GB2" eqt_imp_s="GB2" eqt_polar="GB2"/>
+    <AtomType name="MET" mass="75.149" charge="0.0" eqt_q_inc="MET" eqt_vdw="MET" eqt_bond="MET" eqt_ang_c="MET" eqt_ang_s="MET" eqt_dih_c="MET" eqt_dih_s="MET" eqt_imp_c="MET" eqt_imp_s="MET" eqt_polar="MET"/>
+    <AtomType name="GB4" mass="54.028" charge="0.0" eqt_q_inc="GB4" eqt_vdw="GB4" eqt_bond="GB4" eqt_ang_c="GB4" eqt_ang_s="GB4" eqt_dih_c="GB4" eqt_dih_s="GB4" eqt_imp_c="GB4" eqt_imp_s="GB4" eqt_polar="GB4"/>
+    <AtomType name="XYR" mass="23.035" charge="0.0" eqt_q_inc="XYR" eqt_vdw="XYR" eqt_bond="XYR" eqt_ang_c="XYR" eqt_ang_s="XYR" eqt_dih_c="XYR" eqt_dih_s="XYR" eqt_imp_c="XYR" eqt_imp_s="XYR" eqt_polar="XYR"/>
+    <AtomType name="BER" mass="23.035" charge="0.0" eqt_q_inc="BER" eqt_vdw="BER" eqt_bond="BER" eqt_ang_c="BER" eqt_ang_s="BER" eqt_dih_c="BER" eqt_dih_s="BER" eqt_imp_c="BER" eqt_imp_s="BER" eqt_polar="BER"/>
+    <AtomType name="PRO" mass="42.081" charge="0.0" eqt_q_inc="PRO" eqt_vdw="PRO" eqt_bond="PRO" eqt_ang_c="PRO" eqt_ang_s="PRO" eqt_dih_c="PRO" eqt_dih_s="PRO" eqt_imp_c="PRO" eqt_imp_s="PRO" eqt_polar="PRO"/>
+    <AtomType name="THR" mass="45.061" charge="0.0" eqt_q_inc="THR" eqt_vdw="THR" eqt_bond="THR" eqt_ang_c="THR" eqt_ang_s="THR" eqt_dih_c="THR" eqt_dih_s="THR" eqt_imp_c="THR" eqt_imp_s="THR" eqt_polar="THR"/>
+    <AtomType name="TR1" mass="39.057" charge="0.0" eqt_q_inc="TR1" eqt_vdw="TR1" eqt_bond="TR1" eqt_ang_c="TR1" eqt_ang_s="TR1" eqt_dih_c="TR1" eqt_dih_s="TR1" eqt_imp_c="TR1" eqt_imp_s="TR1" eqt_polar="TR1"/>
+    <AtomType name="TR2" mass="92.121" charge="0.0" eqt_q_inc="TR2" eqt_vdw="TR2" eqt_bond="TR2" eqt_ang_c="TR2" eqt_ang_s="TR2" eqt_dih_c="TR2" eqt_dih_s="TR2" eqt_imp_c="TR2" eqt_imp_s="TR2" eqt_polar="TR2"/>
+    <AtomType name="TR3" mass="75.09" charge="0.0" eqt_q_inc="TR3" eqt_vdw="TR3" eqt_bond="TR3" eqt_ang_c="TR3" eqt_ang_s="TR3" eqt_dih_c="TR3" eqt_dih_s="TR3" eqt_imp_c="TR3" eqt_imp_s="TR3" eqt_polar="TR3"/>
+    <AtomType name="PHR" mass="39.065" charge="0.0" eqt_q_inc="PHR" eqt_vdw="PHR" eqt_bond="PHR" eqt_ang_c="PHR" eqt_ang_s="PHR" eqt_dih_c="PHR" eqt_dih_s="PHR" eqt_imp_c="PHR" eqt_imp_s="PHR" eqt_polar="PHR"/>
+    <AtomType name="VAL" mass="43.089" charge="0.0" eqt_q_inc="VAL" eqt_vdw="VAL" eqt_bond="VAL" eqt_ang_c="VAL" eqt_ang_s="VAL" eqt_dih_c="VAL" eqt_dih_s="VAL" eqt_imp_c="VAL" eqt_imp_s="VAL" eqt_polar="VAL"/>
+    <AtomType name="W" mass="54.046" charge="0.0" eqt_q_inc="W" eqt_vdw="W" eqt_bond="W" eqt_ang_c="W" eqt_ang_s="W" eqt_dih_c="W" eqt_dih_s="W" eqt_imp_c="W" eqt_imp_s="W" eqt_polar="W"/>
+    <AtomType name="SO4" mass="96.062" charge="-1.0" eqt_q_inc="SO4" eqt_vdw="SO4" eqt_bond="SO4" eqt_ang_c="SO4" eqt_ang_s="SO4" eqt_dih_c="SO4" eqt_dih_s="SO4" eqt_imp_c="SO4" eqt_imp_s="SO4" eqt_polar="SO4"/>
+  </AtomTypes>
+  <VirtualSiteTerms/>
+  <ChargeIncrementTerms/>
+  <VdwTerms>
+    <MieTerm type1="C2T" type2="C2T" epsilon="1.6749" sigma="0.4811" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CM2" epsilon="1.1247" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CM2R" epsilon="0.7531" sigma="0.3974" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM4" type2="CM4" epsilon="2.3372" sigma="0.4641" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMB" epsilon="1.0368" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CM" epsilon="1.7573" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CMD2" epsilon="0.9707" sigma="0.4005" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CMDB" epsilon="1.1096" sigma="0.5016" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CMR5" epsilon="0.8962" sigma="0.4731" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CMR" epsilon="0.8962" sigma="0.4731" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="CT2" epsilon="1.3054" sigma="0.4221" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="CTBA" epsilon="1.5431" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="CTBB" epsilon="1.5431" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="CTB" epsilon="1.1247" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="CT" epsilon="1.9623" sigma="0.4585" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EO" type2="EO" epsilon="1.6945" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EOT" type2="EOT" epsilon="1.8284" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="EST1" epsilon="2.0711" sigma="0.43" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="EST2" epsilon="2.0711" sigma="0.43" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="GL" epsilon="1.7573" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="NC" epsilon="2.9288" sigma="0.575" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NH" type2="NH" epsilon="4.6024" sigma="0.46" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="OAB" epsilon="4.3932" sigma="0.3713" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OA" type2="OA" epsilon="1.879" sigma="0.3713" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PHE" type2="PHE" epsilon="5.8576" sigma="0.46" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PH" type2="PH" epsilon="5.8576" sigma="0.54" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="W" type2="W" epsilon="3.7447" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="PHS" type2="PHS" epsilon="2.343" sigma="0.54" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CMO" epsilon="1.4058" sigma="0.4281" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAD" type2="OAD" epsilon="3.0066" sigma="0.4084" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="GL2" epsilon="1.5816" sigma="0.3605" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PEP" type2="PEP" epsilon="5.8576" sigma="0.415" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CMD" epsilon="1.0192" sigma="0.4165" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="SOD" type2="SOD" epsilon="1.4644" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="CLA" epsilon="1.4644" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="NC4" type2="NC4" epsilon="2.092" sigma="0.595" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="SO4" type2="SO4" epsilon="2.9288" sigma="0.4321" repulsion="9.0" attraction="6.0"/>
+  </VdwTerms>
+  <PairwiseVdwTerms>
+    <MieTerm type1="C2T" type2="CT" epsilon="1.7113" sigma="0.486" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CT2" epsilon="1.2426" sigma="0.4527" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CTB" epsilon="1.5979" sigma="0.4614" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CTBA" epsilon="1.146" sigma="0.4614" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CTBB" epsilon="1.2263" sigma="0.4614" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="OA" epsilon="1.8292" sigma="0.4033" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="OAB" epsilon="1.2159" sigma="0.4446" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CM2" epsilon="1.5757" sigma="0.4614" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CM2" epsilon="1.4058" sigma="0.4462" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CM2R" epsilon="1.0523" sigma="0.4195" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMB" epsilon="1.1891" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMR" epsilon="1.192" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMR5" epsilon="1.1418" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CT" epsilon="1.2594" sigma="0.4455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CT2" epsilon="0.954" sigma="0.432" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CTB" epsilon="1.3468" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CTBA" epsilon="1.0175" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CTBB" epsilon="0.9439" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="OA" epsilon="1.3426" sigma="0.3937" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CM2R" epsilon="1.3163" sigma="0.4393" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CM2R" epsilon="1.8857" sigma="0.424" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMB" epsilon="1.2008" sigma="0.4434" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMR" epsilon="0.8326" sigma="0.4567" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMR5" epsilon="1.3556" sigma="0.4463" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="OA" epsilon="1.5581" sigma="0.3913" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="W" epsilon="1.1665" sigma="0.4172" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM2" type2="CM4" epsilon="1.7359" sigma="0.4522" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CM4" epsilon="2.0146" sigma="0.4494" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM4" type2="CT2" epsilon="2.0146" sigma="0.4494" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM4" type2="CTBA" epsilon="2.0146" sigma="0.4494" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM4" type2="CTBB" epsilon="2.0146" sigma="0.4494" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM4" type2="W" epsilon="1.7497" sigma="0.466" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="CMB" epsilon="1.5573" sigma="0.4659" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="OA" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CM" epsilon="1.6359" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMB" epsilon="2.0841" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMR" epsilon="2.0497" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMR5" epsilon="2.0694" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CMD2" epsilon="1.3749" sigma="0.4408" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMD2" epsilon="1.3054" sigma="0.4255" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMD2" epsilon="1.0632" sigma="0.421" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMD2" epsilon="0.8586" sigma="0.399" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMD2" epsilon="1.0615" sigma="0.4255" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CMDB" epsilon="1.1088" sigma="0.451" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CMR" epsilon="1.0025" sigma="0.4368" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CMR5" epsilon="0.9502" sigma="0.4368" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CT" epsilon="1.3807" sigma="0.4295" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CT2" epsilon="1.1255" sigma="0.4113" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CTB" epsilon="1.0941" sigma="0.421" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CTBA" epsilon="1.2979" sigma="0.421" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CTBB" epsilon="1.3012" sigma="0.421" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="EST1" epsilon="1.841" sigma="0.4005" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="EST2" epsilon="1.841" sigma="0.4005" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="GL" epsilon="1.3054" sigma="0.4255" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="W" epsilon="1.1297" sigma="0.4188" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="CMDB" epsilon="1.5912" sigma="0.4914" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMDB" epsilon="2.1522" sigma="0.4761" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMDB" epsilon="1.3305" sigma="0.4716" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMDB" epsilon="1.9945" sigma="0.4495" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMDB" epsilon="1.9769" sigma="0.4761" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CMR" epsilon="1.3514" sigma="0.4524" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CMR5" epsilon="1.769" sigma="0.4874" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CT" epsilon="1.3376" sigma="0.48" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CT2" epsilon="1.1632" sigma="0.4194" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CTB" epsilon="1.328" sigma="0.4716" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CTBA" epsilon="1.8518" sigma="0.4716" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CTBB" epsilon="1.8749" sigma="0.4716" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="EST1" epsilon="1.7418" sigma="0.4658" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="EST2" epsilon="1.7418" sigma="0.4658" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="GL" epsilon="1.5615" sigma="0.4761" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="W" epsilon="1.2678" sigma="0.4311" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="OA" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CMR5" epsilon="1.4569" sigma="0.4771" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMR5" epsilon="1.9686" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CMR5" epsilon="1.7703" sigma="0.4731" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="OA" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CMR" epsilon="1.3585" sigma="0.4771" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMR" epsilon="1.8803" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CT2" epsilon="1.5146" sigma="0.4553" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CTBA" epsilon="1.7376" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CTBB" epsilon="1.7548" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="OA" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CT2" epsilon="1.5146" sigma="0.4364" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CT2" epsilon="0.9736" sigma="0.4098" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CT2" epsilon="1.1042" sigma="0.4364" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CT2" epsilon="1.0418" sigma="0.4476" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="CT2" epsilon="1.6025" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="CTB" epsilon="1.5205" sigma="0.4319" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="CTBA" epsilon="1.4117" sigma="0.4319" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="CTBB" epsilon="1.3866" sigma="0.4319" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="OA" epsilon="1.5899" sigma="0.384" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CTBA" epsilon="1.8146" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CTBA" epsilon="1.8188" sigma="0.4195" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CTBA" epsilon="1.8644" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CTBA" epsilon="1.6682" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="CTBA" epsilon="1.6234" sigma="0.45" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="CTBA" epsilon="1.0192" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="OA" epsilon="1.5899" sigma="0.384" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CTBB" epsilon="1.9397" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CTBB" epsilon="1.7937" sigma="0.4195" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CTBB" epsilon="1.8062" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CTBB" epsilon="1.679" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="CTBB" epsilon="1.5945" sigma="0.45" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="CTBB" epsilon="0.9598" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="CTBB" epsilon="1.9305" sigma="0.4416" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="OA" epsilon="1.5899" sigma="0.384" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CTB" epsilon="1.6619" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CTB" epsilon="1.8451" sigma="0.4692" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CTB" epsilon="1.1991" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CTB" epsilon="1.1506" sigma="0.4574" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CTB" epsilon="1.4058" sigma="0.4708" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="OA" epsilon="1.8292" sigma="0.4033" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="OAB" epsilon="1.4652" sigma="0.4248" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CT" epsilon="1.8577" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CT" epsilon="1.1196" sigma="0.428" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CT" epsilon="1.2698" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="CT" epsilon="1.7418" sigma="0.4658" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="CT" epsilon="1.1979" sigma="0.4658" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="CTB" epsilon="1.7485" sigma="0.45" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="OA" epsilon="1.8292" sigma="0.4033" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="OAB" epsilon="1.62" sigma="0.4149" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="EO" epsilon="1.7154" sigma="0.434" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="EO" epsilon="1.5774" sigma="0.4274" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="EO" epsilon="1.3464" sigma="0.4233" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="EO" epsilon="1.5627" sigma="0.4207" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="EO" epsilon="1.5774" sigma="0.4274" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="EO" epsilon="1.5774" sigma="0.4274" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="EO" epsilon="1.5774" sigma="0.4274" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="EO" epsilon="1.5774" sigma="0.4274" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="EO" epsilon="1.7154" sigma="0.434" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="EO" epsilon="1.5481" sigma="0.414" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="EO" epsilon="1.7154" sigma="0.434" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="EO" epsilon="1.5481" sigma="0.414" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="EO" epsilon="1.5481" sigma="0.414" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EO" type2="EOT" epsilon="1.7573" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EO" type2="OA" epsilon="1.841" sigma="0.389" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EO" type2="OAB" epsilon="1.841" sigma="0.389" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="EST1" epsilon="1.1632" sigma="0.4556" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="EST1" epsilon="1.9665" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="EST1" epsilon="1.2439" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="EST1" epsilon="1.374" sigma="0.4137" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="EST1" epsilon="1.8874" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="EST1" epsilon="1.6564" sigma="0.4516" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="EST1" epsilon="1.6899" sigma="0.4516" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="EST1" epsilon="1.9665" sigma="0.4442" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="EST1" epsilon="1.6318" sigma="0.4261" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="EST1" epsilon="1.4878" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="EST1" epsilon="1.8686" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="EST1" epsilon="1.82" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="EST2" epsilon="2.0711" sigma="0.43" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="NC" epsilon="3.138" sigma="0.4475" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="PH" epsilon="2.092" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="W" epsilon="3.4309" sigma="0.429" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="EST2" epsilon="1.1632" sigma="0.4556" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="EST2" epsilon="1.9665" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="EST2" epsilon="1.2439" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="EST2" epsilon="1.374" sigma="0.4137" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="EST2" epsilon="1.8874" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="EST2" epsilon="1.6564" sigma="0.4516" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="EST2" epsilon="1.6899" sigma="0.4516" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="EST2" epsilon="1.9665" sigma="0.4442" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="EST2" epsilon="1.6318" sigma="0.4261" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="EST2" epsilon="1.4878" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="EST2" epsilon="1.8686" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="EST2" epsilon="1.82" sigma="0.4358" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="NC" epsilon="3.138" sigma="0.4475" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="PH" epsilon="2.092" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="W" epsilon="3.4309" sigma="0.429" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="GL" epsilon="1.3506" sigma="0.4659" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="GL" epsilon="1.7573" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="GL" epsilon="1.3828" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="GL" epsilon="1.3673" sigma="0.424" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="GL" epsilon="1.9941" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="GL" epsilon="1.8778" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="GL" epsilon="1.8656" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="GL" epsilon="1.8577" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="GL" epsilon="1.5146" sigma="0.4364" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="GL" epsilon="1.3226" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="GL" epsilon="1.5631" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="GL" epsilon="1.5548" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="GL" epsilon="1.9665" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="GL" epsilon="1.9665" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="NC" epsilon="2.7196" sigma="0.462" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="PH" epsilon="1.2552" sigma="0.475" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="W" epsilon="2.6778" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="NC" epsilon="1.2272" sigma="0.4753" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="NC" epsilon="1.6736" sigma="0.5128" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="NC" epsilon="1.3565" sigma="0.4575" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="NC" epsilon="1.1113" sigma="0.4376" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="NC" epsilon="1.341" sigma="0.4615" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="NC" epsilon="1.4644" sigma="0.4878" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="NC" epsilon="1.3498" sigma="0.4845" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="NC" epsilon="1.2899" sigma="0.4717" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="NC" epsilon="1.1945" sigma="0.4717" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="NC" epsilon="1.7573" sigma="0.5168" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="NC" epsilon="1.3389" sigma="0.4985" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="NC" epsilon="1.3673" sigma="0.4575" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="NC" epsilon="1.5845" sigma="0.4575" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="NC" epsilon="1.6301" sigma="0.4575" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="NH" epsilon="3.6819" sigma="0.5175" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="PH" epsilon="4.8116" sigma="0.42" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="PHE" epsilon="4.8116" sigma="0.42" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="W" epsilon="3.7656" sigma="0.461" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="NH" type2="OAB" epsilon="3.5614" sigma="0.4157" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="NH" epsilon="1.2238" sigma="0.4706" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="NH" epsilon="1.3807" sigma="0.4553" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="NH" epsilon="1.3238" sigma="0.4508" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="NH" epsilon="1.0841" sigma="0.4287" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="NH" epsilon="1.3401" sigma="0.4553" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="NH" epsilon="1.2552" sigma="0.4303" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="NH" epsilon="1.3623" sigma="0.4808" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="NH" epsilon="1.2577" sigma="0.4666" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="NH" epsilon="1.1996" sigma="0.4666" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="NH" epsilon="1.4226" sigma="0.4593" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="NH" epsilon="1.3389" sigma="0.441" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="NH" epsilon="1.3585" sigma="0.4508" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="NH" epsilon="1.5736" sigma="0.4508" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="NH" epsilon="1.6736" sigma="0.4508" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="NH" epsilon="3.5564" sigma="0.411" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="NH" epsilon="3.5564" sigma="0.411" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="NH" epsilon="3.138" sigma="0.419" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NH" type2="PH" epsilon="5.0208" sigma="0.38" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NH" type2="PHE" epsilon="5.0208" sigma="0.38" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NH" type2="W" epsilon="3.3472" sigma="0.395" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="OAB" epsilon="1.6217" sigma="0.4293" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="OAB" epsilon="1.5121" sigma="0.4248" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="OAB" epsilon="1.6041" sigma="0.4027" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="OAB" epsilon="1.7062" sigma="0.4293" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="OAB" epsilon="1.174" sigma="0.4043" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="OAB" epsilon="1.6744" sigma="0.4548" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="OAB" epsilon="1.5987" sigma="0.4406" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="OAB" epsilon="1.5" sigma="0.4406" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="OAB" epsilon="1.3502" sigma="0.4151" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="OAB" epsilon="1.7866" sigma="0.4248" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="OAB" epsilon="1.7903" sigma="0.4248" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="OAB" epsilon="2.6439" sigma="0.419" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="OAB" epsilon="2.6439" sigma="0.419" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="OAB" epsilon="1.3619" sigma="0.4293" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="OAB" epsilon="3.5614" sigma="0.4423" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="PH" epsilon="3.0359" sigma="0.4266" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="W" epsilon="5.0208" sigma="0.395" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CMD2" type2="OA" epsilon="1.5272" sigma="0.3859" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="OA" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OA" type2="OAB" epsilon="1.879" sigma="0.3713" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="PH" epsilon="1.6723" sigma="0.4595" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="PH" epsilon="1.2552" sigma="0.4953" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="PH" epsilon="1.7472" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="PH" epsilon="1.4477" sigma="0.4218" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="PH" epsilon="1.6242" sigma="0.4458" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="PH" epsilon="1.2552" sigma="0.4702" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="PH" epsilon="1.6598" sigma="0.4687" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="PH" epsilon="1.638" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="PH" epsilon="1.6096" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="PH" epsilon="1.3389" sigma="0.4992" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="PH" epsilon="1.1715" sigma="0.4811" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="PH" epsilon="1.6983" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="PH" epsilon="1.8514" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="PH" epsilon="1.8125" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="PHE" epsilon="3.0359" sigma="0.4266" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="PHE" epsilon="1.7054" sigma="0.4595" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="PHE" epsilon="1.2552" sigma="0.4953" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="PHE" epsilon="1.6928" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="PHE" epsilon="1.4849" sigma="0.4218" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="PHE" epsilon="1.5924" sigma="0.4458" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="PHE" epsilon="1.2552" sigma="0.4702" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="PHE" epsilon="1.6234" sigma="0.4687" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="PHE" epsilon="1.6669" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="PHE" epsilon="1.5845" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="PHE" epsilon="1.3389" sigma="0.4992" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="PHE" epsilon="1.1715" sigma="0.4811" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="PHE" epsilon="1.7322" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="PHE" epsilon="1.8669" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="PHE" epsilon="1.7313" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="PHE" epsilon="2.092" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="PHE" epsilon="2.092" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="PHE" epsilon="1.2552" sigma="0.475" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PHE" type2="W" epsilon="4.184" sigma="0.403" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="PH" type2="PHE" epsilon="5.8576" sigma="0.5" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PH" type2="W" epsilon="4.184" sigma="0.403" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="C2T" type2="W" epsilon="1.5062" sigma="0.4478" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="W" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM2R" type2="W" epsilon="1.3138" sigma="0.4367" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CMB" type2="W" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CMR" type2="W" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CMR5" type2="W" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CT" type2="W" epsilon="1.5062" sigma="0.4478" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CT2" type2="W" epsilon="1.2134" sigma="0.4296" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CTB" type2="W" epsilon="1.5062" sigma="0.4478" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CTBA" type2="W" epsilon="1.2134" sigma="0.4296" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CTBB" type2="W" epsilon="1.2134" sigma="0.4296" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="EO" type2="W" epsilon="2.3849" sigma="0.431" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="OA" type2="W" epsilon="2.9288" sigma="0.395" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="NC" type2="PHS" epsilon="2.4058" sigma="0.441" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="OAD" epsilon="1.1728" sigma="0.3785" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC" type2="PEP" epsilon="2.2845" sigma="0.4207" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="NC" epsilon="3.2635" sigma="0.462" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="NC" epsilon="1.3389" sigma="0.4615" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAD" type2="PHS" epsilon="1.3272" sigma="0.4329" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PEP" type2="PHS" epsilon="2.2594" sigma="0.4298" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="PHS" epsilon="1.2552" sigma="0.4275" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="PHS" epsilon="1.1297" sigma="0.4458" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="PHS" epsilon="1.3389" sigma="0.4992" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="PHS" epsilon="1.1715" sigma="0.4811" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="PHS" epsilon="1.2552" sigma="0.4953" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMO" epsilon="1.7573" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CT" epsilon="1.6719" sigma="0.4318" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CT2" epsilon="1.3631" sigma="0.4145" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="GL2" epsilon="1.4058" sigma="0.4281" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="GL2" epsilon="1.5816" sigma="0.4055" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="GL2" epsilon="1.6719" sigma="0.4091" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="GL2" epsilon="1.5146" sigma="0.3927" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="OAD" epsilon="1.8292" sigma="0.4033" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="PEP" epsilon="1.638" sigma="0.4367" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="OAD" epsilon="1.5899" sigma="0.384" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="OAD" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="PEP" epsilon="1.5062" sigma="0.4328" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="OAD" epsilon="1.5272" sigma="0.3987" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="PEP" epsilon="1.841" sigma="0.3895" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="PEP" epsilon="1.1146" sigma="0.4185" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="OAD" epsilon="2.9288" sigma="0.4202" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="PEP" epsilon="1.7322" sigma="0.4328" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAD" type2="PEP" epsilon="2.1054" sigma="0.3931" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PH" type2="PHS" epsilon="4.6861" sigma="0.54" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAD" type2="PH" epsilon="1.1945" sigma="0.4329" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="PEP" type2="PH" epsilon="1.8075" sigma="0.4298" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="PH" epsilon="1.2552" sigma="0.4275" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="PH" epsilon="1.0042" sigma="0.4953" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="PHS" epsilon="1.2552" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="PHS" epsilon="1.2552" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="PHS" epsilon="1.1297" sigma="0.4702" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="PHS" epsilon="1.1297" sigma="0.475" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="EST1" epsilon="1.7698" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="EST2" epsilon="1.7698" sigma="0.4403" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="CMO" epsilon="1.1749" sigma="0.4255" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="GL" epsilon="1.5816" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="GL2" epsilon="1.81" sigma="0.3952" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="GL2" epsilon="1.81" sigma="0.3952" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="GL2" epsilon="0.9912" sigma="0.3805" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="GL2" epsilon="1.6669" sigma="0.4055" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="OAD" epsilon="1.9962" sigma="0.4192" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="OAD" epsilon="1.9962" sigma="0.4192" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="OAD" epsilon="1.3665" sigma="0.4045" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="OAD" epsilon="1.8389" sigma="0.4295" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST1" type2="PEP" epsilon="2.1707" sigma="0.4225" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="EST2" type2="PEP" epsilon="2.1707" sigma="0.4225" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD2" type2="PEP" epsilon="1.1887" sigma="0.4077" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL" type2="PEP" epsilon="1.9995" sigma="0.4328" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="W" epsilon="1.2016" sigma="0.435" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="OAD" type2="W" epsilon="1.5899" sigma="0.4148" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CMO" type2="W" epsilon="2.0083" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="PEP" type2="W" epsilon="2.5104" sigma="0.4261" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="PHS" type2="W" epsilon="4.184" sigma="0.403" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM2" type2="OAD" epsilon="1.1104" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="PEP" epsilon="1.2322" sigma="0.4283" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="GL2" epsilon="1.2535" sigma="0.401" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMO" epsilon="0.9841" sigma="0.4462" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="PHS" epsilon="1.7472" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="GL2" epsilon="1.3058" sigma="0.4208" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="GL2" epsilon="1.159" sigma="0.379" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="GL2" epsilon="1.3862" sigma="0.4055" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="GL2" epsilon="1.4439" sigma="0.431" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="GL2" epsilon="1.3075" sigma="0.4168" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="GL2" epsilon="1.0983" sigma="0.4168" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="GL2" epsilon="1.1908" sigma="0.401" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="GL2" epsilon="1.6439" sigma="0.401" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="GL2" epsilon="1.661" sigma="0.401" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="GL2" type2="OAB" epsilon="1.2397" sigma="0.3659" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="OAD" epsilon="1.151" sigma="0.4448" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="OAD" epsilon="1.3711" sigma="0.4029" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="OAD" epsilon="1.5217" sigma="0.4295" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="OAD" epsilon="1.5054" sigma="0.455" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="OAD" epsilon="1.42" sigma="0.4408" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="OAD" epsilon="1.6246" sigma="0.4408" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="OAD" epsilon="1.1205" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="OAD" epsilon="1.8305" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="OAD" epsilon="1.5263" sigma="0.425" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="OAD" epsilon="2.7305" sigma="0.3899" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CMO" epsilon="1.1452" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMO" epsilon="1.3201" sigma="0.424" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMO" epsilon="1.459" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="CMO" epsilon="1.5067" sigma="0.4761" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CMR" epsilon="1.4347" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CMR5" epsilon="1.4485" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CTB" epsilon="1.1632" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CTBA" epsilon="1.2703" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="CTBB" epsilon="1.3577" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMO" type2="OAB" epsilon="1.4594" sigma="0.4293" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="PHS" epsilon="1.6723" sigma="0.4595" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="PHS" epsilon="1.4477" sigma="0.4218" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="PHS" epsilon="1.6242" sigma="0.4458" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="PHS" epsilon="1.6598" sigma="0.4687" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="PHS" epsilon="1.638" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="PHS" epsilon="1.6096" sigma="0.4559" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="PHS" epsilon="1.6983" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="PHS" epsilon="1.8514" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="PHS" epsilon="1.8125" sigma="0.4417" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="PHS" epsilon="3.0359" sigma="0.4266" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="PEP" epsilon="1.0088" sigma="0.4481" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="PEP" epsilon="1.5142" sigma="0.4062" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="PEP" epsilon="1.823" sigma="0.4328" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMDB" type2="PEP" epsilon="1.6552" sigma="0.4583" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR" type2="PEP" epsilon="1.6761" sigma="0.4441" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMR5" type2="PEP" epsilon="1.1719" sigma="0.4441" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTB" type2="PEP" epsilon="1.2619" sigma="0.4283" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBA" type2="PEP" epsilon="1.8523" sigma="0.4283" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CTBB" type2="PEP" epsilon="2.0682" sigma="0.4283" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="OAB" type2="PEP" epsilon="3.9991" sigma="0.3931" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM" type2="CMD" epsilon="1.3707" sigma="0.4426" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CMD2" epsilon="1.0" sigma="0.4165" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CT2" epsilon="1.182" sigma="0.4277" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="EST1" epsilon="1.933" sigma="0.4165" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="EST2" epsilon="1.933" sigma="0.4165" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="GL" epsilon="1.3707" sigma="0.4426" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="NC" epsilon="1.5376" sigma="0.4975" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="PH" epsilon="1.318" sigma="0.4797" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="OAB" epsilon="1.5648" sigma="0.4293" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2R" type2="CMD" epsilon="1.1175" sigma="0.424" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CMDB" epsilon="1.4657" sigma="0.4761" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CTBA" epsilon="1.7079" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CTBB" epsilon="1.7309" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMB" type2="CMD" epsilon="1.3912" sigma="0.4506" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CMR" epsilon="1.3401" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CMR5" epsilon="1.2406" sigma="0.4619" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="CTB" epsilon="1.4535" sigma="0.4461" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CM2" type2="CMD" epsilon="1.4" sigma="0.4462" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="C2T" type2="CMD" epsilon="1.8284" sigma="0.4545" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CMD" type2="W" epsilon="1.2234" sigma="0.4268" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="SOD" epsilon="3.7447" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="SOD" type2="W" epsilon="3.7447" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="W" epsilon="3.7447" sigma="0.4371" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="CM" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="CT2" epsilon="1.2134" sigma="0.4296" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="NC4" epsilon="1.7573" sigma="0.476" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="NC4" epsilon="1.5899" sigma="0.466" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC4" type2="W" epsilon="3.9748" sigma="0.443" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="NC4" epsilon="3.9748" sigma="0.443" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="SO4" type2="W" epsilon="4.6024" sigma="0.41" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="SO4" type2="SOD" epsilon="4.6024" sigma="0.41" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="SOD" epsilon="1.4226" sigma="0.4439" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CT" type2="SOD" epsilon="1.5062" sigma="0.4478" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CM" type2="SO4" epsilon="1.6025" sigma="0.4414" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT" type2="SO4" epsilon="1.6945" sigma="0.4453" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC4" type2="SO4" epsilon="2.8786" sigma="0.387" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="NC4" type2="SOD" epsilon="3.9748" sigma="0.443" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CLA" type2="SO4" epsilon="4.6024" sigma="0.41" repulsion="12.0" attraction="4.0"/>
+    <MieTerm type1="CT" type2="NC4" epsilon="1.841" sigma="0.48" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CT2" type2="SO4" epsilon="1.3389" sigma="0.4338" repulsion="9.0" attraction="6.0"/>
+    <MieTerm type1="CLA" type2="CT" epsilon="1.5062" sigma="0.4478" repulsion="12.0" attraction="4.0"/>
+  </PairwiseVdwTerms>
+  <BondTerms>
+    <HarmonicBondTerm type1="C2T" type2="CM" length="0.31" k="7949.6" fixed="False"/>
+    <HarmonicBondTerm type1="C2T" type2="CM2" length="0.254" k="46024.0" fixed="False"/>
+    <HarmonicBondTerm type1="C2T" type2="CT" length="0.32" k="7531.2" fixed="False"/>
+    <HarmonicBondTerm type1="C2T" type2="CT2" length="0.26" k="23430.4" fixed="False"/>
+    <HarmonicBondTerm type1="CM2" type2="CM2" length="0.25" k="7531.2" fixed="False"/>
+    <HarmonicBondTerm type1="CM2" type2="CT" length="0.307" k="3765.6" fixed="False"/>
+    <HarmonicBondTerm type1="CM2" type2="CT2" length="0.2538" k="7280.16" fixed="False"/>
+    <HarmonicBondTerm type1="CM2" type2="CTB" length="0.293" k="35564.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM2R" type2="CM2R" length="0.232" k="74893.6" fixed="False"/>
+    <HarmonicBondTerm type1="CM2R" type2="CMR" length="0.23" k="95395.2" fixed="False"/>
+    <HarmonicBondTerm type1="CM2R" type2="CTBA" length="0.241" k="37656.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM2R" type2="OAB" length="0.258" k="41840.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMB" type2="CMDB" length="0.345" k="62760.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMB" type2="CMR5" length="0.3" k="41840.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMB" type2="CTBA" length="0.344" k="29288.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMB" type2="CTBB" length="0.3" k="41840.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CM" length="0.364" k="2577.344" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CM2" length="0.3061" k="4142.16" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CT" length="0.365" k="2577.344" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CMD2" length="0.303" k="3347.2" fixed="False"/>
+    <HarmonicBondTerm type1="CMDB" type2="CMDB" length="0.21" k="115060.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMDB" type2="CMR" length="0.21" k="75730.4" fixed="False"/>
+    <HarmonicBondTerm type1="CMDB" type2="CT2" length="0.31" k="15899.2" fixed="False"/>
+    <HarmonicBondTerm type1="CMDB" type2="CTBA" length="0.25" k="33472.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMDB" type2="OAB" length="0.307" k="46024.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="EO" length="0.356" k="2970.64" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="OA" length="0.301" k="3138.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMR5" type2="CTB" length="0.314" k="32635.2" fixed="False"/>
+    <HarmonicBondTerm type1="CMR5" type2="CTBB" length="0.225" k="50208.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMR" type2="CTBA" length="0.299" k="41840.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMR" type2="CTBB" length="0.252" k="46024.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CT2" length="0.313" k="3765.6" fixed="False"/>
+    <HarmonicBondTerm type1="CT2" type2="EO" length="0.307" k="4184.0" fixed="False"/>
+    <HarmonicBondTerm type1="CT2" type2="OA" length="0.253" k="5857.6" fixed="False"/>
+    <HarmonicBondTerm type1="CTB" type2="CTBB" length="0.344" k="20920.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMD2" type2="CT" length="0.309" k="3347.2" fixed="False"/>
+    <HarmonicBondTerm type1="CT" type2="CT" length="0.371" k="2909.972" fixed="False"/>
+    <HarmonicBondTerm type1="CT" type2="EO" length="0.361" k="2970.64" fixed="False"/>
+    <HarmonicBondTerm type1="CT" type2="OA" length="0.305" k="2909.972" fixed="False"/>
+    <HarmonicBondTerm type1="EO" type2="EO" length="0.328" k="2050.16" fixed="False"/>
+    <HarmonicBondTerm type1="EO" type2="OA" length="0.279" k="6276.0" fixed="False"/>
+    <HarmonicBondTerm type1="EO" type2="EOT" length="0.334" k="2259.36" fixed="False"/>
+    <HarmonicBondTerm type1="EOT" type2="EOT" length="0.333" k="2301.2" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="EST1" length="0.355" k="1966.48" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="EST2" length="0.361" k="2133.84" fixed="False"/>
+    <HarmonicBondTerm type1="EST1" type2="GL" length="0.288" k="12552.0" fixed="False"/>
+    <HarmonicBondTerm type1="EST2" type2="GL" length="0.348" k="3514.56" fixed="False"/>
+    <HarmonicBondTerm type1="NC" type2="PH" length="0.425" k="2008.32" fixed="False"/>
+    <HarmonicBondTerm type1="NH" type2="PHE" length="0.36" k="3932.96" fixed="False"/>
+    <HarmonicBondTerm type1="OA" type2="OA" length="0.216" k="26359.2" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="PH" length="0.369" k="5020.8" fixed="False"/>
+    <HarmonicBondTerm type1="GL" type2="PHE" length="0.352" k="3723.76" fixed="False"/>
+    <HarmonicBondTerm type1="GL" type2="PH" length="0.352" k="3723.76" fixed="False"/>
+    <HarmonicBondTerm type1="NC" type2="PHS" length="0.405" k="3765.6" fixed="False"/>
+    <HarmonicBondTerm type1="GL2" type2="OAD" length="0.2295" k="29288.0" fixed="False"/>
+    <HarmonicBondTerm type1="GL2" type2="PEP" length="0.2295" k="37237.6" fixed="False"/>
+    <HarmonicBondTerm type1="GL2" type2="PHS" length="0.3165" k="25104.0" fixed="False"/>
+    <HarmonicBondTerm type1="CMO" type2="OAD" length="0.3055" k="11506.0" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="PEP" length="0.2855" k="5857.6" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CMO" length="0.354" k="2577.344" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="CMD" length="0.333" k="2928.8" fixed="False"/>
+    <HarmonicBondTerm type1="CMD" type2="CMD2" length="0.303" k="6276.0" fixed="False"/>
+    <HarmonicBondTerm type1="CT" type2="EST1" length="0.355" k="1966.48" fixed="False"/>
+    <HarmonicBondTerm type1="CT" type2="EST2" length="0.361" k="2133.84" fixed="False"/>
+    <HarmonicBondTerm type1="CT2" type2="EST1" length="0.313" k="2719.6" fixed="False"/>
+    <HarmonicBondTerm type1="CT2" type2="EST2" length="0.313" k="2719.6" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="NC4" length="0.38" k="5439.2" fixed="False"/>
+    <HarmonicBondTerm type1="CM" type2="SO4" length="0.363" k="4602.4" fixed="False"/>
+  </BondTerms>
+  <AngleTerms>
+    <SDKAngleTerm type1="C2T" type2="CM2" type3="CTB" theta="155.0" k="75.312"/>
+    <SDKAngleTerm type1="CM2" type2="CM" type3="CM2" theta="175.0" k="5.1212"/>
+    <SDKAngleTerm type1="CM2" type2="CM2" type3="CT2" theta="170.1" k="4.6024"/>
+    <SDKAngleTerm type1="CM2" type2="CM" type3="EST1" theta="178.0" k="3.7656"/>
+    <SDKAngleTerm type1="CM2" type2="CM" type3="EST2" theta="178.0" k="3.7656"/>
+    <HarmonicAngleTerm type1="CM2" type2="CTB" type3="CMR5" theta="117.4" k="51.8816" fixed="False"/>
+    <SDKAngleTerm type1="CM2" type2="CTB" type3="CTBB" theta="126.0" k="41.84"/>
+    <SDKAngleTerm type1="CM2R" type2="CM2R" type3="CM2R" theta="60.0" k="4.184"/>
+    <HarmonicAngleTerm type1="CM2R" type2="CTBA" type3="CMB" theta="112.5" k="334.72" fixed="False"/>
+    <HarmonicAngleTerm type1="CM2R" type2="CTBA" type3="CMDB" theta="75.9" k="188.28" fixed="False"/>
+    <HarmonicAngleTerm type1="CM2R" type2="CTBA" type3="CMR" theta="98.7" k="292.88" fixed="False"/>
+    <HarmonicAngleTerm type1="CM2R" type2="OAB" type3="CMDB" theta="63.9" k="334.72" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CMDB" type3="CTBA" theta="68.6" k="376.56" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CMDB" type3="OAB" theta="146.6" k="543.92" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CMR5" type3="CTBB" theta="67.8" k="292.88" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CMR5" type3="CTB" theta="131.7" k="736.384" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CTBA" type3="CMDB" theta="68.9" k="209.2" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CTBA" type3="CMR" theta="47.8" k="627.6" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CTBB" type3="CMR5" theta="68.2" k="209.2" fixed="False"/>
+    <HarmonicAngleTerm type1="CMB" type2="CTBB" type3="CMR" theta="56.3" k="418.4" fixed="False"/>
+    <SDKAngleTerm type1="CMB" type2="CTBB" type3="CTB" theta="120.7" k="292.88"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CM" theta="173.0" k="4.979"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CT" theta="175.0" k="4.979"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="EO" theta="172.0" k="6.276"/>
+    <SDKAngleTerm type1="CM" type2="CM2" type3="CM" theta="173.0" k="5.0208"/>
+    <SDKAngleTerm type1="CM" type2="CM2" type3="CT2" theta="179.0" k="4.2677"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CM2" theta="178.0" k="5.8576"/>
+    <SDKAngleTerm type1="CT" type2="CM2" type3="CT" theta="147.0" k="12.552"/>
+    <SDKAngleTerm type1="CM" type2="CMD2" type3="CM" theta="110.0" k="25.104"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CMD2" theta="161.0" k="7.9496"/>
+    <HarmonicAngleTerm type1="CMDB" type2="CMB" type3="CMR5" theta="175.6" k="1255.2" fixed="False"/>
+    <HarmonicAngleTerm type1="CMDB" type2="CMB" type3="CTBA" theta="42.5" k="523.0" fixed="False"/>
+    <HarmonicAngleTerm type1="CMDB" type2="CMB" type3="CTBB" theta="134.2" k="209.2" fixed="False"/>
+    <HarmonicAngleTerm type1="CMDB" type2="CTBA" type3="CMR" theta="108.6" k="418.4" fixed="False"/>
+    <SDKAngleTerm type1="CM" type2="EO" type3="CM" theta="171.0" k="7.5312"/>
+    <SDKAngleTerm type1="CM" type2="EO" type3="EO" theta="146.0" k="13.3888"/>
+    <HarmonicAngleTerm type1="CMR5" type2="CMB" type3="CTBA" theta="135.8" k="125.52" fixed="False"/>
+    <HarmonicAngleTerm type1="CMR5" type2="CMB" type3="CTBB" theta="44.0" k="376.56" fixed="False"/>
+    <HarmonicAngleTerm type1="CMR5" type2="CTB" type3="CTBB" theta="39.7" k="1255.2" fixed="False"/>
+    <SDKAngleTerm type1="CMR5" type2="CTBB" type3="CTB" theta="62.7" k="418.4"/>
+    <HarmonicAngleTerm type1="CMR" type2="CTBB" type3="CMR5" theta="107.0" k="627.6" fixed="False"/>
+    <SDKAngleTerm type1="CMR" type2="CTBB" type3="CTB" theta="110.1" k="313.8"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CT2" theta="172.0" k="6.6944"/>
+    <SDKAngleTerm type1="CT2" type2="CM" type3="CT2" theta="173.0" k="7.1128"/>
+    <SDKAngleTerm type1="CT2" type2="CM" type3="EO" theta="178.0" k="5.4392"/>
+    <SDKAngleTerm type1="CT2" type2="CM" type3="OA" theta="166.0" k="7.5312"/>
+    <SDKAngleTerm type1="CT" type2="CM2" type3="CT2" theta="180.0" k="4.3932"/>
+    <SDKAngleTerm type1="CT2" type2="CMD2" type3="CT2" theta="110.0" k="50.208"/>
+    <SDKAngleTerm type1="CT2" type2="EO" type3="CT2" theta="165.0" k="10.8784"/>
+    <HarmonicAngleTerm type1="CTBA" type2="CM2R" type3="OAB" theta="107.4" k="209.2" fixed="False"/>
+    <HarmonicAngleTerm type1="CTBA" type2="CMB" type3="CTBB" theta="92.2" k="167.36" fixed="False"/>
+    <HarmonicAngleTerm type1="CTBA" type2="CMDB" type3="OAB" theta="91.8" k="167.36" fixed="False"/>
+    <HarmonicAngleTerm type1="CTBA" type2="CMR" type3="CTBB" theta="115.0" k="125.52" fixed="False"/>
+    <HarmonicAngleTerm type1="CTB" type2="CMR5" type3="CTBB" theta="77.4" k="800.3992" fixed="False"/>
+    <SDKAngleTerm type1="CT" type2="CM" type3="CT" theta="175.5" k="4.5731"/>
+    <SDKAngleTerm type1="CT" type2="CMD2" type3="CT" theta="116.0" k="32.2168"/>
+    <SDKAngleTerm type1="CT" type2="EO" type3="EO" theta="145.0" k="9.2048"/>
+    <SDKAngleTerm type1="EO" type2="EO" type3="EO" theta="132.0" k="14.2256"/>
+    <SDKAngleTerm type1="EO" type2="EO" type3="EOT" theta="135.0" k="14.644"/>
+    <SDKAngleTerm type1="EO" type2="EO" type3="OA" theta="131.0" k="12.552"/>
+    <SDKAngleTerm type1="EOT" type2="EO" type3="EOT" theta="134.0" k="14.644"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="EST1" theta="178.0" k="4.184"/>
+    <SDKAngleTerm type1="EST1" type2="GL" type3="EST2" theta="95.0" k="4.184"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="EST2" theta="178.0" k="4.184"/>
+    <SDKAngleTerm type1="CM" type2="EST1" type3="GL" theta="168.0" k="3.3472"/>
+    <SDKAngleTerm type1="CM" type2="EST2" type3="GL" theta="172.0" k="3.3472"/>
+    <SDKAngleTerm type1="CM" type2="PH" type3="NC" theta="112.0" k="13.8072"/>
+    <SDKAngleTerm type1="GL" type2="PH" type3="NC" theta="112.0" k="12.9704"/>
+    <SDKAngleTerm type1="GL" type2="PHE" type3="NH" theta="102.0" k="16.736"/>
+    <SDKAngleTerm type1="CT2" type2="EO" type3="OA" theta="146.0" k="16.736"/>
+    <SDKAngleTerm type1="OA" type2="EO" type3="OA" theta="131.0" k="27.6144"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="PH" theta="178.0" k="4.6024"/>
+    <SDKAngleTerm type1="EST1" type2="GL" type3="PHE" theta="124.0" k="5.8576"/>
+    <SDKAngleTerm type1="EST2" type2="GL" type3="PHE" theta="138.0" k="8.368"/>
+    <SDKAngleTerm type1="EST1" type2="GL" type3="PH" theta="124.0" k="5.8576"/>
+    <SDKAngleTerm type1="EST2" type2="GL" type3="PH" theta="138.0" k="8.368"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="CMO" theta="157.5" k="12.9704"/>
+    <SDKAngleTerm type1="CM" type2="CMO" type3="OAD" theta="155.5" k="14.644"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="PEP" theta="147.5" k="8.368"/>
+    <SDKAngleTerm type1="CM" type2="PEP" type3="GL2" theta="166.0" k="29.288"/>
+    <SDKAngleTerm type1="CMO" type2="OAD" type3="GL2" theta="107.5" k="148.532"/>
+    <HarmonicAngleTerm type1="GL2" type2="PHS" type3="NC" theta="113.5" k="20.92" fixed="False"/>
+    <SDKAngleTerm type1="OAD" type2="GL2" type3="PEP" theta="124.1" k="292.88"/>
+    <HarmonicAngleTerm type1="OAD" type2="GL2" type3="PHS" theta="95.5" k="107.1104" fixed="False"/>
+    <HarmonicAngleTerm type1="PEP" type2="GL2" type3="PHS" theta="145.5" k="14.644" fixed="False"/>
+    <SDKAngleTerm type1="CM" type2="CMD" type3="CMD2" theta="141.0" k="6.276"/>
+    <SDKAngleTerm type1="CM" type2="CMD2" type3="CMD" theta="116.0" k="11.2968"/>
+    <SDKAngleTerm type1="CMD" type2="CM" type3="CT2" theta="161.0" k="7.9496"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="NC4" theta="174.0" k="4.184"/>
+    <SDKAngleTerm type1="CM" type2="CM" type3="SO4" theta="178.0" k="4.6024"/>
+  </AngleTerms>
+  <DihedralTerms>
+    <PeriodicDihedralTerm type1="CM2" type2="CTB" type3="CMR5" type4="CTBB" phi_2="105.0" k_2="8.3680"/>
+  </DihedralTerms>
+  <ImproperTerms/>
+  <PolarizableTerms/>
+</ForceFieldTerms>

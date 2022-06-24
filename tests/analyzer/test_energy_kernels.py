@@ -5,8 +5,8 @@ import itertools
 import tempfile
 import filecmp
 import pytest
-from simtk import openmm as mm
-from simtk import unit
+from openmm import openmm as mm
+from openmm import unit
 from mstools.topology import Topology, Molecule
 from mstools.analyzer.energy_kernels import *
 

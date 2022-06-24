@@ -9,5 +9,6 @@ class TypingNotSupportedError(Exception):
 class TypingUndefinedError(Exception):
     pass
 
+
 class ChargeIncrementNonZeroError(Exception):
     pass

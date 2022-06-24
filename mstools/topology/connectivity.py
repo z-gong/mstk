@@ -1,12 +1,19 @@
 import numpy as np
 from .atom import Atom
 
+__all__ = [
+    'Bond',
+    'Angle',
+    'Dihedral',
+    'Improper',
+]
+
 
 class Bond():
     '''
     A bond between two atoms.
 
-    Two bonds are considered as equal if they contain the identical atoms, regardless of the sequence.
+    Two bonds are considered as equal if they contain the identical atoms, regardless of the sequence and bond order.
 
     Unlike BondTerm in ForceField, the atoms are not sorted in connectivity
     because the properties of atoms (name, type, etc...) are prone to changing.
@@ -16,24 +23,43 @@ class Bond():
     ----------
     atom1 : Atom
     atom2 : Atom
+    order : int, Optional
 
     Attributes
     ----------
     atom1 : Atom
     atom2 : Atom
+    order : [int, None]
     '''
 
-    def __init__(self, atom1, atom2):
+    class Order:
+        UNSPECIFIED = 0
+        SINGLE = 1
+        DOUBLE = 2
+        TRIPLE = 3
+
+    def __init__(self, atom1, atom2, order=Order.UNSPECIFIED):
         self.atom1 = atom1
         self.atom2 = atom2
+        self._order = order
 
     def __repr__(self):
-        return '<Bond: %s>' % self.name
+        return f'<Bond: {self.name} {self.order}>'
 
     def __eq__(self, other):
         if type(other) != Bond:
             return False
         return {self.atom1, self.atom2} == {other.atom1, other.atom2}
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, val):
+        if val != self._order and self.atom1.molecule is not None:
+            self.atom1.molecule._is_rdmol_valid = False
+        self._order = val
 
     @property
     def name(self):
@@ -78,6 +104,16 @@ class Bond():
         '''
         delta = self.atom2.position - self.atom1.position
         return np.sqrt(delta.dot(delta))
+
+    @property
+    def is_aromatic(self):
+        rdbond = self.atom1.molecule.rdmol.GetBondBetweenAtoms(self.atom1.id_in_mol, self.atom2.id_in_mol)
+        return rdbond.GetIsAromatic()
+
+    @property
+    def is_conjugated(self):
+        rdbond = self.atom1.molecule.rdmol.GetBondBetweenAtoms(self.atom1.id_in_mol, self.atom2.id_in_mol)
+        return rdbond.GetIsConjugated()
 
 
 class Angle():
@@ -137,6 +173,29 @@ class Angle():
         id_tuple : tuple of int
         '''
         return self.atom1.id, self.atom2.id, self.atom3.id
+
+    @property
+    def bonds(self):
+        '''
+        The two bonds between each side atom and the center atom
+
+        Returns
+        -------
+        bonds : list of Bond
+        '''
+        bond12 = Bond(self.atom1, self.atom2)
+        bond23 = Bond(self.atom2, self.atom3)
+        mol = self.atom1.molecule
+        try:
+            bond12 = next(b for b in mol.bonds if b == bond12)
+        except StopIteration:
+            raise Exception(f'{bond12} not found in {mol}')
+        try:
+            bond23 = next(b for b in mol.bonds if b == bond23)
+        except StopIteration:
+            raise Exception(f'{bond23} not found in {mol}')
+
+        return bond12, bond23
 
     def evaluate(self):
         '''

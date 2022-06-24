@@ -1,10 +1,5 @@
 import os
-import shutil
-import subprocess
-from subprocess import Popen, PIPE
-
-from ..errors import GaussError
-from ..utils import create_mol_from_smiles, random_string
+from mstools.utils import random_string
 
 
 class Gauss:

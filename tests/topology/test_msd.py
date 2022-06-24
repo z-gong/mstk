@@ -7,7 +7,6 @@ import filecmp
 from mstools.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tempdir = tempfile.mkdtemp()
 
 
 def test_read():

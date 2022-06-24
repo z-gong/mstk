@@ -1,6 +1,6 @@
 import numpy as np
-import simtk.openmm as mm
-from simtk.openmm.app import Simulation
+import openmm.openmm as mm
+from openmm.app import Simulation
 from ..unit import *
 
 class DrudeTemperatureReporter(object):

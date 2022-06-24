@@ -22,7 +22,7 @@ c_4
 typer = ZftTyper(io.StringIO(definition))
 
 butane = Molecule.from_smiles('CCCC    butane')
-typer.type_molecule(butane)
+typer.type(butane)
 
 # Load force field parameters from ZFP file
 ff = ForceField.open('alkane.zfp')
@@ -43,4 +43,4 @@ top.scale_with_packmol([100], packmol=packmol)
 system = System(top, ff)
 system.export_gromacs()
 system.export_lammps()
-system.export_charmm()
+system.export_namd()

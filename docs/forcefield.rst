@@ -12,7 +12,6 @@ Typing engine
 
     Typer
     ZftTyper
-    DffTyper
 
 Force field definition
 ----------------------
@@ -71,6 +70,7 @@ Bond terms
 
     BondTerm
     HarmonicBondTerm
+    MorseBondTerm
 
 Angle terms
 ~~~~~~~~~~~
@@ -110,6 +110,7 @@ Force field parser
     :toctree: _generated/
 
     Zfp
+    Zff
     Ppf
     Padua
     PaduaLJScaler

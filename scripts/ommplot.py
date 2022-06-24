@@ -116,6 +116,7 @@ def plot_data(types, data, when_list):
             ax1.set_xlabel(types[0])
             ax1.set_ylabel(types[plottype])
             fig.tight_layout()
+            plt.savefig(types[plottype] + '.png')
             plt.show()
 
 

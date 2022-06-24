@@ -33,7 +33,7 @@ class Atom():
     thole : float
         Thole screening for induced dipole. Required for output Drude polarizable simulation files
         This property is set for parent atom, not Drude particle
-    formal_charge : float
+    formal_charge : int
         Formal charge calculated from valence bond theory. Optionally required by typing engine
     is_drude : bool
         Whether or not this is a Drude particle for polarizable model
@@ -54,7 +54,7 @@ class Atom():
         self.charge = 0.
         self.alpha = 0.  # this property is set for parent atom, not Drude particle
         self.thole = 0.  # this property is set for parent atom, not Drude particle
-        self.formal_charge = 0.
+        self.formal_charge = 0
         self.is_drude = False
         self.virtual_site = None
         self.has_position = False
@@ -62,6 +62,7 @@ class Atom():
         self._position = np.zeros(3, dtype=np.float32)
         self._molecule = None
         self._bonds = []
+        self._residue = None
 
     def __repr__(self):
         return f'<Atom: {self.name} {self.id} {self.type}>'
@@ -74,7 +75,7 @@ class Atom():
 
     def __deepcopy__(self, memodict={}):
         '''
-        id, id_in_mol, virtual_site etc are not copied, because these information depends on other atoms.
+        id, id_in_mol, virtual_site, residue are not copied, because these information depends on other atoms.
         '''
         atom = Atom()
         atom.name = self.name
@@ -100,6 +101,17 @@ class Atom():
         molecule : Molecule
         '''
         return self._molecule
+
+    @property
+    def residue(self):
+        '''
+        The residue this atom belongs to
+
+        Returns
+        -------
+        residue : Residue
+        '''
+        return self._residue
 
     @property
     def bonds(self):

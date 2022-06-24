@@ -1,6 +1,5 @@
 from .grofile import GroFile
-from .oplspsffile import OplsPsfFile
 from .reporter import *
-from .util import *
+from .utils import *
 from .force import *
 from .unit import *

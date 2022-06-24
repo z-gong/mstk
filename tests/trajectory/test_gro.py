@@ -3,13 +3,13 @@
 import tempfile
 import filecmp
 import pytest
+import shutil
 from mstools.trajectory import Trajectory
 from mstools.topology import Topology
 
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tempdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -28,13 +28,16 @@ def test_read():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
     top = Topology.open(cwd + '/files/100-SPCE.psf')
     xtc = Trajectory.open(cwd + '/files/100-SPCE.xtc')
 
-    tmp = os.path.join(tempdir, 'xtc-out.gro')
+    tmp = os.path.join(tmpdir, 'xtc-out.gro')
     gro = Trajectory.open(tmp, 'w')
     for i in range(xtc.n_frame):
         frame = xtc.read_frame(i)
         gro.write_frame(frame, top, subset=list(range(150, 300)))
     gro.close()
     filecmp.cmp(tmp, cwd + '/files/baselines/xtc-out.gro')
+
+    shutil.rmtree(tmpdir)

@@ -1,6 +1,6 @@
 import sys
-from simtk.openmm.app.gromacsgrofile import GromacsGroFile
-from simtk.unit import nanometer, picosecond, norm, is_quantity
+from openmm.app.gromacsgrofile import GromacsGroFile
+from openmm.unit import nanometer, picosecond, norm, is_quantity
 
 
 class GroFile(GromacsGroFile):
@@ -24,7 +24,7 @@ class GroFile(GromacsGroFile):
 
         Parameters
         ----------
-        topology : simtk.openmm.app.Topology
+        topology : openmm.app.Topology
         positions : array_like of shape (n_atom, 3)
             The length of positions should equal to the number of atoms in the topology, even when subset is provided.
         vectors :  array_like of shape (3, 3)

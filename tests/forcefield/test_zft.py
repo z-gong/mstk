@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield import ZftTyper
-from mstools.topology import Topology, Molecule
-
+from mstools.forcefield.typer import ZftTyper, typer_primitive
+from mstools.topology import Topology, Molecule, Atom, Bond
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -34,3 +33,41 @@ def test_typing():
     assert [atom.type for atom in tfsi.atoms] == (
         ['F1', 'CBT', 'F1', 'F1', 'SBT', 'OBT', 'OBT', 'NBT', 'SBT', 'OBT', 'OBT',
          'CBT', 'F1', 'F1', 'F1'])
+
+
+def test_typer_primitive():
+    mol = Molecule()
+    for i in range(6):
+        atom = Atom()
+        atom.symbol = 'C'
+        mol.add_atom(atom)
+    for i in range(6):
+        C = mol.atoms[i]
+        C2 = mol.atoms[i + 1] if i < 5 else mol.atoms[0]
+        mol.add_bond(C, C2, order=Bond.Order.DOUBLE)
+
+    typer_primitive.type(mol)
+    assert [atom.type for atom in mol.atoms] == ['C2'] * 6
+
+
+def test_typer_primitive_kekulize():
+    mol = Molecule()
+    for i in range(6):
+        atom = Atom()
+        atom.symbol = 'C'
+        mol.add_atom(atom)
+    for i in range(6):
+        atom = Atom()
+        atom.symbol = 'H'
+        mol.add_atom(atom)
+    for i in range(6):
+        C, H = mol.atoms[i], mol.atoms[i + 6]
+        mol.add_bond(C, H, order=Bond.Order.SINGLE)
+        C2 = mol.atoms[i + 1] if i < 5 else mol.atoms[0]
+        order = Bond.Order.SINGLE if i % 2 else Bond.Order.DOUBLE
+        mol.add_bond(C, C2, order=order)
+
+    typer_primitive.type(mol)
+    assert [atom.type for atom in mol.atoms] == ['C3ar'] * 6 + ['H1'] * 6
+
+

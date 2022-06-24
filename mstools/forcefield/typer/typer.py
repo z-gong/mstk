@@ -1,6 +1,3 @@
-from ... import logger
-
-
 class Typer():
     '''
     Base class for typing engines.
@@ -13,19 +10,25 @@ class Typer():
 
     def type(self, topology):
         '''
-        Assign types for all atoms in the topology.
+        Assign types for all atoms in the topology or molecule.
 
-        The typer will iterate all the molecules belong to the topology and call :func:`type_molecule` on each of them.
-        The :attr:`~mstools.topology.Atom.type` attribute of all atoms in the topology will be updated.
+        The :attr:`~mstools.topology.Atom.type` attribute of all atoms in the topology/molecule will be updated.
 
         Parameters
         ----------
-        topology : Topology
+        topology : Topology, Molecule
         '''
-        for mol in topology.molecules:
-            self.type_molecule(mol)
+        from mstools.topology import Topology, Molecule
 
-    def type_molecule(self, molecule):
+        if type(topology) is Topology:
+            for mol in topology.molecules:
+                self._type_molecule(mol)
+        elif type(topology) is Molecule:
+            self._type_molecule(topology)
+        else:
+            raise Exception('A topology or molecule is expected')
+
+    def _type_molecule(self, molecule):
         '''
         Assign types for all the atoms in the molecule.
         This method should be implemented by subclasses.

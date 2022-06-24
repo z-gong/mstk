@@ -1,12 +1,36 @@
 import numpy as np
 from .atom import Atom
 
+__all__ = [
+    'VirtualSite',
+    'TwoLineSite',
+    'ThreePlaneSite',
+    'TIP4PSite',
+]
 
-class VirtualSiteFactory():
+
+class VirtualSite:
     '''
-    Factory class for virtual site.
+    Base class for virtual site definitions.
+
+    This class should not be constructed directly. Use its subclasses instead or call :create:.
     '''
+
     _class_map = {}
+
+    def __init__(self):
+        self.parents = []
+        self.parameters = []
+
+    def calc_position(self):
+        '''
+        Calculate the position of virtual site from parent atoms.
+
+        Returns
+        -------
+        position : array_like
+        '''
+        raise NotImplementedError('Method not implemented')
 
     @staticmethod
     def register(klass):
@@ -17,7 +41,7 @@ class VirtualSiteFactory():
         ----------
         klass : subclass of VirtualSite
         '''
-        VirtualSiteFactory._class_map[klass.__name__] = klass
+        VirtualSite._class_map[klass.__name__] = klass
 
     @staticmethod
     def create(type, parents, parameters):
@@ -39,34 +63,11 @@ class VirtualSiteFactory():
         '''
 
         try:
-            cls = VirtualSiteFactory._class_map[type]
+            cls = VirtualSite._class_map[type]
         except:
-            raise Exception(
-                'Unknown virtual site type. Valid types: ' + str(list(VirtualSiteFactory._class_map.keys())))
+            raise Exception('Unknown virtual site type. Valid types: ' + ', '.join(VirtualSite._class_map.keys()))
 
         return cls(parents, parameters)
-
-
-class VirtualSite():
-    '''
-    Base class for virtual site definitions.
-
-    This class should not be constructed directly. Use its subclasses instead.
-    '''
-
-    def __init__(self):
-        self.parents = []
-        self.parameters = []
-
-    def calc_position(self):
-        '''
-        Calculate the position of virtual site from parent atoms.
-
-        Returns
-        -------
-        position : array_like
-        '''
-        raise NotImplementedError('Method not implemented')
 
 
 class TwoLineSite(VirtualSite):
@@ -96,7 +97,7 @@ class TwoLineSite(VirtualSite):
         return a1.position * p1 + a2.position * (1 - p1)
 
 
-VirtualSiteFactory.register(TwoLineSite)
+VirtualSite.register(TwoLineSite)
 
 
 class ThreePlaneSite(VirtualSite):
@@ -126,7 +127,7 @@ class ThreePlaneSite(VirtualSite):
         return a1.position * p1 + a2.position * p2 + a3.position * (1 - p1 - p2)
 
 
-VirtualSiteFactory.register(ThreePlaneSite)
+VirtualSite.register(ThreePlaneSite)
 
 
 class TIP4PSite(VirtualSite):
@@ -158,4 +159,4 @@ class TIP4PSite(VirtualSite):
         return a_O.position + d * vec_unit
 
 
-VirtualSiteFactory.register(TIP4PSite)
+VirtualSite.register(TIP4PSite)

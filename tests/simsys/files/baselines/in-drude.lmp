@@ -56,11 +56,12 @@ timestep 1.0
 comm_modify vel yes
 compute TDRUDE all temp/drude
 
-fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
+fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000 fixedpoint 0 0 0
 # fix SD  all langevin/drude $T 200 12345 1 50 23456
 # fix NPH all nph iso $P $P 1000
 
 thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe emol evdwl v_elec density
+thermo_modify flush yes
 thermo 1000
 
 variable slog equal logfreq(10,9,10)

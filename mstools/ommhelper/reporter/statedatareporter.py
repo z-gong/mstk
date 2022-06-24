@@ -48,10 +48,11 @@ try:
 except:
     have_gzip = False
 
-import simtk.openmm as mm
-import simtk.unit as unit
+import openmm.openmm as mm
+import openmm.unit as unit
 import math
 import time
+import numpy as np
 
 
 class StateDataReporter(object):
@@ -119,10 +120,11 @@ class StateDataReporter(object):
         Collective variables defined by CustomCVForce
     '''
 
-    def __init__(self, file, reportInterval, step=True, time=True, potentialEnergy=True,
+    def __init__(self, file, reportInterval, step=True, time=False, potentialEnergy=True,
                  kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
-                 density=True, progress=False, remainingTime=False, speed=True, elapsedTime=True,
-                 separator='\t', systemMass=None, totalSteps=None, append=False, cvs=[]):
+                 density=True, progress=False, remainingTime=False, speed=True, elapsedTime=False,
+                 separator='\t', systemMass=None, totalSteps=None, append=False,
+                 cvs=None, pressure=True, pxx=False, pyy=False, pzz=False, extra={}):
         self._reportInterval = reportInterval
         self._openedFile = isinstance(file, str)
         if (progress or remainingTime) and totalSteps is None:
@@ -152,14 +154,20 @@ class StateDataReporter(object):
         self._totalMass = systemMass
         self._totalSteps = totalSteps
         self._hasInitialized = False
-        self._needsPositions = False
-        self._needsVelocities = False
+        self._needsPositions = pressure or pxx or pyy or pzz
+        self._needsVelocities = pxx or pyy or pzz
         self._needsForces = False
-        self._needEnergy = potentialEnergy or kineticEnergy or totalEnergy or temperature
+        self._needEnergy = potentialEnergy or kineticEnergy or totalEnergy or temperature \
+                           or pressure or pxx or pyy or pzz
 
         self._boxSizeList = [[], [], []]
 
-        self._cvs = cvs
+        self._cvs = cvs or []
+        self._pressure = pressure
+        self._pxx = pxx
+        self._pyy = pyy
+        self._pzz = pzz
+        self._extra = extra
 
     def describeNextReport(self, simulation):
         """Get information about the next report this object will generate.
@@ -178,8 +186,7 @@ class StateDataReporter(object):
             energies respectively.
         """
         steps = self._reportInterval - simulation.currentStep % self._reportInterval
-        return (
-        steps, self._needsPositions, self._needsVelocities, self._needsForces, self._needEnergy)
+        return (steps, self._needsPositions, self._needsVelocities, self._needsForces, self._needEnergy, False)
 
     def report(self, simulation, state):
         """Generate a report.
@@ -243,6 +250,11 @@ class StateDataReporter(object):
             values.append(simulation.currentStep)
         if self._time:
             values.append('%.4f' % state.getTime().value_in_unit(unit.picosecond))
+        if self._temperature:
+            values.append('%.2f' % (2 * state.getKineticEnergy() / (
+                    self._dof * unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin))
+        if self._pressure:
+            values.append(self._compute_pressure(simulation.context, state))
         if self._potentialEnergy:
             values.append(
                 '%.4f' % state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole))
@@ -252,9 +264,6 @@ class StateDataReporter(object):
             values.append(
                 '%.4f' % (state.getKineticEnergy() + state.getPotentialEnergy()).value_in_unit(
                     unit.kilojoules_per_mole))
-        if self._temperature:
-            values.append('%.2f' % (2 * state.getKineticEnergy() / (
-                        self._dof * unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin))
         if self._volume:
             values.append('%.4f' % volume.value_in_unit(unit.nanometer ** 3))
         if self._box:
@@ -280,8 +289,7 @@ class StateDataReporter(object):
             if elapsedSteps == 0:
                 value = '--'
             else:
-                estimatedTotalSeconds = (
-                                                    self._totalSteps - self._initialSteps) * elapsedSeconds / elapsedSteps
+                estimatedTotalSeconds = (self._totalSteps - self._initialSteps) * elapsedSeconds / elapsedSteps
                 remainingSeconds = int(estimatedTotalSeconds - elapsedSeconds)
                 remainingDays = remainingSeconds // 86400
                 remainingSeconds -= remainingDays * 86400
@@ -290,8 +298,7 @@ class StateDataReporter(object):
                 remainingMinutes = remainingSeconds // 60
                 remainingSeconds -= remainingMinutes * 60
                 if remainingDays > 0:
-                    value = "%d:%d:%02d:%02d" % (
-                    remainingDays, remainingHours, remainingMinutes, remainingSeconds)
+                    value = "%d:%d:%02d:%02d" % (remainingDays, remainingHours, remainingMinutes, remainingSeconds)
                 elif remainingHours > 0:
                     value = "%d:%02d:%02d" % (remainingHours, remainingMinutes, remainingSeconds)
                 elif remainingMinutes > 0:
@@ -299,8 +306,17 @@ class StateDataReporter(object):
                 else:
                     value = "0:%02d" % remainingSeconds
             values.append(value)
+
         for cv in self._cvs:
             values.append(cv.getCollectiveVariableValues(simulation.context)[0])
+
+        bool_press = [self._pxx, self._pyy, self._pzz]
+        if any(bool_press):
+            indexes = [i for i in range(3) if bool_press[i]]
+            values.extend(self._compute_anisotropic_pressure(simulation.context, state, indexes))
+
+        if self._extra:
+            values.extend(self._extra.values())
 
         self._boxSizeList[0].append(box[0][0].value_in_unit(unit.nanometer)),
         self._boxSizeList[1].append(box[1][1].value_in_unit(unit.nanometer)),
@@ -335,6 +351,11 @@ class StateDataReporter(object):
             elif not unit.is_quantity(self._totalMass):
                 self._totalMass = self._totalMass * unit.dalton
 
+        if self._pressure or self._pxx or self._pyy or self._pzz:
+            self._masses = np.array([simulation.system.getParticleMass(i).value_in_unit(unit.dalton)
+                                     for i in range(simulation.system.getNumParticles())]) * unit.dalton
+            self._constrained_groups = [list(ids) for ids in simulation.context.getConstrainedGroups()]
+
     def _constructHeaders(self):
         """Construct the headers for the CSV output
 
@@ -347,14 +368,16 @@ class StateDataReporter(object):
             headers.append('Step')
         if self._time:
             headers.append('Time')
-        if self._potentialEnergy:
-            headers.append('E_potential')
-        if self._kineticEnergy:
-            headers.append('E_kinetic')
-        if self._totalEnergy:
-            headers.append('E_total')
         if self._temperature:
-            headers.append('T')
+            headers.append('Temp')
+        if self._pressure:
+            headers.append('Press')
+        if self._potentialEnergy:
+            headers.append('E_pot')
+        if self._kineticEnergy:
+            headers.append('E_kin')
+        if self._totalEnergy:
+            headers.append('E_tot')
         if self._volume:
             headers.append('Vol')
         if self._box:
@@ -371,6 +394,14 @@ class StateDataReporter(object):
             headers.append('Remaining')
         for i, cv in enumerate(self._cvs):
             headers.append('CV%i' % i)
+        if self._pxx:
+            headers.append('Pxx')
+        if self._pyy:
+            headers.append('Pyy')
+        if self._pzz:
+            headers.append('Pzz')
+        if self._extra:
+            headers.extend(self._extra.keys())
         return headers
 
     def _checkForErrors(self, simulation, state):
@@ -388,6 +419,90 @@ class StateDataReporter(object):
             if math.isinf(energy):
                 raise ValueError('Energy is infinite')
 
+    def _compute_pressure(self, context: mm.Context, state: mm.State):
+        '''
+        Compute the isotropic pressure of a rectangular system
+        '''
+        box = state.getPeriodicBoxVectors(asNumpy=True)
+        positions = state.getPositions(asNumpy=True)
+        a, b, c = box
+        volume = a[0] * b[1] * c[2]
+        p_kinetic = (2 * state.getKineticEnergy() * unit.item / 3 / volume).value_in_unit(unit.bar)
+
+        # Because the contribution of constraints to the pressure cannot be evaluated,
+        # here I approximate it by removing the kinetic contribution of the internal motion of each constrained group.
+        # TODO I'm not confident about this formula
+        p_kinetic *= len(self._constrained_groups) * 3 / self._dof
+
+        scale = 0.0001
+        context.setPeriodicBoxVectors(a * (1 + scale), b * (1 + scale), c * (1 + scale))
+        context.setPositions(positions * (1 + scale))
+        context.applyConstraints(1E-6)
+        U1 = context.getState(getEnergy=True).getPotentialEnergy()
+
+        context.setPeriodicBoxVectors(a * (1 - scale), b * (1 - scale), c * (1 - scale))
+        context.setPositions(positions * (1 - scale))
+        context.applyConstraints(1E-6)
+        U_1 = context.getState(getEnergy=True).getPotentialEnergy()
+
+        dU = (U1 - U_1) * unit.item
+        dV = ((1 + scale) ** 3 - (1 - scale) ** 3) * volume
+        p_virial = -(dU / dV).value_in_unit(unit.bar)
+
+        context.setPeriodicBoxVectors(*box)
+        context.setPositions(positions)
+
+        return p_kinetic + p_virial
+
+    def _compute_anisotropic_pressure(self, context: mm.Context, state: mm.State, indexes: [bool]):
+        '''
+        Compute the anisotropic pressure of a rectangular system
+        '''
+        box = state.getPeriodicBoxVectors(asNumpy=True)
+        positions = state.getPositions(asNumpy=True)
+        volume = box[0][0] * box[1][1] * box[2][2]
+
+        # TODO Assume kinetic energies are well-partitioned to each DOF
+        p_kinetic = (2 * state.getKineticEnergy() * unit.item / 3 / volume).value_in_unit(unit.bar)
+
+        # Because the contribution of constraints to the pressure cannot be evaluated,
+        # here I approximate it by removing the kinetic contribution of the internal motion of each constrained group.
+        # TODO I'm not confident about this formula
+        p_kinetic *= len(self._constrained_groups) * 3 / self._dof
+
+        scale = 0.0001
+        pressures = []
+        for index in indexes:
+            scale_array = np.array([1.0, 1.0, 1.0])
+            scale_array[index] = 1 + scale
+
+            box_scaled = box._value.copy()
+            box_scaled[index][index] = box_scaled[index][index] * (1 + scale)
+
+            context.setPeriodicBoxVectors(*box_scaled)
+            context.setPositions(positions * scale_array)
+            context.applyConstraints(1E-6)
+            U1 = context.getState(getEnergy=True).getPotentialEnergy()
+
+            scale_array[index] = 1 - scale
+            box_scaled[index][index] = box_scaled[index][index] / (1 + scale) * (1 - scale)
+
+            context.setPeriodicBoxVectors(*box_scaled)
+            context.setPositions(positions * scale_array)
+            context.applyConstraints(1E-6)
+            U_1 = context.getState(getEnergy=True).getPotentialEnergy()
+
+            dU = (U1 - U_1) * unit.item
+            dV = 2 * scale * volume
+            p_virial = -(dU / dV).value_in_unit(unit.bar)
+
+            pressures.append(p_kinetic + p_virial)
+
+        context.setPeriodicBoxVectors(*box)
+        context.setPositions(positions)
+
+        return pressures
+
     def __del__(self):
         if self._openedFile:
             self._out.close()
@@ -401,6 +516,7 @@ class StateDataReporter(object):
         timeFraction : float
             The fraction of data (in the end) used to calculate the average.
             e.g. If set to 0.5, then the last half of the box size data will be used for average.
+            If larger than 1, then so many data points at the end will be used for average.
 
         Returns
         -------
@@ -408,8 +524,9 @@ class StateDataReporter(object):
         ly : float
         lz : float
         '''
-        n = math.ceil(len(self._boxSizeList[0]) * timeFraction)
+        n = math.ceil(timeFraction) if timeFraction > 1 else math.ceil(len(self._boxSizeList[0]) * timeFraction)
         lx = sum(self._boxSizeList[0][-n:]) / n
         ly = sum(self._boxSizeList[1][-n:]) / n
         lz = sum(self._boxSizeList[2][-n:]) / n
+
         return (lx, ly, lz)

@@ -2,8 +2,6 @@
 
 import os
 import math
-import tempfile
-import filecmp
 import pytest
 from mstools.topology import Topology, Molecule
 
@@ -29,3 +27,19 @@ def test_connectivity():
     assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301 / 180 * math.pi
     assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159 / 180 * math.pi
     assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905 / 180 * math.pi
+
+
+def test_distance_matrix():
+    ethanol = Molecule.from_smiles('CO ethanol')
+    assert ethanol.get_distance_matrix().tolist() == [[0, 1, 1, 1, 1, 2],
+                                                      [1, 0, 2, 2, 2, 1],
+                                                      [1, 2, 0, 2, 2, 3],
+                                                      [1, 2, 2, 0, 2, 3],
+                                                      [1, 2, 2, 2, 0, 3],
+                                                      [2, 1, 3, 3, 3, 0]]
+    assert ethanol.get_distance_matrix(max_bond=2).tolist() == [[0, 1, 1, 1, 1, 2],
+                                                                [1, 0, 2, 2, 2, 1],
+                                                                [1, 2, 0, 2, 2, 0],
+                                                                [1, 2, 2, 0, 2, 0],
+                                                                [1, 2, 2, 2, 0, 0],
+                                                                [2, 1, 0, 0, 0, 0]]

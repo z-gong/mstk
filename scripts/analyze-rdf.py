@@ -4,18 +4,16 @@ import sys
 import argparse
 import math
 import numpy as np
-
-np.seterr(all='raise')
 import matplotlib
-
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
-plt.rcParams.update({'font.size': 15})
-
 from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 from mstools.utils import print_data_to_file
+from mstools.topology.geometry import periodic_distance
+
+np.seterr(all='raise')
+matplotlib.use('Agg')
+matplotlib.rcParams.update({'font.size': 15})
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('input', nargs='+', type=str,
@@ -80,7 +78,7 @@ rdf_array = np.zeros(n_bin, dtype=np.float32)
 
 
 def _get_weighted_center(positions, weight):
-    return np.sum(positions * np.transpose(np.array([weight] * 3)), axis=0) / sum(weight)
+    return np.sum(positions * np.array(weight)[:, np.newaxis], axis=0) / sum(weight)
 
 
 def _get_com_group(positions, ids_group, masses_group):
@@ -93,22 +91,6 @@ def _get_com_group(positions, ids_group, masses_group):
             pos = _get_weighted_center(poss, masses)
         com_group.append(pos)
     return com_group
-
-
-def _get_distance_periodic(pos1, pos2, box, maxr: float = None):
-    delta = pos2 - pos1
-    delta[0] -= math.ceil(delta[0] / box[0] - 0.5) * box[0]
-    delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
-    delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
-
-    if max is not None and any(delta > maxr):
-        return -1
-
-    distance = np.sqrt(delta.dot(delta))
-    if max is not None and distance > maxr:
-        return -1
-
-    return distance
 
 
 n_frame = 0
@@ -126,8 +108,8 @@ for i in range(args.begin, args.end, args.skip):
     density_array = np.zeros(len(r_array), dtype=np.float32)
     for com1 in com_group1:
         for com2 in com_group2:
-            distance = _get_distance_periodic(com1, com2, frame.cell.size, args.maxr + dr / 2)
-            if 0 < distance < args.maxr + dr / 2:
+            distance = periodic_distance(com1, com2, frame.cell.size, args.maxr + dr / 2)
+            if distance is not None and distance < args.maxr + dr / 2:
                 idx_r = int((distance - edges[0]) / dr)
                 density_array[idx_r] += 1
 

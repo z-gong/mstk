@@ -8,6 +8,8 @@ Therefore, the requirement for some programs are hardcoded for now.
 Use pre-defined Gromacs protocols
 ---------------------------------
 
+Note: This functionality is currently broken because support for `DFF` is removed.
+
 Note: This example requires that `Packmol` and `DFF` are installed.
 
 Below is an example of using the pre-defined GROMACS `Npt` protocol to

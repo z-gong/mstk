@@ -7,9 +7,9 @@ from mstools.topology import Topology, UnitCell
 from mstools.forcefield import ForceField
 from mstools.simsys import System
 
-import simtk.openmm as mm
-from simtk.openmm import app
-from simtk.unit import kilocalorie_per_mole as kcal_mol, kilojoule_per_mole as kJ_mol
+import openmm.openmm as mm
+from openmm import app
+from openmm.unit import kilocalorie_per_mole as kcal_mol, kilojoule_per_mole as kJ_mol
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,10 +23,10 @@ def get_omm_integrator_platform():
 def test_transfer_bonded_terms():
     top = Topology.open(cwd + '/../topology/files/c_3oh.msd')
     ff = ForceField.open(cwd + '/../topology/files/c_3oh.ppf')
-    top.assign_charge_from_ff(ff, transfer_bci_terms=True)
+    top.assign_charge_from_ff(ff, transfer_qinc_terms=True)
     system = System(top, ff, transfer_bonded_terms=True)
     angle = next(a for a in system.topology.angles if a.name == 'C2-C3-H8')
-    assert ff.get_eqt_for_angle(angle) == ('c_3', 'c_3o', 'h_1')
+    assert ff.get_eqt_for_angle(angle)[0] == ('c_3', 'c_3o', 'h_1')
     aterm = system.angle_terms[id(angle)]
     assert aterm.name == 'c_3,c_3,h_1'
 
@@ -43,7 +43,7 @@ def test_team():
     print_energy_terms(context)
 
     pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 488.5
+    assert pytest.approx(pe, abs=1.0) == 488.5
 
 
 def test_vdw_shift():
@@ -60,7 +60,7 @@ def test_vdw_shift():
     print_energy_terms(context)
 
     pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 494.3
+    assert pytest.approx(pe, abs=1.0) == 494.3
 
 
 def test_team_vacuum():
@@ -75,7 +75,7 @@ def test_team_vacuum():
     print_energy_terms(context)
 
     pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 490.8
+    assert pytest.approx(pe, abs=1.0) == 490.8
 
 
 def test_eqt_vdw():
@@ -90,7 +90,7 @@ def test_eqt_vdw():
     print_energy_terms(context)
 
     pe = context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kcal_mol)
-    assert pytest.approx(pe, rel=0.001) == 46.55
+    assert pytest.approx(pe, abs=1.0) == 46.55
 
 
 def test_drude():
@@ -133,7 +133,7 @@ def test_tip4p():
 
 
 def test_sdk():
-    ff = ForceField.open(cwd + '/../forcefield/files/SPICA_v1.zfp')
+    ff = ForceField.open('SPICA_v1.zfp')
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
     for atom in top.atoms:
         atom.charge /= 80 ** 0.5

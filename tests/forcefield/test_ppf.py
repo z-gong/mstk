@@ -6,9 +6,9 @@ import pytest
 from mstools.forcefield import ForceField, Ppf
 
 import os
+import shutil
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -35,7 +35,7 @@ def test_read():
     o_1_t = ff.atom_types.get('o_1-t')
     assert o_1_t.charge == -0.3333
 
-    binc = ff.bci_terms.get('c_35an2,h_1')
+    binc = ff.qinc_terms.get('c_35an2,h_1')
     assert binc.type1 == 'c_35an2'
     assert binc.type2 == 'h_1'
     assert binc.version == '0.16'
@@ -97,7 +97,11 @@ def test_read():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
+
     ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     tmp = os.path.join(tmpdir, 'out-CLP.ppf')
     Ppf.save_to(ff, tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLP.ppf')
+
+    shutil.rmtree(tmpdir)

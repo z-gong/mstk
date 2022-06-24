@@ -15,6 +15,7 @@ class GromacsExporter():
     * :class:`~mstools.forcefield.LJ126Term`
     * :class:`~mstools.forcefield.HarmonicBondTerm`
     * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.LinearAngleTerm`
     * :class:`~mstools.forcefield.PeriodicDihedralTerm`
     * :class:`~mstools.forcefield.OplsImproperTerm`
     * :class:`~mstools.forcefield.HarmonicImproperTerm`
@@ -34,7 +35,7 @@ class GromacsExporter():
         pass
 
     @staticmethod
-    def export(system, gro_out, top_out, mdp_out):
+    def export(system, gro_out, top_out, mdp_out, **kwargs):
         '''
         Generate input files for Gromacs from a system
 
@@ -51,8 +52,8 @@ class GromacsExporter():
             raise Exception('PBC required for exporting GROMACS')
 
         supported_terms = {LJ126Term, MieTerm,
-                           HarmonicBondTerm,
-                           HarmonicAngleTerm, SDKAngleTerm,
+                           HarmonicBondTerm, MorseBondTerm,
+                           HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
@@ -61,9 +62,9 @@ class GromacsExporter():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if MieTerm in system.ff_classes:
-            logger.warning('MieTerm not supported by GROMACS. Will be exported in LJ-12-6 form')
+            logger.warning('MieTerm not supported by GROMACS. Exported in LJ-12-6 form')
         if SDKAngleTerm in system.ff_classes:
-            logger.warning('SDKAngleTerm not supported by GROMACS. Will be exported in harmonic form')
+            logger.warning('SDKAngleTerm not supported by GROMACS. Exported in harmonic form')
 
         if system.vsite_types - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
@@ -237,6 +238,11 @@ class GromacsExporter():
                     string += '%6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1,
                         1, bterm.length, bterm.k * 2)
+                elif bterm.__class__ == MorseBondTerm:
+                    a1, a2 = bond.atom1, bond.atom2
+                    string += '%6i %6i %6i %12.6f %12.4f %12.4f\n' % (
+                        a1.id_in_mol + 1, a2.id_in_mol + 1,
+                        3, bterm.length, bterm.depth, (bterm.k / bterm.depth) ** 0.5)
                 else:
                     raise Exception('Unsupported bond term')
 
@@ -299,6 +305,14 @@ class GromacsExporter():
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
                         1, aterm.theta, aterm.k * 2)
+                elif aterm.__class__ is LinearAngleTerm:
+                    bond12, bond23 = angle.bonds
+                    bterm12 = system.bond_terms[id(bond12)]
+                    bterm23 = system.bond_terms[id(bond23)]
+                    a, k_linear = aterm.calc_a_k_linear(bterm12.length, bterm23.length)
+                    string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
+                        a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
+                        9, a, k_linear * 2)
                 else:
                     raise Exception('Unsupported angle term')
 
@@ -349,6 +363,7 @@ class GromacsExporter():
 
     @staticmethod
     def _export_mdp(system: System, mdp_out='grompp.mdp'):
+        r_cut = system.ff.vdw_cutoff
         tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
         string = f'''; Created by mstools
 integrator      = sd
@@ -363,11 +378,11 @@ compressed-x-grps  = System
 
 cutoff-scheme   = Verlet
 pbc             = xyz
-; rlist           = 1.2
+; rlist           = {r_cut}
 coulombtype     = PME
-rcoulomb        = 1.2
+rcoulomb        = {r_cut}
 vdwtype         = Cut-off
-rvdw            = 1.2
+rvdw            = {r_cut}
 DispCorr        = EnerPres
 
 tcoupl          = no; v-rescale

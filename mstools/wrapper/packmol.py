@@ -21,7 +21,7 @@ class Packmol:
         self.PACKMOL_BIN = packmol_bin
 
     def build_box(self, files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
-                  tolerance=1.8, seed=None, inp_file='build.inp', silent=False):
+                  tolerance=2.0, seed=None, inp_file='build.inp', silent=False):
         '''
         Build a box directly from molecule files.
 
@@ -82,7 +82,7 @@ class Packmol:
 
     @staticmethod
     def gen_inp(files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
-                tolerance=1.8, seed=None, inp_file='build.inp'):
+                tolerance=2.0, seed=None, inp_file='build.inp'):
         '''
         Generate input file for running packmol.
 

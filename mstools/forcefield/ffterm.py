@@ -1,8 +1,8 @@
 from collections import namedtuple
 import math
 from distutils.util import strtobool
+from mstools.chem.constant import *
 from .errors import *
-from ..constant import *
 
 
 class FFTermFactory():
@@ -15,15 +15,20 @@ class FFTermFactory():
     _class_map = {}
 
     @staticmethod
-    def register(klass):
+    def register(klass, extra_names=None):
         '''
-        Register a force field term so that it can be read from or write into a ZFP file.
+        Register a force field term so that it can be read from or write into a ZFP or ZFF file.
 
         Parameters
         ----------
         klass : subclass of FFTerm
+        extra_names : list of str
         '''
         FFTermFactory._class_map[klass.__name__] = klass
+        FFTermFactory._class_map[klass.alias] = klass  # for short alias in ZFF
+        extra_names = extra_names or []
+        for name in extra_names:
+            FFTermFactory._class_map[name] = klass
 
     @staticmethod
     def create_from_zfp(name, d):
@@ -68,6 +73,50 @@ class FFTermFactory():
         term._from_zfp_extra(d)
         return term
 
+    @staticmethod
+    def create_from_zff(line):
+        '''
+        Reconstruct a FFTerm using a line read from ZFF text file.
+
+        Essentially it finds the class for the term, and calls the constructor of the class.
+        Every class to be reconstructed should have a class attribute `_zfp_attrs`.
+        This dict records which attributes should be saved into ZFP xml file,
+        and it is also used as the arguments for initializing a FFTerm.
+        It also tell the data type of these attributes.
+
+        Some force field terms can not be fully built from the constructor.
+        Then :func:`FFTerm._from_zff_extra` should be implemented for those terms,
+        and it will be called to do some extra works.
+
+        Parameters
+        ----------
+        line : str
+            A line read from ZFF file
+
+        Returns
+        -------
+        term : subclass of FFTerm
+
+        '''
+        # must use kwargs instead of args to init the cls,
+        # in case there is mistake in the sequence of init arguments
+        words = line.strip().split()
+        name = words[0]
+        try:
+            cls = FFTermFactory._class_map[name]
+        except KeyError:
+            raise Exception('Invalid force field term: %s' % name)
+        kwargs = {}
+        for (attr, func), val in zip(cls._zfp_attrs.items(), words[1:]):
+            kwargs[attr] = func(val)
+        try:
+            term = cls(**kwargs)
+        except:
+            raise Exception('Cannot init %s with line: %s' % (name, line))
+        term._from_zff_extra(line)
+
+        return term
+
 
 class FFTerm():
     '''
@@ -86,6 +135,15 @@ class FFTerm():
     The attributes that will be saved into or loaded from ZFP file.
     This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFP xml file.
     '''
+
+    @classmethod
+    @property
+    def alias(cls):
+        '''
+        An short alias for the name of this class
+        It is used to keep the line more compact in ZFF file
+        '''
+        return cls.__name__.replace('Term', '')
 
     def __init__(self):
         self.version = None
@@ -146,6 +204,50 @@ class FFTerm():
         Parameters
         ----------
         d : dict, [str, str]
+        '''
+        pass
+
+    def to_zff(self):
+        '''
+        Pack the attributes of a term into a string so that can be saved into a line in ZFF file.
+
+        Every class to be packed should have a class property `zfp_attrs`.
+        This dict records which attributes should be saved into ZFP xml file,
+        and it is also used as the arguments for initializing a FFTerm.
+        It also tell the data type of these attributes.
+
+        Returns
+        -------
+        line : string
+        '''
+        line = '%-16s' % self.__class__.alias
+        for attr, func in self._zfp_attrs.items():
+            val = getattr(self, attr)
+            if type(val) is float:
+                if val > 10000:
+                    string = ' %9.1f' % val
+                else:
+                    string = ' %9.4f' % val
+            elif type(val) is int:
+                string = ' %2i' % val
+            elif type(val) is bool:
+                string = '   true' if val else ''
+            else:
+                string = ' %-9s' % val
+            line += string
+
+        return line
+
+    def _from_zff_extra(self, line):
+        '''
+        Some force field terms can not be fully built from the constructor.
+        This function is called by :func:`FFTermFactory.create_from_zff` to do some extra works.
+
+        e.g. PeriodicDihedralTerm need to rebuild its own storage of multiple dihedral parameters
+
+        Parameters
+        ----------
+        line : str
         '''
         pass
 
@@ -241,9 +343,9 @@ class AtomType(FFTerm):
         'name'     : str,
         'mass'     : float,
         'charge'   : float,
+        'eqt_q_inc': str,
         'eqt_vdw'  : str,
         'eqt_bond' : str,
-        'eqt_q_inc': str,
         'eqt_ang_c': str,
         'eqt_ang_s': str,
         'eqt_dih_c': str,
@@ -291,6 +393,19 @@ class AtomType(FFTerm):
     def name(self, value):
         # this is a trick allowing from_zfp() to work correctly
         self._name = value
+
+    @property
+    def eqt_types(self):
+        return [self.eqt_vdw,
+                self.eqt_q_inc,
+                self.eqt_bond,
+                self.eqt_ang_c,
+                self.eqt_ang_s,
+                self.eqt_dih_c,
+                self.eqt_dih_s,
+                self.eqt_imp_c,
+                self.eqt_imp_s,
+                self.eqt_polar]
 
     def __lt__(self, other):
         return self.name < other.name
@@ -779,6 +894,21 @@ class MieTerm(VdwTerm):
         rep, att = self.repulsion, self.attraction
         return (rep / att) ** (1 / (rep - att))
 
+    @property
+    def is_sdk(self):
+        '''
+        SDK CGFF use LJ-9-6 and LJ-12-4
+
+        Returns
+        -------
+        is : bool
+        '''
+        if self.repulsion == 9 and self.attraction == 6:
+            return True
+        if self.repulsion == 12 and self.attraction == 4:
+            return True
+        return False
+
 
 FFTermFactory.register(MieTerm)
 
@@ -829,6 +959,57 @@ class HarmonicBondTerm(BondTerm):
 FFTermFactory.register(HarmonicBondTerm)
 
 
+class MorseBondTerm(BondTerm):
+    '''
+    Bond term in Morse function form
+
+    The energy function is
+
+    >>> U = depth*(1-exp(-alpha*(r-b0)))^2
+    >>> alpha = (k / depth) ** 0.5
+
+    The `k` corresponds to the force constant `k` in HarmonicBondTerm.
+
+    During the initialization, the two atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    length : float
+    k : float
+    depth : float
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    length : float
+    k : float
+    depth : float
+    '''
+
+    _zfp_attrs = {
+        'type1' : str,
+        'type2' : str,
+        'length': float,
+        'k'     : float,
+        'depth' : float,
+    }
+
+    def __init__(self, type1, type2, length, k, depth):
+        super().__init__(type1, type2, length)
+        self.k = k
+        self.depth = depth
+
+    def evaluate_energy(self, val):
+        alpha = (self.k / self.depth) ** 0.5
+        return self.depth * (1 - math.exp(-alpha * (val - self.length))) ** 2
+
+
+FFTermFactory.register(MorseBondTerm)
+
+
 class HarmonicAngleTerm(AngleTerm):
     '''
     Angle term in harmonic function form
@@ -845,6 +1026,7 @@ class HarmonicAngleTerm(AngleTerm):
     ----------
     type1 : str
     type2 : str
+    type3 : str
     theta : float
     k : float
     fixed : bool
@@ -853,6 +1035,7 @@ class HarmonicAngleTerm(AngleTerm):
     ----------
     type1 : str
     type2 : str
+    type3 : str
     theta : float
     k : float
     fixed : bool
@@ -890,7 +1073,7 @@ class SDKAngleTerm(AngleTerm):
     Be careful that angle is in unit of degree, but the force constant is in unit of kJ/mol/rad^2.
 
     This term itself does not contain parameters `epsilon` and `sigma`.
-    Instead, it expect a :class:`MieTerm` between `type1` and `type3` existing in the :class:`ForceField` object.
+    Instead, it expects a :class:`MieTerm` between `type1` and `type3` existing in the :class:`ForceField` object.
     If such a MieTerm does not exist, or the repulsion and attraction of this MieTerm do not equal to 9 and 6,
     then the ForceField is invalid and cannot be used to construct a :class:`~mstools.simsys.System`.
 
@@ -900,6 +1083,7 @@ class SDKAngleTerm(AngleTerm):
     ----------
     type1 : str
     type2 : str
+    type3 : str
     theta : float
     k : float
 
@@ -907,6 +1091,7 @@ class SDKAngleTerm(AngleTerm):
     ----------
     type1 : str
     type2 : str
+    type3 : str
     theta : float
     k : float
     fixed : bool
@@ -926,6 +1111,65 @@ class SDKAngleTerm(AngleTerm):
 
 
 FFTermFactory.register(SDKAngleTerm)
+
+
+class LinearAngleTerm(AngleTerm):
+    '''
+    Linear angle described by the distance between the center atom and its equilibrated position
+
+    For angle i-j-k, the energy function is
+
+    >>> U = k_linear * (r_j - r_j_0)^2
+    >>> r_j_0 = a * r_i + (1-a) * r_k
+    >>> a = b_jk / (b_ij + b_jk)
+
+    The k_linear can be converted from the k_theta in HarmonicAngleTerm
+
+    >>> k_linear = k_theta * 2 * (b_ij + b_jk)^2 / (b_ij * b_jk)^2
+
+    To be consistent with other angle terms, the k_theta is defined as the force constant, in unit of kJ/mol/rad^2
+
+    This term itself does not contain bond length parameters for i-j and j-k bonds
+    Instead, it expects two :class:`BondTerm` between each side atom type and `type2` existing in the :class:`ForceField` object.
+    If such a `BondTerm` does not exist, then the ForceField is invalid and cannot be used to construct a :class:`~mstools.simsys.System`.
+
+    During the initialization, the two side atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    k : float
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    theta : float
+    k : float
+    fixed : bool
+    '''
+
+    _zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'k'    : float,
+    }
+
+    def __init__(self, type1, type2, type3, k):
+        super().__init__(type1, type2, type3, 180.0, fixed=False)
+        self.k = k
+
+    def calc_a_k_linear(self, b12, b23):
+        a = b23 / (b12 + b23)
+        k_linear = self.k * 2 * (b12 + b23) ** 2 / (b12 * b23) ** 2
+        return a, k_linear
+
+
+FFTermFactory.register(LinearAngleTerm)
 
 
 class PeriodicDihedralTerm(DihedralTerm):
@@ -1033,7 +1277,39 @@ class PeriodicDihedralTerm(DihedralTerm):
                 n = int(key.split('_')[-1])
                 phi = float(d['phi_%i' % n])
                 k = float(d['k_%i' % n])
-                self.add_parameter(phi, k, n)
+                if k != 0:
+                    self.add_parameter(phi, k, n)
+
+    def to_zff(self):
+        _opls = self.is_opls_convention
+        form = 'OplsDihedral' if _opls else self.__class__.alias
+        line = '%-16s %-9s %-9s %-9s %-9s' % (form, self.type1, self.type2, self.type3, self.type4)
+        if _opls:
+            for p in self.get_opls_parameters():
+                line += ' %9.4f' % p
+            return line
+        for para in self.parameters:
+            line += ' %9.4f %9.4f %2i' % (para.phi, para.k, para.n)
+        return line
+
+    def _from_zff_extra(self, line: str):
+        words = line.strip().split()
+        form = words[0]
+        str_vals = words[5:]
+        if form == 'OplsDihedral':
+            if len(str_vals) != 4:
+                raise Exception(f'Invalid parameters for OPLS form of {self.__class__.__name__}')
+            for i in range(4):
+                phi, k, n = 180.0 * (i % 2), float(str_vals[i]), i + 1
+                if k != 0:
+                    self.add_parameter(phi, k, n)
+        else:
+            if len(str_vals) % 3 != 0:
+                raise Exception(f'Invalid parameters for {self.__class__.__name__}')
+            for i in range(len(str_vals) // 3):
+                phi, k, n = float(str_vals[i * 3]), float(str_vals[i * 3 + 1]), int(str_vals[i * 3 + 2])
+                if k != 0:
+                    self.add_parameter(phi, k, n)
 
     def evaluate_energy(self, val):
         energy = 0
@@ -1116,7 +1392,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         return k1, k2, k3, k4
 
 
-FFTermFactory.register(PeriodicDihedralTerm)
+FFTermFactory.register(PeriodicDihedralTerm, extra_names=['OplsDihedral'])
 
 
 class OplsImproperTerm(ImproperTerm):

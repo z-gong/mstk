@@ -1,5 +1,5 @@
-import simtk.openmm as mm
-from .util import CONST
+import openmm.openmm as mm
+from .utils import CONST
 from .unit import *
 
 
@@ -38,8 +38,8 @@ def slab_correction(system):
     box = system.getDefaultPeriodicBoxVectors()
     vol = (box[0][0] * box[1][1] * box[2][2]).value_in_unit(nm ** 3)
     # convert from e^2/nm to kJ/mol  # 138.93545915168772
-    _eps0 = CONST.EPS0 * unit.farad / unit.meter  # vacuum dielectric constant
-    _conv = (1 / (4 * CONST.PI * _eps0) * qe ** 2 / nm / unit.item).value_in_unit(kJ_mol)
+    _eps0 = CONST.EPS0 * farad / meter  # vacuum dielectric constant
+    _conv = (1 / (4 * CONST.PI * _eps0) * qe ** 2 / nm / item).value_in_unit(kJ_mol)
     prefactor = 2 * CONST.PI / vol * _conv
     cvforce = mm.CustomCVForce(f'{prefactor}*muz*muz')
     cvforce.addCollectiveVariable('muz', muz)
@@ -73,11 +73,7 @@ def spring_self(system, positions, particles, strength):
     if system.getNumParticles() != len(positions):
         raise Exception('Length of positions does not equal to number of particles in system')
 
-    if unit.is_quantity(strength):
-        kx, ky, kz = strength.value_in_unit(kJ_mol / nm ** 2)
-    else:
-        kx, ky, kz = strength
-
+    kx, ky, kz = strength
     force = mm.CustomExternalForce(f'{kx}*periodicdistance(x,0,0,x0,0,0)^2+'
                                    f'{ky}*periodicdistance(0,y,0,0,y0,0)^2+'
                                    f'{kz}*periodicdistance(0,0,z,0,0,z0)^2')
@@ -119,15 +115,6 @@ def wall_power(system, particles, direction, bound, k, cutoff, power=2):
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
     _min, _max = bound
-    if unit.is_quantity(_min):
-        _min = _min.value_in_unit(nm)
-    if unit.is_quantity(_max):
-        _max = _max.value_in_unit(nm)
-    if unit.is_quantity(k):
-        k = k.value_in_unit(kJ_mol)
-    if unit.is_quantity(cutoff):
-        cutoff = cutoff.value_in_unit(nm)
-
     _min_0 = _min + cutoff
     _max_0 = _max - cutoff
     force = mm.CustomExternalForce(f'{k}*step({_min_0}-{direction})*rmin^{power}+'
@@ -169,15 +156,6 @@ def wall_lj126(system, particles, direction, bound, epsilon, sigma):
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
     _min, _max = bound
-    if unit.is_quantity(_min):
-        _min = _min.value_in_unit(nm)
-    if unit.is_quantity(_max):
-        _max = _max.value_in_unit(nm)
-    if unit.is_quantity(epsilon):
-        epsilon = epsilon.value_in_unit(kJ_mol)
-    if unit.is_quantity(sigma):
-        sigma = sigma.value_in_unit(nm)
-
     _min_0 = _min + sigma * 2 ** (1 / 6)
     _max_0 = _max - sigma * 2 ** (1 / 6)
     force = mm.CustomExternalForce(f'4*{epsilon}*step({_min_0}-{direction})*(rmin^12-rmin^6+0.25)+'
@@ -202,23 +180,19 @@ def electric_field(system, particles, strength):
     system : mm.System
     particles : list of int
     strength : list of float
-        Strength of electric field in x, y and z directions
+        Strength of electric field in x, y and z directions, in unit of volt/nm
 
     Returns
     -------
     force : mm.CustomExternalForce
 
     '''
-    if unit.is_quantity(strength):
-        efx, efy, efz = strength.value_in_unit(unit.volt / unit.nanometer)
-    else:
-        efx, efy, efz = strength
-
     # convert from eV/nm to kJ/(mol*nm)  # 96.4853400990037
-    _conv = (1 * qe * unit.volt / unit.item).value_in_unit(kJ_mol)
+    _conv = (1 * qe * volt / item).value_in_unit(kJ_mol)
+    efx, efy, efz = strength
     force = mm.CustomExternalForce(f'{_conv}*({efx}*q*x+{efy}*q*y+{efz}*q*z)')
     force.addPerParticleParameter('q')
-    nbforce = [f for f in system.getForces() if f.__class__ == mm.NonbondedForce][0]
+    nbforce = next(f for f in system.getForces() if type(f) is mm.NonbondedForce)
     for i in particles:
         q = nbforce.getParticleParameters(i)[0].value_in_unit(qe)
         force.addParticle(i, [q])
@@ -313,14 +287,6 @@ def restrain_particle_number(system, particles, direction, bound,
     if direction not in ['x', 'y', 'z']:
         raise Exception('direction can only be x, y or z')
     _min, _max = bound
-    if unit.is_quantity(_min):
-        _min = _min.value_in_unit(nm)
-    if unit.is_quantity(_max):
-        _max = _max.value_in_unit(nm)
-    if unit.is_quantity(sigma):
-        sigma = sigma.value_in_unit(nm)
-    if unit.is_quantity(k):
-        k = k.value_in_unit(kJ_mol)
     if weights is None:
         weights = [1.0] * len(particles)
     if len(weights) != len(particles):
@@ -346,3 +312,34 @@ def restrain_particle_number(system, particles, direction, bound,
     system.addForce(cvforce)
 
     return cvforce
+
+
+def point_wall_power(system, particles, reference, k, cutoff, power=2):
+    '''
+    Add a spherical wall centered at a reference point so that selected particles are repelled from this point.
+
+    The energy equal to k when particle is located at the reference point,
+    and equal to zero when particle stays beyond the cutoff.
+
+    Parameters
+    ----------
+    system : mm.System
+    particles : list of int
+    reference : list of float
+    k : float
+    cutoff : float
+    power : int, optional
+
+    Returns
+    -------
+    force : mm.CustomExternalForce
+    '''
+    x0, y0, z0 = reference
+    force = mm.CustomExternalForce(f'step({cutoff}-r)*{k}*(1-r/{cutoff})^{power};'
+                                   f'r=periodicdistance(x,y,z,{x0},{y0},{z0});')
+    for i in particles:
+        force.addParticle(i, [])
+    force.setName('PointWall')
+    system.addForce(force)
+
+    return force

@@ -1,11 +1,15 @@
-from simtk import unit
-from simtk.unit import kelvin, bar, dalton, volt
-from simtk.unit import picosecond, elementary_charge
-from simtk.unit import nanometer, angstrom, meter
-from simtk.unit import kilojoule_per_mole, kilocalorie_per_mole
+from openmm import unit as _unit
 
-ps = picosecond
-nm = nanometer
-kJ_mol = kilojoule_per_mole
-kcal_mol = kilocalorie_per_mole
-qe = elementary_charge
+kelvin = _unit.kelvin
+bar = _unit.bar
+ps = _unit.picosecond
+nm = _unit.nanometer
+kJ_mol = _unit.kilojoule_per_mole
+kcal_mol = _unit.kilocalorie_per_mole
+qe = _unit.elementary_charge
+dalton = _unit.dalton
+item = _unit.item
+meter = _unit.meter
+angstrom = _unit.angstrom
+volt = _unit.volt
+farad = _unit.farad

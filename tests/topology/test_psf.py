@@ -4,11 +4,11 @@ import os
 import tempfile
 import filecmp
 import pytest
+import shutil
 from mstools.topology import Topology, TIP4PSite
 from mstools.forcefield import ForceField
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -84,6 +84,7 @@ def test_read_swm4():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
     lmp = Topology.open(cwd + '/files/10-H2O-5-C3H6.lmp', improper_center=3)
     tmp = os.path.join(tmpdir, 'lmp-out.psf')
     lmp.write(tmp)
@@ -93,9 +94,11 @@ def test_write():
     tmp = os.path.join(tmpdir, 'zmat-out.psf')
     zmat.write(tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/zmat-out.psf')
+    shutil.rmtree(tmpdir)
 
 
 def test_write_swm4():
+    tmpdir = tempfile.mkdtemp()
     ff = ForceField.open(cwd + '/../forcefield/files/SWM4-NDP.zfp')
     mol = Topology.open(cwd + '/files/TIP3P.zmat').molecules[0]
     mol.generate_virtual_sites(ff)
@@ -107,3 +110,4 @@ def test_write_swm4():
     top.write(tmp)
 
     assert filecmp.cmp(tmp, cwd + '/files/baselines/swm4-out.psf')
+    shutil.rmtree(tmpdir)

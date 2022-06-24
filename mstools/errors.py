@@ -13,10 +13,16 @@ class PackmolError(Exception):
 class GmxError(Exception):
     pass
 
+
 class GaussError(Exception):
     pass
 
+
 class OpenBabelError(Exception):
+    pass
+
+
+class RDKitError(Exception):
     pass
 
 

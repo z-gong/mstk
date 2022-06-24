@@ -1,5 +1,5 @@
 import numpy as np
-from .. import constant
+from ..chem import constant
 
 
 def ew_dot(vec1, vec2):

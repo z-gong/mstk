@@ -4,18 +4,18 @@ import os
 import tempfile
 import filecmp
 import pytest
+import shutil
 
 from mstools.forcefield import ForceField, Zfp
 from mstools.forcefield.ffterm import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
     ff = ForceField.open(cwd + '/files/TEAM_IL.zfp')
     assert ff.vdw_cutoff == 1.2
-    assert ff.vdw_long_range == 'correct'
+    assert ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT
     assert ff.scale_14_vdw == 0.5
     assert ff.lj_mixing_rule == ForceField.LJ_MIXING_LB
     assert pytest.approx(ff.scale_14_coulomb, abs=1E-4) == 0.8333
@@ -26,12 +26,12 @@ def test_read():
     assert atype.eqt_imp_s == 's_1'
     assert atype.eqt_imp_c == 's_1-'
 
-    term = ff.bci_terms['b_4-,c_2nb']
+    term = ff.qinc_terms['b_4-,c_2nb']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'c_2nb'
     assert term.value == 0.262
 
-    term = ff.bci_terms['b_4-,f_1']
+    term = ff.qinc_terms['b_4-,f_1']
     assert term.type1 == 'b_4-'
     assert term.type2 == 'f_1'
     assert term.value == 0.4215
@@ -55,6 +55,8 @@ def test_read():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
+
     clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     tmp = os.path.join(tmpdir, 'out-CLPol.zfp')
     Zfp.save_to(clp, tmp)
@@ -69,3 +71,5 @@ def test_write():
     tmp = os.path.join(tmpdir, 'out-SPCE.zfp')
     spce.write(tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/out-SPCE.zfp')
+
+    shutil.rmtree(tmpdir)

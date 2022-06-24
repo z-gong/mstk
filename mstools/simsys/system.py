@@ -1,9 +1,8 @@
 import copy
 import itertools
-import sys
 from ..topology import *
 from ..forcefield import *
-from ..constant import *
+from ..chem.constant import *
 from .. import logger
 
 
@@ -20,8 +19,8 @@ class System():
     * The atom type of all atoms in the topology must have been correctly assigned,
       so that the force field terms can be matched.
     * The charges and masses of all atoms in the topology must have been assigned.
-      You may need to call :func:`mstools.topology.Topology.assign_charge_from_ff`
-      and :func:`mstools.topology.Topology.assign_mass_from_ff`
+      You may need to call :func:`mstools.forcefield.ForceField.assign_charge`
+      and :func:`mstools.forcefield.ForceField.assign_mass`
       before constructing the system to update the charges and masses of atoms in the topology.
     * If this is a Drude polarizable model, the Drude particles must available in the topology,
       and the polarizability, thole screening and charges on Drude particles must have been correctly assigned.
@@ -49,8 +48,10 @@ class System():
     ff : ForceField
     positions : array_like, optional
     cell : UnitCell, optional
-    transfer_bonded_terms: bool, optional
-    supress_pbc_warning: bool, optional
+    ignore_missing_improper: bool
+        If set to True, a zero-energy OplsImproperTerm will be created for missing improper terms in the FF
+    transfer_bonded_terms: bool
+    supress_pbc_warning: bool
         Set to True if you intend to build a vacuum system and don't want to hear warning about it.
 
     Attributes
@@ -76,7 +77,9 @@ class System():
     ff_classes : set of subclass of FFTerm
     '''
 
-    def __init__(self, topology, ff, positions=None, cell=None, transfer_bonded_terms=False,
+    def __init__(self, topology, ff, positions=None, cell=None,
+                 ignore_missing_improper=False,
+                 transfer_bonded_terms=False,
                  suppress_pbc_warning=False):
         self._topology = copy.deepcopy(topology)
         self._ff = ForceField()
@@ -89,20 +92,24 @@ class System():
         if cell is not None:
             self._topology.cell = UnitCell(cell.vectors)
 
+        if self._topology.n_atom == 0:
+            logger.error('No atoms in the topology')
+            raise Exception('Invalid topology')
+
         self.use_pbc = bool(self._topology.cell.volume != 0)  # convert numpy.bool_ to bool
         if not self.use_pbc and not suppress_pbc_warning:
             logger.warning('Periodic cell not provided or volume equal to zero')
 
         if all(atom.mass <= 0 for atom in topology.atoms):
             logger.error('All atoms have non-positive mass. '
-                         'You may need to call topology.assign_mass_from_ff(ff)')
-            sys.exit(1)
+                         'You may need to call ff.assign_mass(topology)')
+            raise Exception('Invalid topology')
 
         self.charged = True
         if all(atom.charge == 0 for atom in topology.atoms):
             self.charged = False
             logger.warning('All atoms have zero charge. '
-                           'You may need to call topology.assign_charge_from_ff(ff)')
+                           'You may need to call ff.assign_charge(topology)')
 
         charge_total = sum(atom.charge for atom in topology.atoms)
         if abs(charge_total) > 1E-8:
@@ -131,7 +138,7 @@ class System():
         self.polarizable_classes = set()
         self.ff_classes = set()
 
-        self._extract_terms(ff, transfer_bonded_terms)
+        self._extract_terms(ff, ignore_missing_improper, transfer_bonded_terms)
 
     @property
     def topology(self):
@@ -155,7 +162,7 @@ class System():
         '''
         return self._ff
 
-    def _extract_terms(self, ff, transfer_bonded_terms=False):
+    def _extract_terms(self, ff, ignore_missing_improper=False, transfer_bonded_terms=False):
         '''
         Extract only the required terms from a force field.
 
@@ -164,8 +171,11 @@ class System():
         Parameters
         ----------
         ff : ForceField
+        ignore_missing_improper : bool
         transfer_bonded_terms : bool
         '''
+        from mstools.forcefield.dff_utils import dff_fuzzy_match
+
         self._ff.restore_settings(ff.get_settings())
 
         _atype_not_found = set()
@@ -229,12 +239,17 @@ class System():
         _aterm_transferred = set()
         for angle in self._topology.angles:
             _found = False
-            ats = ff.get_eqt_for_angle(angle)
-            _term = AngleTerm(*ats, 0)
-            try:
-                aterm = ff.get_angle_term(*ats)
-                _found = True
-            except:
+            ats_list = ff.get_eqt_for_angle(angle)
+            _term = AngleTerm(*ats_list[0], 0)
+            for ats in ats_list:
+                try:
+                    aterm = ff.get_angle_term(*ats)
+                except FFTermNotFoundError:
+                    pass
+                else:
+                    _found = True
+                    break
+            else:
                 if transfer_bonded_terms:
                     aterm, score = dff_fuzzy_match(_term, ff)
                     if aterm is not None:
@@ -261,6 +276,7 @@ class System():
         _dterm_to_remove = set()
         for mol in self._topology.molecules:
             _dihedral_to_remove = []
+            _dihedrals_to_keep = []
             for dihedral in mol.dihedrals:
                 _found = False
                 ats_list = ff.get_eqt_for_dihedral(dihedral)
@@ -268,10 +284,10 @@ class System():
                 for ats in ats_list:
                     try:
                         dterm = ff.get_dihedral_term(*ats)
-                        _found = True
-                    except:
+                    except FFTermNotFoundError:
                         pass
                     else:
+                        _found = True
                         break
                 else:
                     if transfer_bonded_terms:
@@ -289,11 +305,11 @@ class System():
                         _n_dihedral_to_remove += 1
                         _dterm_to_remove.add(dterm.name)
                     else:
+                        _dihedrals_to_keep.append(dihedral)
                         self._ff.add_term(dterm, replace=True)
                         self.dihedral_terms[id(dihedral)] = dterm
-            # remove dihedrals from this molecule that have zero energy contributions
-            for dihedral in _dihedral_to_remove:
-                mol.remove_connectivity(dihedral)
+            # extremely slow to remove lots of dihedrals by calling mol.remove_connectivity()
+            mol._dihedrals = _dihedrals_to_keep
 
         if _n_dihedral_to_remove > 0:
             logger.warning('%i dihedrals removed because they have zero energy contributions\n'
@@ -309,10 +325,10 @@ class System():
             for ats in ats_list:
                 try:
                     iterm = ff.get_improper_term(*ats)
-                    _found = True
-                except:
+                except FFTermNotFoundError:
                     pass
                 else:
+                    _found = True
                     break
             else:
                 if transfer_bonded_terms:
@@ -321,8 +337,12 @@ class System():
                         _found = True
                         _iterm_transferred.add((_term.name, iterm.name, score))
             if not _found:
-                _iterm_not_found.add(_term.name)
-            else:
+                if ignore_missing_improper:
+                    iterm = OplsImproperTerm(*ats_list[0], 0.0)
+                    _found = True
+                else:
+                    _iterm_not_found.add(_term.name)
+            if _found:
                 self._ff.add_term(iterm, replace=True)
                 self.improper_terms[id(improper)] = iterm
 
@@ -381,7 +401,7 @@ class System():
                            .union(self.improper_classes)
                            .union(self.polarizable_classes))
 
-    def export_lammps(self, data_out='data.lmp', in_out='in.lmp'):
+    def export_lammps(self, data_out='data.lmp', in_out='in.lmp', **kwargs):
         '''
         Generate input files for Lammps.
 
@@ -391,9 +411,14 @@ class System():
         in_out : str
         '''
         from .lmpexporter import LammpsExporter
-        LammpsExporter.export(self, data_out, in_out)
+        from .lmpdrudeexporter import LammpsDrudeExporter
 
-    def export_gromacs(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp'):
+        if DrudeTerm in self.ff_classes:
+            LammpsDrudeExporter.export(self, data_out, in_out, **kwargs)
+        else:
+            LammpsExporter.export(self, data_out, in_out, **kwargs)
+
+    def export_gromacs(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp', **kwargs):
         '''
         Generate input files for GROMACS
 
@@ -404,11 +429,11 @@ class System():
         mdp_out : str or None
         '''
         from .gmxexporter import GromacsExporter
-        GromacsExporter.export(self, gro_out, top_out, mdp_out)
+        GromacsExporter.export(self, gro_out, top_out, mdp_out, **kwargs)
 
-    def export_charmm(self, pdb_out='conf.pdb', psf_out='topol.psf', prm_out='ff.prm'):
+    def export_namd(self, pdb_out='conf.pdb', psf_out='topol.psf', prm_out='ff.prm', **kwargs):
         '''
-        Generate input files for CHARMM
+        Generate input files for NAMD
 
         Parameters
         ----------
@@ -416,19 +441,57 @@ class System():
         psf_out : str or None
         prm_out : str or None
         '''
-        from .charmmexporter import CharmmExporter
-        CharmmExporter.export(self, pdb_out, psf_out, prm_out)
+        from .namdexporter import NamdExporter
+        NamdExporter.export(self, pdb_out, psf_out, prm_out, **kwargs)
 
-    def to_omm_system(self):
+    def to_omm_system(self, **kwargs):
         '''
         Export this system to OpenMM system
 
         Returns
         -------
-        omm_system : simtk.openmm.System
+        omm_system : openmm.openmm.System
         '''
         from .ommexporter import OpenMMExporter
-        return OpenMMExporter.export(self)
+        return OpenMMExporter.export(self, **kwargs)
+
+    def decompose_energy(self):
+        '''
+        Calculate the contribution of each energy term in this system
+        '''
+        try:
+            from openmm import openmm as mm, app
+            from mstools.ommhelper.utils import energy_decomposition
+        except ImportError:
+            raise Exception('OpenMM is required for energy decomposition')
+
+        omm_sys = self.to_omm_system()
+        integrator = mm.VerletIntegrator(0.001)
+        platform = mm.Platform.getPlatformByName('CPU')
+        sim = app.Simulation(self.topology.to_omm_topology(), omm_sys, integrator, platform)
+        sim.context.setPositions(self.topology.positions)
+        energy_decomposition(sim, logger=logger)
+
+    def minimize_energy(self):
+        '''
+        Perform energy minimization on this system
+
+        The position of each atom in the topology will be updated
+        '''
+        try:
+            from openmm import openmm as mm, app
+            from mstools.ommhelper.utils import minimize
+        except ImportError:
+            raise Exception('OpenMM is required for energy minimization')
+
+        omm_sys = self.to_omm_system()
+        integrator = mm.VerletIntegrator(0.001)
+        platform = mm.Platform.getPlatformByName('CPU')
+        sim = app.Simulation(self.topology.to_omm_topology(), omm_sys, integrator, platform)
+        sim.context.setPositions(self.topology.positions)
+        minimize(sim, tolerance=100, logger=logger)
+        positions = sim.context.getState(getPositions=True).getPositions(asNumpy=True)._value
+        self.topology.set_positions(positions)
 
     def get_TIP4P_linear_coeffs(self, atom: Atom):
         vsite: TIP4PSite = atom.virtual_site

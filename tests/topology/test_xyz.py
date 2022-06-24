@@ -4,10 +4,10 @@ import os
 import tempfile
 import filecmp
 import pytest
+import shutil
 from mstools.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tmpdir = tempfile.mkdtemp()
 
 
 def test_read():
@@ -27,6 +27,7 @@ def test_read():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
     zmat = Topology.open(cwd + '/files/Im11.zmat')
     tmp = os.path.join(tmpdir, 'zmat-out.xyz')
     zmat.write(tmp)
@@ -37,3 +38,4 @@ def test_write():
     tmp = os.path.join(tmpdir, 'smi-out.xyz')
     top.write(tmp)
     filecmp.cmp(tmp, cwd + '/files/baselines/smi-out.xyz')
+    shutil.rmtree(tmpdir)

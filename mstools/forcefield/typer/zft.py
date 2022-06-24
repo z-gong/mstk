@@ -1,31 +1,36 @@
 import io
+import os
 from .typer import Typer
-from ..errors import *
+from mstools import DIR_MSTOOLS
+from mstools.forcefield.errors import *
+from mstools.topology import Bond
 
 try:
-    from ...wrapper.openbabel import openbabel as ob, pybel
+    from rdkit.Chem import AllChem as Chem
 except:
-    OPENBABEL_IMPORTED = False
+    RDKIT_IMPORTER = False
 else:
-    OPENBABEL_IMPORTED = True
+    RDKIT_IMPORTER = True
 
 
 class TypeDefine():
-    def __init__(self, name, smarts):
+    def __init__(self, name, smarts, formal_charge=None):
         self.name = name
         self.smarts = smarts
-        self.obsmarts = None
+        self.rdsmarts = None
+        self.formal_charge = formal_charge  # None means don't match formal charge
         # smarts not provided means this is a fake root define
         if smarts is not None:
-            self.obsmarts = ob.OBSmartsPattern()
-            if not self.obsmarts.Init(smarts):
+            try:
+                self.rdsmarts = Chem.MolFromSmarts(smarts)
+            except:
                 raise Exception('Invalid SMARTS: %s' % smarts)
 
         self.children: [TypeDefine] = []
         self.parent: TypeDefine = None
 
     def __repr__(self):
-        return '<TypeDefine: %s %s>' % (self.name, self.smarts)
+        return '<TypeDefine: %s %s %s>' % (self.name, self.smarts, self.formal_charge)
 
     def add_child(self, define):
         if define not in self.children:
@@ -99,8 +104,8 @@ class ZftTyper(Typer):
     '''
 
     def __init__(self, file=None):
-        if not OPENBABEL_IMPORTED:
-            raise Exception('Cannot import openbabel')
+        if not RDKIT_IMPORTER:
+            raise Exception('RDKit is required for ZftTyper')
 
         self.defines: {str: TypeDefine} = {}
         self.define_root = TypeDefine('UNDEFINED', None)
@@ -132,11 +137,15 @@ class ZftTyper(Typer):
                 section = 'HierarchicalTree'
                 continue
             if section == 'TypeDefinition':
+                words = line.strip().split()
+                if len(words) < 2:
+                    raise Exception('Atom type and SMARTS must be provided: ' + line)
+                name, smarts = words[:2]
                 try:
-                    name, smarts = line.strip().split()[:2]
-                except:
-                    raise Exception('smarts should be provided: %s' % line)
-                self.defines[name] = TypeDefine(name, smarts)
+                    formal_charge = int(words[2]) if len(words) > 2 else None
+                except ValueError:
+                    raise Exception('Formal charge must be integer: ' + line)
+                self.defines[name] = TypeDefine(name, smarts, formal_charge)
             if section == 'HierarchicalTree':
                 tree_lines.append(line.rstrip())
 
@@ -170,34 +179,32 @@ class ZftTyper(Typer):
         self.defines[name] = define
         parent.add_child(define)
 
-    def type_molecule(self, molecule):
+    def _type_molecule(self, molecule):
         '''
         Assign atom types in the molecule with rules in type definition file.
 
         The :attr:`~mstools.topology.Atom.type` attribute of all atoms in the molecule will be updated.
 
-        ZftTyper use OpenBabel to do SMARTS matching,
-        therefore it expects :attr:`~mstools.topology.Molecule.obmol` attribute to be available in the molecule.
-        Usually it means the molecule should be initialized from SMILES or pybel Molecule
+        ZftTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
+        Usually it means the molecule be initialized from SMILES.
         with :func:`~mstools.topology.Molecule.from_smiles` or :func:`~mstools.topology.Molecule.from_pybel`
 
-        If :attr:`~mstools.topology.Molecule.obmol` attribute is None, an Exception will be raised.
         If an atom can not match any type by the predefined SMARTS patterns, an Exception will be raised.
 
         Parameters
         ----------
         molecule : Molecule
         '''
-        if molecule.obmol is None:
-            raise TypingNotSupportedError('obmol attribute not found for %s' % str(molecule))
+        if any(bond.order == Bond.Order.UNSPECIFIED for bond in molecule.bonds):
+            raise TypingNotSupportedError(f'Typer requires all bond orders in {molecule} be set')
 
         possible_defines = {i: [] for i in range(molecule.n_atom)}
         for define in self.defines.values():
-            obsmarts = define.obsmarts
-            obsmarts.Match(molecule.obmol)
-            results = list(obsmarts.GetMapList())
-            for indexes in results:
-                idx = indexes[0] - 1
+            for indexes in molecule.rdmol.GetSubstructMatches(define.rdsmarts, uniquify=False, maxMatches=0):
+                if define.formal_charge is not None \
+                        and sum(molecule.atoms[i].formal_charge for i in indexes) != define.formal_charge:
+                    continue
+                idx = indexes[0]
                 possible_defines[idx].append(define)
 
         _undefined = []
@@ -216,3 +223,6 @@ class ZftTyper(Typer):
             if define in defines:
                 return self._get_deepest_define(defines, define)
         return parent
+
+
+typer_primitive = ZftTyper(os.path.join(DIR_MSTOOLS, 'data', 'forcefield', 'primitive.zft'))

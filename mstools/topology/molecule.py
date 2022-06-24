@@ -1,14 +1,16 @@
-import math
 import itertools
 import copy
 import numpy as np
+from mstools import logger
+from mstools.chem.rdkit import create_mol_from_smiles
+from mstools.chem.element import Element
+from mstools.forcefield.ffterm import *
 from .atom import Atom
 from .virtualsite import *
 from .connectivity import *
 from .unitcell import UnitCell
-from ..forcefield import *
-from ..utils import create_mol_from_smiles
-from .. import logger
+from .residue import Residue
+from .geometry import find_clusters, find_clusters_consecutive
 
 
 class Molecule():
@@ -35,35 +37,45 @@ class Molecule():
 
     def __init__(self, name='UNK'):
         self.id = -1
-        self.name = name
+        self._name = name
         self._topology = None
         self._atoms: [Atom] = []
         self._bonds: [Bond] = []
         self._angles: [Angle] = []
         self._dihedrals: [Dihedral] = []
         self._impropers: [Improper] = []
-        self._obmol = None  # this is for typing based on SMARTS
+        self._rdmol = None  # this is for typing based on SMARTS
+        self._is_rdmol_valid = False
+        self._default_residue = Residue(name)
+        self._added_residues = []
 
     def __repr__(self):
         return f'<Molecule: {self.name} {self.id}>'
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = val
+        self._default_residue.name = val
+
     def __deepcopy__(self, memodict={}):
         '''
         If there are virtual sites, they will be constructed with new atoms also
+        If there are residue information, they will also be constructed
+
+        topology will not be copied.
+        id will not be copied, because it relies on other molecules in the topology
         '''
-        mol = Molecule()
-        mol.id = self.id
-        mol.name = self.name
-        if self._obmol is not None:
-            import openbabel
-            mol._obmol = openbabel.OBMol(self._obmol)
+        mol = Molecule(self.name)
         for atom in self._atoms:
-            atom_new = copy.deepcopy(atom)
-            mol.add_atom(atom_new)
+            mol.add_atom(copy.deepcopy(atom))
         for bond in self._bonds:
             idx1 = bond.atom1.id_in_mol
             idx2 = bond.atom2.id_in_mol
-            mol.add_bond(mol._atoms[idx1], mol._atoms[idx2])
+            mol.add_bond(mol._atoms[idx1], mol._atoms[idx2], bond.order)
         for angle in self._angles:
             idx1 = angle.atom1.id_in_mol
             idx2 = angle.atom2.id_in_mol
@@ -82,13 +94,22 @@ class Molecule():
             idx4 = improper.atom4.id_in_mol
             mol.add_improper(mol._atoms[idx1], mol._atoms[idx2], mol._atoms[idx3], mol._atoms[idx4])
 
+        # add_atom and add_bond will invalidate rdmol
+        if self._is_rdmol_valid:
+            from rdkit import Chem
+            mol._rdmol = Chem.Mol(self._rdmol)
+            mol._is_rdmol_valid = True
+
         for i, atom in enumerate(self._atoms):
             vsite = atom.virtual_site
             if vsite is not None:
                 new_atom = mol.atoms[i]
                 new_parents = [mol.atoms[p.id_in_mol] for p in vsite.parents]
-                new_atom.virtual_site = VirtualSiteFactory.create(vsite.__class__.__name__, new_parents,
-                                                                  vsite.parameters)
+                new_atom.virtual_site = VirtualSite.create(vsite.__class__.__name__, new_parents, vsite.parameters)
+
+        for residue in self._added_residues:
+            atoms = [mol.atoms[atom.id_in_mol] for atom in residue.atoms]
+            mol.add_residue(residue.name, atoms)
 
         return mol
 
@@ -97,7 +118,7 @@ class Molecule():
         '''
         Initialize a molecule from SMILES string.
 
-        OpenBabel is used for parsing SMILES. The Hydrogen atoms will be created.
+        RDKit is used for parsing SMILES. The Hydrogen atoms will be created.
         The positions of all atoms will also be automatically generated.
         The SMILES string can contain the name of the molecule at the end, e.g. 'CCCC butane'.
 
@@ -116,19 +137,19 @@ class Molecule():
         else:
             name = None
 
-        py_mol = create_mol_from_smiles(smiles)
-        mol = Molecule.from_pybel(py_mol, name)
+        rdmol = create_mol_from_smiles(smiles)
+        mol = Molecule.from_rdmol(rdmol, name)
 
         return mol
 
     @staticmethod
-    def from_pybel(py_mol, name=None):
+    def from_rdmol(rdmol, name=None):
         '''
-        Initialize a molecule from a `pybel Molecule` object.
+        Initialize a molecule from a RDKit Mol object.
 
         Parameters
         ----------
-        py_mol : pybel.Molecule
+        rdmol : rdkit.Chem.Mol
         name : str
             The name of the molecule. If not provided, the formula will be used as the name.
 
@@ -137,38 +158,58 @@ class Molecule():
         molecule : Molecule
         '''
         try:
-            import openbabel
+            from rdkit import Chem
+            from rdkit.Chem.rdMolDescriptors import CalcMolFormula
         except ImportError:
-            raise ImportError('OpenBabel is required for parsing SMILES')
+            raise ImportError('RDKit not found')
 
+        rdmol = Chem.Mol(rdmol)
+        # don't set aromaticity, kekulized bonds are easier to manipulate
+        Chem.SanitizeMol(rdmol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_SETAROMATICITY)
         mol = Molecule()
-        for i, a in enumerate(py_mol.atoms):
+        for i, a in enumerate(rdmol.GetAtoms()):
             atom = Atom()
-            element = Element(a.atomicnum)
+            element = Element(a.GetAtomicNum())
             atom.name = element.symbol + str(i + 1)
             atom.symbol = element.symbol
             atom.mass = element.mass
-            atom.formal_charge = a.formalcharge
-            atom.position = [i / 10 for i in a.coords]  # convert A to nm
+            atom.formal_charge = a.GetFormalCharge()
             mol.add_atom(atom)
-        for b in openbabel.OBMolBondIter(py_mol.OBMol):
-            atom1 = mol.atoms[b.GetBeginAtomIdx() - 1]
-            atom2 = mol.atoms[b.GetEndAtomIdx() - 1]
-            mol.add_bond(atom1, atom2)
+        for atom, pos in zip(mol.atoms, rdmol.GetConformer().GetPositions()):
+            atom.position = pos / 10  # convert A to nm
+        for b in rdmol.GetBonds():
+            atom1 = mol.atoms[b.GetBeginAtomIdx()]
+            atom2 = mol.atoms[b.GetEndAtomIdx()]
+            d_bond_order = {
+                Chem.rdchem.BondType.UNSPECIFIED: Bond.Order.UNSPECIFIED,
+                Chem.rdchem.BondType.SINGLE     : Bond.Order.SINGLE,
+                Chem.rdchem.BondType.DOUBLE     : Bond.Order.DOUBLE,
+                Chem.rdchem.BondType.TRIPLE     : Bond.Order.TRIPLE,
+            }
+            try:
+                order = d_bond_order[b.GetBondType()]
+            except KeyError:
+                logger.warning('Only single/double/triple/aromatic bond supported. Will discard bond order')
+                order = Bond.Order.UNSPECIFIED
+            mol.add_bond(atom1, atom2, order)
         mol.generate_angle_dihedral_improper()
-        mol._obmol = py_mol.OBMol
+
+        # set aromaticiy so SMARTS matching works correctly for aromatic bonds
+        Chem.SetAromaticity(rdmol)
+        mol._rdmol = rdmol
+        mol._is_rdmol_valid = True
 
         if name is not None:
             mol.name = name
         else:
-            mol.name = py_mol.formula
+            mol.name = CalcMolFormula(rdmol)
 
         return mol
 
     @property
-    def obmol(self):
+    def rdmol(self):
         '''
-        The `openbabel.OBMol` object associated with this molecule.
+        The `rdkit.Chem.Mol` object associated with this molecule.
 
         It is required by ZftTyper typing engine, which performs SMARTS matching on the molecule.
         The obmol attribute will be assigned if the molecule is initialized from SMILES or Pybel Molecule.
@@ -176,12 +217,42 @@ class Molecule():
 
         Returns
         -------
-        obmol : openbabel.OBMol
+        rdmol : rdkit.Chem.Mol
         '''
-        if self._obmol is not None:
-            return self._obmol
-        else:
-            raise Exception('obmol not assigned for this molecule')
+        if not self._is_rdmol_valid:
+            self._construct_rdmol()
+
+        return self._rdmol
+
+    def _construct_rdmol(self):
+        '''
+        Construct a RDKit molecule from atoms and bonds.
+        '''
+        try:
+            from rdkit import Chem
+        except ImportError:
+            raise ImportError('RDKit not found')
+
+        if any(b.order == Bond.Order.UNSPECIFIED for b in self.bonds):
+            logger.warning(f'Not all bond orders are specified in {self}')
+
+        rwmol = Chem.RWMol()
+        for atom in self.atoms:
+            rdatom = Chem.Atom(atom.symbol)
+            rdatom.SetFormalCharge(atom.formal_charge)
+            rdatom.SetNoImplicit(True)  # disable implicit Hs. Otherwise cannot handle radicals
+            rwmol.AddAtom(rdatom)
+        for bond in self.bonds:
+            d_bond_order = {
+                Bond.Order.UNSPECIFIED: Chem.rdchem.BondType.UNSPECIFIED,
+                Bond.Order.SINGLE     : Chem.rdchem.BondType.SINGLE,
+                Bond.Order.DOUBLE     : Chem.rdchem.BondType.DOUBLE,
+                Bond.Order.TRIPLE     : Chem.rdchem.BondType.TRIPLE,
+            }
+            rwmol.AddBond(bond.atom1.id_in_mol, bond.atom2.id_in_mol, d_bond_order[bond.order])
+        Chem.SanitizeMol(rwmol)
+        self._rdmol = rwmol.GetMol()
+        self._is_rdmol_valid = True
 
     @property
     def topology(self):
@@ -199,15 +270,16 @@ class Molecule():
         '''
         Add an atom to this molecule.
 
+        The atom will also be added to the default residue.
         The id_in_mol attribute of all atoms will be updated after insertion.
 
         Parameters
         ----------
         atom : Atom
         index : int or None
-            If index is None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
+            If None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
         update_topology : bool
-            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+            If True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
             Otherwise, you have to re-init the topology manually so that the topological information is correct.
         '''
         atom._molecule = self
@@ -218,19 +290,30 @@ class Molecule():
             self._atoms.insert(index, atom)
             for i, at in enumerate(self._atoms):
                 at.id_in_mol = i
+        self._is_rdmol_valid = False
+
+        self._default_residue._add_atom(atom)
+        # re-index residues because default residue start to count
+        if self._default_residue.n_atom == 1:
+            self._refresh_residues(update_topology)
+
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
     def remove_atom(self, atom, update_topology=True):
         '''
         Remove an atom and all the bonds connected to the atom from this molecule.
+
+        The atom will also be removed from its residue.
         The id_in_mol attribute of all atoms will be updated after removal.
+        The angle, dihedral and improper involving this atom are untouched.
+        Therefore, you may call `generate_angle_dihedral_improper` to refresh the connectivity.
 
         Parameters
         ----------
         atom : Atom
         update_topology : bool
-            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms.
+            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
             Otherwise, you have to re-init the topology manually so that the topological information is correct.
         '''
         for bond in atom._bonds[:]:
@@ -239,10 +322,83 @@ class Molecule():
         atom._molecule = None
         for i, at in enumerate(self._atoms):
             at.id_in_mol = i
+        self._is_rdmol_valid = False
+
+        residue = atom.residue
+        residue._remove_atom(atom)
+        # re-index residues because the residue this atom belongs to becomes empty
+        if residue.n_atom == 0:
+            self._refresh_residues(update_topology)
+
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def add_bond(self, atom1, atom2, check_existence=False):
+    def add_residue(self, name, atoms, update_topology=True):
+        '''
+        Put a group of atoms into a new residue. These atoms will be removed from their old residues.
+
+        Make sure that these atoms belong to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        name : str
+        atoms : list of Atom
+        update_topology : bool
+            If True, the topology this molecule belongs to will assign `id` for all residues.
+            Otherwise, you have to assign the `id` of all residues in the topology manually.
+
+        Returns
+        -------
+        residue : Residue
+        '''
+        residue = Residue(name)
+        for atom in atoms:
+            atom.residue._remove_atom(atom)
+            residue._add_atom(atom)
+        self._added_residues.append(residue)
+        self._refresh_residues(update_topology)
+
+        return residue
+
+    def remove_residue(self, residue, update_topology=True):
+        '''
+        Remove a residue from this molecule, and put the relevant atoms into the default residue
+
+        Make sure that this residue belongs to this molecule.
+        For performance issue, this is not checked.
+
+        Parameters
+        ----------
+        residue : Residue
+        update_topology : bool
+            If True, the topology this molecule belongs to will assign `id` for all residues
+            Otherwise, you have to assign the `id` of all residues in the topology manually.
+        '''
+        for atom in residue.atoms[:]:
+            self._default_residue._add_atom(atom)
+        self._added_residues.remove(residue)
+        self._refresh_residues(update_topology)
+
+    def _refresh_residues(self, update_topology=True):
+        '''
+        Remove empty residues, update `id_in_mol` attributes of each residue in this molecule
+
+        Parameters
+        ----------
+        update_topology : bool
+            If True, the topology this molecule belongs to will assign `id` for all residues
+        '''
+        for i in reversed(range(len(self._added_residues))):
+            if self._added_residues[i].n_atom == 0:
+                self._added_residues.pop(i)
+        for i, residue in enumerate(self.residues):
+            residue.id_in_mol = i
+        if self._topology is not None and update_topology:
+            for i, residue in enumerate(self._topology.residues):
+                residue.id = i
+
+    def add_bond(self, atom1, atom2, order=Bond.Order.UNSPECIFIED, check_existence=False):
         '''
         Add a bond between two atoms.
 
@@ -260,13 +416,15 @@ class Molecule():
         -------
         bond : [Bond, None]
         '''
-        bond = Bond(atom1, atom2)
+        bond = Bond(atom1, atom2, order)
         if check_existence and bond in self._bonds:
             return None
 
         self._bonds.append(bond)
         atom1._bonds.append(bond)
         atom2._bonds.append(bond)
+        self._is_rdmol_valid = False
+
         return bond
 
     def add_angle(self, atom1, atom2, atom3, check_existence=False):
@@ -355,6 +513,9 @@ class Molecule():
         Make sure that this connectivity belongs to this molecule.
         For performance issue, this is not checked.
 
+        Note that when a bond get removed, the relevant angles, dihedrals and impropers are still there.
+        You may call `generate_angle_dihedral_improper` to refresh connectivity.
+
         Parameters
         ----------
         connectivity : [Bond, Angle, Dihedral, Improper]
@@ -364,6 +525,7 @@ class Molecule():
             self._bonds.remove(bond)
             bond.atom1._bonds.remove(bond)
             bond.atom2._bonds.remove(bond)
+            self._is_rdmol_valid = False
         elif type(connectivity) is Angle:
             self._angles.remove(connectivity)
         elif type(connectivity) is Dihedral:
@@ -406,6 +568,52 @@ class Molecule():
                     set(p.id_in_mol for p in atom2.bond_partners):
                 return False
         return True
+
+    def get_adjacency_matrix(self):
+        matrix = np.zeros([self.n_atom, self.n_atom], dtype=bool)
+        for bond in self.bonds:
+            a1, a2 = bond.atom1.id_in_mol, bond.atom2.id_in_mol
+            matrix[a1][a2] = True
+            matrix[a2][a1] = True
+
+        # no bond between virtual sites and parents
+        for vsite, parent in self.get_virtual_site_pairs():
+            a1, a2 = vsite.id_in_mol, parent.id_in_mol
+            matrix[a1][a2] = True
+            matrix[a2][a1] = True
+
+        return matrix
+
+    def get_distance_matrix(self, max_bond=None):
+        connections = [set() for _ in range(self.n_atom)]
+        for bond in self._bonds:
+            a1, a2 = bond.atom1.id_in_mol, bond.atom2.id_in_mol
+            connections[a1].add(a2)
+            connections[a2].add(a1)
+        mat = np.zeros((self.n_atom, self.n_atom), dtype=int)
+
+        def fill_matrix(level, center, neighbors, flags):
+            if max_bond and level > max_bond:
+                return
+
+            if all(flags):
+                return
+
+            for j in neighbors:
+                if not flags[j]:
+                    mat[center][j] = level
+                    mat[j][center] = level
+                    flags[j] = True
+
+            neighbors_deeper = set()
+            for j in neighbors:
+                neighbors_deeper.update(connections[j])
+            fill_matrix(level + 1, center, neighbors_deeper, flags)
+
+        for i in range(self.n_atom):
+            fill_matrix(1, i, connections[i], [j == i for j in range(self.n_atom)])
+
+        return mat
 
     @property
     def n_atom(self):
@@ -463,6 +671,10 @@ class Molecule():
         return len(self._impropers)
 
     @property
+    def n_residue(self):
+        return len(self.residues)
+
+    @property
     def atoms(self):
         '''
         List of atoms belong to this molecule
@@ -516,6 +728,20 @@ class Molecule():
         impropers : list of Improper
         '''
         return self._impropers
+
+    @property
+    def residues(self):
+        '''
+        All the residues in this molecule
+
+        Returns
+        -------
+        residues : list of Residue
+        '''
+        if len(self._default_residue.atoms) == 0:
+            return self._added_residues
+        else:
+            return [self._default_residue] + self._added_residues
 
     @property
     def has_position(self):
@@ -597,11 +823,18 @@ class Molecule():
         pair_14_list = list(sorted(pair_14_set - pair_13_set.union(pair_12_set)))
         return pair_12_list, pair_13_list, pair_14_list
 
-    def generate_angle_dihedral_improper(self):
+    def generate_angle_dihedral_improper(self, dihedral=True, improper=True):
         '''
         Generate angle, dihedral and improper from bonds
         The existing angles, dihedrals and impropers will be removed first
         The atoms and bonds concerning Drude particles will be ignored
+
+        Parameters
+        ----------
+        dihedral: bool
+            Whether or not generate dihedrals based on bonds
+        improper: bool
+            Whether or not generate impropers based on bonds
         '''
         self._angles = []
         self._dihedrals = []
@@ -611,17 +844,18 @@ class Molecule():
             partners = [p for p in atom.bond_partners if not p.is_drude]
             for p1, p2 in itertools.combinations(partners, 2):
                 self.add_angle(p1, atom, p2)
-            if len(partners) == 3:
+            if improper and len(partners) == 3:
                 self.add_improper(atom, *sorted(partners))
 
-        for bond in filter(lambda x: not x.is_drude, self._bonds):
-            atom2 = bond.atom1
-            atom3 = bond.atom2
-            partners2 = [p for p in atom2.bond_partners if not p.is_drude]
-            partners3 = [p for p in atom3.bond_partners if not p.is_drude]
-            for atom1, atom4 in itertools.product(partners2, partners3):
-                if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
-                    self.add_dihedral(atom1, atom2, atom3, atom4)
+        if dihedral:
+            for bond in filter(lambda x: not x.is_drude, self._bonds):
+                atom2 = bond.atom1
+                atom3 = bond.atom2
+                partners2 = [p for p in atom2.bond_partners if not p.is_drude]
+                partners3 = [p for p in atom3.bond_partners if not p.is_drude]
+                for atom1, atom4 in itertools.product(partners2, partners3):
+                    if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
+                        self.add_dihedral(atom1, atom2, atom3, atom4)
 
     def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None,
                                    pbc='', cell=None):
@@ -688,7 +922,7 @@ class Molecule():
 
                 delta = atom2.position - atom1.position
                 if pbc != '':
-                    if any((delta > bond_limit) & (delta < box - bond_limit)):
+                    if any((np.abs(delta) > bond_limit) & (np.abs(delta) < box - bond_limit)):
                         continue
                     if 'x' in pbc:
                         delta[0] -= math.ceil(delta[0] / box[0] - 0.5) * box[0]
@@ -696,7 +930,7 @@ class Molecule():
                         delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
                     if 'z' in pbc:
                         delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
-                if any(delta > bond_limit):
+                if any(np.abs(delta) > bond_limit):
                     continue
 
                 bterm = BondTerm(at1, at2, 0)
@@ -966,17 +1200,152 @@ class Molecule():
         '''
         ff.assign_mass(self)
 
-    def assign_charge_from_ff(self, ff, transfer_bci_terms=False):
+    def assign_charge_from_ff(self, ff, transfer_qinc_terms=False):
         '''
         Assign charges for all atoms and Drude particles from the force field.
 
         Parameters
         ----------
         ff : ForceField
-        transfer_bci_terms : bool, optional
+        transfer_qinc_terms : bool, optional
 
         See Also
         --------
         ForceField.assign_charge
         '''
-        ff.assign_charge(self, transfer_bci_terms)
+        ff.assign_charge(self, transfer_qinc_terms)
+
+    def get_sub_molecule(self, indexes, deepcopy=True):
+        '''
+        Extract a substructure from this molecule by indexes of atoms.
+
+        The substructure will not contain any bond, angle, dihedral and improper between atoms in substructure and remaining parts.
+        Residue information will be reconstructed.
+
+        Parameters
+        ----------
+        indexes : list of int
+            The atoms in the substructure will be in the same order as in indexes
+        deepcopy : bool
+            If set to False, then the atoms and connections in the substructure will be the identical object as the atoms and connections in this molecule.
+            The data structure in this molecule will be messed up, and should not be accessed later.
+
+        Returns
+        -------
+        substructure : Molecule
+        '''
+        indexes = list(dict.fromkeys(indexes))
+
+        if deepcopy:
+            mol = copy.deepcopy(self)
+        else:
+            mol = self
+
+        for i, atom in enumerate(mol.atoms):
+            atom.id = i
+
+        # store residue information
+        residues = list(dict.fromkeys(mol.atoms[i].residue for i in indexes))
+        residue_name_atoms = []
+        if len(residues) > 1:
+            for residue in residues:
+                atoms = [atom for atom in residue.atoms if atom.id in indexes]
+                residue_name_atoms.append((residue.name, atoms))
+
+        sub = Molecule()
+        for i in indexes:
+            sub.add_atom(mol.atoms[i], update_topology=False)
+
+        ids_set = set(indexes)
+        for conn in mol.bonds:
+            if set(conn.id_atoms) <= ids_set:
+                sub._bonds.append(conn)
+        for atom in sub.atoms:
+            for i in reversed(range(len(atom.bonds))):
+                if not set(atom.bonds[i].id_atoms) <= ids_set:
+                    atom._bonds.pop(i)
+        for conn in mol.angles:
+            if set(conn.id_atoms) <= ids_set:
+                sub._angles.append(conn)
+        for conn in mol.dihedrals:
+            if set(conn.id_atoms) <= ids_set:
+                sub._dihedrals.append(conn)
+        for conn in mol.impropers:
+            if set(conn.id_atoms) <= ids_set:
+                sub._impropers.append(conn)
+
+        # reconstruct residues
+        if len(residues) > 1:
+            for resname, atoms in residue_name_atoms:
+                sub.add_residue(resname, atoms)
+        else:
+            sub.name = residues[0].name
+
+        return sub
+
+    @staticmethod
+    def merge(molecules):
+        '''
+        Merge several molecules into a single molecule.
+
+        The molecules will be deep-copied before the mergence.
+
+        Parameters
+        ----------
+        molecules : list of Molecule
+
+        Returns
+        -------
+        merged : Molecule
+        '''
+        merged = Molecule()
+        for mol in molecules:
+            m_copy = copy.deepcopy(mol)
+            # should always call `add_atom()` instead of manipulating `_atoms` directly
+            for atom in m_copy.atoms:
+                merged.add_atom(atom)
+            merged._bonds.extend(m_copy._bonds)
+            merged._angles.extend(m_copy._angles)
+            merged._dihedrals.extend(m_copy._dihedrals)
+            merged._impropers.extend(m_copy._impropers)
+
+            # all atoms goes to the default residue after `add_atom`, but the old residue still holds the atom list
+            for residue in m_copy.residues:
+                merged.add_residue(residue.name, residue.atoms)
+
+        return merged
+
+    def split(self, consecutive=False):
+        '''
+        Split the molecule into smaller pieces based on bond network.
+
+        The atoms in each piece will preserve the original order.
+        However, the atoms at the end of original molecule may end up in a piece in the beginning,
+        causing the order of all atoms in all the pieces different from original order.
+        To avoid this, set consecutive to True.
+        In this case, it will make sure all atoms in front pieces will have atom id smaller than atoms in back pieces.
+
+        Residue information will be reconstructed for each piece
+
+        Parameters
+        ----------
+        consecutive : bool
+
+        Returns
+        -------
+        molecules : list of Molecule
+        '''
+        adjacency = self.get_adjacency_matrix()
+        if consecutive:
+            clusters = find_clusters_consecutive(self.atoms, lambda a1, a2: adjacency[a1.id_in_mol][a2.id_in_mol])
+        else:
+            clusters = find_clusters(self.atoms, lambda a1, a2: adjacency[a1.id_in_mol][a2.id_in_mol])
+
+        for cluster in clusters:
+            cluster.sort()
+        clusters.sort()
+
+        mol = copy.deepcopy(self)
+        pieces = [mol.get_sub_molecule(ids, deepcopy=False) for ids in clusters]
+
+        return pieces

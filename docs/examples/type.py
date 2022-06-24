@@ -1,5 +1,5 @@
 import io
-from mstools.forcefield import ZftTyper
+from mstools.forcefield.typer import ZftTyper
 from mstools.topology import Molecule
 
 # Construct a typing engine from type definition
@@ -24,6 +24,6 @@ typer = ZftTyper(io.StringIO(definition))
 butane = Molecule.from_smiles('CCCC    butane')
 
 # Assign atom types based on SMARTS pattern
-typer.type_molecule(butane)
+typer.type(butane)
 for atom in butane.atoms:
     print(atom.name, atom.type)

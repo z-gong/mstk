@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 import os
-import sys
-import shutil
 import pytest
+import tempfile
+import filecmp
+import shutil
 from mstools.topology import Topology, UnitCell
 from mstools.forcefield import ForceField
-from mstools.simsys import System
-from mstools.wrapper.packmol import Packmol
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,7 +18,7 @@ def test_assign_charge():
     charges = [atom.charge for atom in top.atoms]
     assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.16, 0.4791, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
-    top.assign_charge_from_ff(ff, transfer_bci_terms=True)
+    top.assign_charge_from_ff(ff, transfer_qinc_terms=True)
     charges = [atom.charge for atom in top.atoms]
     assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.1954, 0.5145, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
@@ -50,19 +49,15 @@ def test_compress():
 
 
 def test_scale():
-    if os.path.exists(r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'):
-        path = r'D:\Projects\DFF\Developing\bin32w\Packmol\packmol.exe'
-    else:
-        path = shutil.which('packmol')
-        if path is None:
-            print('Packmol not found')
-            assert 0
-
-    packmol = Packmol(path)
+    tmpdir = tempfile.mkdtemp()
     top = Topology.open(cwd + '/files/Im11.zmat')
     top.cell.set_box([3, 3, 3])
-    top.scale_with_packmol(10, packmol)
-    top.write(cwd + '/files/packmol.pdb')
+    os.chdir(tmpdir)
+    top.scale_with_packmol(10)
+    os.chdir(cwd)
+    assert filecmp.cmp(tmpdir + '/_pack.inp', cwd + '/files/baselines/_pack.inp')
+    assert filecmp.cmp(tmpdir + '/_MO_0.xyz', cwd + '/files/baselines/_MO_0.xyz')
+    shutil.rmtree(tmpdir)
 
 
 def test_guess_connectivity():

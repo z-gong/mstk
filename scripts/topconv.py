@@ -8,7 +8,8 @@ from mstools.topology import Topology
 from mstools.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
-parser.add_argument('input', type=str, help='topology file')
+parser.add_argument('input', nargs='+', type=str, help='topology file')
+parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
 parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
 parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
 parser.add_argument('--qscale', default=1, type=float, help='scale the charge of atoms')
@@ -22,10 +23,18 @@ parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
                     help='shift the positions of all atoms')
 args = parser.parse_args()
 
-top = Topology.open(args.input)
+top_list = [Topology.open(inp) for inp in args.input]
+if args.number is None:
+    args.number = [1] * len(top_list)
+
+molecules = []
+for top, n in zip(top_list, args.number):
+    molecules.extend(top.molecules * n)
 if args.ignore != []:
-    molecules = [mol for mol in top.molecules if mol.name not in args.ignore]
-    top = Topology(molecules)
+    molecules = [mol for mol in molecules if mol.name not in args.ignore]
+
+top = top_list[0]
+top.update_molecules(molecules)
 print('Topology info: ', top.n_atom, 'atoms;', top.n_molecule, 'molecules')
 
 if args.qscale != 1:

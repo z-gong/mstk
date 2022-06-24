@@ -26,5 +26,5 @@ Exporter
 
     GromacsExporter
     LammpsExporter
-    CharmmExporter
+    NamdExporter
     OpenMMExporter

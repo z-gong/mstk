@@ -4,10 +4,11 @@ import os
 import tempfile
 import filecmp
 import pytest
+import shutil
 from mstools.trajectory import Trajectory
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-tempdir = tempfile.mkdtemp()
+
 
 def test_read():
     dcd = Trajectory.open(cwd + '/files/100-SPCE.dcd')
@@ -26,8 +27,10 @@ def test_read():
 
 
 def test_write():
+    tmpdir = tempfile.mkdtemp()
+
     gro = Trajectory.open(cwd + '/files/100-SPCE.gro')
-    tmp = os.path.join(tempdir, 'gro-out.dcd')
+    tmp = os.path.join(tmpdir, 'gro-out.dcd')
     dcd = Trajectory.open(tmp, 'w')
     for i in range(gro.n_frame):
         frame = gro.read_frame(i)
@@ -35,3 +38,5 @@ def test_write():
     dcd.close()
     # It's annoying that DCD files generated are different every time. Compare the size instead of the content.
     assert os.path.getsize(tmp) == os.path.getsize(cwd + '/files/baselines/gro-out.dcd')
+
+    shutil.rmtree(tmpdir)

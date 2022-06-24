@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from ..constant import *
+from mstools.chem.constant import *
 
 
 class EwaldSum():
@@ -164,7 +164,7 @@ class EwaldSum():
         return ewald
 
     def calc_energy_forces_with_omm(self, ewald=True, short=True, long=True):
-        from simtk import openmm as mm, unit
+        from openmm import openmm as mm, unit
         system = mm.System()
         system.setDefaultPeriodicBoxVectors(*np.diag(self.box))
         nbforce = mm.NonbondedForce()

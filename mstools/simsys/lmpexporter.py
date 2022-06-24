@@ -7,32 +7,34 @@ from .. import logger
 
 class LammpsExporter():
     '''
-    LammpsExporter export a :class:`System` to input files for Lammps.
+    LammpsExporter export a non-polarizable :class:`System` to input files for LAMMPS.
+
+    LAMMPS is powerful and flexible. But the input file for LAMMPS is a mess and cannot be handled in an elegant way,
+    especially when there are hybrid functional forms.
+    Here, only limited types of FF (OPLS-AA and SDK-CG) will be considered.
 
     The following potential functions are currently supported:
 
     * :class:`~mstools.forcefield.LJ126Term`
+    * :class:`~mstools.forcefield.MieTerm`
     * :class:`~mstools.forcefield.HarmonicBondTerm`
     * :class:`~mstools.forcefield.HarmonicAngleTerm`
+    * :class:`~mstools.forcefield.SDKAngleTerm`
     * :class:`~mstools.forcefield.PeriodicDihedralTerm`
     * :class:`~mstools.forcefield.OplsImproperTerm`
-    * :class:`~mstools.forcefield.DrudeTerm`
 
-    Lammps is powerful and flexible. The other functional forms are also supported by Lammps.
-    But the input file structure of Lammps is too flexible to be handled in an elegant way.
-    Especially when there are hybrid functional forms.
+    In order to run simulation of SDK-CG model, the package CG-SDK should be included when compiling LAMMPS.
 
-    In order to run simulation of Drude model, the package USER-DRUDE should be included when compiling Lammps.
-
+    Polarizable system containing :class:`DrudeTerm` should be handled by :class:`LammpsDrudeExporter`.
     '''
 
     def __init__(self):
         pass
 
     @staticmethod
-    def export(system, data_out, in_out):
+    def export(system, data_out, in_out, **kwargs):
         '''
-        Generate input files for Lammps from a system
+        Generate input files for LAMMPS from a system
 
         Parameters
         ----------
@@ -43,12 +45,11 @@ class LammpsExporter():
         if not system.use_pbc:
             raise Exception('PBC required for exporting LAMMPS')
 
-        supported_terms = {LJ126Term,
-                           HarmonicBondTerm,
-                           HarmonicAngleTerm,
+        supported_terms = {LJ126Term, MieTerm,
+                           HarmonicBondTerm, MorseBondTerm,
+                           HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            PeriodicDihedralTerm,
-                           OplsImproperTerm,
-                           DrudeTerm}
+                           OplsImproperTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
@@ -56,44 +57,34 @@ class LammpsExporter():
         if system.topology.has_virtual_site:
             raise Exception('Virtual sites not supported by LAMMPS')
 
+        if LinearAngleTerm in system.ff_classes:
+            logger.warning('LinearAngleTerm not supported by LAMMPS. Exported in harmonic form at 178 degree')
+
         top = system.topology
         ff = system.ff
 
+        # Morse bond requires hybrid bond styles
+        is_morse = MorseBondTerm in system.ff_classes
+
+        # SDK CGFF requires all pairwise parameters and hybrid angle styles
+        is_sdk = MieTerm in system.ff_classes or SDKAngleTerm in system.ff_classes
+
         ### Assign LAMMPS types ####################################
-        bond_types = list(ff.bond_terms.values())  # bond types between Drude pairs not included
+        bond_types = list(ff.bond_terms.values())
         angle_types = list(ff.angle_terms.values())
         dihedral_types = list(ff.dihedral_terms.values())
         improper_types = list(ff.improper_terms.values())
 
-        # In LAMMPS, Drude parameters are assigned with pair coefficients
-        # Drude particles attached to different heavy atoms must have its own LAMMPS atom type
-        lmp_types_real: {str: Atom} = {}  # {'typ': Atom}
-        lmp_types_drude: {str: Atom} = {}  # {'typ': Atom}
-        lmp_types_parent: {str: Atom} = {}  # {'typ': Atom}
+        lmp_types: {str: Atom} = {}  # {'typ': Atom}
         lmp_types_atype: {str: AtomType} = {}  # {'typ': AtomType}
-        atype_drude: AtomType = None
 
         for atom in top.atoms:
-            if atom.is_drude:
-                continue
-            if atom.type not in lmp_types_real:
-                lmp_types_real[atom.type] = atom
+            if atom.type not in lmp_types:
+                lmp_types[atom.type] = atom
                 lmp_types_atype[atom.type] = ff.atom_types[atom.type]
-        for parent, drude in system.drude_pairs.items():
-            if atype_drude is None:
-                atype_drude = system.ff.atom_types[drude.type]
-            typ = 'DP_' + parent.type
-            if typ not in lmp_types_drude:
-                lmp_types_drude[typ] = drude
-                lmp_types_atype[typ] = atype_drude
-            if parent.type not in lmp_types_parent:
-                lmp_types_parent[parent.type] = parent
 
-        lmp_type_list = list(lmp_types_real.keys()) + list(lmp_types_drude.keys())
-        lmp_symbol_list = [atom.symbol or 'UNK' for atom in lmp_types_real.values()]
-        lmp_symbol_list += [atom.symbol or 'UNK' for atom in lmp_types_drude.values()]
-        fix_drude_list = ['C' if t in lmp_types_parent else 'D' if t in lmp_types_drude else 'N'
-                          for t in lmp_type_list]
+        lmp_type_list = list(lmp_types.keys())
+        lmp_symbol_list = [atom.symbol or 'UNK' for atom in lmp_types.values()]
         lmp_shake_bonds = [i + 1 for i, bterm in enumerate(bond_types) if bterm.fixed]
         lmp_shake_angles = [i + 1 for i, aterm in enumerate(angle_types) if aterm.fixed]
         #############################################################
@@ -107,7 +98,7 @@ class LammpsExporter():
         string += '%i impropers\n' % top.n_improper
 
         string += '\n%i atom types\n' % len(lmp_type_list)
-        string += '%i bond types\n' % (len(bond_types) + len(lmp_types_parent))
+        string += '%i bond types\n' % len(bond_types)
         string += '%i angle types\n' % len(angle_types)
         string += '%i dihedral types\n' % len(dihedral_types)
         string += '%i improper types\n' % len(improper_types)
@@ -121,28 +112,29 @@ class LammpsExporter():
 
         string += '\nMasses\n\n'
 
-        for i, (typ, atom) in enumerate(lmp_types_real.items()):
+        for i, (typ, atom) in enumerate(lmp_types.items()):
             string += '%4i %8.3f  # %8s\n' % (i + 1, atom.mass, typ)
-        for i, (typ, atom) in enumerate(lmp_types_drude.items()):
-            string += '%4i %8.3f  # %8s\n' % (i + len(lmp_types_real) + 1, atom.mass, typ)
 
-        if len(bond_types) + len(lmp_types_parent) > 0:
-            string += '\nBond Coeffs  # harmonic\n\n'
+        if len(bond_types) > 0:
+            string += '\nBond Coeffs  # %s\n\n' % ('hybrid harmonic morse' if is_morse else 'harmonic')
 
         for i, bterm in enumerate(bond_types):
-            string += '%4i %12.6f %10.4f  # %s-%s\n' % (
-                i + 1, bterm.k / 4.184 / 100, bterm.length * 10, bterm.type1, bterm.type2)
-        for i, parent in enumerate(lmp_types_parent.values()):
-            pterm = system.polarizable_terms[parent]
-            string += '%4i %12.6f %10.4f  # %s-%s\n' % (
-                i + 1 + len(bond_types), pterm.k / 4.184 / 100, 0, parent.type, 'DP')
+            bond_style = '' if not is_morse else 'morse' if type(bterm) is MorseBondTerm else 'harmonic'
+            if type(bterm) is HarmonicBondTerm:
+                string += '%4i %8s %12.6f %10.4f  # %s-%s\n' % (
+                    i + 1, bond_style, bterm.k / 4.184 / 100, bterm.length * 10, bterm.type1, bterm.type2)
+            elif type(bterm) is MorseBondTerm:
+                alpha = (bterm.k / bterm.depth) ** 0.5
+                string += '%4i %8s %12.6f %10.4f %10.4f  # %s-%s\n' % (
+                    i + 1, bond_style, bterm.depth / 4.184, alpha / 10, bterm.length * 10, bterm.type1, bterm.type2)
 
         if len(angle_types) > 0:
-            string += '\nAngle Coeffs  # harmonic\n\n'
+            string += '\nAngle Coeffs  # %s\n\n' % ('hybrid harmonic sdk' if is_sdk else 'harmonic')
 
-        for i, atype in enumerate(angle_types):
-            string += '%4i %12.6f %10.4f  # %s-%s-%s\n' % (
-                i + 1, atype.k / 4.184, atype.theta, atype.type1, atype.type2, atype.type3)
+        for i, aterm in enumerate(angle_types):
+            angle_style = '' if not is_sdk else 'sdk' if type(aterm) is SDKAngleTerm else 'harmonic'
+            string += '%4i %8s %12.6f %10.4f  # %s-%s-%s\n' % (
+                i + 1, angle_style, aterm.k / 4.184, min(aterm.theta, 178), aterm.type1, aterm.type2, aterm.type3)
 
         if len(dihedral_types) > 0:
             string += '\nDihedral Coeffs  # opls\n\n'
@@ -166,10 +158,7 @@ class LammpsExporter():
         string += '\nAtoms\n\n'
 
         for atom in top.atoms:
-            if atom.is_drude:
-                typ = 'DP_' + atom.bond_partners[0].type
-            else:
-                typ = atom.type
+            typ = atom.type
             x, y, z = atom.position * 10
             string += '%8i %6i %6i %12.6f %10.4f %10.4f %10.4f  # %8s %8s\n' % (
                 atom.id + 1, atom.molecule.id + 1, lmp_type_list.index(typ) + 1,
@@ -180,11 +169,7 @@ class LammpsExporter():
 
         for i, bond in enumerate(top.bonds):
             a1, a2 = bond.atom1, bond.atom2
-            if not bond.is_drude:
-                btype = bond_types.index(system.bond_terms[id(bond)]) + 1
-            else:
-                parent = a1 if a2.is_drude else a2
-                btype = list(lmp_types_parent.keys()).index(parent.type) + len(bond_types) + 1
+            btype = bond_types.index(system.bond_terms[id(bond)]) + 1
             string += '%6i %6i %6i %6i  # %s-%s\n' % (
                 i + 1, btype, a1.id + 1, a2.id + 1, a1.name, a2.name)
 
@@ -192,10 +177,10 @@ class LammpsExporter():
             string += '\nAngles\n\n'
 
         for i, angle in enumerate(top.angles):
-            atype = angle_types.index(system.angle_terms[id(angle)]) + 1
+            aterm = angle_types.index(system.angle_terms[id(angle)]) + 1
             a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
             string += '%6i %6i %6i %6i %6i  # %s-%s-%s\n' % (
-                i + 1, atype, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
+                i + 1, aterm, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
 
         if top.n_dihedral > 0:
             string += '\nDihedrals\n\n'
@@ -220,90 +205,72 @@ class LammpsExporter():
         with open(data_out, 'wb')  as f:
             f.write(string.encode())
 
-        cmd_mix = 'geometric'
-        if system.ff.lj_mixing_rule == ForceField.LJ_MIXING_LB:
-            cmd_mix = 'arithmetic'
+        ### LAMMPS input script #################################################
+        cmd_bond = 'hybrid harmonic morse' if is_morse else 'harmonic'
+        cmd_angle = 'hybrid harmonic sdk' if is_sdk else 'harmonic'
+        cmd_pair_base = 'lj/sdk' if is_sdk else 'lj/cut'
+        cmd_pair_suffix = '/coul/long' if system.charged else ''
+        cmd_mix = 'arithmetic' if system.ff.lj_mixing_rule == ForceField.LJ_MIXING_LB else 'geometric'
+        cmd_tail = 'yes' if ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT else 'no'
+        cmd_shift = 'yes' if ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT else 'no'
+        cmd_comment_kspace = '# ' if not system.charged else ''
+
+        cmd_paras = ''
+        for i, (typ_i, atom) in enumerate(lmp_types.items()):
+            for j, (typ_j, atom) in enumerate(lmp_types.items()):
+                if j < i:
+                    continue
+                atype1 = lmp_types_atype[typ_i]
+                atype2 = lmp_types_atype[typ_j]
+                try:
+                    # LAMMPS CG-SDK does not allow lj mixing. have to write it explicitly
+                    vdw = ff.get_vdw_term(atype1, atype2, mixing=is_sdk)
+                except:
+                    continue
+
+                if is_sdk:
+                    if type(vdw) is MieTerm:
+                        if vdw.is_sdk:
+                            lj_style = f'lj{int(vdw.repulsion)}_{int(vdw.attraction)}'
+                        else:
+                            raise Exception('Invalid MieTerm for SDK CG model')
+                    else:
+                        lj_style = 'lj12_6'
+                    cmd_paras += 'pair_coeff %4i %4i %8s %9.5f %8.4f  # %8s %8s %s\n' % (
+                        i + 1, j + 1, lj_style, vdw.epsilon / 4.184, vdw.sigma * 10,
+                        lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
+                else:
+                    cmd_paras += 'pair_coeff %4i %4i %9.5f %8.4f  # %8s %8s %s\n' % (
+                        i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
+                        lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
+
+        cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b '
+        if lmp_shake_bonds:
+            cmd_shake += ' '.join(map(str, lmp_shake_bonds))
+            if lmp_shake_angles:
+                cmd_shake += ' a ' + ' '.join(map(str, lmp_shake_angles))
+        else:
+            cmd_shake = '# ' + cmd_shake
+        timestep = 10.0 if is_sdk else 1.0
 
         string = f'''# created by mstools
 units real
 boundary p p p
 atom_style full
-bond_style harmonic
-angle_style harmonic
+bond_style {cmd_bond}
+angle_style {cmd_angle}
 dihedral_style opls
 improper_style cvff
 special_bonds lj 0 0 {ff.scale_14_vdw} coul 0 0 {ff.scale_14_coulomb}
-'''
 
-        if DrudeTerm not in system.ff_classes:
-            cmd_pair = ''
-            for i, (typ_i, atom) in enumerate(lmp_types_real.items()):
-                for j, (typ_j, atom) in enumerate(lmp_types_real.items()):
-                    if j < i:
-                        continue
-                    atype1 = lmp_types_atype[typ_i]
-                    atype2 = lmp_types_atype[typ_j]
-                    try:
-                        vdw = ff.get_vdw_term(atype1, atype2, mixing=False)
-                    except:
-                        continue
-                    cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f  # %8s %8s %s\n' % (
-                        i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                        lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
-
-            string += f'''
-pair_style lj/cut/coul/long 12.0
-pair_modify mix {cmd_mix} tail yes
-kspace_style pppm 1.0e-4
+pair_style {cmd_pair_base}{cmd_pair_suffix} {ff.vdw_cutoff * 10}
+pair_modify mix {cmd_mix} tail {cmd_tail} shift {cmd_shift}
+{cmd_comment_kspace}kspace_style pppm 1.0e-4
 
 read_data {os.path.basename(data_out)}
 
-{cmd_pair}
-'''
-        else:
-            cmd_pair = ''
-            for i, (typ_i, a1) in enumerate(lmp_types_real.items()):
-                for j, (typ_j, a2) in enumerate(lmp_types_real.items()):
-                    if j < i:
-                        continue
-                    atype1 = lmp_types_atype[typ_i]
-                    atype2 = lmp_types_atype[typ_j]
-                    try:
-                        vdw = ff.get_vdw_term(atype1, atype2, mixing=False)
-                    except:
-                        continue
-                    cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
-                        i + 1, j + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                        math.sqrt(a1.alpha * a2.alpha) * 1000, (a1.thole + a2.thole) / 2,
-                        lmp_type_list[i], lmp_type_list[j], ','.join(vdw.comments))
-            for i, (typ, atom) in enumerate(lmp_types_parent.items()):
-                ii = i + len(lmp_types_real)
-                vdw = ff.get_vdw_term(atype_drude, atype_drude)
-                cmd_pair += 'pair_coeff %3i %3i %9.5f %8.4f %8.4f %7.3f  # %8s %8s %s\n' % (
-                    ii + 1, ii + 1, vdw.epsilon / 4.184, vdw.sigma * 10,
-                    atom.alpha * 1000, atom.thole,
-                    lmp_type_list[ii], lmp_type_list[ii], ','.join(vdw.comments))
+{cmd_paras}
 
-            string += f'''
-pair_style lj/cut/thole/long 2.6 12.0
-pair_modify mix {cmd_mix} tail yes
-kspace_style pppm 1.0e-4
-
-read_data {os.path.basename(data_out)} extra/special/per/atom 99
-
-{cmd_pair}
-group ATOMS type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x != 'D']))}
-group CORES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'C']))}
-group DRUDES type {' '.join(map(str, [i + 1 for i, x in enumerate(fix_drude_list) if x == 'D']))}
-fix DRUDE all drude {' '.join(fix_drude_list)}
-'''
-
-        cmd_shake = ''
-        if len(lmp_shake_bonds) > 0:
-            cmd_shake = 'fix SHAKE all shake 0.0001 20 0 b ' + ' '.join(map(str, lmp_shake_bonds))
-            if len(lmp_shake_angles) > 0:
-                cmd_shake += ' a ' + ' '.join(map(str, lmp_shake_angles))
-        string += f'''
 variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
@@ -317,31 +284,14 @@ variable elec equal ecoul+elong
 fix ICECUBE all momentum 100 linear 1 1 1
 
 velocity all create $T 12345
-timestep 1.0
-'''
+timestep {timestep}
 
-        if DrudeTerm not in system.ff_classes:
-            string += '''
-fix NPT all npt temp $T $T 100 iso $P $P 1000
+fix NPT all npt temp $T $T {timestep * 100} iso $P $P {timestep * 500} fixedpoint 0 0 0
 
-thermo_style custom step cpu temp press pe emol evdwl v_elec density
+thermo_style custom step temp press pe emol evdwl v_elec density
+thermo_modify flush yes
 thermo 1000
-'''
 
-        else:
-            string += '''
-comm_modify vel yes
-compute TDRUDE all temp/drude
-
-fix NPT all tgnpt/drude temp $T $T 100 1 25 iso $P $P 1000
-# fix SD  all langevin/drude $T 200 12345 1 50 23456
-# fix NPH all nph iso $P $P 1000
-
-thermo_style custom step cpu c_TDRUDE[3] c_TDRUDE[4] c_TDRUDE[2] press pe emol evdwl v_elec density
-thermo 1000
-'''
-
-        string += f'''
 variable slog equal logfreq(10,9,10)
 dump TRJ all custom 10 dump.lammpstrj id mol type element q xu yu zu
 dump_modify TRJ sort id element {' '.join(lmp_symbol_list)} every v_slog first yes

@@ -1,29 +1,29 @@
 <?xml version="1.0" ?>
 <ForceFieldTerms>
-  <Setting lj_mixing_rule="lorentz-berthelot" scale_14_coulomb="0.8333333333333334" scale_14_vdw="0.5" vdw_cutoff="1.2" vdw_long_range="correct"/>
+  <Setting vdw_cutoff="1.2" vdw_long_range="correct" lj_mixing_rule="lorentz-berthelot" scale_14_vdw="0.5" scale_14_coulomb="0.8333333333333334"/>
   <AtomTypes>
-    <AtomType charge="0.0" eqt_ang_c="h_1" eqt_ang_s="h_1" eqt_bond="h_1" eqt_dih_c="h_1" eqt_dih_s="h_1" eqt_imp_c="h_1" eqt_imp_s="h_1" eqt_polar="h_1o" eqt_q_inc="h_1o" eqt_vdw="h_1o" mass="1.0079" name="h_1o"/>
-    <AtomType charge="0.0" eqt_ang_c="o_2w" eqt_ang_s="o_2w" eqt_bond="o_2w" eqt_dih_c="o_2w" eqt_dih_s="o_2" eqt_imp_c="o_2w" eqt_imp_s="o_2" eqt_polar="o_2w" eqt_q_inc="o_2w" eqt_vdw="o_2w" mass="15.9994" name="o_2w"/>
+    <AtomType name="h_1o" mass="1.0079" charge="0.0" eqt_q_inc="h_1o" eqt_vdw="h_1o" eqt_bond="h_1" eqt_ang_c="h_1" eqt_ang_s="h_1" eqt_dih_c="h_1" eqt_dih_s="h_1" eqt_imp_c="h_1" eqt_imp_s="h_1" eqt_polar="h_1o"/>
+    <AtomType name="o_2w" mass="15.9994" charge="0.0" eqt_q_inc="o_2w" eqt_vdw="o_2w" eqt_bond="o_2w" eqt_ang_c="o_2w" eqt_ang_s="o_2w" eqt_dih_c="o_2w" eqt_dih_s="o_2" eqt_imp_c="o_2w" eqt_imp_s="o_2" eqt_polar="o_2w"/>
   </AtomTypes>
   <VirtualSiteTerms/>
   <ChargeIncrementTerms>
     <ChargeIncrementTerm type1="h_1o" type2="o_2w" value="0.4238"/>
   </ChargeIncrementTerms>
   <VdwTerms>
-    <LJ126Term epsilon="0.00041840000000000003" sigma="8.908987181403393e-06" type1="h_1o" type2="h_1o"/>
-    <LJ126Term epsilon="0.6497752" sigma="0.3165541325296254" type1="o_2w" type2="o_2w"/>
-    <LJ126Term epsilon="1.874432" sigma="0.3367597154570482" type1="s_2" type2="s_2"/>
-    <LJ126Term epsilon="1.79912" sigma="0.35413224046078484" type1="s_2h" type2="s_2h"/>
+    <LJ126Term type1="h_1o" type2="h_1o" epsilon="0.00041840000000000003" sigma="8.908987181403393e-06"/>
+    <LJ126Term type1="o_2w" type2="o_2w" epsilon="0.6497752" sigma="0.3165541325296254"/>
+    <LJ126Term type1="s_2" type2="s_2" epsilon="1.874432" sigma="0.3367597154570482"/>
+    <LJ126Term type1="s_2h" type2="s_2h" epsilon="1.79912" sigma="0.35413224046078484"/>
   </VdwTerms>
   <PairwiseVdwTerms>
-    <LJ126Term epsilon="0.48270808000000004" sigma="0.3301456833735744" type1="c_4h3" type2="o_2w"/>
-    <LJ126Term epsilon="0.9596422400000001" sigma="0.3070669520801489" type1="o_2" type2="o_2w"/>
+    <LJ126Term type1="c_4h3" type2="o_2w" epsilon="0.48270808000000004" sigma="0.3301456833735744"/>
+    <LJ126Term type1="o_2" type2="o_2w" epsilon="0.9596422400000001" sigma="0.3070669520801489"/>
   </PairwiseVdwTerms>
   <BondTerms>
-    <HarmonicBondTerm fixed="True" k="188280.00000000003" length="0.1" type1="h_1" type2="o_2w"/>
+    <HarmonicBondTerm type1="h_1" type2="o_2w" length="0.1" k="188280.00000000003" fixed="True"/>
   </BondTerms>
   <AngleTerms>
-    <HarmonicAngleTerm fixed="True" k="230.12" theta="109.47" type1="h_1" type2="o_2w" type3="h_1"/>
+    <HarmonicAngleTerm type1="h_1" type2="o_2w" type3="h_1" theta="109.47" k="230.12" fixed="True"/>
   </AngleTerms>
   <DihedralTerms/>
   <ImproperTerms/>
