@@ -7,8 +7,8 @@ import filecmp
 import pytest
 from openmm import openmm as mm
 from openmm import unit
-from mstools.topology import Topology, Molecule
-from mstools.analyzer.energy_kernels import *
+from mstk.topology import Topology, Molecule
+from mstk.analyzer.energy_kernels import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

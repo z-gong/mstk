@@ -3,11 +3,10 @@ import tempfile
 import filecmp
 import pytest
 
-from mstools import DIR_MSTOOLS
-from mstools.topology import Molecule, Topology
-from mstools.forcefield import ForceField, Zfp
-from mstools.forcefield.typer import ZftTyper
-from mstools.simsys import System
+from mstk.topology import Molecule, Topology
+from mstk.forcefield import ForceField, Zfp
+from mstk.forcefield.typer import ZftTyper
+from mstk.simsys import System
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
@@ -30,4 +29,3 @@ def test_gaff(name_smiles):
     system = System(top, ff, ignore_missing_improper=True)
     system.decompose_energy()
     system.minimize_energy()
-    system.topology.write(f'{name}.pdb')

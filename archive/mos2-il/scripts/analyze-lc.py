@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.family': 'Serif', 'font.size': 15})
 
-from mstools.utils import histogram
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
+from mstk.utils import histogram
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['density', 'diffuse'],

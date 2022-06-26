@@ -1,4 +1,4 @@
-from mstools.chem.formula import Formula
+from mstk.chem.formula import Formula
 
 
 def test_formula():

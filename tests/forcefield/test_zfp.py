@@ -6,8 +6,8 @@ import filecmp
 import pytest
 import shutil
 
-from mstools.forcefield import ForceField, Zfp
-from mstools.forcefield.ffterm import *
+from mstk.forcefield import ForceField, Zfp
+from mstk.forcefield.ffterm import *
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

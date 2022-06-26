@@ -1,0 +1,101 @@
+## This is an example force field to work with atom types defined by primitive.zft
+## It is not supposed to be used for production
+
+Setting          vdw_cutoff       1.0
+Setting          vdw_long_range   correct
+Setting          lj_mixing_rule   geometric
+Setting          scale_14_vdw     0.5
+Setting          scale_14_coulomb 0.5
+
+#AtomType        name           mass    charge eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+AtomType         H1           1.0000    0.0000 H1        H1        H1        H1        H1        H1        H1        H1        H1        H1       
+AtomType         H1po         1.0000    0.0000 H1po      H1po      H1        H1        H1        H1po      H1        H1po      H1        H1po     
+AtomType         C4          12.0000    0.0000 C4        C4        C4        C4        C4        C4        C4        C4        C4        C4       
+AtomType         C3          12.0000    0.0000 C3        C3        C3        C3        C3        C3        C3        C3        C3        C3       
+AtomType         C3ar        12.0000    0.0000 C3ar      C3ar      C3        C3        C3        C3ar      C3        C3ar      C3        C3ar
+AtomType         C3=o        12.0000    0.0000 C3=o      C3=o      C3        C3        C3        C3=o      C3        C3=o      C3        C3=o
+AtomType         C2          12.0000    0.0000 C2        C2        C2        C2        C2        C2        C2        C2        C2        C2
+AtomType         N3          14.0000    0.0000 N3        N3        N3        N3        N3        N3        N3        N3        N3        N3
+AtomType         N3co        14.0000    0.0000 N3co      N3co      N3        N3co      N3        N3co      N3        N3co      N3        N3co     
+AtomType         O2          16.0000    0.0000 O2        O2        O2        O2        O2        O2        O2        O2        O2        O2
+AtomType         O2w         16.0000    0.0000 O2w       O2w       O2w       O2w       O2        O2w       O2        O2w       O2        O2w      
+AtomType         O1          16.0000    0.0000 O1        O1        O1        O1        O1        O1        O1        O1        O1        O1
+ChargeIncrement  C4        H1          -0.0900
+ChargeIncrement  C3        H1          -0.1300
+ChargeIncrement  C3        C4          -0.0600
+ChargeIncrement  C2        C4          -0.1000
+ChargeIncrement  C3ar      H1          -0.1374
+ChargeIncrement  C3ar      C4          -0.0700
+ChargeIncrement  H1po      O2           0.4058
+ChargeIncrement  H1po      O2w          0.4476  # OPC3
+ChargeIncrement  H1po      N3           0.3318
+ChargeIncrement  H1po      N3co         0.5188
+ChargeIncrement  C4        O2           0.1900
+ChargeIncrement  C3=o      C4          -0.0700
+ChargeIncrement  C3=o      O1           0.4471
+ChargeIncrement  C3=o      O2           0.1100
+ChargeIncrement  C4        N3co         0.3100
+ChargeIncrement  C3=o      N3co         0.2600
+LJ126            H1        H1           0.1255    0.2500
+LJ126            H1po      H1po         0.0000    0.0000
+LJ126            C4        C4           0.2761    0.3500
+LJ126            C3        C3           0.3180    0.3550
+LJ126            C3ar      C3ar         0.2929    0.3550
+LJ126            C3=o      C3=o         0.2929    0.3550
+LJ126            C2        C2           0.2761    0.3300
+LJ126            N3        N3           0.7113    0.3300
+LJ126            N3co      N3co         0.7113    0.3250
+LJ126            O2        O2           0.5858    0.2900
+LJ126            O2w       O2w          0.6837    0.3174  # OPC3
+LJ126            O1        O1           0.8786    0.2960
+HarmonicBond     C4        H1           0.1090  142256.0   true
+HarmonicBond     C3        H1           0.1080  142256.0   true
+HarmonicBond     H1        N3           0.1010  181585.6   true
+HarmonicBond     H1        O2           0.0945  231375.2   true
+HarmonicBond     H1        O2w          0.0979  231375.2   true  # OPC3
+HarmonicBond     C4        C4           0.1529  112131.2
+HarmonicBond     C3        C4           0.1510  132632.8
+HarmonicBond     C4        N3           0.1448  159828.8
+HarmonicBond     C4        O2           0.1410  133888.0
+HarmonicBond     C3        C3           0.1340  229701.6
+HarmonicBond     C3        N3           0.1335  205016.0
+HarmonicBond     C3        O2           0.1327   89537.6
+HarmonicBond     C3        O1           0.1229  238488.0
+HarmonicBond     C2        C2           0.1205  292880.0
+HarmonicBond     C2        C4           0.1500  159828.8
+HarmonicAngle    H1        C4        H1         107.8000  138.0720
+HarmonicAngle    *         C4        H1         110.7000  156.9000
+HarmonicAngle    *         C4        *          112.7000  244.1365
+HarmonicAngle    *         C3        H1         120.0000  146.4400
+HarmonicAngle    *         C3        *          120.0000  292.8800
+LinearAngle      *         C2        *          150.0000
+HarmonicAngle    *         O2        H1         108.5000  230.1200
+HarmonicAngle    *         O2        *          109.5000  251.0400
+HarmonicAngle    H1        O2w       H1         109.4700  230.1200   true  # OPC3
+HarmonicAngle    *         N3        H1         109.5000  146.4400
+HarmonicAngle    *         N3        *          107.2000  216.7310
+HarmonicAngle    *         N3co      H1         118.4000  158.9920
+HarmonicAngle    *         N3co      *          121.9000  209.2000
+OplsDihedral     H1        C4        C4        *            0.0000    0.0000    0.6275    0.0000  # OPLS
+OplsDihedral     C4        C4        C4        C4           2.7195   -0.4185    0.4185    0.0000  # OPLS
+OplsDihedral     *         C4        C4        *            2.7195   -0.4185    0.4185    0.0000
+OplsDihedral     *         C3        C3        *            0.0000   29.2880    0.0000    0.0000
+OplsDihedral     *         C3ar      C3ar      *            0.0000   29.2880    0.0000    0.0000
+OplsDihedral     *         C3        C4        *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         C3ar      C4        *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         C4        N3        *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         C4        O2        *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         C3=o      O2        *            0.0000   10.7195    0.0000    0.0000
+OplsDihedral     *         C2        C2        *            0.0000    0.0000    0.0000    0.0000  # linear
+OplsDihedral     *         C2        C4        *            0.0000    0.0000    0.0000    0.0000  # linear
+OplsDihedral     *         C3=o      N3co      *            0.0000   12.7380    0.0000    0.0000
+OplsDihedral     *         C4        N3co      *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         C3        C3=o      *            0.0000   12.7380    0.0000    0.0000
+OplsDihedral     *         C3=o      C4        *            0.0000    0.0000    0.0000    0.0000
+OplsDihedral     *         N3co      N3co      *            0.0000   12.7380    0.0000    0.0000
+OplsDihedral     *         N3        N3co      *            0.0000    0.0000    0.0000    0.0000
+OplsImproper     C3        *         *         *           10.4600
+OplsImproper     C3ar      *         *         *           10.4600
+OplsImproper     C3=o      *         *         *           43.9320
+OplsImproper     N3        *         *         *            0.0000
+OplsImproper     N3co      *         *         *           10.4600

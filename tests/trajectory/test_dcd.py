@@ -5,7 +5,7 @@ import tempfile
 import filecmp
 import pytest
 import shutil
-from mstools.trajectory import Trajectory
+from mstk.trajectory import Trajectory
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

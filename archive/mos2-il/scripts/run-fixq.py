@@ -4,8 +4,8 @@ import sys
 import random
 import openmm.openmm as mm
 from openmm import app
-import mstools.ommhelper as oh
-from mstools.ommhelper.unit import *
+import mstk.ommhelper as oh
+from mstk.ommhelper.unit import *
 
 
 def run_simulation(nstep, gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',

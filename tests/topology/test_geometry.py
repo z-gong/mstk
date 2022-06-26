@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from mstools.topology.geometry import *
+from mstk.topology.geometry import *
 
 
 def test_grow_particle():

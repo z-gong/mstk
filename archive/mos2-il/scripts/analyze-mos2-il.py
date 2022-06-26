@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.size': 15})
 
-from mstools.utils import histogram, print_data_to_file
-from mstools.topology import Atom, Molecule, Topology
-from mstools.trajectory import Trajectory
-from mstools.chem.constant import *
+from mstk.utils import histogram, print_data_to_file
+from mstk.topology import Atom, Molecule, Topology
+from mstk.trajectory import Trajectory
+from mstk.chem.constant import *
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'diffuse', 'voltage', 'drude', 'dipole', 'charge',

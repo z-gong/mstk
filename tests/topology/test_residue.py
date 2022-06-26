@@ -2,7 +2,7 @@
 
 import pytest
 import copy
-from mstools.topology import Topology, Molecule
+from mstk.topology import Topology, Molecule
 
 
 def test_residue():

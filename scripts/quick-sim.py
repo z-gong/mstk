@@ -6,13 +6,13 @@ import traceback
 import argparse
 import numpy as np
 from openmm import openmm as mm
-from mstools.topology import Topology, Molecule
-from mstools.trajectory import Trajectory
-from mstools.forcefield import ForceField
-from mstools.forcefield.typer import ZftTyper, typer_primitive
-from mstools.forcefield.errors import *
-from mstools.simsys import System
-from mstools import logger
+from mstk.topology import Topology, Molecule
+from mstk.trajectory import Trajectory
+from mstk.forcefield import ForceField
+from mstk.forcefield.typer import ZftTyper, typer_primitive
+from mstk.forcefield.errors import *
+from mstk.simsys import System
+from mstk import logger
 
 
 def parse_args():

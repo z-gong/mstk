@@ -8,7 +8,7 @@ like curve fitting, structure determination and time series analysing.
 Structural analysis
 -------------------
 
-.. currentmodule:: mstools.analyzer.structure
+.. currentmodule:: mstk.analyzer.structure
 
 .. autosummary::
     :toctree: _generated/
@@ -19,7 +19,7 @@ Structural analysis
 Time series analysis
 --------------------
 
-.. currentmodule:: mstools.analyzer.series
+.. currentmodule:: mstk.analyzer.series
 
 .. autosummary::
     :toctree: _generated/
@@ -32,7 +32,7 @@ Time series analysis
 Curve fitting
 -------------
 
-.. currentmodule:: mstools.analyzer.fitting
+.. currentmodule:: mstk.analyzer.fitting
 
 .. autosummary::
     :toctree: _generated/

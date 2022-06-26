@@ -3,7 +3,7 @@
 import tempfile
 import filecmp
 import pytest
-from mstools.forcefield import ForceField, Ppf
+from mstk.forcefield import ForceField, Ppf
 
 import os
 import shutil

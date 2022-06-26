@@ -1,30 +1,33 @@
-import numpy
-from setuptools import setup, Extension
+import os
+import setuptools
 
-include_dirs = [numpy.get_include()]
+with open('README.md') as f:
+    long_description = f.read()
 
-libdcd = Extension("mstools.trajectory.libdcd",
-                   ['mstools/trajectory/libdcd/libdcd.pyx'],
-                   include_dirs=include_dirs + ['mstools/trajectory/libdcd/include'])
+dir_scripts = 'scripts'
+scripts = [os.path.join(dir_scripts, f) for f in os.listdir(dir_scripts)]
 
-libxdr = Extension("mstools.trajectory.libxdr",
-                   ['mstools/trajectory/libxdr/libxdr.pyx',
-                    'mstools/trajectory/libxdr/src/xdrfile.c',
-                    'mstools/trajectory/libxdr/src/xdrfile_xtc.c',
-                    'mstools/trajectory/libxdr/src/xdrfile_trr.c',
-                    'mstools/trajectory/libxdr/src/trr_seek.c',
-                    'mstools/trajectory/libxdr/src/xtc_seek.c', ],
-                   include_dirs=include_dirs + ['mstools/trajectory/libxdr/include']
-                   )
-
-extensions = [libdcd, libxdr]
-
-setup(
-    name="mstools",
-    py_modules=["mstools"],
-    version="0.1.0",
-    install_requires=[],
+setuptools.setup(
+    name='mstk',
+    version='0.3.1',
+    author='Zheng Gong',
+    author_email='z.gong@outlook.com',
+    description='Molecular simulation toolkit',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/z-gong/mstk',
+    packages=setuptools.find_packages(),
     include_package_data=True,
-    ext_modules=extensions,
-    zip_safe=False
+    package_data={
+        'mstk': ['data/forcefield/*']
+    },
+    scripts=scripts,
+    python_requires='>=3.6',
+    # dependency can be a mess if conda and pip are mixed
+    # better let user install requirements by themselves
+    install_requires=[],
+    classifiers=[
+        'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)',
+        'Operating System :: OS Independent'
+    ]
 )

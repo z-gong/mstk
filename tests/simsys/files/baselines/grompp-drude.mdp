@@ -1,4 +1,4 @@
-; Created by mstools
+; Created by mstk
 integrator      = sd
 dt              = 0.002 ; ps
 nsteps          = 1000000

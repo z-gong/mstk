@@ -4,8 +4,8 @@ import sys
 import argparse
 import numpy as np
 
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str, help='topology file')

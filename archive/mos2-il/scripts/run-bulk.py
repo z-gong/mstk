@@ -5,8 +5,8 @@ import argparse
 import signal
 import openmm.openmm as mm
 from openmm import app
-import mstools.ommhelper as oh
-from mstools.ommhelper.unit import *
+import mstk.ommhelper as oh
+from mstk.ommhelper.unit import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--nstep', type=int, default=100000, help='number of steps')

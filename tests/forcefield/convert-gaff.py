@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import math
-from mstools.forcefield import ForceField
-from mstools.forcefield.ffterm import *
+from mstk.forcefield import ForceField
+from mstk.forcefield.ffterm import *
 
 
 def main():

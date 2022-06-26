@@ -1,4 +1,4 @@
-Created by mstools: step= -1, t= -1.000000 ps
+Created by mstk: step= -1, t= -1.000000 ps
 150
    51 SPCE    O  151   1.410   1.315   2.851
    51 SPCE    H  152   1.413   1.403   2.803
@@ -151,7 +151,7 @@ Created by mstools: step= -1, t= -1.000000 ps
   100 SPCE    H  299   2.793   2.898   1.869
   100 SPCE    H  300   2.726   2.750   1.876
  3.0000 3.0000 3.0000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
-Created by mstools: step= -1, t= -1.000000 ps
+Created by mstk: step= -1, t= -1.000000 ps
 150
    51 SPCE    O  151   1.227   1.109   2.458
    51 SPCE    H  152   1.253   1.195   2.501
@@ -304,7 +304,7 @@ Created by mstools: step= -1, t= -1.000000 ps
   100 SPCE    H  299   2.598   2.833   1.812
   100 SPCE    H  300   2.719   2.867   1.902
  3.0112 3.0112 3.0112 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
-Created by mstools: step= -1, t= -1.000000 ps
+Created by mstk: step= -1, t= -1.000000 ps
 150
    51 SPCE    O  151   1.144   1.030   2.514
    51 SPCE    H  152   1.225   1.003   2.567
@@ -457,7 +457,7 @@ Created by mstools: step= -1, t= -1.000000 ps
   100 SPCE    H  299   2.566   2.990   1.800
   100 SPCE    H  300   2.529   0.136   1.780
  3.0094 3.0094 3.0094 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000
-Created by mstools: step= -1, t= -1.000000 ps
+Created by mstk: step= -1, t= -1.000000 ps
 150
    51 SPCE    O  151   1.242   0.803   2.406
    51 SPCE    H  152   1.337   0.773   2.413

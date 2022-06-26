@@ -5,8 +5,8 @@ import tempfile
 import filecmp
 import pytest
 import shutil
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

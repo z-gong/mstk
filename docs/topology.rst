@@ -4,7 +4,7 @@ Topology
 Topology definition
 -------------------
 
-.. currentmodule:: mstools.topology
+.. currentmodule:: mstk.topology
 
 .. autosummary::
     :toctree: _generated/
@@ -12,12 +12,13 @@ Topology definition
     Topology
     Atom
     Molecule
+    Residue
     UnitCell
 
 Connectivity
 ~~~~~~~~~~~~
 
-.. currentmodule:: mstools.topology
+.. currentmodule:: mstk.topology
 
 .. autosummary::
     :toctree: _generated/
@@ -30,19 +31,18 @@ Connectivity
 Virtual site
 ------------
 
-.. currentmodule:: mstools.topology
+.. currentmodule:: mstk.topology
 
 .. autosummary::
     :toctree: _generated/
 
-    VirtualSiteFactory
     VirtualSite
     TIP4PSite
 
 Topology parser
 ---------------
 
-.. currentmodule:: mstools.topology
+.. currentmodule:: mstk.topology
 
 .. autosummary::
     :toctree: _generated/
@@ -51,4 +51,5 @@ Topology parser
     LammpsData
     Pdb
     Zmat
+    Smi
     XyzTopology

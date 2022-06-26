@@ -1,4 +1,4 @@
-REMARK   Created by mstools
+REMARK   Created by mstk
 CRYST1    3.000    4.000    5.000  90.00  90.00  90.00 P 1           1
 HETATM    1   N1 c1c1    1       0.000   0.000   0.000                       N
 HETATM    2   C2 c1c1    1       1.315   0.000   0.000                       C

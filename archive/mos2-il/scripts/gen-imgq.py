@@ -8,7 +8,7 @@ The positions of images will be determined by treating electrodes as mirrors
 
 import sys
 import argparse
-from mstools.topology import Topology
+from mstk.topology import Topology
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('input', type=str, help='input xyz file')

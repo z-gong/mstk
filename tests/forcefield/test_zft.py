@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from mstools.forcefield.typer import ZftTyper, typer_primitive
-from mstools.topology import Topology, Molecule, Atom, Bond
+from mstk.forcefield.typer import ZftTyper, typer_primitive
+from mstk.topology import Topology, Molecule, Atom, Bond
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))

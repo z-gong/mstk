@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.forcefield import ForceField, Padua, PaduaLJScaler
+from mstk.forcefield import ForceField, Padua, PaduaLJScaler
 
 import os
 

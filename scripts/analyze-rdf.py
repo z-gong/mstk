@@ -6,10 +6,10 @@ import math
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
-from mstools.utils import print_data_to_file
-from mstools.topology.geometry import periodic_distance
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
+from mstk.utils import print_data_to_file
+from mstk.topology.geometry import periodic_distance
 
 np.seterr(all='raise')
 matplotlib.use('Agg')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import json
-from mstools.forcefield import *
+from mstk.forcefield import *
 
 ff = ForceField()
 ff.vdw_cutoff = 1.5

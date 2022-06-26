@@ -3,7 +3,7 @@
 import os
 import math
 import pytest
-from mstools.topology import Topology, Molecule
+from mstk.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
-from mstools.chem.constant import ELEMENTARY_CHARGE, NANO, VACUUM_PERMITTIVITY
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
+from mstk.chem.constant import ELEMENTARY_CHARGE, NANO, VACUUM_PERMITTIVITY
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('input', type=str, help='input topology file')

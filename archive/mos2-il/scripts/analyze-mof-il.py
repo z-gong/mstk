@@ -13,8 +13,8 @@ if platform.system() == 'Linux':
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.size': 18})
-from mstools.topology import Topology
-from mstools.trajectory import Trajectory
+from mstk.topology import Topology
+from mstk.trajectory import Trajectory
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('cmd', choices=['dist', 'charge'],

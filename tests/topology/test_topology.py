@@ -5,8 +5,8 @@ import pytest
 import tempfile
 import filecmp
 import shutil
-from mstools.topology import Topology, UnitCell
-from mstools.forcefield import ForceField
+from mstk.topology import Topology, UnitCell
+from mstk.forcefield import ForceField
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

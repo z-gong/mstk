@@ -6,12 +6,12 @@ import traceback
 import argparse
 import numpy as np
 from openmm import openmm as mm
-from mstools.topology import Topology, UnitCell, Molecule
-from mstools.trajectory import Trajectory
-from mstools.forcefield import ForceField, ZftTyper, PaduaLJScaler
-from mstools.forcefield.errors import *
-from mstools.simsys import System
-from mstools import logger
+from mstk.topology import Topology, UnitCell, Molecule
+from mstk.trajectory import Trajectory
+from mstk.forcefield import ForceField, ZftTyper, PaduaLJScaler
+from mstk.forcefield.errors import *
+from mstk.simsys import System
+from mstk import logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str,

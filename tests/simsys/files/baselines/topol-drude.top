@@ -1,4 +1,4 @@
-; GROMACS topol file created by mstools
+; GROMACS topol file created by mstk
 
 [ defaults ]
 ; nbfunc  comb-rule  gen-pairs  fudgeLJ  fudgeQQ

@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from mstools.topology import UnitCell
+from mstk.topology import UnitCell
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

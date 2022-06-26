@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.trajectory import Trajectory
+from mstk.trajectory import Trajectory
 
 import os
 

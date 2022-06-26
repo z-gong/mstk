@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
-from mstools.analyzer.ewald import EwaldSum
+from mstk.analyzer.ewald import EwaldSum
 
 import os
 

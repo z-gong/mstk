@@ -1,12 +1,10 @@
-name: mstools-docs
+name: mstk-docs
 channels:
-  - defaults
-  - omnia
+  - conda-forge
 dependencies:
-  - python=3.6
-  - sphinx>3
+  - python=3.7
   - numpy
   - pandas
-  - scipy
-  - scikit-learn
-  - openmm=7.4.1
+  - openmm=7.7.0
+  - rdkit
+  - sphinx>3

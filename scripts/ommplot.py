@@ -45,7 +45,7 @@ def read_log(log_file):
 
 def detect_converge(data_list, when_list):
     import pandas as pd
-    from mstools.analyzer.series import is_converged
+    from mstk.analyzer.series import is_converged
     for i in range(1, len(data_list)):
         series = pd.Series(data_list[i], index=list(range(len(data_list[0]))))
         converged, when = is_converged(series, frac_min=0)

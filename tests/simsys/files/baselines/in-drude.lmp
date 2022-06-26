@@ -1,4 +1,4 @@
-# created by mstools
+# created by mstk
 units real
 boundary p p p
 atom_style full

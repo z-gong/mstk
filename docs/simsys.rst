@@ -9,7 +9,7 @@ After a system is constructed, it can be exported to different simulation engine
 Current, LAMMPS, GROMACS, NAMD and OpenMM are supported.
 Depending on the functional form used in the force field, some simulation engines may not be supported for specific system.
 
-.. currentmodule:: mstools.simsys
+.. currentmodule:: mstk.simsys
 
 .. autosummary::
     :toctree: _generated/
@@ -19,7 +19,7 @@ Depending on the functional form used in the force field, some simulation engine
 Exporter
 --------
 
-.. currentmodule:: mstools.simsys
+.. currentmodule:: mstk.simsys
 
 .. autosummary::
     :toctree: _generated/

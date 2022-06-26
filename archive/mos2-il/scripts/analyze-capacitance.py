@@ -3,8 +3,8 @@
 import argparse
 import pandas as pd
 
-from mstools.chem.constant import *
-from mstools.analyzer.fitting import polyfit, polyval_derivative
+from mstk.chem.constant import *
+from mstk.analyzer.fitting import polyfit, polyval_derivative
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str, help='files of voltage profiles')

@@ -3,9 +3,9 @@
 import os
 import sys
 import pytest
-from mstools.topology import Topology, UnitCell
-from mstools.forcefield import ForceField
-from mstools.simsys import System
+from mstk.topology import Topology, UnitCell
+from mstk.forcefield import ForceField
+from mstk.simsys import System
 
 import openmm.openmm as mm
 from openmm import app

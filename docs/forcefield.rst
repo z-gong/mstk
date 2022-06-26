@@ -5,18 +5,19 @@ Force field
 Typing engine
 -------------
 
-.. currentmodule:: mstools.forcefield.typer
+.. currentmodule:: mstk.forcefield.typer
 
 .. autosummary::
     :toctree: _generated/
 
     Typer
     ZftTyper
+    typer_primitive
 
 Force field definition
 ----------------------
 
-.. currentmodule:: mstools.forcefield
+.. currentmodule:: mstk.forcefield
 
 .. autosummary::
     :toctree: _generated/
@@ -36,7 +37,7 @@ vdW terms
     LJ126Term
     MieTerm
 
-Bond charge increment terms
+Charge increment terms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
@@ -81,6 +82,7 @@ Angle terms
     AngleTerm
     HarmonicAngleTerm
     SDKAngleTerm
+    LinearAngleTerm
 
 Dihedral terms
 ~~~~~~~~~~~~~~
@@ -104,7 +106,7 @@ Improper terms
 Force field parser
 ------------------
 
-.. currentmodule:: mstools.forcefield
+.. currentmodule:: mstk.forcefield
 
 .. autosummary::
     :toctree: _generated/

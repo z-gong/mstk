@@ -2,7 +2,7 @@
 Trajectory
 ==========
 
-.. currentmodule:: mstools.trajectory
+.. currentmodule:: mstk.trajectory
 
 .. autosummary::
     :toctree: _generated/
@@ -13,11 +13,11 @@ Trajectory
 Trajectory handler
 ------------------
 
-Handlers for reading/writing different trajectory formats by :class:`~mstools.trajectory.Trajectory`.
+Handlers for reading/writing different trajectory formats by :class:`~mstk.trajectory.Trajectory`.
 They are not meant to be called directly.
-However, you can pass a handler class when initializing a :class:`~mstools.trajectory.Trajectory` object.
+However, you can pass a handler class when initializing a :class:`~mstk.trajectory.Trajectory` object.
 
-.. currentmodule:: mstools.trajectory
+.. currentmodule:: mstk.trajectory
 
 .. autosummary::
     :toctree: _generated/

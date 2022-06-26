@@ -1,6 +1,6 @@
-from mstools.wrapper import Gauss
-from mstools.jobmanager import Slurm
-from mstools.simulation.gauss import Cv
+from mstk.wrapper import Gauss
+from mstk.jobmanager import Slurm
+from mstk.simulation.gauss import Cv
 
 # Initialize wrappers for Gaussian 09
 gauss = Gauss(gauss_bin='/share/apps/g09/g09')

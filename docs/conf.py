@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'mstools'
+project = 'mstk'
 copyright = '2020, Zheng Gong'
 author = 'Zheng Gong'
 

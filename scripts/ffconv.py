@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from mstools.forcefield import ForceField
+from mstk.forcefield import ForceField
 
 
 def parse_args():

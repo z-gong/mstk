@@ -4,7 +4,7 @@ import os
 import pytest
 import tempfile
 import filecmp
-from mstools.topology import Topology, Molecule
+from mstk.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 

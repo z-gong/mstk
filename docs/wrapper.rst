@@ -4,7 +4,7 @@ Wrappers
 
 Wrappers for GROAMCS, Gaussian, DFF and Packmol simplify the usage of these packages.
 
-.. currentmodule:: mstools.wrapper
+.. currentmodule:: mstk.wrapper
 
 .. autosummary::
     :toctree: _generated/
@@ -12,4 +12,3 @@ Wrappers for GROAMCS, Gaussian, DFF and Packmol simplify the usage of these pack
     GMX
     Gauss
     Packmol
-    DFF

@@ -1,0 +1,16 @@
+name: mstk
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python>=3.7  # openmm requires python>=3.7
+  - numpy
+  - pandas
+  - rdkit
+  - openmm
+  - mdtraj
+  - chemfiles-lib=0.10.2
+  - chemfiles-python=0.10.2
+  - scipy
+  - scikit-learn
+  - pymbar=3.1
