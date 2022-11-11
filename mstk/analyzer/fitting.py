@@ -191,6 +191,28 @@ def curve_fit_rsq(func, x_list, y_list, guess=None, bounds=None):
     return tuple(popt), rsq
 
 
+def fit_opls_dihedral(x_list, y_list, guess=None, bounds=None):
+    def func(x, k1, k2, k3):
+        return k1 * (1 + np.cos(x)) + k2 * (1 - np.cos(2 * x)) + k3 * (1 + np.cos(3 * x))
+
+    guess = guess or [0.0, 0.0, 0.0]
+    bounds = bounds or (-np.inf, np.inf)
+
+    return curve_fit_rsq(func, x_list, y_list, guess, bounds)
+
+
+def tg_hyperbola(T, T0, d0, a, b, c):
+    H = (T - T0) / 2 + np.sqrt((T - T0) ** 2 / 4 + np.exp(c))
+    return d0 - a * (T - T0) - b * H
+
+
+def fit_tg_hyperbola(T_list, d_list, guess=None, bounds=None):
+    guess = guess or [400.0, 1.0, 0.0, 0.0, 0.0]
+    bounds = bounds or ([0.0, 0.0, 0.0, 0.0, -np.inf], [1000.0, 2.0, np.inf, np.inf, np.inf])
+
+    return curve_fit_rsq(tg_hyperbola, T_list, d_list, guess, bounds)
+
+
 def logistic(x, A1, A2, x0, p):
     return (A1 - A2) / (1 + (x / x0) ** p) + A2
 
@@ -202,8 +224,6 @@ def logistic_derivative(x, A1, A2, x0, p):
 
 
 def fit_logistic(x_list, y_list, guess=None, bounds=None):
-    import numpy as np
-
     guess = guess or [y_list[0], 2 * y_list[-1] - y_list[0], x_list[-1], 1.0]
     bounds = bounds or ([-np.inf, -np.inf, -np.inf, 0], np.inf)
 
@@ -211,8 +231,6 @@ def fit_logistic(x_list, y_list, guess=None, bounds=None):
 
 
 def fit_vle_tanh(x_list, d_list, guess=None, bounds=None):
-    import numpy as np
-
     def func(x, c, A, r, s):
         return c + A * np.tanh((x - r) / s)
 
@@ -244,8 +262,6 @@ def fit_vle_dminus(T_list, dminus_list, guess=None, bounds=None):
         Tc and B
     rsq : float
     '''
-    import numpy as np
-
     guess = guess or [max(T_list) / 0.8, 1.0]
     bounds = bounds or (0, np.inf)
 
@@ -275,8 +291,6 @@ def fit_vle_dplus(T_list, dplus_list, Tc, guess=None, bounds=None):
     rsq : float
     -------
     '''
-    import numpy as np
-
     guess = guess or [0.3, 1.0]
     bounds = bounds or (0, np.inf)
 
@@ -288,8 +302,6 @@ def vle_st(T, A, n, Tc):
 
 
 def fit_vle_st(T_list, st_list, Tc, guess=None, bounds=None):
-    import numpy as np
-
     guess = guess or [50, 1.22]
     bounds = bounds or (0, np.inf)
 

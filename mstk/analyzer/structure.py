@@ -1,130 +1,93 @@
+import math
 import numpy as np
-from pandas import Series
-from .ptre import Ptre
+from mstk.topology import Atom
+from scipy.spatial import ConvexHull
+
+__all__ = [
+    'calc_weighted_average',
+    'calc_com',
+    'calc_rg',
+    'calc_hull_volume',
+]
 
 
-def check_vle_density(series):
+def calc_weighted_average(array, weight):
     '''
-    Check whether or not a density profile represents a vapor-liquid interface with canny edge method
+    Calculate the weighted average of 2-dimensional data
 
     Parameters
     ----------
-    series : Series
-        The density series along z axis. The index of the series is z coordinates
+    array : np.array
+    weight : np.array
+        If weight for all elements equal to zero. Will ignore weight
 
     Returns
     -------
-    is_interface : bool
-        Whether or not there is a vapor-liquid interface
-    is_center_gas : bool
-        Whether or not the center region is gas phase
-    nodes : list of float
-        The location of interfaces in z axis
-
+    average : np.array
     '''
-    interval = series.index[1] - series.index[0]
-
-    result, peaks = Ptre.test_data(series, interval)  # the peaks starts from 0, not original index
-    peaks._sort_hill(key=lambda x: x[0])
-
-    if result != Ptre._PATTERN_A:
-        return False, None, None
-
-    nodes = [p[0] + series.index[0] for p in peaks]
-    return True, peaks[0][1] > 0, nodes
+    if all(weight == 0):
+        weight = np.ones(weight.shape)
+    return np.sum(array * weight[:, np.newaxis], axis=0) / np.sum(weight)
 
 
-def N_vaporize_condense(phases):
+def calc_com(atoms):
     '''
-    Check how many times one molecules have vaporized or condensed
+    Calculate the center of mass of a group of atoms
 
     Parameters
     ----------
-    phases : list of str
-        The time evolution of the phase one molecule stayed in.
-        The elements in this list can only be 'l', 'i' or 'g', which means liquid, interface and gas phase.
+    atoms : list of Atom
 
     Returns
     -------
-    N_vapor: int
-        Times of vaporization (transit from liquid to gas phase)
-    N_condense: int
-        Times of condensation (transit from gas to liquid phase)
-
+    com : np.array
     '''
-    N_vapor = N_condense = 0
-    phases = [i for i in phases if i != 'i']
-    while len(phases) > 1:
-        if phases[0] == 'l' and phases[1] == 'g':
-            N_vapor += 1
-        elif phases[0] == 'g' and phases[1] == 'l':
-            N_condense += 1
-        phases.pop(0)
+    positions = np.array([atom.position for atom in atoms])
+    masses = np.array([atom.mass for atom in atoms])
 
-    return N_vapor, N_condense
+    return calc_weighted_average(positions, masses)
 
 
-def check_interface(series: Series, debug=False) -> (bool, list):
-    interval = series.index[1] - series.index[0]
+def calc_rg(atoms):
+    '''
+    Calculate the radius of gyration of a group of atoms
 
-    result, peaks = Ptre.test_data(series, interval, debug=debug)
+    Parameters
+    ----------
+    atoms : list of Atom
 
-    if debug:
-        try:
-            import pylab
-        except:
-            print('matplotlib not found, cannot debug')
-        else:
-            t = np.array(series.index) - series.index[0]
-            pylab.plot(t, series)
-            if result in [Ptre._PATTERN_A, Ptre._PATTERN_D]:
-                pylab.vlines([p[0] for p in peaks], 0, 1, colors='red')
-            pylab.show()
+    Returns
+    -------
+    rg : float
+    '''
+    positions = np.array([atom.position for atom in atoms])
+    masses = np.array([atom.mass for atom in atoms])
+    if all(masses == 0):
+        masses.fill(1.0)
 
-            for i in range(0, len(peaks)):
-                if peaks[i][1] < 0:
-                    state = 'INCREASING'
-                else:
-                    state = 'DECREASING'
-                print(state, peaks[i][0])
+    com = calc_weighted_average(positions, masses)
+    positions -= com
+    rsq_ew = np.sum(positions ** 2, axis=1)
 
-    if result == Ptre._PATTERN_A:
-        return True, peaks
-    else:
-        return False, peaks
+    return math.sqrt(sum(masses * rsq_ew) / sum(masses))
 
 
-def angular_momentum(com, mass_list, corr_list, vel_list, vel_com):
-    ### TODO Not sure whether it is correct
-    Lx = Ly = Lz = 0
-    for i, corr in enumerate(corr_list):
-        dx = corr[0] - com[0]
-        dy = corr[1] - com[1]
-        dz = corr[2] - com[2]
-        vx = vel_list[i][0] - vel_com[0]
-        vy = vel_list[i][1] - vel_com[1]
-        vz = vel_list[i][2] - vel_com[2]
-        mass = mass_list[i]
-        Lx += mass * (dy * vz - dz * vy)
-        Ly += mass * (dz * vx - dx * vz)
-        Lz += mass * (dx * vy - dy * vx)
-    return Lx, Ly, Lz
+def calc_hull_volume(atoms):
+    '''
+    Calculate the volume occupied by a groups of at least four atoms
 
+    Parameters
+    ----------
+    atoms : list of Atom
 
-def velocity_com(mass_list, vel_list):
-    Vx = Vy = Vz = 0
-    for i, vel in enumerate(vel_list):
-        vx = vel_list[i][0]
-        vy = vel_list[i][1]
-        vz = vel_list[i][2]
-        mass = mass_list[i]
+    Returns
+    -------
+    volume : float
+    '''
+    if len(atoms) < 4:
+        raise Exception('At least 4 atoms required for 3D convex hull')
 
-        Vx += mass * vx
-        Vy += mass * vy
-        Vz += mass * vz
-    total_mass = sum(mass_list)
-    Vx /= total_mass
-    Vy /= total_mass
-    Vz /= total_mass
+    positions = np.array([atom.position for atom in atoms])
+    hull = ConvexHull(positions)
 
-    return Vx, Vy, Vz
+    return float(hull.volume)

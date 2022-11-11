@@ -13,7 +13,7 @@ It is recommended to install these dependencies with `conda`.
 
 .. code-block:: bash
 
-    conda install -f conda.yaml
+    conda install -f conda_env.yaml
 
 
 Install `mstk`

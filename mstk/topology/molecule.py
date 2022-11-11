@@ -146,6 +146,7 @@ class Molecule():
     def from_rdmol(rdmol, name=None):
         '''
         Initialize a molecule from a RDKit Mol object.
+        If the RDKit Mol has conformers, the position of the first conformer will be assigned to the atoms
 
         Parameters
         ----------
@@ -175,8 +176,9 @@ class Molecule():
             atom.mass = element.mass
             atom.formal_charge = a.GetFormalCharge()
             mol.add_atom(atom)
-        for atom, pos in zip(mol.atoms, rdmol.GetConformer().GetPositions()):
-            atom.position = pos / 10  # convert A to nm
+        if rdmol.GetNumConformers() > 0:
+            for atom, pos in zip(mol.atoms, rdmol.GetConformer().GetPositions()):
+                atom.position = pos / 10  # convert A to nm
         for b in rdmol.GetBonds():
             atom1 = mol.atoms[b.GetBeginAtomIdx()]
             atom2 = mol.atoms[b.GetEndAtomIdx()]

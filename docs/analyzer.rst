@@ -1,14 +1,25 @@
-
 Analyzer
 ========
 
 Analyzer module provides a bunch of shortcuts for performing the most commonly used analysing method,
-like curve fitting, structure determination and time series analysing.
+like curve fitting, structure determination and time series analysis.
 
 Structural analysis
 -------------------
 
 .. currentmodule:: mstk.analyzer.structure
+
+.. autosummary::
+    :toctree: _generated/
+
+    calc_weighted_average
+    calc_com
+    calc_rg
+
+Structural analysis for vapor-liquid interface
+----------------------------------------------
+
+.. currentmodule:: mstk.analyzer.vle
 
 .. autosummary::
     :toctree: _generated/

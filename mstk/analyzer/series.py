@@ -1,12 +1,19 @@
 import math
-
 import numpy as np
 from pandas import Series
+
+__all__ = [
+    'block_average',
+    'average_of_blocks',
+    'is_converged',
+    'efficiency_with_block_size',
+    'mean_and_uncertainty',
+]
 
 
 def block_average(series, n_block=5):
     '''
-    Calculate the block average and standard error
+    Calculate the block average, standard deviation and their standard errors
 
     Parameters
     ----------
@@ -17,21 +24,20 @@ def block_average(series, n_block=5):
 
     Returns
     -------
-    ave : float
-        Block average
-    stderr : float
-        Standard error
-
+    ave_err_std_err : tuple of tuple of float
+        It returns two tuple. The first one is the mean of average of each block and the standard error of this mean.
+        The second one is the mean of standard deviation of each block and the standard error of this mean.
     '''
-    block_aves = average_of_blocks(series, n_block)
-    ave, stderr = np.mean(block_aves), np.std(block_aves, ddof=1) / math.sqrt(n_block)
-    stderr = float('%.1e' % stderr)  # 2 effective number for stderr
-    return ave, stderr
+    block_ave_std = average_of_blocks(series, n_block)
+    ave_list, std_list = zip(*block_ave_std)
+    ave, err_ave = np.mean(ave_list), np.std(ave_list, ddof=1) / math.sqrt(n_block)
+    std, err_std = np.mean(std_list), np.std(std_list, ddof=1) / math.sqrt(n_block)
+    return (ave, err_ave), (std, err_std)
 
 
 def average_of_blocks(series, n_block=5):
     '''
-    Split data to several blocks and return the average of each block
+    Split data to several blocks and return the average and standard deviation of each block
 
     Parameters
     ----------
@@ -42,17 +48,18 @@ def average_of_blocks(series, n_block=5):
 
     Returns
     -------
-    aves : list of float
-        The average of each block
+    aves : list of tuple of float
+        The average and standard deviation of each block
     '''
+    array = np.array(series)
     n_points = len(series)
     block_size = n_points // n_block
     blocks = []
     for n in range(n_block - 1):
-        blocks.append(series.iloc[block_size * n:block_size * (n + 1)])
-    blocks.append(series.iloc[block_size * (n_block - 1):])
-    block_aves = [np.mean(b) for b in blocks]
-    return block_aves
+        blocks.append(array[block_size * n:block_size * (n + 1)])
+    blocks.append(array[block_size * (n_block - 1):])
+    block_ave_std = [(np.mean(b), np.std(b)) for b in blocks]
+    return block_ave_std
 
 
 def is_converged(series: Series, frac_min=0.5):
@@ -135,4 +142,3 @@ def mean_and_uncertainty(series: Series, inefficiency=None) -> (float, float):
     if inefficiency == None:
         inefficiency = timeseries.statisticalInefficiency(array)
     return ave, np.std(array, ddof=1) / math.sqrt(len(array) / inefficiency)
-
