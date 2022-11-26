@@ -10,8 +10,8 @@ from mstk.analyzer.series import block_average
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', type=str, help='log file of OpenMM or LAMMPS')
-    parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this step')
-    parser.add_argument('-e', '--end', default=-1, type=float, help='end at this step')
+    parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this sample')
+    parser.add_argument('-e', '--end', default=-1, type=float, help='end at this sample')
     parser.add_argument('-c', '--converge', default=False, action='store_true', help='detect convergence')
     parser.add_argument('-p', '--plot', default=False, action='store_true', help='plot data')
     parser.add_argument('-d', '--dist', default=False, action='store_true', help='plot distribution')

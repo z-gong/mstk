@@ -14,6 +14,7 @@ class NamdExporter():
     * :class:`~mstk.forcefield.LJ126Term`
     * :class:`~mstk.forcefield.HarmonicBondTerm`
     * :class:`~mstk.forcefield.HarmonicAngleTerm`
+    * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.HarmonicImproperTerm`
     * :class:`~mstk.forcefield.DrudeTerm`
@@ -60,7 +61,7 @@ class NamdExporter():
         supported_terms = {LJ126Term,
                            HarmonicBondTerm,
                            HarmonicAngleTerm,
-                           PeriodicDihedralTerm,
+                           OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
@@ -87,26 +88,26 @@ class NamdExporter():
                     pterm = system.polarizable_terms[parent]
                     bterm = HarmonicBondTerm(name[0], name[1], 0.0, pterm.k)
                 else:
-                    bterm = system.bond_terms[id(bond)]
+                    bterm = system.bond_terms[bond]
                 unique_bonds[name] = bterm
 
         unique_angles = {}
         for angle in system._topology.angles:
             name = (angle.atom1.type, angle.atom2.type, angle.atom3.type)
             if name not in unique_angles and tuple(reversed(name)) not in unique_angles:
-                unique_angles[name] = system.angle_terms[id(angle)]
+                unique_angles[name] = system.angle_terms[angle]
         unique_dihedrals = {}
         for dihedral in system._topology.dihedrals:
             name = (dihedral.atom1.type, dihedral.atom2.type,
                     dihedral.atom3.type, dihedral.atom4.type)
             if name not in unique_dihedrals and tuple(reversed(name)) not in unique_dihedrals:
-                unique_dihedrals[name] = system.dihedral_terms[id(dihedral)]
+                unique_dihedrals[name] = system.dihedral_terms[dihedral]
         unique_impropers = {}
         for improper in system._topology.impropers:
             name = (improper.atom1.type, improper.atom2.type,
                     improper.atom3.type, improper.atom4.type)
             if name not in unique_impropers and tuple(reversed(name)) not in unique_impropers:
-                unique_impropers[name] = system.improper_terms[id(improper)]
+                unique_impropers[name] = system.improper_terms[improper]
 
         string += '\nBONDS\n'
         string += '''!V(bond) = Kb(b - b0)**2
@@ -142,6 +143,8 @@ class NamdExporter():
 !atom types             Kchi    n   delta
 '''
         for (at1, at2, at3, at4), dterm in unique_dihedrals.items():
+            if type(dterm) is OplsDihedralTerm:
+                dterm = dterm.to_periodic_term()
             for para in dterm.parameters:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
                     at1, at2, at3, at4, para.k / 4.184, para.n, para.phi)

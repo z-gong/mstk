@@ -89,15 +89,7 @@ class Zff():
             line += '%-16s %-16s %s\n' % ('Setting', attr, getattr(ff, attr))
         line += '\n'
 
-        # comment for AtomType
-        line += '%-16s' % '#AtomType'
-        for attr in AtomType._zfp_attrs:
-            if attr in ('mass', 'charge'):
-                line += ' %9s' % attr
-            else:
-                line += ' %-9s' % attr
-        line += '\n'
-
+        _header_printed = set()
         for term in itertools.chain(ff.atom_types.values(),
                                     ff.virtual_site_terms.values(),
                                     ff.qinc_terms.values(),
@@ -108,6 +100,10 @@ class Zff():
                                     ff.dihedral_terms.values(),
                                     ff.improper_terms.values(),
                                     ff.polarizable_terms.values()):
+            alias = type(term).get_alias()
+            if alias not in _header_printed:
+                line += term.to_zff_header() + '\n'
+                _header_printed.add(alias)
             line += term.to_zff()
             if term.comments:
                 line += '  # ' + '; '.join(term.comments)

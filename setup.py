@@ -27,7 +27,7 @@ setuptools.setup(
     # better let user install requirements by themselves
     install_requires=[],
     classifiers=[
-        'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)',
+        'License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)',
         'Operating System :: OS Independent'
     ]
 )

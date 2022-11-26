@@ -1,8 +1,17 @@
+import itertools
 from enum import IntEnum
-from .system import System
-from ..forcefield import *
-from ..topology import *
-from .. import logger
+from mstk import *
+from mstk.simsys import System
+from mstk.forcefield import *
+from mstk.topology import *
+from mstk.chem.constant import *
+
+try:
+    import openmm.openmm as mm
+except ImportError:
+    OPENMM_FOUND = False
+else:
+    OPENMM_FOUND = True
 
 
 class ForceGroup(IntEnum):
@@ -15,7 +24,7 @@ class ForceGroup(IntEnum):
     DRUDE = 7
 
 
-class OpenMMExporter():
+class OpenMMExporter:
     '''
     OpenMMExporter export a :class:`System` to a OpenMM system.
 
@@ -26,27 +35,26 @@ class OpenMMExporter():
         pass
 
     @staticmethod
-    def export(system, **kwargs):
+    def export(system, disable_inter_mol=False, **kwargs):
         '''
         Generate OpenMM system from a system
 
         Parameters
         ----------
         system : System
+        disable_inter_mol : bool
 
         Returns
         -------
         omm_system : openmm.openmm.System
         '''
-        try:
-            import openmm.openmm as mm
-        except ImportError:
+        if not OPENMM_FOUND:
             raise ImportError('Can not import OpenMM')
 
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm, MorseBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
-                           PeriodicDihedralTerm,
+                           OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
@@ -57,14 +65,28 @@ class OpenMMExporter():
         if system.vsite_types - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
 
-        top = system.topology
-        ff = system.ff
-
         omm_system = mm.System()
         if system.use_pbc:
-            omm_system.setDefaultPeriodicBoxVectors(*top.cell.vectors)
-        for atom in top.atoms:
+            omm_system.setDefaultPeriodicBoxVectors(*system.topology.cell.vectors)
+        for atom in system.topology.atoms:
             omm_system.addParticle(atom.mass)
+
+        OpenMMExporter._setup_bonded(system, omm_system)
+        if not disable_inter_mol:
+            OpenMMExporter._setup_nonbonded(system, omm_system)
+        else:
+            OpenMMExporter._setup_nonbonded_as_bonded(system, omm_system)
+
+        ### Remove COM motion ###################################################################
+        logger.debug('Setting up COM motion remover...')
+        omm_system.addForce(mm.CMMotionRemover(10))
+
+        return omm_system
+
+    @staticmethod
+    def _setup_bonded(system, omm_system):
+        top = system.topology
+        ff = system.ff
 
         ### Set up bonds #######################################################################
         for bond_class in system.bond_classes:
@@ -75,9 +97,9 @@ class OpenMMExporter():
                     if bond.is_drude:
                         # DrudeForce will handle the bond between Drude pair
                         continue
-                    if id(bond) in system.constrain_bonds:
+                    if bond in system.constrain_bonds:
                         continue
-                    bterm = system.bond_terms[id(bond)]
+                    bterm = system.bond_terms[bond]
                     if type(bterm) != HarmonicBondTerm:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
@@ -92,9 +114,9 @@ class OpenMMExporter():
                     if bond.is_drude:
                         # DrudeForce will handle the bond between Drude pair
                         continue
-                    if id(bond) in system.constrain_bonds:
+                    if bond in system.constrain_bonds:
                         continue
-                    bterm = system.bond_terms[id(bond)]
+                    bterm = system.bond_terms[bond]
                     if type(bterm) != MorseBondTerm:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, [bterm.length, bterm.k, bterm.depth])
@@ -112,9 +134,9 @@ class OpenMMExporter():
                 logger.debug('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
                 for angle in top.angles:
-                    if id(angle) in system.constrain_angles:
+                    if angle in system.constrain_angles:
                         continue
-                    aterm = system.angle_terms[id(angle)]
+                    aterm = system.angle_terms[angle]
                     if type(aterm) == HarmonicAngleTerm:
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
                                         aterm.theta * PI / 180, aterm.k * 2)
@@ -131,9 +153,9 @@ class OpenMMExporter():
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
                 for angle in top.angles:
-                    if id(angle) in system.constrain_angles:
+                    if angle in system.constrain_angles:
                         continue
-                    aterm = system.angle_terms[id(angle)]
+                    aterm = system.angle_terms[angle]
                     if type(aterm) != SDKAngleTerm:
                         continue
                     vdw = ff.get_vdw_term(ff.atom_types[angle.atom1.type], ff.atom_types[angle.atom2.type])
@@ -152,14 +174,14 @@ class OpenMMExporter():
                 aforce.addPerBondParameter('a')
                 aforce.addPerBondParameter('k_linear')
                 for angle in top.angles:
-                    if id(angle) in system.constrain_angles:
+                    if angle in system.constrain_angles:
                         continue
-                    aterm = system.angle_terms[id(angle)]
+                    aterm = system.angle_terms[angle]
                     if type(aterm) != LinearAngleTerm:
                         continue
                     bond12, bond23 = angle.bonds
-                    bterm12 = system.bond_terms[id(bond12)]
-                    bterm23 = system.bond_terms[id(bond23)]
+                    bterm12 = system.bond_terms[bond12]
+                    bterm23 = system.bond_terms[bond23]
                     a, k_linear = aterm.calc_a_k_linear(bterm12.length, bterm23.length)
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id], [a, k_linear])
             else:
@@ -173,30 +195,30 @@ class OpenMMExporter():
         ### Set up constraints #################################################################
         logger.debug(f'Setting up {len(system.constrain_bonds)} bond constraints...')
         for bond in top.bonds:
-            if id(bond) in system.constrain_bonds:
+            if bond in system.constrain_bonds:
                 omm_system.addConstraint(bond.atom1.id, bond.atom2.id,
-                                         system.constrain_bonds[id(bond)])
+                                         system.constrain_bonds[bond])
         logger.debug(f'Setting up {len(system.constrain_angles)} angle constraints...')
         for angle in top.angles:
-            if id(angle) in system.constrain_angles:
+            if angle in system.constrain_angles:
                 omm_system.addConstraint(angle.atom1.id, angle.atom3.id,
-                                         system.constrain_angles[id(angle)])
+                                         system.constrain_angles[angle])
 
         ### Set up dihedrals ###################################################################
         for dihedral_class in system.dihedral_classes:
-            if dihedral_class == PeriodicDihedralTerm:
+            if dihedral_class in (OplsDihedralTerm, PeriodicDihedralTerm):
                 logger.debug('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
                 for dihedral in top.dihedrals:
-                    dterm = system.dihedral_terms[id(dihedral)]
+                    dterm = system.dihedral_terms[dihedral]
                     ia1, ia2, ia3, ia4 = dihedral.atom1.id, dihedral.atom2.id, dihedral.atom3.id, dihedral.atom4.id
+                    if type(dterm) is OplsDihedralTerm:
+                        dterm = dterm.to_periodic_term()
                     if type(dterm) == PeriodicDihedralTerm:
                         for par in dterm.parameters:
                             dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi * PI / 180, par.k)
-                    else:
-                        continue
             else:
-                raise Exception('Dihedral terms other that PeriodicDihedralTerm '
+                raise Exception('Dihedral terms other that OplsDihedralTerm and PeriodicDihedralTerm '
                                 'haven\'t been implemented')
             dforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             dforce.setForceGroup(ForceGroup.DIHEDRAL)
@@ -210,7 +232,7 @@ class OpenMMExporter():
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
                 iforce.addPerTorsionParameter('k')
                 for improper in top.impropers:
-                    iterm = system.improper_terms[id(improper)]
+                    iterm = system.improper_terms[improper]
                     if type(iterm) == OplsImproperTerm:
                         # in OPLS convention, the third atom is the central atom
                         iforce.addTorsion(improper.atom2.id, improper.atom3.id,
@@ -223,7 +245,7 @@ class OpenMMExporter():
                 iforce.addPerTorsionParameter('phi0')
                 iforce.addPerTorsionParameter('k')
                 for improper in top.impropers:
-                    iterm = system.improper_terms[id(improper)]
+                    iterm = system.improper_terms[improper]
                     if type(iterm) == HarmonicImproperTerm:
                         iforce.addTorsion(improper.atom1.id, improper.atom2.id,
                                           improper.atom3.id, improper.atom4.id,
@@ -235,6 +257,11 @@ class OpenMMExporter():
             iforce.setForceGroup(ForceGroup.IMPROPER)
             iforce.setName('Improper')
             omm_system.addForce(iforce)
+
+    @staticmethod
+    def _setup_nonbonded(system, omm_system):
+        top = system.topology
+        ff = system.ff
 
         ### Set up non-bonded interactions #########################################################
         # NonbonedForce is not flexible enough. Use it only for Coulomb interactions (including 1-4 Coulomb exceptions)
@@ -249,10 +276,7 @@ class OpenMMExporter():
             nbforce.setCutoffDistance(cutoff)
             # dispersion will be handled by CustomNonbondedForce
             nbforce.setUseDispersionCorrection(False)
-            try:
-                nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
-            except:
-                logger.warning('Cannot apply PBC for Coulomb 1-4 exceptions')
+            nbforce.setExceptionsUsePeriodicBoundaryConditions(True)
         else:
             nbforce.setNonbondedMethod(mm.NonbondedForce.NoCutoff)
         nbforce.setForceGroup(ForceGroup.COULOMB)
@@ -526,8 +550,52 @@ class OpenMMExporter():
                 for f in custom_nb_forces:
                     f.addExclusion(a1.id, a2.id)
 
-        ### Remove COM motion ###################################################################
-        logger.debug('Setting up COM motion remover...')
-        omm_system.addForce(mm.CMMotionRemover(10))
+    @staticmethod
+    def _setup_nonbonded_as_bonded(system, omm_system):
+        if system.polarizable_classes != set():
+            raise Exception('Polarizable terms not supported')
 
-        return omm_system
+        if system.vsite_types != set():
+            raise Exception('Virtual sites not supported')
+
+        if system.use_pbc:
+            raise Exception('PBC not supported')
+
+        top = system.topology
+        ff = system.ff
+
+        logger.debug('Setting up Coulomb interactions...')
+        qqforce = mm.CustomBondForce(f'{ONE_4PI_EPS0}*qq/r')
+        qqforce.addPerBondParameter('qq')
+        qqforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
+        qqforce.setForceGroup(ForceGroup.COULOMB)
+        qqforce.setName('Coulomb')
+        omm_system.addForce(qqforce)
+
+        logger.debug('Setting up vdW interactions...')
+        ljforce = mm.CustomBondForce('C*epsilon*((sigma/r)^n-(sigma/r)^m);'
+                                     'C=n/(n-m)*(n/m)^(m/(n-m))')
+        ljforce.addPerBondParameter('epsilon')
+        ljforce.addPerBondParameter('sigma')
+        ljforce.addPerBondParameter('n')
+        ljforce.addPerBondParameter('m')
+        ljforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
+        ljforce.setForceGroup(ForceGroup.VDW)
+        ljforce.setName('vdW')
+        omm_system.addForce(ljforce)
+
+        for mol in top.molecules:
+            pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
+            pairs1n = list(set(itertools.combinations(mol.atoms, 2)) - set(pairs12).union(pairs13).union(pairs14))
+            for i, (atom1, atom2) in enumerate(pairs14 + pairs1n):
+                vdw = ff.get_vdw_term(ff.atom_types[atom1.type], ff.atom_types[atom2.type])
+                epsilon = vdw.epsilon
+                qq = atom1.charge * atom2.charge
+                if i < len(pairs14):
+                    epsilon *= ff.scale_14_vdw
+                    qq *= ff.scale_14_coulomb
+                if type(vdw) == LJ126Term:
+                    ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
+                elif type(vdw) == MieTerm:
+                    ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
+                qqforce.addBond(atom1.id, atom2.id, [qq])

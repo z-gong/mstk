@@ -14,7 +14,8 @@ class CONST:
 def print_omm_info(logger=None):
     messages = ['OpenMM verison: ' + openmm.version.version,
                 'OpenMM library: ' + openmm.version.openmm_library_path,
-                'OpenMM platforms: ' + ', '.join([mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())]),
+                'OpenMM platforms: ' + ', '.join([mm.Platform.getPlatform(i).getName()
+                                                  for i in range(mm.Platform.getNumPlatforms())]),
                 ]
     for msg in messages:
         if logger:
@@ -76,11 +77,18 @@ def energy_decomposition(sim: app.Simulation, logger=None):
         if i not in groups:
             groups[i] = set()
         groups[i].add(force.getName())
+
+    energies = {}
     for i in sorted(groups.keys()):
-        energy = sim.context.getState(getEnergy=True, groups={i}).getPotentialEnergy()
-        if energy._value != 0 or i != 0:
-            msg = f'E_{"+".join(groups[i])} = {energy}'
-            if logger:
-                logger.info(msg)
-            else:
-                print(msg)
+        energy = sim.context.getState(getEnergy=True, groups={i}).getPotentialEnergy()._value
+        if energy != 0 or i != 0:
+            name = '+'.join(groups[i])
+            if name in energies:
+                name += f'_{i}'
+            energies[name] = energy
+
+    if logger:
+        for k, v in energies.items():
+            logger.info(f'E_{k} = {v}')
+
+    return energies

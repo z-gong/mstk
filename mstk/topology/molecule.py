@@ -419,7 +419,7 @@ class Molecule():
         bond : [Bond, None]
         '''
         bond = Bond(atom1, atom2, order)
-        if check_existence and bond in self._bonds:
+        if check_existence and any(b.equals(bond) for b in self._bonds):
             return None
 
         self._bonds.append(bond)
@@ -449,7 +449,7 @@ class Molecule():
         angle : [Angle, None]
         '''
         angle = Angle(atom1, atom2, atom3)
-        if check_existence and angle in self._angles:
+        if check_existence and any(a.equals(angle) for a in self._angles):
             return None
 
         self._angles.append(angle)
@@ -475,7 +475,7 @@ class Molecule():
         dihedral : [Dihedral, None]
         '''
         dihedral = Dihedral(atom1, atom2, atom3, atom4)
-        if check_existence and dihedral in self._dihedrals:
+        if check_existence and any(d.equals(dihedral) for d in self._dihedrals):
             return None
 
         self._dihedrals.append(dihedral)
@@ -502,7 +502,7 @@ class Molecule():
         dihedral : [Improper, None]
         '''
         improper = Improper(atom1, atom2, atom3, atom4)
-        if check_existence and improper in self._impropers:
+        if check_existence and any(i.equals(improper) for i in self._impropers):
             return None
 
         self._impropers.append(improper)

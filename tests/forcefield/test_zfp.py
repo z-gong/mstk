@@ -42,8 +42,8 @@ def test_read():
     assert term.type2 == 's_4o'
     assert term.type3 == 'n_2-'
     assert term.type4 == 's_4'
-    assert term.is_opls_convention
-    assert pytest.approx(term.get_opls_parameters(), abs=1E-4) == [12.9809, 7.9709, 1.6389, 0]
+    term = term.to_opls_term()
+    assert pytest.approx([term.k1, term.k2, term.k3, term.k4], abs=1E-4) == [12.9809, 7.9709, 1.6389, 0]
 
     term = ff.improper_terms['c_3a,c_3a,c_3a,h_1']
     assert type(term) == OplsImproperTerm

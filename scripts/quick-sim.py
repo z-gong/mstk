@@ -50,7 +50,7 @@ def main():
 
     ref_mols = []
     for inp in args.input:
-        if inp.startswith(':') or inp.endswith('.smi'):
+        if inp.startswith(':') or inp.lower().endswith('.smi'):
             if typer is None:
                 raise Exception('--typer is required for SMILES input')
         top = Topology.open(inp)

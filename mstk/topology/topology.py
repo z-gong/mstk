@@ -234,7 +234,6 @@ class Topology():
             xyz_files.append(xyz)
 
         if packmol is not None:
-            print('Build with Packmol ...')
             tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack-').name
             tmp_out = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out-').name
             packmol.build_box(xyz_files, numbers, tmp_out,

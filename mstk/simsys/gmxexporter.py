@@ -16,6 +16,7 @@ class GromacsExporter():
     * :class:`~mstk.forcefield.HarmonicBondTerm`
     * :class:`~mstk.forcefield.HarmonicAngleTerm`
     * :class:`~mstk.forcefield.LinearAngleTerm`
+    * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.OplsImproperTerm`
     * :class:`~mstk.forcefield.HarmonicImproperTerm`
@@ -54,7 +55,7 @@ class GromacsExporter():
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm, MorseBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
-                           PeriodicDihedralTerm,
+                           OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
@@ -214,13 +215,13 @@ class GromacsExporter():
 
             string += '\n[ constraints ]\n'
             for bond in mol.bonds:
-                distance = system.constrain_bonds.get(id(bond))
+                distance = system.constrain_bonds.get(bond)
                 if distance is not None:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1, 1, distance)
             for angle in mol.angles:
-                distance = system.constrain_angles.get(id(angle))
+                distance = system.constrain_angles.get(angle)
                 if distance is not None:
                     a1, a3 = angle.atom1, angle.atom3
                     string += '%6i %6i %6i %12.6f\n' % (
@@ -230,9 +231,9 @@ class GromacsExporter():
             for bond in mol.bonds:
                 if bond.is_drude:
                     continue
-                if id(bond) in system.constrain_bonds:
+                if bond in system.constrain_bonds:
                     continue
-                bterm = system.bond_terms[id(bond)]
+                bterm = system.bond_terms[bond]
                 if bterm.__class__ == HarmonicBondTerm:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f %12.4f\n' % (
@@ -297,9 +298,9 @@ class GromacsExporter():
 
             string += '\n[ angles ]\n'
             for angle in mol.angles:
-                if id(angle) in system.constrain_angles:
+                if angle in system.constrain_angles:
                     continue
-                aterm = system.angle_terms[id(angle)]
+                aterm = system.angle_terms[angle]
                 a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
                 if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
@@ -307,8 +308,8 @@ class GromacsExporter():
                         1, aterm.theta, aterm.k * 2)
                 elif aterm.__class__ is LinearAngleTerm:
                     bond12, bond23 = angle.bonds
-                    bterm12 = system.bond_terms[id(bond12)]
-                    bterm23 = system.bond_terms[id(bond23)]
+                    bterm12 = system.bond_terms[bond12]
+                    bterm23 = system.bond_terms[bond23]
                     a, k_linear = aterm.calc_a_k_linear(bterm12.length, bterm23.length)
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
@@ -318,7 +319,9 @@ class GromacsExporter():
 
             string += '\n[ dihedrals ]\n'
             for dihedral in mol.dihedrals:
-                dterm = system.dihedral_terms[id(dihedral)]
+                dterm = system.dihedral_terms[dihedral]
+                if dterm.__class__ == OplsDihedralTerm:
+                    dterm = dterm.to_periodic_term()
                 a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
                     for para in dterm.parameters:
@@ -336,7 +339,7 @@ class GromacsExporter():
 
             string += '\n[ dihedrals ]\n'
             for improper in mol.impropers:
-                iterm = system.improper_terms[id(improper)]
+                iterm = system.improper_terms[improper]
                 a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
                 if iterm.__class__ == OplsImproperTerm:
                     # be careful about the sequence of atoms in OPLS improper definition

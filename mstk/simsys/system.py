@@ -22,19 +22,19 @@ class System():
       You may need to call :func:`mstk.forcefield.ForceField.assign_charge`
       and :func:`mstk.forcefield.ForceField.assign_mass`
       before constructing the system to update the charges and masses of atoms in the topology.
-    * If this is a Drude polarizable model, the Drude particles must available in the topology,
+    * If this is a Drude polarizable model, the Drude particles must be available in the topology,
       and the polarizability, thole screening and charges on Drude particles must have been correctly assigned.
       You may need to call :func:`mstk.topology.Topology.generate_drude_particles` to generate Drude particles.
+    * If this is a virtual site model, the virtual site particles must be available in the topology,
 
     The provided force field must be able to fully describe the energy of the topology.
     If any term required by topology is not found in the force field, an Exception will be raised.
 
-    Positions and unit cell are also required for construct a system.
-    Usually they are included in the topology.
+    Positions and unit cell are usually included in the topology.
     If not so, they can be provided by arguments `positions` and `cell`.
     The explicitly provided positions and cell will override the ones in topology.
-    If positions or unit cell is not included in the topology and not provided explicitly,
-    an Exception will be raised.
+    If positions are not included in the topology and not provided explicitly, an Exception will be raised.
+    Unit cell is optional. If unit cell is not provided, cutoff will not be used for non-bonded interactions.
 
     If some bonded (bond, angle, dihedral, improper) parameters required by the topology are not found in the force field,
     `mstk` can try to transfer parameters from more general terms in the force field.
@@ -61,13 +61,14 @@ class System():
     use_pbc : bool
         True if unit cell information provided and volume is not zero
     drude_pairs : dict, [Atom, Atom]
-    constrain_bonds : dict, [int, float]
-    constrain_angles : dict, [int, float]
-    bond_terms : dict, [int, subclass of BondTerm]
-    angle_terms : dict, [int, subclass of AngleTerm]
-    dihedral_terms : dict, [int, subclass of DihedralTerm]
-    improper_terms : dict, [int, subclass of ImproperTerm]
-    polarizable_terms :  dict, [int, subclass of PolarizableTerm]
+    vsite_pairs : dict, [Atom, Atom]
+    constrain_bonds : dict, [Bond, float]
+    constrain_angles : dict, [Angle, float]
+    bond_terms : dict, [Bond, subclass of BondTerm]
+    angle_terms : dict, [Angle, subclass of AngleTerm]
+    dihedral_terms : dict, [Dihedral, subclass of DihedralTerm]
+    improper_terms : dict, [Improper, subclass of ImproperTerm]
+    polarizable_terms :  dict, [Atom, subclass of PolarizableTerm]
     vdw_classes : set of subclass of VdwTerm
     bond_classes : set of subclass of BondTerm
     angle_classes : set of subclass of AngleTerm
@@ -75,6 +76,7 @@ class System():
     improper_classes : set of subclass of ImproperTerm
     polarizable_classes : set of subclass of PolarizableTerm
     ff_classes : set of subclass of FFTerm
+    vsite_types : set of subclass of VirtualSite
     '''
 
     def __init__(self, topology, ff, positions=None, cell=None,
@@ -122,13 +124,13 @@ class System():
         self.vsite_types = set([type(atom.virtual_site) for atom in self.vsite_pairs.values()])
 
         # bind FF terms with topological elements
-        self.bond_terms: {int: BondTerm} = {}  # key is id(Bond), Drude bonds are not included
-        self.angle_terms: {int: AngleTerm} = {}  # key is id(Angle)
-        self.dihedral_terms: {int: DihedralTerm} = {}  # key is id(Dihedral)
-        self.improper_terms: {int: ImproperTerm} = {}  # key is id(Improper)
+        self.bond_terms: {Bond: BondTerm} = {}  # Drude bonds are not included
+        self.angle_terms: {Angle: AngleTerm} = {}
+        self.dihedral_terms: {Dihedral: DihedralTerm} = {}
+        self.improper_terms: {Improper: ImproperTerm} = {}
         self.polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
-        self.constrain_bonds: {int: float} = {}  # key is id(Bond), value is distance
-        self.constrain_angles: {int: float} = {}  # key is id(Angle), value is 1-3 distance
+        self.constrain_bonds: {Bond: float} = {}  # value is distance
+        self.constrain_angles: {Angle: float} = {}  # value is 1-3 distance
 
         self.vdw_classes = set()
         self.bond_classes = set()
@@ -231,9 +233,9 @@ class System():
                 _bterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(bterm, replace=True)
-                self.bond_terms[id(bond)] = bterm
+                self.bond_terms[bond] = bterm
                 if bterm.fixed:
-                    self.constrain_bonds[id(bond)] = bterm.length
+                    self.constrain_bonds[bond] = bterm.length
 
         _aterm_not_found = set()
         _aterm_transferred = set()
@@ -259,15 +261,17 @@ class System():
                 _aterm_not_found.add(_term.name)
             else:
                 self._ff.add_term(aterm, replace=True)
-                self.angle_terms[id(angle)] = aterm
+                self.angle_terms[angle] = aterm
                 if not aterm.fixed:
                     continue
-                bond1 = next(b for b in angle.atom2.bonds if b == Bond(angle.atom1, angle.atom2))
-                bond2 = next(b for b in angle.atom2.bonds if b == Bond(angle.atom2, angle.atom3))
+                _bond1 = Bond(angle.atom1, angle.atom2)
+                _bond2 = Bond(angle.atom2, angle.atom3)
+                bond1 = next(b for b in angle.atom2.bonds if b.equals(_bond1))
+                bond2 = next(b for b in angle.atom2.bonds if b.equals(_bond2))
                 # constrain the angle only if two bonds are also constrained
-                if id(bond1) in self.constrain_bonds and id(bond2) in self.constrain_bonds:
-                    d1, d2 = self.constrain_bonds[id(bond1)], self.constrain_bonds[id(bond2)]
-                    self.constrain_angles[id(angle)] = math.sqrt(
+                if bond1 in self.constrain_bonds and bond2 in self.constrain_bonds:
+                    d1, d2 = self.constrain_bonds[bond1], self.constrain_bonds[bond2]
+                    self.constrain_angles[angle] = math.sqrt(
                         d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
 
         _dterm_not_found = set()
@@ -307,7 +311,7 @@ class System():
                     else:
                         _dihedrals_to_keep.append(dihedral)
                         self._ff.add_term(dterm, replace=True)
-                        self.dihedral_terms[id(dihedral)] = dterm
+                        self.dihedral_terms[dihedral] = dterm
             # extremely slow to remove lots of dihedrals by calling mol.remove_connectivity()
             mol._dihedrals = _dihedrals_to_keep
 
@@ -344,7 +348,7 @@ class System():
                     _iterm_not_found.add(_term.name)
             if _found:
                 self._ff.add_term(iterm, replace=True)
-                self.improper_terms[id(improper)] = iterm
+                self.improper_terms[improper] = iterm
 
         _pterm_not_found = set()
         for parent in self.drude_pairs.keys():
@@ -444,20 +448,29 @@ class System():
         from .namdexporter import NamdExporter
         NamdExporter.export(self, pdb_out, psf_out, prm_out, **kwargs)
 
-    def to_omm_system(self, **kwargs):
+    def to_omm_system(self, disable_inter_mol=False, **kwargs):
         '''
         Export this system to OpenMM system
+
+        Parameters
+        ----------
+        disable_inter_mol : bool
 
         Returns
         -------
         omm_system : openmm.openmm.System
         '''
         from .ommexporter import OpenMMExporter
-        return OpenMMExporter.export(self, **kwargs)
+        return OpenMMExporter.export(self, disable_inter_mol=disable_inter_mol, **kwargs)
 
-    def decompose_energy(self):
+    def decompose_energy(self, verbose=True):
         '''
         Calculate the contribution of each energy term in this system
+
+        Returns
+        -------
+        energies : Dict[str, float]
+            The potential energies of different contributions
         '''
         try:
             from openmm import openmm as mm, app
@@ -470,9 +483,9 @@ class System():
         platform = mm.Platform.getPlatformByName('CPU')
         sim = app.Simulation(self.topology.to_omm_topology(), omm_sys, integrator, platform)
         sim.context.setPositions(self.topology.positions)
-        energy_decomposition(sim, logger=logger)
+        return energy_decomposition(sim, logger=logger if verbose else None)
 
-    def minimize_energy(self):
+    def minimize_energy(self, tolerance=100, verbose=True):
         '''
         Perform energy minimization on this system
 
@@ -489,32 +502,42 @@ class System():
         platform = mm.Platform.getPlatformByName('CPU')
         sim = app.Simulation(self.topology.to_omm_topology(), omm_sys, integrator, platform)
         sim.context.setPositions(self.topology.positions)
-        minimize(sim, tolerance=100, logger=logger)
+        minimize(sim, tolerance=tolerance, logger=logger if verbose else None)
         positions = sim.context.getState(getPositions=True).getPositions(asNumpy=True)._value
         self.topology.set_positions(positions)
 
-    def get_TIP4P_linear_coeffs(self, atom: Atom):
+    def get_TIP4P_linear_coeffs(self, atom):
+        '''
+        Get the three linear coefficients to calculate the position of TIP4P virtual site from O, H and H positions
+
+        Parameters
+        ----------
+        atom : Atom
+            The virtual site atom in TIP4P water topology
+
+        Returns
+        -------
+        params : tuple of float
+        '''
         vsite: TIP4PSite = atom.virtual_site
-        if type(vsite) != TIP4PSite:
-            raise Exception(f'{repr(atom)} is not a TIP4PSite')
+        if type(vsite) is not TIP4PSite:
+            raise Exception(f'{atom} is not a TIP4PSite')
 
         O, H1, H2 = vsite.parents
         mol = atom.molecule
-        bond_OH = Bond(O, H1)
-        for bond in mol.bonds:
-            if bond == bond_OH:
-                bterm = self.bond_terms[id(bond)]
-                break
-        else:
-            raise Exception(f'Corresponding O-H bond not found for virtual atom {repr(atom)}')
+        _bond_OH = Bond(O, H1)
+        try:
+            bond = next(b for b in mol.bonds if b.equals(_bond_OH))
+        except StopIteration:
+            raise Exception(f'Corresponding O-H bond not found for virtual atom {atom}')
+        bterm = self.bond_terms[bond]
 
-        angle_HOH = Angle(H1, O, H2)
-        for angle in mol.angles:
-            if angle == angle_HOH:
-                aterm = self.angle_terms[id(angle)]
-                break
-        else:
-            raise Exception(f'Corresponding H-O-H angle not found for virtual atom {repr(atom)}')
+        _angle_HOH = Angle(H1, O, H2)
+        try:
+            angle = next(a for a in mol.angles if a.equals(_angle_HOH))
+        except StopIteration:
+            raise Exception(f'Corresponding H-O-H angle not found for virtual atom {atom}')
+        aterm = self.angle_terms[angle]
 
         offset = atom.virtual_site.parameters[0]
         c = offset / bterm.length / 2 / math.cos(aterm.theta / 2 * PI / 180)

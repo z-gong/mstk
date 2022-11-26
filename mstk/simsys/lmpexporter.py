@@ -20,6 +20,7 @@ class LammpsExporter():
     * :class:`~mstk.forcefield.HarmonicBondTerm`
     * :class:`~mstk.forcefield.HarmonicAngleTerm`
     * :class:`~mstk.forcefield.SDKAngleTerm`
+    * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.OplsImproperTerm`
 
@@ -48,7 +49,7 @@ class LammpsExporter():
         supported_terms = {LJ126Term, MieTerm,
                            HarmonicBondTerm, MorseBondTerm,
                            HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
-                           PeriodicDihedralTerm,
+                           OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
@@ -140,10 +141,12 @@ class LammpsExporter():
             string += '\nDihedral Coeffs  # opls\n\n'
 
         for i, dterm in enumerate(dihedral_types):
-            dterm: PeriodicDihedralTerm
-            if not dterm.is_opls_convention:
-                raise Exception('Only OPLS type dihedral is implemented')
-            k1, k2, k3, k4 = map(lambda x: x * 2 / 4.184, dterm.get_opls_parameters())
+            if type(dterm) is PeriodicDihedralTerm:
+                try:
+                    dterm = dterm.to_opls_term()
+                except:
+                    raise Exception('Only OPLS type dihedral is implemented')
+            k1, k2, k3, k4 = map(lambda x: x * 2 / 4.184, [dterm.k1, dterm.k2, dterm.k3, dterm.k4])
             string += '%4i %12.6f %12.6f %12.6f %12.6f  # %s-%s-%s-%s\n' % (
                 i + 1, k1, k2, k3, k4,
                 dterm.type1, dterm.type2, dterm.type3, dterm.type4)
@@ -169,7 +172,7 @@ class LammpsExporter():
 
         for i, bond in enumerate(top.bonds):
             a1, a2 = bond.atom1, bond.atom2
-            btype = bond_types.index(system.bond_terms[id(bond)]) + 1
+            btype = bond_types.index(system.bond_terms[bond]) + 1
             string += '%6i %6i %6i %6i  # %s-%s\n' % (
                 i + 1, btype, a1.id + 1, a2.id + 1, a1.name, a2.name)
 
@@ -177,7 +180,7 @@ class LammpsExporter():
             string += '\nAngles\n\n'
 
         for i, angle in enumerate(top.angles):
-            aterm = angle_types.index(system.angle_terms[id(angle)]) + 1
+            aterm = angle_types.index(system.angle_terms[angle]) + 1
             a1, a2, a3 = angle.atom1, angle.atom2, angle.atom3
             string += '%6i %6i %6i %6i %6i  # %s-%s-%s\n' % (
                 i + 1, aterm, a1.id + 1, a2.id + 1, a3.id + 1, a1.name, a2.name, a3.name)
@@ -186,7 +189,7 @@ class LammpsExporter():
             string += '\nDihedrals\n\n'
 
         for i, dihedral in enumerate(top.dihedrals):
-            dtype = dihedral_types.index(system.dihedral_terms[id(dihedral)]) + 1
+            dtype = dihedral_types.index(system.dihedral_terms[dihedral]) + 1
             a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
                 i + 1, dtype, a1.id + 1, a2.id + 1, a3.id + 1, a4.id + 1,
@@ -196,7 +199,7 @@ class LammpsExporter():
             string += '\nImpropers\n\n'
 
         for i, improper in enumerate(top.impropers):
-            itype = improper_types.index(system.improper_terms[id(improper)]) + 1
+            itype = improper_types.index(system.improper_terms[improper]) + 1
             a1, a2, a3, a4 = improper.atom1, improper.atom2, improper.atom3, improper.atom4
             string += '%6i %6i %6i %6i %6i %6i  # %s-%s-%s-%s\n' % (
                 i + 1, itype, a2.id + 1, a3.id + 1, a1.id + 1, a4.id + 1,

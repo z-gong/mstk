@@ -36,20 +36,18 @@ def test_read():
     assert angle.k == 313.8 / 2
 
     dihedral = ff.dihedral_terms['CT,CT,CT,HC']
-    assert dihedral.is_opls_convention
-    k1, k2, k3, k4 = dihedral.get_opls_parameters()
-    assert k1 == 0
-    assert k2 == 0
-    assert k3 == 1.2552 / 2
-    assert k4 == 0
+    term = dihedral.to_opls_term()
+    assert term.k1 == 0
+    assert term.k2 == 0
+    assert term.k3 == 1.2552 / 2
+    assert term.k4 == 0
 
     dihedral = ff.dihedral_terms['CT,CT,CT,CT']
-    assert dihedral.is_opls_convention
-    k1, k2, k3, k4 = dihedral.get_opls_parameters()
-    assert k1 == 5.4392 / 2
-    assert k2 == -0.2092 / 2
-    assert k3 == 0.8368 / 2
-    assert k4 == 0
+    term = dihedral.to_opls_term()
+    assert term.k1 == 5.4392 / 2
+    assert term.k2 == -0.2092 / 2
+    assert term.k3 == 0.8368 / 2
+    assert term.k4 == 0
 
     improper = ff.improper_terms['NA,CR,CT,CW']
     assert improper.k == 8.368 / 2

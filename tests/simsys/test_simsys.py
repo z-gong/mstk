@@ -27,7 +27,7 @@ def test_transfer_bonded_terms():
     system = System(top, ff, transfer_bonded_terms=True)
     angle = next(a for a in system.topology.angles if a.name == 'C2-C3-H8')
     assert ff.get_eqt_for_angle(angle)[0] == ('c_3', 'c_3o', 'h_1')
-    aterm = system.angle_terms[id(angle)]
+    aterm = system.angle_terms[angle]
     assert aterm.name == 'c_3,c_3,h_1'
 
 

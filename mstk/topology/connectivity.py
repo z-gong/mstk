@@ -13,8 +13,6 @@ class Bond():
     '''
     A bond between two atoms.
 
-    Two bonds are considered as equal if they contain the identical atoms, regardless of the sequence and bond order.
-
     Unlike BondTerm in ForceField, the atoms are not sorted in connectivity
     because the properties of atoms (name, type, etc...) are prone to changing.
     It's better to sort them when compare bonds or match force field parameters.
@@ -57,7 +55,19 @@ class Bond():
     def __repr__(self):
         return f'<Bond: {self.name} {self.order}>'
 
-    def __eq__(self, other):
+    def equals(self, other):
+        '''
+        Check if two bonds represent the same connectivity.
+        Return True if they contain the identical atoms, regardless of the sequence and bond order.
+
+        Parameters
+        ----------
+        other : Bond
+
+        Returns
+        -------
+        equal : bool
+        '''
         if type(other) != Bond:
             return False
         return {self.atom1, self.atom2} == {other.atom1, other.atom2}
@@ -111,10 +121,10 @@ class Bond():
 
         Returns
         -------
-        value : np.float32
+        value : float
         '''
         delta = self.atom2.position - self.atom1.position
-        return np.sqrt(delta.dot(delta))
+        return float(np.sqrt(delta.dot(delta)))
 
     @property
     def is_aromatic(self):
@@ -129,11 +139,7 @@ class Bond():
 
 class Angle():
     '''
-    A angle between three atoms.
-
-    The second atom is the central atom.
-    Two angles are considered as equal if they contain the identical side atoms and center atom,
-    regardless of the sequence of side atoms.
+    A angle between three atoms. The second atom is the central atom.
 
     Parameters
     ----------
@@ -156,7 +162,19 @@ class Angle():
     def __repr__(self):
         return '<Angle: %s>' % self.name
 
-    def __eq__(self, other):
+    def equals(self, other):
+        '''
+        Check if two angles represent the same connectivity.
+        Return True if they contain the identical side atoms and center atom, regardless of the sequence of side atoms.
+
+        Parameters
+        ----------
+        other : Angle
+
+        Returns
+        -------
+        equal : bool
+        '''
         if type(other) != Angle:
             return False
         if self.atom2 != other.atom2:
@@ -192,41 +210,38 @@ class Angle():
 
         Returns
         -------
-        bonds : list of Bond
+        bonds : tuple of Bond
         '''
-        bond12 = Bond(self.atom1, self.atom2)
-        bond23 = Bond(self.atom2, self.atom3)
-        mol = self.atom1.molecule
+        _bond12 = Bond(self.atom1, self.atom2)
+        _bond23 = Bond(self.atom2, self.atom3)
         try:
-            bond12 = next(b for b in mol.bonds if b == bond12)
+            bond12 = next(b for b in self.atom2.bonds if b.equals(_bond12))
         except StopIteration:
-            raise Exception(f'{bond12} not found in {mol}')
+            raise Exception(f'{_bond12} not found in {self.atom2.molecule}')
         try:
-            bond23 = next(b for b in mol.bonds if b == bond23)
+            bond23 = next(b for b in self.atom2.bonds if b.equals(_bond23))
         except StopIteration:
-            raise Exception(f'{bond23} not found in {mol}')
+            raise Exception(f'{_bond23} not found in {self.atom2.molecule}')
 
         return bond12, bond23
 
     def evaluate(self):
         '''
-        Evaluate the value of this angle
+        Evaluate the value of this angle in unit of radian
 
         Returns
         -------
-        value : np.float32
+        value : float
         '''
         vec1 = self.atom1.position - self.atom2.position
         vec2 = self.atom3.position - self.atom2.position
-        return np.arccos(vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2)))
+        cos = vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))
+        return float(np.arccos(np.clip(cos, -1, 1)))
 
 
 class Dihedral():
     '''
     A dihedral between four atoms.
-
-    Two dihedrals with reversed sequence are considered as equal.
-    So i-j-k-l and l-k-j-i are the same.
 
     Parameters
     ----------
@@ -252,7 +267,19 @@ class Dihedral():
     def __repr__(self):
         return '<Dihedral: %s>' % self.name
 
-    def __eq__(self, other):
+    def equals(self, other):
+        '''
+        Check if two dihedrals represent the same connectivity.
+        Dihedrals with reversed sequence are considered as equal. E.g., i-j-k-l and l-k-j-i are the same.
+
+        Parameters
+        ----------
+        other : Dihedral
+
+        Returns
+        -------
+        equal : bool
+        '''
         if type(other) != Dihedral:
             return False
         return (self.atom1 == other.atom1 and self.atom2 == other.atom2 and
@@ -285,31 +312,26 @@ class Dihedral():
 
     def evaluate(self):
         '''
-        Evaluate the value of this dihedral
+        Evaluate the value of this dihedral in unit of radian
 
         Returns
         -------
-        value : np.float32
+        value : float
         '''
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2)))
+        cos = n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))
+        value = float(np.arccos(np.clip(cos, -1, 1)))
         sign = 1 if vec1.dot(n2) >= 0 else -1
         return sign * value
 
 
 class Improper():
     '''
-    A improper between four atoms.
-
-    The first atom is the central atom.
-    There's arbitrariness in the definition of improper.
-    Herein, two impropers are considered as equal if they have the same side atoms and central atom,
-    regardless of the sequence of side atoms.
-    So i-j-k-l and i-k-l-j are the same.
+    An improper between four atoms. The first atom is the central atom.
 
     Parameters
     ----------
@@ -335,7 +357,20 @@ class Improper():
     def __repr__(self):
         return '<Improper: %s>' % self.name
 
-    def __eq__(self, other):
+    def equals(self, other):
+        '''
+        Check if two impropers represent the same connectivity.
+        Impropers are considered as equal if they have the same side atoms and central atom, regardless of the sequence of side atoms.
+        So i-j-k-l and i-k-l-j are the same.
+
+        Parameters
+        ----------
+        other : Improper
+
+        Returns
+        -------
+        equal : bool
+        '''
         if type(other) != Improper:
             return False
         if self.atom1 != other.atom1:
@@ -366,17 +401,19 @@ class Improper():
 
     def evaluate(self):
         '''
-        Evaluate the value of this improper torsion defined as the angle between plane a1-a2-a3 and a2-a3-a4
+        Evaluate the value of this improper torsion in unit of radian.
+        The improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4.
 
         Returns
         -------
-        value : np.float32
+        value : float
         '''
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position
         vec3 = self.atom4.position - self.atom3.position
         n1 = np.cross(vec1, vec2)
         n2 = np.cross(vec2, vec3)
-        value = np.arccos(n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2)))
+        cos = n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))
+        value = float(np.arccos(np.clip(cos, -1, 1)))
         sign = 1 if vec1.dot(n2) >= 0 else -1
         return sign * value

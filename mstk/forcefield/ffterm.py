@@ -1,4 +1,3 @@
-from collections import namedtuple
 import math
 from distutils.util import strtobool
 from mstk.chem.constant import *
@@ -221,7 +220,7 @@ class FFTerm():
         line : string
         '''
         line = '%-16s' % self.__class__.get_alias()
-        for attr, func in self._zfp_attrs.items():
+        for attr in self._zfp_attrs:
             val = getattr(self, attr)
             if type(val) is float:
                 if val > 10000:
@@ -236,6 +235,28 @@ class FFTerm():
                 string = ' %-9s' % val
             line += string
 
+        return line
+
+    def to_zff_header(self):
+        '''
+        Header string to explain a line in ZFF format
+
+        Returns
+        -------
+        header : str
+        '''
+        line = '#%-15s' % self.__class__.get_alias()
+        for attr in self._zfp_attrs:
+            val = getattr(self, attr)
+            if type(val) is float:
+                string = ' %9s' % attr
+            elif type(val) is int:
+                string = ' %2s' % attr
+            elif type(val) is bool:
+                string = ' %6s' % attr
+            else:
+                string = ' %-9s' % attr
+            line += string
         return line
 
     def _from_zff_extra(self, line):
@@ -275,7 +296,7 @@ class AtomType(FFTerm):
     It determines which :class:`VdwTerm`, :class:`BondTerm`, etc...
     will be used to describe the energy functions between a specific set of atoms.
 
-    Equivalent table (EQT) is extensively used in mstk.
+    Equivalent table (EQT) is extensively used in `mstk`.
     It helps decreasing the number of force field terms significantly without losing generality and accuracy,
     thus making the force field extendable.
 
@@ -287,10 +308,10 @@ class AtomType(FFTerm):
         The mass of this atom type.
     charge : float , optional
         The charge of this atom type.
-    eqt_vdw : str , optional
-        The equivalent type for vdW parameters
     eqt_q_inc : str , optional
         The equivalent type for bond charge increment parameters
+    eqt_vdw : str , optional
+        The equivalent type for vdW parameters
     eqt_bond : str , optional
         The equivalent type for bond parameters
     eqt_ang_c : str , optional
@@ -318,10 +339,10 @@ class AtomType(FFTerm):
         The charge of this atom type.
         Similar to mass, the charges we are finally going to use are from the :class:`~mstk.topology.Topology`.
         But charges in force field can be used to assign the charges in topology.
-    eqt_vdw : str
-        The equivalent type for vdW parameters
     eqt_q_inc : str
         The equivalent type for bond charge increment parameters
+    eqt_vdw : str
+        The equivalent type for vdW parameters
     eqt_bond : str
         The equivalent type for bond parameters
     eqt_ang_c : str
@@ -340,12 +361,12 @@ class AtomType(FFTerm):
         The equivalent type for polarization parameters
     '''
     _zfp_attrs = {
-        'name': str,
-        'mass': float,
-        'charge': float,
+        'name'     : str,
+        'mass'     : float,
+        'charge'   : float,
         'eqt_q_inc': str,
-        'eqt_vdw': str,
-        'eqt_bond': str,
+        'eqt_vdw'  : str,
+        'eqt_bond' : str,
         'eqt_ang_c': str,
         'eqt_ang_s': str,
         'eqt_dih_c': str,
@@ -356,7 +377,7 @@ class AtomType(FFTerm):
     }
 
     def __init__(self, name, mass=-1, charge=0,
-                 eqt_vdw=None, eqt_q_inc=None, eqt_bond=None,
+                 eqt_q_inc=None, eqt_vdw=None, eqt_bond=None,
                  eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
                  eqt_imp_c=None, eqt_imp_s=None, eqt_polar=None):
         super().__init__()
@@ -365,8 +386,8 @@ class AtomType(FFTerm):
         # mass = -1 means unknown
         self.mass = mass
         self.charge = charge
-        self.eqt_vdw = eqt_vdw or name
         self.eqt_q_inc = eqt_q_inc or name
+        self.eqt_vdw = eqt_vdw or name
         self.eqt_bond = eqt_bond or name
         self.eqt_ang_c = eqt_ang_c or name
         self.eqt_ang_s = eqt_ang_s or name
@@ -396,8 +417,8 @@ class AtomType(FFTerm):
 
     @property
     def eqt_types(self):
-        return [self.eqt_vdw,
-                self.eqt_q_inc,
+        return [self.eqt_q_inc,
+                self.eqt_vdw,
                 self.eqt_bond,
                 self.eqt_ang_c,
                 self.eqt_ang_s,
@@ -776,7 +797,7 @@ class LJ126Term(VdwTerm):
 
     >>> U = 4*epsilon*((sigma/r)^12-(sigma/r)^6)
 
-    LJ126 is commonly used, therefore we don't generalize it with :func:`MieTerm`.
+    LJ126 is commonly used, therefore we don't generalize it with :class:`MieTerm`.
 
     During the initialization, the two atom types will be sorted by their string.
 
@@ -797,10 +818,10 @@ class LJ126Term(VdwTerm):
     '''
 
     _zfp_attrs = {
-        'type1': str,
-        'type2': str,
+        'type1'  : str,
+        'type2'  : str,
         'epsilon': float,
-        'sigma': float,
+        'sigma'  : float,
     }
 
     def __init__(self, type1, type2, epsilon, sigma):
@@ -849,11 +870,11 @@ class MieTerm(VdwTerm):
     '''
 
     _zfp_attrs = {
-        'type1': str,
-        'type2': str,
-        'epsilon': float,
-        'sigma': float,
-        'repulsion': float,
+        'type1'     : str,
+        'type2'     : str,
+        'epsilon'   : float,
+        'sigma'     : float,
+        'repulsion' : float,
         'attraction': float,
     }
 
@@ -941,11 +962,11 @@ class HarmonicBondTerm(BondTerm):
     '''
 
     _zfp_attrs = {
-        'type1': str,
-        'type2': str,
+        'type1' : str,
+        'type2' : str,
         'length': float,
-        'k': float,
-        'fixed': lambda x: bool(strtobool(x))
+        'k'     : float,
+        'fixed' : lambda x: bool(strtobool(x))
     }
 
     def __init__(self, type1, type2, length, k, fixed=False):
@@ -990,11 +1011,11 @@ class MorseBondTerm(BondTerm):
     '''
 
     _zfp_attrs = {
-        'type1': str,
-        'type2': str,
+        'type1' : str,
+        'type2' : str,
         'length': float,
-        'k': float,
-        'depth': float,
+        'k'     : float,
+        'depth' : float,
     }
 
     def __init__(self, type1, type2, length, k, depth):
@@ -1046,7 +1067,7 @@ class HarmonicAngleTerm(AngleTerm):
         'type2': str,
         'type3': str,
         'theta': float,
-        'k': float,
+        'k'    : float,
         'fixed': lambda x: bool(strtobool(x))
     }
 
@@ -1102,7 +1123,7 @@ class SDKAngleTerm(AngleTerm):
         'type2': str,
         'type3': str,
         'theta': float,
-        'k': float,
+        'k'    : float,
     }
 
     def __init__(self, type1, type2, type3, theta, k):
@@ -1156,7 +1177,7 @@ class LinearAngleTerm(AngleTerm):
         'type1': str,
         'type2': str,
         'type3': str,
-        'k': float,
+        'k'    : float,
     }
 
     def __init__(self, type1, type2, type3, k):
@@ -1170,6 +1191,100 @@ class LinearAngleTerm(AngleTerm):
 
 
 FFTermFactory.register(LinearAngleTerm)
+
+
+class OplsDihedralTerm(DihedralTerm):
+    '''
+    Dihedral term in OPLS form
+
+    The energy function is
+
+    >>> U = k_1*(1+cos(phi)) + k_2*(1-cos(2*phi)) + k_3*(1+cos(3*phi)) - k_4*(1-cos(4*phi))
+
+    OPLS form is commonly used, therefore we don't generalize it with :class:`PeriodicDihedralTerm`.
+
+    During the initialization, the sequence of atom types to use `i-j-k-l` or `l-k-j-i`
+    will be determined by their string order.
+
+    DihedralTerm allows wildcard(*) for side atoms.
+    For sorting purpose, the wildcard will always be the last.
+    During force field matching, the terms with wildcard will have lower priority.
+    The terms with wildcard will be used only if exact match cannot be found.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    type4 : str
+    k1 : float
+    k2 : float
+    k3 : float
+    k4 : float
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    type4 : str
+    k1 : float
+    k2 : float
+    k3 : float
+    k4 : float
+    '''
+
+    _zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'type4': str,
+        'k1'   : float,
+        'k2'   : float,
+        'k3'   : float,
+        'k4'   : float,
+    }
+
+    def __init__(self, type1, type2, type3, type4, k1, k2, k3, k4):
+        super().__init__(type1, type2, type3, type4)
+        self.k1 = k1
+        self.k2 = k2
+        self.k3 = k3
+        self.k4 = k4
+
+    def evaluate_energy(self, val):
+        val = val / 180 * PI
+        energy = 0
+        energy += self.k1 * (1 + math.cos(val)) \
+                  + self.k2 * (1 - math.cos(2 * val)) \
+                  + self.k3 * (1 + math.cos(3 * val)) \
+                  + self.k4 * (1 - math.cos(4 * val))
+        return energy
+
+    @property
+    def is_zero(self):
+        return self.k1 == 0 and self.k2 == 0 and self.k3 == 0 and self.k4 == 0
+
+    def to_periodic_term(self):
+        '''
+        Get the equivalent PeriodicDihedralTerm
+
+        Returns
+        -------
+        term : PeriodicDihedralTerm
+        '''
+        term = PeriodicDihedralTerm(self.type1, self.type2, self.type3, self.type4)
+        if self.k1 != 0:
+            term.add_parameter(0., self.k1, 1)
+        if self.k2 != 0:
+            term.add_parameter(180., self.k2, 2)
+        if self.k3 != 0:
+            term.add_parameter(0., self.k3, 3)
+        if self.k4 != 0:
+            term.add_parameter(180., self.k4, 4)
+
+
+FFTermFactory.register(OplsDihedralTerm)
 
 
 class PeriodicDihedralTerm(DihedralTerm):
@@ -1203,9 +1318,8 @@ class PeriodicDihedralTerm(DihedralTerm):
         0.0 0.6485 1
         180.0 1.0678 2
         0.0 0.6226 3
-    >>> term.is_opls_convention
-        True
-    >>> term.get_opls_parameters()
+    >>> term = term.to_opls_term()
+    >>> print((term.k1, term.k2, term.k3, term.k4))
         (0.6485 1.0678 0.6226 0.0)
 
     Parameters
@@ -1232,7 +1346,11 @@ class PeriodicDihedralTerm(DihedralTerm):
         'type4': str,
     }
 
-    Parameter = namedtuple('Parameter', ('phi', 'k', 'n'))
+    class Parameter:
+        def __init__(self, phi, k, n):
+            self.phi = phi
+            self.k = k
+            self.n = n
 
     def __init__(self, type1, type2, type3, type4):
         super().__init__(type1, type2, type3, type4)
@@ -1259,7 +1377,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         for para in self.parameters:
             if para.n == n:
                 raise Exception('Duplicated multiplicity: %s' % self.name)
-        self.parameters.append(self.Parameter(phi=phi, k=k, n=n))
+        self.parameters.append(PeriodicDihedralTerm.Parameter(phi=phi, k=k, n=n))
         self.parameters.sort(key=lambda x: x.n)
 
     def _to_zfp_extra(self) -> {str: str}:
@@ -1267,7 +1385,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         for para in self.parameters:
             d.update({
                 'phi_%i' % para.n: '%.1f' % para.phi,
-                'k_%i' % para.n: '%.4f' % para.k,
+                'k_%i' % para.n  : '%.4f' % para.k,
             })
         return d
 
@@ -1281,73 +1399,27 @@ class PeriodicDihedralTerm(DihedralTerm):
                     self.add_parameter(phi, k, n)
 
     def to_zff(self):
-        _opls = self.is_opls_convention
-        alias = 'OplsDihedral' if _opls else self.__class__.get_alias()
-        line = '%-16s %-9s %-9s %-9s %-9s' % (alias, self.type1, self.type2, self.type3, self.type4)
-        if _opls:
-            for p in self.get_opls_parameters():
-                line += ' %9.4f' % p
-            return line
+        line = '%-16s %-9s %-9s %-9s %-9s' % (self.__class__.get_alias(),
+                                              self.type1, self.type2, self.type3, self.type4)
         for para in self.parameters:
             line += ' %9.4f %9.4f %2i' % (para.phi, para.k, para.n)
         return line
 
-    def _from_zff_extra(self, line: str):
+    def _from_zff_extra(self, line):
         words = line.strip().split()
-        form = words[0]
         str_vals = words[5:]
-        if form == 'OplsDihedral':
-            if len(str_vals) != 4:
-                raise Exception(f'Invalid parameters for OPLS form of {self.__class__.__name__}')
-            for i in range(4):
-                phi, k, n = 180.0 * (i % 2), float(str_vals[i]), i + 1
-                if k != 0:
-                    self.add_parameter(phi, k, n)
-        else:
-            if len(str_vals) % 3 != 0:
-                raise Exception(f'Invalid parameters for {self.__class__.__name__}')
-            for i in range(len(str_vals) // 3):
-                phi, k, n = float(str_vals[i * 3]), float(str_vals[i * 3 + 1]), int(str_vals[i * 3 + 2])
-                if k != 0:
-                    self.add_parameter(phi, k, n)
+        if len(str_vals) % 3 != 0:
+            raise Exception(f'Invalid parameters for {self.__class__.__name__}')
+        for i in range(len(str_vals) // 3):
+            phi, k, n = float(str_vals[i * 3]), float(str_vals[i * 3 + 1]), int(str_vals[i * 3 + 2])
+            if k != 0:
+                self.add_parameter(phi, k, n)
 
     def evaluate_energy(self, val):
         energy = 0
         for para in self.parameters:
-            energy += para.k * (1 + math.cos(para.n * val - para.phi))
+            energy += para.k * (1 + math.cos((para.n * val - para.phi) / 180 * PI))
         return energy
-
-    @property
-    def is_opls_convention(self) -> bool:
-        '''
-        Whether or not this term follows the OPLS dihedral convention
-
-        In OPLS convention, the largest multiplicity equals to 4.
-        The phi_0 for multiplicity (1, 2, 3, 4) equal to (0, 180, 0, 180), respectively.
-
-        If the dihedral follows OPLS convention, the exporting can be cleaner for some package.
-
-        Returns
-        -------
-        is : bool
-        '''
-        for para in self.parameters:
-            if para.n == 1:
-                if para.phi != 0:
-                    return False
-            elif para.n == 2:
-                if para.phi != 180:
-                    return False
-            elif para.n == 3:
-                if para.phi != 0:
-                    return False
-            elif para.n == 4:
-                if para.phi != 180:
-                    return False
-            else:
-                if para.k != 0:
-                    return False
-        return True
 
     @property
     def is_zero(self):
@@ -1356,15 +1428,17 @@ class PeriodicDihedralTerm(DihedralTerm):
                 return False
         return True
 
-    def get_opls_parameters(self):
+    def to_opls_term(self):
         '''
-        Get the four force constants of this dihedral term if it follows OPLS diehdral convention.
+        Get the equivalent OplsDihedralTerm.
 
+        In OPLS convention, the largest multiplicity equals to 4.
+        The phi_0 for multiplicity (1, 2, 3, 4) equal to (0, 180, 0, 180), respectively.
         If it does not follow OPLS convention, an Exception will be raised.
 
         Returns
         -------
-        k1, k2, k3, k4 : tuple of float
+        term : OplsDihedralTerm
         '''
         k1 = k2 = k3 = k4 = 0.0
         for para in self.parameters:
@@ -1386,10 +1460,11 @@ class PeriodicDihedralTerm(DihedralTerm):
                 k4 = para.k
             else:
                 raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
-        return k1, k2, k3, k4
+
+        return OplsDihedralTerm(self.type1, self.type2, self.type3, self.type4, k1, k2, k3, k4)
 
 
-FFTermFactory.register(PeriodicDihedralTerm, extra_names=['OplsDihedral'])
+FFTermFactory.register(PeriodicDihedralTerm)
 
 
 class OplsImproperTerm(ImproperTerm):
@@ -1432,7 +1507,7 @@ class OplsImproperTerm(ImproperTerm):
         'type2': str,
         'type3': str,
         'type4': str,
-        'k': float,
+        'k'    : float,
     }
 
     def __init__(self, type1, type2, type3, type4, k):
@@ -1440,7 +1515,7 @@ class OplsImproperTerm(ImproperTerm):
         self.k = k
 
     def evaluate_energy(self, val):
-        return self.k * (1 - math.cos(2 * val))
+        return self.k * (1 - math.cos(2 * val / 180 * PI))
 
 
 FFTermFactory.register(OplsImproperTerm)
@@ -1490,8 +1565,8 @@ class HarmonicImproperTerm(ImproperTerm):
         'type2': str,
         'type3': str,
         'type4': str,
-        'phi': float,
-        'k': float,
+        'phi'  : float,
+        'k'    : float,
     }
 
     def __init__(self, type1, type2, type3, type4, phi, k):
@@ -1545,11 +1620,11 @@ class DrudeTerm(PolarizableTerm):
     '''
 
     _zfp_attrs = {
-        'type': str,
-        'alpha': float,
-        'thole': float,
-        'k': float,
-        'mass': float,
+        'type'         : str,
+        'alpha'        : float,
+        'thole'        : float,
+        'k'            : float,
+        'mass'         : float,
         'merge_alpha_H': float,
     }
 
@@ -1637,10 +1712,10 @@ class TIP4PSiteTerm(VirtualSiteTerm):
     '''
 
     _zfp_attrs = {
-        'type': str,
+        'type'  : str,
         'type_O': str,
         'type_H': str,
-        'd': float,
+        'd'     : float,
     }
 
     def __init__(self, type: str, type_O: str, type_H: str, d: float):
