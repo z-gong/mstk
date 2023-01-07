@@ -28,7 +28,7 @@ Modules
    trajectory
    ommhelper
    chem
-   jobmanager
+   scheduler
    analyzer
    wrapper
 

@@ -1,45 +1,46 @@
 import datetime
 import os
 import time
+from mstk import logger
+from mstk.misc import DocstringMeta
 from .pbsjob import PbsJob
-from ..misc import DocstringMeta
 
 
-class JobManager(metaclass=DocstringMeta):
+class Scheduler(metaclass=DocstringMeta):
     '''
     Base class for job schedulers.
 
-    JobManager should not be constructed directly. Use its subclasses instead.
+    Scheduler should not be constructed directly. Use its subclasses instead.
 
     Attributes
     ----------
     queue : str
         The jobs will be submitted to this queue.
-    nprocs : int
-        The CPU cores (or threads if hyper-threading is enabled) a job can use.
-    ngpu : int
+    n_proc : int
+        The CPU cores a job can use.
+    n_gpu : int
         The GPU card a job can use.
-    nprocs_request : int
-        The CPU cores a job will request from job scheduler.
-    env_cmd : str
+    env_cmd : str, Optional
         The commands for setting up the environment before running real calculations.
-    stored_jobs_expire : int
-        The lifetime of cached jobs in seconds.
-    time : int
-        The wall time limit for a job.
     sh : str
         The default name of the job script
+    max_running_hour: int
+        The wall time limit for a job in hours.
+    username : str
+        The current user
+    cached_jobs_expire : int
+        The lifetime of cached jobs in seconds.
     '''
 
     #: Whether or not this is a remote job scheduler
     is_remote = False
 
-    def __init__(self, queue=None, nprocs=1, ngpu=0, nprocs_request=None, env_cmd=None):
+    def __init__(self, queue=None, n_proc=1, n_gpu=0, env_cmd=None):
         self.queue = queue
-        self.nprocs = nprocs
-        self.ngpu = ngpu
-        self.nprocs_request = nprocs_request or nprocs
+        self.n_proc = n_proc
+        self.n_gpu = n_gpu
         self.env_cmd = env_cmd or ''
+        self.remote_dir = None
 
         if os.name == 'nt':
             import win32api
@@ -48,28 +49,11 @@ class JobManager(metaclass=DocstringMeta):
             import pwd
             self.username = pwd.getpwuid(os.getuid()).pw_name
 
-        self.stored_jobs_expire = 60  # seconds
-        self.stored_jobs = []
-        self.last_update = None
-        self.time = 24
+        self.max_running_hour = 24
         self.sh = '_job.sh'
-
-    @property
-    def walltime(self):
-        '''
-        Alias of :attr:`time`.
-
-        :setter: Set the time limit.
-
-        Returns
-        -------
-        time : float
-        '''
-        return self.time
-
-    @walltime.setter
-    def walltime(self, hours):
-        self.time = hours
+        self.cached_jobs_expire = 60  # seconds
+        self._cached_jobs = []
+        self._cache_last_update = None
 
     @property
     def all_jobs(self):
@@ -77,21 +61,21 @@ class JobManager(metaclass=DocstringMeta):
         Retrieve all the jobs that are currently managed by job scheduler.
 
         It call `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
-        If some jobs have finished long time ago (depends on the setting of job scheduler on the machine),
+        If some jobs have finished long max_running_hour ago (depends on the setting of job scheduler on the machine),
         they may disappeared from the list outputted by job scheduler.
 
         In order not to apply too much pressure to the job scheduler, cache is used to stores the jobs.
         This method will return the cached results without calling `scontrol` or `qstat` is the cache is not expired.
-        The lifetime of cache is determined by attribute :attr:`stored_jobs_expire` in seconds.
+        The lifetime of cache is determined by attribute :attr:`cached_jobs_expire` in seconds.
 
         Returns
         -------
         jobs : list of PbsJob
         '''
-        if self.last_update is None or (
-                datetime.datetime.now() - self.last_update).total_seconds() >= self.stored_jobs_expire:
+        if self._cache_last_update is None or (
+                datetime.datetime.now() - self._cache_last_update).total_seconds() >= self.cached_jobs_expire:
             self._update_stored_jobs()
-        return self.stored_jobs
+        return self._cached_jobs
 
     def is_working(self):
         '''
@@ -104,42 +88,42 @@ class JobManager(metaclass=DocstringMeta):
         raise NotImplementedError('This method should be implemented by subclasses')
 
     def _update_stored_jobs(self):
-        print('Update job information')
-        self.stored_jobs = []
+        logger.info('Update job information')
+        self._cached_jobs = []
         jobs = []
         for i in [3, 2, 1]:
             # in case get_all_jobs() raise Exception
             try:
                 jobs = self.get_all_jobs()
             except Exception as e:
-                print(repr(e))
-            if jobs != []:
+                logger.warning(repr(e))
+            if jobs:
                 break
-            # TODO in case get_all_jobs() failed, retry after 1s
+            # in case get_all_jobs() failed, retry after 1s
             if i > 1:
                 time.sleep(1)
         for job in reversed(jobs):  # reverse the job list, in case jobs with same name
-            if job not in self.stored_jobs:
-                self.stored_jobs.append(job)
+            if job not in self._cached_jobs:
+                self._cached_jobs.append(job)
 
-        self.stored_jobs.reverse()  # reverse the job list
-        self.last_update = datetime.datetime.now()
+        self._cached_jobs.reverse()  # reverse the job list
+        self._cache_last_update = datetime.datetime.now()
 
-    def generate_sh(self, workdir, commands, name, sh=None):
+    def generate_sh(self, commands, name, workdir=None, sh=None):
         '''
         Generate a shell script for commands to be executed by the job scheduler on compute nodes.
 
         Parameters
         ----------
-        workdir : str
-            The working directory.
         commands : str
             List of commands to be executed by the job scheduler on compute node step by step.
         name : str
             The name of the job to be submitted.
+        workdir : str, Optional
+            The working directory.
         sh : str
-            The file name of the shell script being written.
-            If not set, will use the defualt :attr:`sh`.
+            The name (path) of the shell script being written.
+            If not set, will use the default :attr:`sh`.
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
 
@@ -185,7 +169,8 @@ class JobManager(metaclass=DocstringMeta):
 
         Returns
         -------
-        successful : bool
+        id : int
+            Job ID. -1 means failed
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
 
@@ -246,7 +231,7 @@ class JobManager(metaclass=DocstringMeta):
         Retrieve all the jobs that are currently managed by job scheduler.
 
         It call `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
-        If some jobs have finished long time ago (depends on the setting of job scheduler on the machine),
+        If some jobs have finished long max_running_hour ago (depends on the setting of job scheduler on the machine),
         they may disappeared from the list outputted by job scheduler.
 
         The difference between this method and property :attr:`all_jobs` is that, this method does not use the cached job list.

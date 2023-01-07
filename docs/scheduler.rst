@@ -19,7 +19,6 @@ the job scheduler will not experience much pressure.
     :toctree: _generated/
 
     PbsJob
-    JobManager
+    Scheduler
     Slurm
     RemoteSlurm
-    Torque

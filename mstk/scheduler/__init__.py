@@ -1,6 +1,4 @@
 from .pbsjob import PbsJob
-from .jobmanager import JobManager
-from .local import Local
-from .torque import Torque
+from .scheduler import Scheduler
 from .slurm import Slurm
 from .remote_slurm import RemoteSlurm

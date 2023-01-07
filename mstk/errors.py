@@ -26,5 +26,5 @@ class RDKitError(Exception):
     pass
 
 
-class JobManagerError(Exception):
+class SchedulerError(Exception):
     pass

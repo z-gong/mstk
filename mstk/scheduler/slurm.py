@@ -1,13 +1,13 @@
-import math
+import os
 import subprocess
 from subprocess import Popen, PIPE
-
+from pathlib import Path
+from mstk import logger
 from .pbsjob import PbsJob
-from .jobmanager import JobManager
-from ..errors import JobManagerError
+from .scheduler import Scheduler
 
 
-class Slurm(JobManager):
+class Slurm(Scheduler):
     '''
     Slurm job scheduler with support of GPU allocation and MPI/OpenMP hybrid parallelization.
 
@@ -20,17 +20,15 @@ class Slurm(JobManager):
     ----------
     queue : str
         The jobs will be submitted to this partition.
-    nprocs : int
+    n_proc : int
         The CPU cores a job can use.
-        In most case, it should be equal to :attr:`nprocs_request`.
-        If hyper-threading is on, and the simulation software makes good use of hyper-threading, and CGroup is not enabled by the job scheduler,
-        it can be two times of :attr:`nprocs_request` for better performance.
-    ngpu : int
+    n_gpu : int
         The GPU card a job can use.
-    nprocs_request : int
-        The CPU cores a job will request from job scheduler.
-        It must be smaller than the CPU cores on one node.
-    env_cmd : str
+    n_node : int
+        The nodes a job can use. If 0, then will be decided by slurm.
+    exclude: str, Optional
+        The nodes to be excluded, in Slurm format
+    env_cmd : str, Optional
         The commands for setting up the environment before running real calculations.
         It will be inserted on the top of job scripts.
 
@@ -38,20 +36,24 @@ class Slurm(JobManager):
     ----------
     queue : str
         The jobs will be submitted on this queue.
-    nprocs : int
-        The CPU cores (or threads if hyper-threading is enabled) a job can use.
-    ngpu : int
+    n_proc : int
+        The CPU cores a job can use.
+    n_gpu : int
         The GPU card a job can use.
-    nprocs_request : int
-        The CPU cores a job will request from job scheduler.
+    n_node : int
+        The nodes a job can use. If 0, then will be decided by slurm.
+    exclude: str
+        The nodes to be excluded, in Slurm format
     env_cmd : str
         The commands for setting up the environment before running real calculations.
-    sotred_jobs_expire : int
-        The lifetime of cached jobs in seconds.
-    time : int
-        The wall time limit for a job.
     sh : str
-        The default name of the job script.
+        The default name of the job script
+    max_running_hour: int
+        The wall time limit for a job in hours.
+    username : str
+        The current user
+    cached_jobs_expire : int
+        The lifetime of cached jobs in seconds.
     submit_cmd : str
         The command for submitting the job script.
         If is `sbatch` by default. But extra argument can be provided, e.g. `sbatch --qos=debug`.
@@ -60,8 +62,10 @@ class Slurm(JobManager):
     #: Whether or not this is a remote job scheduler
     is_remote = False
 
-    def __init__(self, queue, nprocs, ngpu, nprocs_request, **kwargs):
-        super().__init__(queue=queue, nprocs=nprocs, ngpu=ngpu, nprocs_request=nprocs_request, **kwargs)
+    def __init__(self, queue, n_proc, n_gpu, n_node=0, exclude=None, env_cmd=None):
+        super().__init__(queue=queue, n_proc=n_proc, n_gpu=n_gpu, env_cmd=env_cmd)
+        self.n_node = n_node
+        self.exclude = exclude or ''
         self.sh = '_job_slurm.sh'
         self.submit_cmd = 'sbatch'
 
@@ -80,97 +84,74 @@ class Slurm(JobManager):
         stdout, stderr = sp.communicate()
         return stdout.decode().startswith('slurm')
 
-    def _replace_mpirun_srun(self, commands) -> (int, [str]):
-        n_mpi = 1
-        cmds_replaced = []
-        for cmd in commands:
-            if cmd.startswith('mpirun'):
-                n_mpi = int(cmd.split()[2])
-                cmd_srun = 'srun -n %i ' % n_mpi + ' '.join(cmd.split()[3:])
-                cmds_replaced.append(cmd_srun)
-            else:
-                cmds_replaced.append(cmd)
-        return n_mpi, cmds_replaced
-
-    def generate_sh(self, workdir, commands, name, sh=None, n_tasks=None, **kwargs):
+    def generate_sh(self, commands, name, workdir=None, sh=None, id_prior=None, **kwargs):
         '''
         Generate a shell script for commands to be executed by the job scheduler on compute nodes.
-
-        If do not set n_tasks, then n_tasks is set to the default value :attr:`nprocs_request`.
-
-        In some HPC, `mpirun` is not allowed to be called directly. Instead, `srun` should be called in replace of `mpirun`.
-        Therefore, when generate Slurm script, the command starting with `mpirun` will not replaced by `srun`.
 
         Because of the complexity of Slurm configurations, it's probable that the job script generated here is not fully valid.
         In that case, it's viable to do some process on the generated job script before submitting it.
 
         Parameters
         ----------
-        workdir : str
-            The working directory of this job
         commands : list of str
             The commands to be executed step by step
         name : str
             The name of the job to be submitted
-        sh : str, optional
-            The shell script to be generated.
-            If not provided, will use the default file name.
-        n_tasks : int, optional
-            How many cpu cores to use.
-            This option should be set if you want to run one simulation with more than one compute node.
-            If not provided, will use :attr:`nprocs_request` cores.
+        workdir : str, Optional
+            The working directory of this job
+        id_prior: int, Optional
+            The id of prior job this one depends on
+        sh : str, Optional
+            The name (path) of shell script to be generated.
+            If not set, will use the default :attr:`sh`.
         '''
-        if sh is None:
-            sh = self.sh
-        out = sh[:-2] + 'out'
-        err = sh[:-2] + 'err'
-
-        n_mpi, srun_commands = self._replace_mpirun_srun(commands)
-
-        if n_tasks is None:
-            n_node = 1
-            n_tasks = self.nprocs_request
-        else:
-            n_node = int(math.ceil(n_tasks / self.nprocs_request))
-
-        if self.ngpu > 0:
-            gpu_cmd = '#SBATCH --gres=gpu:%i\n' % self.ngpu * n_node
-        else:
-            gpu_cmd = ''
+        workdir = workdir or (self.remote_dir if self.is_remote else os.getcwd())
+        workdir = Path(workdir).absolute().as_posix()
+        sh = sh or self.sh
+        sh_basename = Path(sh).stem
+        out = os.path.join(workdir, sh_basename + '.out')
+        err = os.path.join(workdir, sh_basename + '.err')
+        node_cmd = f'#SBATCH --nodes={self.n_node}\n' if self.n_node > 0 else ''
+        gpu_cmd = f'#SBATCH --gres=gpu:{self.n_gpu}\n' if self.n_gpu > 0 else ''
+        dep_cmd = f'#SBATCH --dependency=afterok:{id_prior}\n' if id_prior is not None else ''  # id_prior can be 0
+        exclude_cmd = f'#SBATCH --exclude={self.exclude}\n' if self.exclude else ''
 
         with open(sh, 'w') as f:
-            f.write('#!/bin/bash\n'
-                    '#SBATCH -D %(workdir)s\n'
-                    '#SBATCH -J %(name)s\n'
-                    '#SBATCH -o %(out)s\n'
-                    '#SBATCH -e %(err)s\n'
-                    '#SBATCH -p %(queue)s\n'
-                    '#SBATCH --time=%(time)i:00:00\n'
-                    '#SBATCH --nodes=%(n_node)i\n'
-                    '#SBATCH --ntasks=%(n_tasks)i\n'
-                    '%(gpu_cmd)s'
-                    '\n'
-                    '%(env_cmd)s\n\n'
-                    % ({'name'   : name,
-                        'out'    : out,
-                        'err'    : err,
-                        'queue'  : self.queue,
-                        'time'   : self.time,
-                        'n_node' : n_node,
-                        'n_tasks': n_tasks,
-                        'gpu_cmd': gpu_cmd,
-                        'env_cmd': self.env_cmd,
-                        'workdir': workdir
-                        })
+            f.write(f'#!/bin/bash\n'
+                    f'#SBATCH -J {name}\n'
+                    f'#SBATCH -D {workdir}\n'
+                    f'#SBATCH -o {out}\n'
+                    f'#SBATCH -e {err}\n'
+                    f'{dep_cmd}'
+                    f'#SBATCH -p {self.queue}\n'
+                    f'#SBATCH --time={self.max_running_hour}:00:00\n'
+                    f'{node_cmd}'
+                    f'#SBATCH --ntasks={self.n_proc}\n'
+                    f'{gpu_cmd}'
+                    f'{exclude_cmd}'
+                    f'\n'
+                    f'{self.env_cmd}\n\n'
                     )
-            for cmd in srun_commands:
+            for cmd in commands:
                 f.write(cmd + '\n')
 
-    def submit(self, sh=None, **kwargs) -> bool:
-        if sh is None:
-            sh = self.sh
+    def submit(self, sh=None):
+        sh = sh or self.sh
         cmd = self.submit_cmd + ' ' + sh
-        return subprocess.call(cmd.split()) == 0
+        p = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+        b_out, b_err = p.communicate()
+        out, err = b_out.strip().decode(), b_err.strip().decode()
+        if p.returncode == 0 and out.startswith('Submitted batch job'):
+            logger.info(f'{out}')
+            return int(out.split()[-1])
+        else:
+            if out:
+                logger.error(f'{out}')
+            if err:
+                logger.error(f'{err}')
+            if not out and not err:
+                logger.error(f'sbatch failed')
+            return -1
 
     def kill_job(self, name) -> bool:
         job = self.get_job_from_name(name)
@@ -186,7 +167,7 @@ class Slurm(JobManager):
         sp = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
         stdout, stderr = sp.communicate()
         if sp.returncode != 0:
-            print(stderr.decode())
+            logger.error(stderr.decode())
             return []
 
         jobs = []
