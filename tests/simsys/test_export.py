@@ -67,22 +67,6 @@ def test_gmx_tip4p():
     shutil.rmtree(tmpdir)
 
 
-def test_lmp_drude():
-    tmpdir = tempfile.mkdtemp()
-    ff = ForceField.open(cwd + '/../forcefield/files/CLP.ff', cwd + '/../forcefield/files/CLPol-alpha.ff')
-    top = Topology.open(cwd + '/files/5-Im21-BF4-drude.lmp')
-    top.generate_angle_dihedral_improper()
-    top.generate_drude_particles(ff)
-    top.assign_charge_from_ff(ff)
-    system = System(top, ff)
-    tmpdata = os.path.join(tmpdir, 'data-drude.lmp')
-    tmpin = os.path.join(tmpdir, 'in-drude.lmp')
-    system.export_lammps(data_out=tmpdata, in_out=tmpin)
-    assert filecmp.cmp(tmpdata, cwd + '/files/baselines/data-drude.lmp')
-    assert filecmp.cmp(tmpin, cwd + '/files/baselines/in-drude.lmp')
-    shutil.rmtree(tmpdir)
-
-
 def test_namd():
     tmpdir = tempfile.mkdtemp()
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')

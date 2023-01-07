@@ -6,5 +6,5 @@ dependencies:
   - numpy
   - pandas
   - openmm=7.7.0
-  - rdkit
-  - sphinx>3
+  - rdkit=2022.09.1
+  - sphinx=5.3.0 # sphinx 6 drops support for python 3.7

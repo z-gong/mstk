@@ -91,6 +91,7 @@ Dihedral terms
     :toctree: _generated/
 
     DihedralTerm
+    OplsDihedralTerm
     PeriodicDihedralTerm
 
 Improper terms

@@ -2,11 +2,10 @@
 
 import os
 import itertools
-import tempfile
-import filecmp
 import pytest
 from openmm import openmm as mm
 from openmm import unit
+from mstk.chem.constant import *
 from mstk.topology import Topology, Molecule
 from mstk.analyzer.energy_kernels import *
 
@@ -33,7 +32,7 @@ def calc_energy_with_omm(force, positions):
 
 def test_harmonic_bond_kernel():
     kernel = HarmonicBondKernel(top.positions,
-                                [bond.id_atoms for bond in top.bonds],
+                                [tuple(a.id for a in bond.atoms) for bond in top.bonds],
                                 [[0.1 + 0.01 * i, 50 + 5 * i] for i in range(top.n_bond)],
                                 )
     r, energy, forces = kernel.evaluate()
@@ -46,7 +45,7 @@ def test_harmonic_bond_kernel():
     force = mm.HarmonicBondForce()
     force.setForceGroup(1)
     for i, bond in enumerate(top.bonds):
-        force.addBond(*bond.id_atoms, 0.1 + 0.01 * i, 100 + 10 * i)
+        force.addBond(*(a.id for a in bond.atoms), 0.1 + 0.01 * i, 100 + 10 * i)
     e, f = calc_energy_with_omm(force, top.positions)
 
     assert pytest.approx(sum(energy), rel=1E-6) == e
@@ -55,12 +54,12 @@ def test_harmonic_bond_kernel():
 
 def test_harmonic_angle_kernel():
     kernel = HarmonicAngleKernel(top.positions,
-                                 [angle.id_atoms for angle in top.angles],
+                                 [tuple(a.id for a in angle.atoms) for angle in top.angles],
                                  [[1 + 0.1 * i, 50 + 5 * i] for i in range(top.n_angle)],
                                  )
     theta, energy, forces = kernel.evaluate()
     print()
-    print(theta * 180 / np.pi)
+    print(theta * RAD2DEG)
     print(energy)
     print(sum(energy))
     print(forces)
@@ -68,7 +67,7 @@ def test_harmonic_angle_kernel():
     force = mm.HarmonicAngleForce()
     force.setForceGroup(2)
     for i, angle in enumerate(top.angles):
-        force.addAngle(*angle.id_atoms, 1 + 0.1 * i, 100 + 10 * i)
+        force.addAngle(*(a.id for a in angle.atoms), 1 + 0.1 * i, 100 + 10 * i)
     e, f = calc_energy_with_omm(force, top.positions)
 
     assert pytest.approx(sum(energy), rel=1E-6) == e
@@ -77,14 +76,14 @@ def test_harmonic_angle_kernel():
 
 def test_opls_torsion_kernel():
     kernel = OplsTorsionKernel(top.positions,
-                               [dihedral.id_atoms for dihedral in top.dihedrals],
+                               [tuple(a.id for a in dihedral.atoms) for dihedral in top.dihedrals],
                                [[1 + 0.1 * i, 2 + 0.1 * i, 3 + 0.1 * i, 4 + 0.1 * i]
                                 for i in range(top.n_dihedral)],
                                )
     phi, energy, forces = kernel.evaluate()
     print()
     for dihedral, val in zip(top.dihedrals, phi):
-        print([i + 1 for i in dihedral.id_atoms], val * 180 / np.pi)
+        print([a.id + 1 for a in dihedral.atoms], val * RAD2DEG)
     print(energy)
     print(sum(energy))
     print(forces)
@@ -93,7 +92,7 @@ def test_opls_torsion_kernel():
     force.setForceGroup(3)
     for i, dihedral in enumerate(top.dihedrals):
         for k in range(1, 5):
-            force.addTorsion(*dihedral.id_atoms, k, ((k - 1) % 2) * np.pi, k + 0.1 * i)
+            force.addTorsion(*(a.id for a in dihedral.atoms), k, ((k - 1) % 2) * np.pi, k + 0.1 * i)
     e, f = calc_energy_with_omm(force, top.positions)
 
     assert pytest.approx(sum(energy), rel=1E-6) == e
@@ -102,12 +101,12 @@ def test_opls_torsion_kernel():
 
 def test_harmonic_torsion_kernel():
     kernel = HarmonicTorsionKernel(top.positions,
-                                   [dihedral.id_atoms for dihedral in top.dihedrals],
+                                   [tuple(a.id for a in dihedral.atoms) for dihedral in top.dihedrals],
                                    [[1 + 0.1 * i, 1 + 0.05 * i] for i in range(top.n_dihedral)]
                                    )
     phi, energy, forces = kernel.evaluate()
     print()
-    print(phi * 180 / np.pi)
+    print(phi * RAD2DEG)
     print(energy)
     print(sum(energy))
     print(forces)
@@ -119,7 +118,7 @@ def test_harmonic_torsion_kernel():
     force.addPerTorsionParameter('k')
     force.setForceGroup(4)
     for i, dihedral in enumerate(top.dihedrals):
-        force.addTorsion(*dihedral.id_atoms, [1 + 0.1 * i, 2 + 0.1 * i])
+        force.addTorsion(*(a.id for a in dihedral.atoms), [1 + 0.1 * i, 2 + 0.1 * i])
 
     e, f = calc_energy_with_omm(force, top.positions)
     print(e)
@@ -131,12 +130,12 @@ def test_harmonic_torsion_kernel():
 
 def test_constrained_torsion_kernel():
     kernel = ConstrainedTorsionKernel(top.positions,
-                                      [dihedral.id_atoms for dihedral in top.dihedrals],
+                                      [tuple(a.id for a in dihedral.atoms) for dihedral in top.dihedrals],
                                       [[1 + 0.1 * i, 2 + 0.1 * i] for i in range(top.n_dihedral)]
                                       )
     phi, energy, forces = kernel.evaluate()
     print()
-    print(phi * 180 / np.pi)
+    print(phi * RAD2DEG)
     print(energy)
     print(sum(energy))
     print(forces)
@@ -146,7 +145,7 @@ def test_constrained_torsion_kernel():
     force.addPerTorsionParameter('k')
     force.setForceGroup(4)
     for i, dihedral in enumerate(top.dihedrals):
-        force.addTorsion(*dihedral.id_atoms, [1 + 0.1 * i, 2 + 0.1 * i])
+        force.addTorsion(*(a.id for a in dihedral.atoms), [1 + 0.1 * i, 2 + 0.1 * i])
 
     e, f = calc_energy_with_omm(force, top.positions)
     print(e)

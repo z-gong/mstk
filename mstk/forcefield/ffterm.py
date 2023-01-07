@@ -1,5 +1,6 @@
 import math
 from distutils.util import strtobool
+from mstk import logger
 from mstk.chem.constant import *
 from .errors import *
 
@@ -64,7 +65,10 @@ class FFTermFactory():
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
         for attr, func in cls._zfp_attrs.items():
-            kwargs[attr] = func(d[attr])
+            val = func(d[attr])
+            if attr in cls._zfp_convert:
+                val = cls._zfp_convert[attr][0](val)
+            kwargs[attr] = val
         try:
             term = cls(**kwargs)
         except:
@@ -106,8 +110,11 @@ class FFTermFactory():
         except KeyError:
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
-        for (attr, func), val in zip(cls._zfp_attrs.items(), words[1:]):
-            kwargs[attr] = func(val)
+        for (attr, func), str_val in zip(cls._zfp_attrs.items(), words[1:]):
+            val = func(str_val)
+            if attr in cls._zfp_convert:
+                val = cls._zfp_convert[attr][0](val)
+            kwargs[attr] = val
         try:
             term = cls(**kwargs)
         except:
@@ -131,8 +138,20 @@ class FFTerm():
 
     _zfp_attrs = {}
     '''
-    The attributes that will be saved into or loaded from ZFP file.
-    This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFP xml file.
+    The attributes that will be saved into or loaded from ZFP or ZFF file.
+    The key is the attribute name. The value is a function to parse the string to object.
+    This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFP or ZFF file.
+    '''
+
+    _zfp_convert = {}
+    '''
+    The parameters that will be converted when read/write parameters from/to ZFP or ZFF file.
+    The key is the attribute name. The value is a tuple of two functions.
+    The first one convert data from external to internal. The second one do the opposite.
+    For example, the angle is in unit of radian internally. But it is in unit of degree in ZFP or ZFF file.
+    Therefore, for AngleTerm, _zfp_convert have two functions for attribute 'theta'.
+    The first one convert degree to radian, and the second one convert radian to degree.
+    This dict must be overridden by subclasses that have different value internally and in ZFP or ZFF file.
     '''
 
     @classmethod
@@ -176,8 +195,11 @@ class FFTerm():
         d : dict, [str, str]
         '''
         d = {}
-        for attr, func in self._zfp_attrs.items():
-            d[attr] = str(getattr(self, attr))
+        for attr in self._zfp_attrs:
+            val = getattr(self, attr)
+            if attr in self._zfp_convert:
+                val = self._zfp_convert[attr][1](val)
+            d[attr] = str(val)
         d.update(self._to_zfp_extra())
         return d
 
@@ -222,6 +244,8 @@ class FFTerm():
         line = '%-16s' % self.__class__.get_alias()
         for attr in self._zfp_attrs:
             val = getattr(self, attr)
+            if attr in self._zfp_convert:
+                val = self._zfp_convert[attr][1](val)
             if type(val) is float:
                 if val > 10000:
                     string = ' %9.1f' % val
@@ -229,13 +253,11 @@ class FFTerm():
                     string = ' %9.4f' % val
             elif type(val) is int:
                 string = ' %2i' % val
-            elif type(val) is bool:
-                string = '   true' if val else ''
             else:
                 string = ' %-9s' % val
             line += string
 
-        return line
+        return line.rstrip()
 
     def to_zff_header(self):
         '''
@@ -248,16 +270,16 @@ class FFTerm():
         line = '#%-15s' % self.__class__.get_alias()
         for attr in self._zfp_attrs:
             val = getattr(self, attr)
+            if attr in self._zfp_convert:
+                val = self._zfp_convert[attr][1](val)
             if type(val) is float:
                 string = ' %9s' % attr
             elif type(val) is int:
                 string = ' %2s' % attr
-            elif type(val) is bool:
-                string = ' %6s' % attr
             else:
                 string = ' %-9s' % attr
             line += string
-        return line
+        return line.rstrip()
 
     def _from_zff_extra(self, line):
         '''
@@ -608,6 +630,11 @@ class AngleTerm(FFTerm):
     fixed : bool
     '''
 
+    # the angle in ZFP or ZFF file is in unit of degree. one digit is enough
+    _zfp_convert = {
+        'theta': (lambda x: x * DEG2RAD, lambda x: round(x * RAD2DEG, 2))
+    }
+
     def __init__(self, type1, type2, type3, theta, fixed=False):
         super().__init__()
         at1, at3 = sorted([type1, type3])
@@ -626,6 +653,17 @@ class AngleTerm(FFTerm):
 
     def __gt__(self, other):
         return [self.type1, self.type2, self.type3] > [other.type1, other.type2, other.type3]
+
+    @property
+    def is_linear(self):
+        '''
+        Whether or not this angle term is linear.
+
+        Returns
+        -------
+        is :  bool
+        '''
+        return False
 
 
 class DihedralTerm(FFTerm):
@@ -1039,7 +1077,7 @@ class HarmonicAngleTerm(AngleTerm):
 
     >>> U = k * (theta-theta0)^2
 
-    Be careful that angle is in unit of degree, but the force constant is in unit of kJ/mol/rad^2.
+    The angle is in unit of radian, and the force constant is in unit of kJ/mol/rad^2.
 
     During the initialization, the two side atom types will be sorted by their string.
 
@@ -1076,7 +1114,11 @@ class HarmonicAngleTerm(AngleTerm):
         self.k = k
 
     def evaluate_energy(self, val):
-        return self.k * ((val - self.theta) / 180 * PI) ** 2
+        return self.k * (val - self.theta) ** 2
+
+    @property
+    def is_linear(self):
+        return self.theta > 175 * DEG2RAD
 
 
 FFTermFactory.register(HarmonicAngleTerm)
@@ -1091,7 +1133,7 @@ class SDKAngleTerm(AngleTerm):
     >>> U = k * (theta-theta0)^2 + LJ96
     >>> LJ96 = 6.75 * epsilon * ((sigma/r)^9 - (sigma/r)^6) + epsilon, r < 1.144714 * sigma
 
-    Be careful that angle is in unit of degree, but the force constant is in unit of kJ/mol/rad^2.
+    The angle is in unit of radian, and the force constant is in unit of kJ/mol/rad^2.
 
     This term itself does not contain parameters `epsilon` and `sigma`.
     Instead, it expects a :class:`MieTerm` between `type1` and `type3` existing in the :class:`ForceField` object.
@@ -1129,6 +1171,10 @@ class SDKAngleTerm(AngleTerm):
     def __init__(self, type1, type2, type3, theta, k):
         super().__init__(type1, type2, type3, theta, fixed=False)
         self.k = k
+
+    @property
+    def is_linear(self):
+        return self.theta > 175 * DEG2RAD
 
 
 FFTermFactory.register(SDKAngleTerm)
@@ -1181,13 +1227,17 @@ class LinearAngleTerm(AngleTerm):
     }
 
     def __init__(self, type1, type2, type3, k):
-        super().__init__(type1, type2, type3, 180.0, fixed=False)
+        super().__init__(type1, type2, type3, PI, fixed=False)
         self.k = k
 
     def calc_a_k_linear(self, b12, b23):
         a = b23 / (b12 + b23)
         k_linear = self.k * 2 * (b12 + b23) ** 2 / (b12 * b23) ** 2
         return a, k_linear
+
+    @property
+    def is_linear(self):
+        return True
 
 
 FFTermFactory.register(LinearAngleTerm)
@@ -1253,7 +1303,6 @@ class OplsDihedralTerm(DihedralTerm):
         self.k4 = k4
 
     def evaluate_energy(self, val):
-        val = val / 180 * PI
         energy = 0
         energy += self.k1 * (1 + math.cos(val)) \
                   + self.k2 * (1 - math.cos(2 * val)) \
@@ -1277,11 +1326,13 @@ class OplsDihedralTerm(DihedralTerm):
         if self.k1 != 0:
             term.add_parameter(0., self.k1, 1)
         if self.k2 != 0:
-            term.add_parameter(180., self.k2, 2)
+            term.add_parameter(PI, self.k2, 2)
         if self.k3 != 0:
             term.add_parameter(0., self.k3, 3)
         if self.k4 != 0:
-            term.add_parameter(180., self.k4, 4)
+            term.add_parameter(PI, self.k4, 4)
+
+        return term
 
 
 FFTermFactory.register(OplsDihedralTerm)
@@ -1311,12 +1362,12 @@ class PeriodicDihedralTerm(DihedralTerm):
 
     >>> term = PeriodicDihedralTerm('h_1', 'c_4', 'c_4', 'h_1')
     >>> term.add_parameter(0.0, 0.6485, 1)
-    >>> term.add_parameter(180.0, 1.0678, 2)
+    >>> term.add_parameter(3.14, 1.0678, 2)
     >>> term.add_parameter(0.0, 0.6226, 3)
     >>> for para in term.parameters:
     >>>     print(para.phi, para.k, para.n)
         0.0 0.6485 1
-        180.0 1.0678 2
+        3.14 1.0678 2
         0.0 0.6226 3
     >>> term = term.to_opls_term()
     >>> print((term.k1, term.k2, term.k3, term.k4))
@@ -1348,6 +1399,8 @@ class PeriodicDihedralTerm(DihedralTerm):
 
     class Parameter:
         def __init__(self, phi, k, n):
+            if phi < -PI or phi > PI:
+                logger.error(f'phi should be in the range of -PI to PI')
             self.phi = phi
             self.k = k
             self.n = n
@@ -1366,7 +1419,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         Parameters
         ----------
         phi : float
-            Phase shift for this multiplicity
+            Phase shift for this multiplicity, in unit of radian
         k : float
             Force constant
         n : int
@@ -1384,7 +1437,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         d = {}
         for para in self.parameters:
             d.update({
-                'phi_%i' % para.n: '%.1f' % para.phi,
+                'phi_%i' % para.n: '%.1f' % (para.phi * RAD2DEG),  # the angle in ZFP or ZFF file is in unit of degree
                 'k_%i' % para.n  : '%.4f' % para.k,
             })
         return d
@@ -1393,7 +1446,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         for key in d.keys():
             if key.startswith('phi_'):
                 n = int(key.split('_')[-1])
-                phi = float(d['phi_%i' % n])
+                phi = float(d['phi_%i' % n]) * DEG2RAD  # the angle in ZFP or ZFF file is in unit of degree
                 k = float(d['k_%i' % n])
                 if k != 0:
                     self.add_parameter(phi, k, n)
@@ -1402,7 +1455,8 @@ class PeriodicDihedralTerm(DihedralTerm):
         line = '%-16s %-9s %-9s %-9s %-9s' % (self.__class__.get_alias(),
                                               self.type1, self.type2, self.type3, self.type4)
         for para in self.parameters:
-            line += ' %9.4f %9.4f %2i' % (para.phi, para.k, para.n)
+            # the angle in ZFP or ZFF file is in unit of degree
+            line += ' %9.1f %9.4f %2i' % (para.phi * RAD2DEG, para.k, para.n)
         return line
 
     def _from_zff_extra(self, line):
@@ -1411,14 +1465,16 @@ class PeriodicDihedralTerm(DihedralTerm):
         if len(str_vals) % 3 != 0:
             raise Exception(f'Invalid parameters for {self.__class__.__name__}')
         for i in range(len(str_vals) // 3):
-            phi, k, n = float(str_vals[i * 3]), float(str_vals[i * 3 + 1]), int(str_vals[i * 3 + 2])
+            phi = float(str_vals[i * 3]) * DEG2RAD  # the angle in ZFP or ZFF file is in unit of degree
+            k = float(str_vals[i * 3 + 1])
+            n = int(str_vals[i * 3 + 2])
             if k != 0:
                 self.add_parameter(phi, k, n)
 
     def evaluate_energy(self, val):
         energy = 0
         for para in self.parameters:
-            energy += para.k * (1 + math.cos((para.n * val - para.phi) / 180 * PI))
+            energy += para.k * (1 + math.cos(para.n * val - para.phi))
         return energy
 
     @property
@@ -1433,7 +1489,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         Get the equivalent OplsDihedralTerm.
 
         In OPLS convention, the largest multiplicity equals to 4.
-        The phi_0 for multiplicity (1, 2, 3, 4) equal to (0, 180, 0, 180), respectively.
+        The phi_0 for multiplicity (1, 2, 3, 4) equal to (0, PI, 0, PI), respectively.
         If it does not follow OPLS convention, an Exception will be raised.
 
         Returns
@@ -1447,16 +1503,16 @@ class PeriodicDihedralTerm(DihedralTerm):
                     raise Exception(f'{str(self)} does not follow OPLS convention, phi_1 != 0')
                 k1 = para.k
             elif para.n == 2:
-                if para.phi != 180:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_2 != 180')
+                if abs(para.phi - PI) > 0.01:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_2 != PI')
                 k2 = para.k
             elif para.n == 3:
                 if para.phi != 0:
                     raise Exception(f'{str(self)} does not follow OPLS convention, phi_3 != 0')
                 k3 = para.k
             elif para.n == 4:
-                if para.phi != 180:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_4 != 180')
+                if abs(para.phi - PI) > 0.01:
+                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_4 != PI')
                 k4 = para.k
             else:
                 raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
@@ -1515,7 +1571,7 @@ class OplsImproperTerm(ImproperTerm):
         self.k = k
 
     def evaluate_energy(self, val):
-        return self.k * (1 - math.cos(2 * val / 180 * PI))
+        return self.k * (1 - math.cos(2 * val * DEG2RAD))
 
 
 FFTermFactory.register(OplsImproperTerm)
@@ -1529,7 +1585,7 @@ class HarmonicImproperTerm(ImproperTerm):
 
     >>> U = k * (phi-phi0)^2
 
-    Be careful that improper is in unit of degree, but the force constant is in unit of kJ/mol/rad^2.
+    The improper is in unit of radian, and the force constant is in unit of kJ/mol/rad^2.
 
     During the initialization, the three side atom types will be sorted by their string.
 
@@ -1569,13 +1625,18 @@ class HarmonicImproperTerm(ImproperTerm):
         'k'    : float,
     }
 
+    # the angle in ZFP or ZFF file is in unit of degree. one digit is enough
+    _zfp_convert = {
+        'phi': (lambda x: x * DEG2RAD, lambda x: round(x * RAD2DEG, 2))
+    }
+
     def __init__(self, type1, type2, type3, type4, phi, k):
         super().__init__(type1, type2, type3, type4)
         self.phi = phi
         self.k = k
 
     def evaluate_energy(self, val):
-        return self.k * ((val - self.phi) / 180 * PI) ** 2
+        return self.k * ((val - self.phi) * DEG2RAD) ** 2
 
 
 FFTermFactory.register(HarmonicImproperTerm)

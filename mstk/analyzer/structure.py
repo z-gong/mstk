@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from mstk.topology import Atom
-from scipy.spatial import ConvexHull
 
 __all__ = [
     'calc_weighted_average',
@@ -86,6 +85,8 @@ def calc_hull_volume(atoms):
     '''
     if len(atoms) < 4:
         raise Exception('At least 4 atoms required for 3D convex hull')
+
+    from scipy.spatial import ConvexHull
 
     positions = np.array([atom.position for atom in atoms])
     hull = ConvexHull(positions)

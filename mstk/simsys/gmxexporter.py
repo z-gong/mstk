@@ -40,7 +40,7 @@ class GromacsExporter():
         '''
         Generate input files for Gromacs from a system
 
-        # TODO Export virtual site
+        # TODO Export virtual sites other than TIP4P
 
         Parameters
         ----------
@@ -305,7 +305,7 @@ class GromacsExporter():
                 if aterm.__class__ in (HarmonicAngleTerm, SDKAngleTerm):
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
-                        1, aterm.theta, aterm.k * 2)
+                        1, aterm.theta * RAD2DEG, aterm.k * 2)
                 elif aterm.__class__ is LinearAngleTerm:
                     bond12, bond23 = angle.bonds
                     bterm12 = system.bond_terms[bond12]
@@ -328,7 +328,7 @@ class GromacsExporter():
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
                             a1.id_in_mol + 1, a2.id_in_mol + 1,
                             a3.id_in_mol + 1, a4.id_in_mol + 1,
-                            9, para.phi, para.k, para.n)
+                            9, para.phi * RAD2DEG, para.k, para.n)
                     if len(dterm.parameters) == 0:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
                             a1.id_in_mol + 1, a2.id_in_mol + 1,
@@ -351,7 +351,7 @@ class GromacsExporter():
                     string += '%6i %6i %6i %6i %6i %8.2f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1,
                         a3.id_in_mol + 1, a4.id_in_mol + 1,
-                        2, iterm.phi, iterm.k * 2)
+                        2, iterm.phi * RAD2DEG, iterm.k * 2)
                 else:
                     raise Exception('Unsupported improper term')
 

@@ -37,14 +37,14 @@ def main():
         atypes = line[:2].strip(), line[3:5].strip(), line[6:8].strip()
         str_k, str_theta = line[8:].split()[:2]
         k = float(str_k) * 4.184
-        theta = float(str_theta)
+        theta = float(str_theta) * DEG2RAD
         aterm = HarmonicAngleTerm(*atypes, theta, k)
         ff.add_term(aterm)
     for line in lines_dihedral:
         type1, type2, type3, type4 = line[:2].strip(), line[3:5].strip(), line[6:8].strip(), line[9:11].strip()
         str_divider, str_k, str_phi, str_n = line[11:].split()[:4]
         k = float(str_k) / int(str_divider) * 4.184
-        phi = float(str_phi)
+        phi = float(str_phi) * DEG2RAD
         n = abs(int(float(str_n)))
         dterm = PeriodicDihedralTerm(type1.replace('X', '*'), type2, type3, type4.replace('X', '*'))
         if dterm.name in ff.dihedral_terms and k == 0:

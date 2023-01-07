@@ -192,7 +192,7 @@ class Ppf():
                 at1, at2, at3 = line.get_names()
                 # constrain the angles in water
                 fixed = at1.startswith('h_1') and at2.startswith('o_2') and at3.startswith('h_1')
-                term = HarmonicAngleTerm(at1, at2, at3, theta, k * 4.184, fixed=fixed)
+                term = HarmonicAngleTerm(at1, at2, at3, theta * DEG2RAD, k * 4.184, fixed=fixed)
                 term.version = line.version
                 ff.angle_terms[term.name] = term
             elif line.term == 'TCOSP':
@@ -204,7 +204,7 @@ class Ppf():
                     # ignore nonsense values
                     if n == 0 and k == 0:
                         continue
-                    term.add_parameter(phi, k, n)
+                    term.add_parameter(phi * DEG2RAD, k, n)
                 term.version = line.version
                 ff.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':
@@ -227,83 +227,6 @@ class Ppf():
                 if atype_eq is None:
                     raise Exception('vdW equivalent type for %s not found in PPF' % (str(atype)))
                 atype.mass = atype_eq.mass
-
-    @staticmethod
-    def save_to(ff, file):
-        '''
-        Save ForceField to a PPF file
-
-        Parameters
-        ----------
-        ff : ForceField
-        file : str
-        '''
-        line = '#DFF:EQT\n'
-        line += '#AAT :	NB ATC BINC Bond A/C A/S T/C T/S O/C O/S\n'
-        for atype in ff.atom_types.values():
-            line += '%s: %s %s %s %s %s %s %s %s %s %s\n' % (
-                atype.name, atype.eqt_vdw, atype.name, atype.eqt_q_inc,
-                atype.eqt_bond, atype.eqt_ang_c, atype.eqt_ang_s,
-                atype.eqt_dih_c, atype.eqt_dih_s, atype.eqt_imp_c, atype.eqt_imp_s
-            )
-        line += ('#DFF:PPF\n'
-                 '#PROTOCOL = AMBER\n'
-                 )
-        for atype in ff.atom_types.values():
-            element = Element.guess_from_atom_type(atype.name)
-            line += 'ATYPE: %s: %.5f, %.5f: \n' % (atype.name, element.number, atype.mass)
-        for atype in ff.atom_types.values():
-            line += 'ATC: %s: %.5f: \n' % (atype.name, atype.charge)
-        for binc in ff.qinc_terms.values():
-            line += 'BINC: %s, %s: %.5f: ' % (binc.type1, binc.type2, binc.value)
-        for vdw in ff.vdw_terms.values():
-            if isinstance(vdw, LJ126Term):
-                line += 'N12_6: %s: %.5f, %.5f: \n' % (
-                    vdw.type1, vdw.sigma * 10 * 2 ** (1 / 6), vdw.epsilon / 4.184)
-            else:
-                raise Exception('Only LJ126Term is implemented')
-        for vdw in ff.pairwise_vdw_terms.values():
-            if isinstance(vdw, LJ126Term):
-                line += 'P12_6: %s, %s: %.5f, %.5f: \n' % (
-                    vdw.type1, vdw.type2, vdw.sigma * 10 * 2 ** (1 / 6), vdw.epsilon / 4.184)
-            else:
-                raise Exception('Only LJ126Term is implemented for pairwise vdw terms')
-        for bond in ff.bond_terms.values():
-            if isinstance(bond, HarmonicBondTerm):
-                line += 'BHARM: %s, %s: %.5f, %.5f: \n' % (
-                    bond.type1, bond.type2, bond.length * 10, bond.k / 4.184 / 100)
-            else:
-                raise Exception('Only HarmonicBondTerm is implemented')
-        for angle in ff.angle_terms.values():
-            if isinstance(angle, HarmonicAngleTerm):
-                line += 'AHARM: %s, %s, %s: %.5f, %.5f: \n' % (
-                    angle.type1, angle.type2, angle.type3, angle.theta, angle.k / 4.184)
-            else:
-                raise Exception('Only HarmonicAngleTerm is implemented')
-        for dihedral in ff.dihedral_terms.values():
-            if isinstance(dihedral, PeriodicDihedralTerm):
-                line += 'TCOSP: %s, %s, %s, %s: ' % (
-                    dihedral.type1, dihedral.type2, dihedral.type3, dihedral.type4)
-                str_paras = []
-                for par in dihedral.parameters:
-                    str_paras.append('%.1f, %.5f, %i' % (par.phi, par.k / 4.184, par.n))
-                line += ', '.join(str_paras) + ': \n'
-            else:
-                raise Exception('Only PeriodicDihedralTerm is implemented')
-        for improper in ff.improper_terms.values():
-            if isinstance(improper, OplsImproperTerm):
-                # the third atom is the center atom for IBCOS improper term
-                line += 'IBCOS: %s, %s, %s, %s: 180, %.5f, 2: \n' % (
-                    improper.type2, improper.type3, improper.type1, improper.type4,
-                    improper.k / 4.184)
-            else:
-                raise Exception('Only PeriodicImproperTerm is implemented')
-
-        if len(ff.polarizable_terms) > 0:
-            logger.warning('Polarizable parameters are ignored because PPF does not support them')
-
-        with open(file, 'wb') as f:
-            f.write(line.encode())
 
 
 ForceField.registor_format('.ppf', Ppf)

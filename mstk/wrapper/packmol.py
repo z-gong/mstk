@@ -21,7 +21,7 @@ class Packmol:
         self.PACKMOL_BIN = packmol_bin
 
     def build_box(self, files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
-                  tolerance=2.0, seed=None, inp_file='build.inp', silent=False):
+                  tolerance=0.2, seed=None, inp_file='build.inp', silent=False):
         '''
         Build a box directly from molecule files.
 
@@ -43,19 +43,19 @@ class Packmol:
         output : str
             File name of the ouput XYZ or PDB file
         size : list of float, or None
-            Size of the packed rectangular box.
+            Size of the packed rectangular box, in unit of nanometer
             If not set, argument `length` should be provided.
         length : float or None
-            Length of the packed cubic box.
+            Length of the packed cubic box, in unit of nanometer
             If not set, argument `size` should be provided.
         slab : float or None
-            If a vapor-liquid interface model is to be packed, it gives the z-coordinates of the interface.
+            If a vapor-liquid interface model is to be packed, it gives the z-coordinates of the interface, in unit of nanometer
             It conflicts with argument `slab_multiple`.
         slab_multiple : bool or None
             Set it to True if a liquid-liquid interface model is to be packed.
             It conflicts with argument `slab`.
         tolerance : float
-            The minimum distance between atoms belongs to different molecules.
+            The minimum distance between atoms belongs to different molecules, in unit of nanometer
         seed : int or None
             The seed for randomizing positions.
             If not provided, a randomly generated seed will be used.
@@ -82,7 +82,7 @@ class Packmol:
 
     @staticmethod
     def gen_inp(files, numbers, output, size=None, length=None, slab=None, slab_multiple=False,
-                tolerance=2.0, seed=None, inp_file='build.inp'):
+                tolerance=0.2, seed=None, inp_file='build.inp'):
         '''
         Generate input file for running packmol.
 
@@ -115,13 +115,13 @@ class Packmol:
             'filetype {filetype}\n'
             'tolerance {tolerance}\n'
             'output {output}\n'
-            'seed {seed}\n'.format(filetype=filetype, tolerance=tolerance, output=output, seed=seed)
+            'seed {seed}\n'.format(filetype=filetype, tolerance=tolerance * 10, output=output, seed=seed)
         )
 
         # liquid-gas interface
         if slab is not None:
-            box_liq = '0 0 0 %f %f %f' % (size[0], size[1], slab)
-            box_gas = '0 0 %f %f %f %f' % (slab, size[0], size[1], size[2])
+            box_liq = '0 0 0 %f %f %f' % (size[0] * 10, size[1] * 10, slab * 10)  # nm -> A
+            box_gas = '0 0 %f %f %f %f' % (slab * 10, size[0] * 10, size[1] * 10, size[2] * 10)  # nm -> A
             for i, filename in enumerate(files):
                 # put 1/50 molecules in gas phase. Do not put too many in case of nucleation in gas phase
                 n_gas = numbers[i] // 50
@@ -145,9 +145,9 @@ class Packmol:
                 if slab_multiple:
                     lz_per_slab = size[3] / len(numbers)
                     box = '0 0 %f %f %f %f' % (
-                        i * lz_per_slab, size[0], size[1], (i + 1) * lz_per_slab)
+                        i * lz_per_slab * 10, size[0] * 10, size[1] * 10, (i + 1) * lz_per_slab * 10)
                 else:
-                    box = '0 0 0 %f %f %f' % tuple(size)
+                    box = '0 0 0 %f %f %f' % tuple(element * 10 for element in size)
 
                 inp += (
                     'structure {filename}\n'

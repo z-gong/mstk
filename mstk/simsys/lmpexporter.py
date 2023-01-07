@@ -135,7 +135,8 @@ class LammpsExporter():
         for i, aterm in enumerate(angle_types):
             angle_style = '' if not is_sdk else 'sdk' if type(aterm) is SDKAngleTerm else 'harmonic'
             string += '%4i %8s %12.6f %10.4f  # %s-%s-%s\n' % (
-                i + 1, angle_style, aterm.k / 4.184, min(aterm.theta, 178), aterm.type1, aterm.type2, aterm.type3)
+                i + 1, angle_style, aterm.k / 4.184, min(aterm.theta * RAD2DEG, 178),
+                aterm.type1, aterm.type2, aterm.type3)
 
         if len(dihedral_types) > 0:
             string += '\nDihedral Coeffs  # opls\n\n'

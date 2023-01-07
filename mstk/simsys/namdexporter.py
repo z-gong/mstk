@@ -132,7 +132,7 @@ class NamdExporter():
 '''
         for (at1, at2, at3), aterm in unique_angles.items():
             string += '%10s %10s %10s %12.6f %12.4f\n' % (
-                at1, at2, at3, aterm.k / 4.184, aterm.theta)
+                at1, at2, at3, aterm.k / 4.184, aterm.theta * RAD2DEG)
 
         string += '\nDIHEDRALS\n'
         string += '''!V(dihedral) = Kchi(1 + cos(n(chi) - delta))
@@ -147,7 +147,7 @@ class NamdExporter():
                 dterm = dterm.to_periodic_term()
             for para in dterm.parameters:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
-                    at1, at2, at3, at4, para.k / 4.184, para.n, para.phi)
+                    at1, at2, at3, at4, para.k / 4.184, para.n, para.phi * RAD2DEG)
             if len(dterm.parameters) == 0:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f  ; no dihedral parameters\n' % (
                     at1, at2, at3, at4, 0.0, 1, 0.0)
@@ -167,7 +167,7 @@ class NamdExporter():
             else:
                 raise Exception('Only HarmonicImproperTerm and OplsImproperTerm are supported')
             string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
-                at1, at2, at3, at4, iterm.k / 4.184, 0, phi)
+                at1, at2, at3, at4, iterm.k / 4.184, 0, phi * RAD2DEG)
 
         string += '\nNONBONDED\n'
         string += '''!V(Lennard-Jones) = Eps,i,j[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6]

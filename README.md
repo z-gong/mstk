@@ -39,11 +39,19 @@ ff = ForceField.open('primitive.zff')
 ff.assign_charge(top)
 system = System(top, ff)
 
-# generate input files for LAMMPS and GROMACS
+# generate input files for LAMMPS, GROMACS and NAMD
 system.export_lammps()
 system.export_gromacs()
+system.export_namd()
+
+# generate an OpenMM system
+omm_sys = system.to_omm_system()
 ```
 
 ## Documentation
 
 https://mstk.readthedocs.io/en/latest/index.html
+
+## TODO
+
+- [ ] Take bond order into consideration for force field assignment

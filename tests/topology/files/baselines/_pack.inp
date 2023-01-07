@@ -1,8 +1,8 @@
 filetype xyz
 tolerance 2.0
-output _out.xyz
+output /tmp/_mstk_test_packmol/_out.xyz
 seed 1
-structure _MO_0.xyz
+structure /tmp/_mstk_test_packmol/_MO_0.xyz
 number 10
 inside box 0 0 0 28.000000 28.000000 28.000000
 end structure

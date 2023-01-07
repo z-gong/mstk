@@ -181,7 +181,7 @@ class Topology():
         else:
             return {mol: flags.count(mol.id) for mol in mols_unique}
 
-    def scale_with_packmol(self, numbers, packmol=None):
+    def scale_with_packmol(self, numbers, packmol=None, tempdir=None):
         '''
         Enlarge the number of molecules in this topology with Packmol.
 
@@ -201,6 +201,9 @@ class Topology():
             If numbers is a int, the topology will be scaled by this times.
             If numbers is a list of int, the each molecule will be scaled by corresponding times.
         packmol : Packmol
+        tempdir : str, Optional
+            The temporary directory to keep intermediate files for packmol. It should exist already
+            If is None. Will create a directory under system temporary directory
         '''
         if type(numbers) is int:
             numbers = [numbers] * self.n_molecule
@@ -223,37 +226,31 @@ class Topology():
         if packmol is not None and not isinstance(packmol, Packmol):
             raise Exception('Invalid Packmol')
 
+        tempdir = tempdir or tempfile.mkdtemp(prefix='mstk-packmol-')
+
         xyz_files = []
         for i, mol in enumerate(self._molecules):
-            _top = Topology([mol])
-            if packmol is not None:
-                xyz = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='in-').name
-            else:
-                xyz = '_MO_%i.xyz' % i
-            _top.write(xyz)
+            xyz = tempdir + '/_MO_%i.xyz' % i
             xyz_files.append(xyz)
+            Topology([mol]).write(xyz)
 
+        tmp_inp = tempdir + '/_pack.inp'
+        tmp_out = tempdir + '/_out.xyz'
         if packmol is not None:
-            tmp_inp = tempfile.NamedTemporaryFile(suffix='.inp', prefix='pack-').name
-            tmp_out = tempfile.NamedTemporaryFile(suffix='.xyz', prefix='out-').name
             packmol.build_box(xyz_files, numbers, tmp_out,
-                              size=self.cell.size * 10 - 2.0, inp_file=tmp_inp, seed=1, silent=True)
+                              size=self.cell.size - 0.2, inp_file=tmp_inp, seed=1, silent=True)
             try:
                 xyz = Topology.open(tmp_out)
             except:
                 raise Exception('Building failed. xyz not found')
 
-            if xyz.n_atom != sum(mol.n_atom * numbers[i] for i, mol in enumerate(self._molecules)) \
-                    or not xyz.has_position:
+            if xyz.n_atom != sum(mol.n_atom * n for mol, n in zip(self._molecules, numbers)):
                 raise Exception('Building failed. incorrectly information in xyz')
 
             self.update_molecules(self._molecules, numbers)
             self.set_positions(xyz.positions)
         else:
-            tmp_inp = '_pack.inp'
-            tmp_out = '_out.xyz'
-            Packmol.gen_inp(xyz_files, numbers, tmp_out,
-                            size=self.cell.size * 10 - 2.0, inp_file=tmp_inp, seed=1)
+            Packmol.gen_inp(xyz_files, numbers, tmp_out, size=self.cell.size - 0.2, inp_file=tmp_inp, seed=1)
 
     def scale_box(self, scale, rigid_group='atom'):
         '''
@@ -494,7 +491,6 @@ class Topology():
         file : str
             If start with ':', then it will be treated as SMLIES string.
             Otherwise, it is the file to be read.
-        kwargs : dict, optional
 
         Returns
         -------
@@ -621,7 +617,8 @@ class Topology():
     def get_virtual_site_pairs(self):
         '''
         Retrieve all the virtual site pairs belong to this topology
-        # TODO Assume no more than one virtual site is attached to each atom
+
+        TODO It assumes no more than one virtual site is attached to each atom
 
         Returns
         -------

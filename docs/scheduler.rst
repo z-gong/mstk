@@ -13,7 +13,7 @@ like querying, submitting and deleting jobs, generate job scripts, etc...
 It also provide a cache to the scheduler so that when high-throughput simulations are performed,
 the job scheduler will not experience much pressure.
 
-.. currentmodule:: mstk.jobmanager
+.. currentmodule:: mstk.scheduler
 
 .. autosummary::
     :toctree: _generated/

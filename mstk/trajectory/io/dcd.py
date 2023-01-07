@@ -1,4 +1,5 @@
 import numpy as np
+from mstk.chem.constant import *
 from mstk.trajectory import Frame
 from mstk.trajectory.handler import TrjHandler
 
@@ -49,7 +50,7 @@ class Dcd(TrjHandler):
         angle = box_angles[0]
         angle[np.abs(angle - 90) < 1E-4] = 90  # in case precision issue
         frame.positions = positions[0] / 10  # convert A to nm
-        frame.cell.set_box([box_lengths[0] / 10, angle])  # convert A to nm
+        frame.cell.set_box([box_lengths[0] / 10, angle * DEG2RAD])  # convert A to nm
 
     def write_frame(self, frame, subset=None, **kwargs):
         '''
@@ -66,6 +67,7 @@ class Dcd(TrjHandler):
             positions = frame.positions
         else:
             positions = frame.positions[subset]
-        self._dcd.write(positions * 10, frame.cell.lengths * 10, frame.cell.angles)  # convert nm to A
+        self._dcd.write(positions * 10, frame.cell.lengths * 10, frame.cell.angles * RAD2DEG)  # convert nm to A
+
 
 TrjHandler.register_format('.dcd', Dcd)

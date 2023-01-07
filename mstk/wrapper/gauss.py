@@ -86,7 +86,7 @@ class Gauss:
         '''
         Process the GJF file so that it is ready for multi-core Gaussian calculation, and then return the commands for calculation.
 
-        The commands return can be feed into a :class:`~mstk.jobmanager.JobManager` for running on a HPC.
+        The commands return can be feed into a :class:`~mstk.scheduler.Scheduler` for running on a HPC.
 
         Parameters
         ----------

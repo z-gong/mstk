@@ -68,9 +68,9 @@ def periodic_distance(pos1, pos2, box, distance_max=None):
     
     Parameters
     ----------
-    pos1: np.ndarray
-    pos2: np.ndarray
-    box: np.ndarray of shape (3,)
+    pos1 : np.ndarray
+    pos2 : np.ndarray
+    box : np.ndarray of shape (3,)
         Lengths of rectangular periodic box. Triclinic box is not supported yet.
     distance_max : float, optional
         The maximum distance to be considered. Will return None if distance larger than it
@@ -94,6 +94,66 @@ def periodic_distance(pos1, pos2, box, distance_max=None):
         return None
 
     return math.sqrt(np.dot(delta, delta))
+
+
+def periodic_angle(pos1, pos2, pos3, box):
+    '''
+    Calculate the angle between three points under periodic boundary condition
+
+    Parameters
+    ----------
+    pos1 : np.ndarray
+    pos2 : np.ndarray
+    pos3 : np.ndarray
+    box : np.ndarray of shape (3,)
+        Lengths of rectangular periodic box. Triclinic box is not supported yet.
+
+    Returns
+    -------
+    angle : float
+    '''
+    vec1 = pos1 - pos2
+    vec2 = pos3 - pos2
+
+    ### elements of delta will be transformed to (-0.5, 0.5]
+    vec1 -= np.ceil(vec1 / box - 0.5) * box
+    vec2 -= np.ceil(vec2 / box - 0.5) * box
+
+    cos = vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))
+    return float(np.arccos(np.clip(cos, -1, 1)))
+
+def periodic_dihedral(pos1, pos2, pos3, pos4, box):
+    '''
+    Calculate the dihedral between four points under periodic boundary condition
+
+    Parameters
+    ----------
+    pos1 : np.ndarray
+    pos2 : np.ndarray
+    pos3 : np.ndarray
+    pos4 : np.ndarray
+    box : np.ndarray of shape (3,)
+        Lengths of rectangular periodic box. Triclinic box is not supported yet.
+
+    Returns
+    -------
+    angle : float
+    '''
+    vec1 = pos2 - pos1
+    vec2 = pos3 - pos2
+    vec3 = pos4 - pos3
+
+    ### elements of delta will be transformed to (-0.5, 0.5]
+    vec1 -= np.ceil(vec1 / box - 0.5) * box
+    vec2 -= np.ceil(vec2 / box - 0.5) * box
+    vec3 -= np.ceil(vec3 / box - 0.5) * box
+
+    n1 = np.cross(vec1, vec2)
+    n2 = np.cross(vec2, vec3)
+    cos = n1.dot(n2) / np.sqrt(n1.dot(n1) * n2.dot(n2))
+    value = float(np.arccos(np.clip(cos, -1, 1)))
+    sign = 1 if vec1.dot(n2) >= 0 else -1
+    return sign * value
 
 
 def find_clusters(elements, func):

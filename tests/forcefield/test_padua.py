@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import pytest
+from mstk.chem.constant import *
 from mstk.forcefield import ForceField, Padua, PaduaLJScaler
 
 import os
@@ -32,7 +33,7 @@ def test_read():
     assert pytest.approx(bond.k, abs=1E-6) == 2242.0 / 2 * 100
 
     angle = ff.angle_terms['CT,CT,HC']
-    assert angle.theta == 110.7
+    assert pytest.approx(angle.theta, abs=1e-6) == 110.7 * DEG2RAD
     assert angle.k == 313.8 / 2
 
     dihedral = ff.dihedral_terms['CT,CT,CT,HC']

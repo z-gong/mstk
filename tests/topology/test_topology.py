@@ -48,13 +48,12 @@ def test_compress():
     assert list(mols_unique.values()) == [4, 6, 5, 1, 10, 5, 1]
 
 
-def test_scale():
-    tmpdir = tempfile.mkdtemp()
+def test_packmol():
+    tmpdir = os.path.join(tempfile.gettempdir(), '_mstk_' + test_packmol.__name__)
+    os.mkdir(tmpdir)
     top = Topology.open(cwd + '/files/Im11.zmat')
     top.cell.set_box([3, 3, 3])
-    os.chdir(tmpdir)
-    top.scale_with_packmol(10)
-    os.chdir(cwd)
+    top.scale_with_packmol(10, tempdir=tmpdir)
     assert filecmp.cmp(tmpdir + '/_pack.inp', cwd + '/files/baselines/_pack.inp')
     assert filecmp.cmp(tmpdir + '/_MO_0.xyz', cwd + '/files/baselines/_MO_0.xyz')
     shutil.rmtree(tmpdir)

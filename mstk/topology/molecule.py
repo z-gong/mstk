@@ -228,7 +228,7 @@ class Molecule():
 
     def _construct_rdmol(self):
         '''
-        Construct a RDKit molecule from atoms and bonds.
+        Construct a RDKit molecule from atoms and bonds. The positions will not be preserved.
         '''
         try:
             from rdkit import Chem
@@ -878,7 +878,7 @@ class Molecule():
         pbc can be '', 'x', 'y', 'xy', 'xz', 'xyz', which means check bonds cross specific boundaries
         cell should also be provided if pbc is not ''
 
-        * TODO Add support for triclinic cell
+        TODO Add support for triclinic cell
 
         Parameters
         ----------
@@ -976,7 +976,7 @@ class Molecule():
                     delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
                 cos = delta21.dot(delta23) / math.sqrt(delta21.dot(delta21) * delta23.dot(delta23))
                 theta = np.arccos(np.clip(cos, -1, 1))
-                if abs(theta * 180 / math.pi - aterm.theta) > angle_tolerance:
+                if abs(theta - aterm.theta) > angle_tolerance * DEG2RAD:
                     self.remove_connectivity(angle)
                     angles_removed.append(angle)
 
@@ -1144,7 +1144,8 @@ class Molecule():
         Therefore `assign_charge_from_ff` should be called to assign the charges on virtual sites.
 
         Currently, only TIP4PSiteTerm has been implemented.
-        # TODO Support other virtual site terms.
+
+        TODO Support other virtual site terms
 
         Parameters
         ----------
@@ -1224,6 +1225,8 @@ class Molecule():
         The substructure will not contain any bond, angle, dihedral and improper between atoms in substructure and remaining parts.
         Residue information will be reconstructed.
 
+        TODO Fix performance issue
+
         Parameters
         ----------
         indexes : list of int
@@ -1243,6 +1246,7 @@ class Molecule():
         else:
             mol = self
 
+        # assign atom id so that we can access id_atoms for connectivities
         for i, atom in enumerate(mol.atoms):
             atom.id = i
 
@@ -1260,20 +1264,20 @@ class Molecule():
 
         ids_set = set(indexes)
         for conn in mol.bonds:
-            if set(conn.id_atoms) <= ids_set:
+            if {a.id for a in conn.atoms} <= ids_set:
                 sub._bonds.append(conn)
         for atom in sub.atoms:
             for i in reversed(range(len(atom.bonds))):
-                if not set(atom.bonds[i].id_atoms) <= ids_set:
+                if not {a.id for a in atom.bonds[i].atoms} <= ids_set:
                     atom._bonds.pop(i)
         for conn in mol.angles:
-            if set(conn.id_atoms) <= ids_set:
+            if {a.id for a in conn.atoms} <= ids_set:
                 sub._angles.append(conn)
         for conn in mol.dihedrals:
-            if set(conn.id_atoms) <= ids_set:
+            if {a.id for a in conn.atoms} <= ids_set:
                 sub._dihedrals.append(conn)
         for conn in mol.impropers:
-            if set(conn.id_atoms) <= ids_set:
+            if {a.id for a in conn.atoms} <= ids_set:
                 sub._impropers.append(conn)
 
         # reconstruct residues
@@ -1349,5 +1353,42 @@ class Molecule():
 
         mol = copy.deepcopy(self)
         pieces = [mol.get_sub_molecule(ids, deepcopy=False) for ids in clusters]
+
+        return pieces
+
+    def split_residues(self):
+        '''
+        Split the molecule into smaller pieces. Each piece will be made of one residue.
+
+        Make sure that there is no inter-residue bonds/angles/dihedrals/impropers.
+
+        Returns
+        -------
+        molecules : list of Molecule
+        '''
+        pieces = []
+        mol = copy.deepcopy(self)
+        for residue in mol.residues:
+            sub = Molecule(residue.name)
+            for atom in residue.atoms:
+                sub.add_atom(atom)
+            pieces.append(sub)
+
+        for conn in mol.bonds:
+            if len({atom.molecule for atom in conn.atoms}) > 1:
+                raise Exception(f'Inter-residue bond {conn} in {self}')
+            conn.atom1.molecule._bonds.append(conn)
+        for conn in mol.angles:
+            if len({atom.molecule for atom in conn.atoms}) > 1:
+                raise Exception(f'Inter-residue angle {conn} in {self}')
+            conn.atom1.molecule._angles.append(conn)
+        for conn in mol.dihedrals:
+            if len({atom.molecule for atom in conn.atoms}) > 1:
+                raise Exception(f'Inter-residue dihedral {conn} in {self}')
+            conn.atom1.molecule._dihedrals.append(conn)
+        for conn in mol.impropers:
+            if len({atom.molecule for atom in conn.atoms}) > 1:
+                raise Exception(f'Inter-residue improper {conn} in {self}')
+            conn.atom1.molecule._impropers.append(conn)
 
         return pieces

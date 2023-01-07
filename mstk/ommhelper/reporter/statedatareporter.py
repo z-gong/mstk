@@ -53,6 +53,7 @@ import openmm.unit as unit
 import math
 import time
 import numpy as np
+from mstk.topology.geometry import find_clusters
 
 
 class StateDataReporter(object):
@@ -354,7 +355,18 @@ class StateDataReporter(object):
         if self._pressure or self._pxx or self._pyy or self._pzz:
             self._masses = np.array([simulation.system.getParticleMass(i).value_in_unit(unit.dalton)
                                      for i in range(simulation.system.getNumParticles())]) * unit.dalton
-            self._constrained_groups = [list(ids) for ids in simulation.context.getConstrainedGroups()]
+            try:
+                self._constrained_groups = [list(ids) for ids in simulation.context.getConstrainedGroups()]
+            except AttributeError:
+                # getConstrainedGroups is only available in my forked version
+                system: mm.System = simulation.system
+                n_atom = system.getNumParticles()
+                matrix = np.zeros([n_atom, n_atom], dtype=bool)
+                for i in range(system.getNumConstraints()):
+                    a1, a2, d = system.getConstraintParameters(i)
+                    matrix[a1][a2] = True
+                    matrix[a2][a1] = True
+                self._constrained_groups = find_clusters(list(range(n_atom)), lambda x, y: matrix[x][y])
 
     def _constructHeaders(self):
         """Construct the headers for the CSV output

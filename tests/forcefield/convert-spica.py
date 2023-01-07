@@ -46,7 +46,7 @@ for par in j['params']:
     elif par['param'] == 'angle':
         types = par['types']
         k = par['k'] * 4.184
-        theta = par['theta0']
+        theta = par['theta0'] * DEG2RAD
         if par['potential'] == 'harmonic':
             aterm = HarmonicAngleTerm(*types, theta, k)
         elif par['potential'] == 'sdk':
@@ -60,7 +60,7 @@ for par in j['params']:
         types = par['types']
         k = par['k'] * 4.184
         n = par['n']
-        phi = par['d']
+        phi = par['d'] * DEG2RAD
         dterm = PeriodicDihedralTerm(*types)
         dterm.add_parameter(phi, k, n)
         ff.add_term(dterm)

@@ -140,7 +140,7 @@ def _calc_angle_xy(vec):
     else:
         vec_prj = np.array([vec[0], vec[1], 0])
         cos = vec.dot(vec_prj) / np.sqrt(vec.dot(vec)) / np.sqrt(vec_prj.dot(vec_prj))
-        theta = np.arccos(np.clip(cos, -1, 1)) * 180 / np.pi
+        theta = np.arccos(np.clip(cos, -1, 1)) * RAD2DEG
 
     return theta
 

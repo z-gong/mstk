@@ -271,8 +271,7 @@ class System():
                 # constrain the angle only if two bonds are also constrained
                 if bond1 in self.constrain_bonds and bond2 in self.constrain_bonds:
                     d1, d2 = self.constrain_bonds[bond1], self.constrain_bonds[bond2]
-                    self.constrain_angles[angle] = math.sqrt(
-                        d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta * PI / 180))
+                    self.constrain_angles[angle] = math.sqrt(d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta))
 
         _dterm_not_found = set()
         _dterm_transferred = set()
@@ -302,9 +301,15 @@ class System():
                 if not _found:
                     _dterm_not_found.add(_term.name)
                 else:
-                    if dterm.is_zero:
-                        # remove dihedrals that have zero energy contributions
-                        # in case linear groups like alkyne and nitrile give energy of NaN
+                    _remove = False
+                    # remove linear dihedrals in case linear groups like alkyne and nitrile give energy of NaN
+                    # TODO Disable it because of performance issue
+                    # if dterm.is_zero:
+                    #     angle1, angle2 = dihedral.angles
+                    #     aterm1, aterm2 = self.angle_terms[angle1], self.angle_terms[angle2]
+                    #     if aterm1.is_linear or aterm2.is_linear:
+                    #         _remove = True
+                    if _remove:
                         _dihedral_to_remove.append(dihedral)
                         _n_dihedral_to_remove += 1
                         _dterm_to_remove.add(dterm.name)
@@ -316,7 +321,7 @@ class System():
             mol._dihedrals = _dihedrals_to_keep
 
         if _n_dihedral_to_remove > 0:
-            logger.warning('%i dihedrals removed because they have zero energy contributions\n'
+            logger.warning('%i dihedrals removed because they are linear and have zero energy\n'
                            '        %s' % (_n_dihedral_to_remove,
                                            '\n        '.join(_dterm_to_remove)))
 
@@ -415,12 +420,7 @@ class System():
         in_out : str
         '''
         from .lmpexporter import LammpsExporter
-        from .lmpdrudeexporter import LammpsDrudeExporter
-
-        if DrudeTerm in self.ff_classes:
-            LammpsDrudeExporter.export(self, data_out, in_out, **kwargs)
-        else:
-            LammpsExporter.export(self, data_out, in_out, **kwargs)
+        LammpsExporter.export(self, data_out, in_out, **kwargs)
 
     def export_gromacs(self, gro_out='conf.gro', top_out='topol.top', mdp_out='grompp.mdp', **kwargs):
         '''
@@ -540,6 +540,6 @@ class System():
         aterm = self.angle_terms[angle]
 
         offset = atom.virtual_site.parameters[0]
-        c = offset / bterm.length / 2 / math.cos(aterm.theta / 2 * PI / 180)
+        c = offset / bterm.length / 2 / math.cos(aterm.theta / 2)
 
         return 1 - 2 * c, c, c

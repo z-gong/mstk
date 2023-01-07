@@ -4,6 +4,7 @@ from mstk.topology.atom import Atom
 from mstk.topology.molecule import Molecule
 from mstk.topology.topology import Topology
 from mstk.chem.element import Element
+from mstk.chem.constant import *
 
 
 class Zmat():
@@ -147,7 +148,7 @@ class Zmat():
         if mol.n_atom >= 3:
             r = z_atoms[2]['r']
             ir = z_atoms[2]['ir']
-            ang = z_atoms[2]['a'] * math.pi / 180.0
+            ang = z_atoms[2]['a'] * DEG2RAD
             ia = z_atoms[2]['ia']
 
             # for this construction, the new atom is at point (x, y), atom
@@ -175,9 +176,9 @@ class Zmat():
             for i in range(3, mol.n_atom):
                 r = z_atoms[i]['r']
                 ir = z_atoms[i]['ir']
-                ang = z_atoms[i]['a'] * math.pi / 180.0
+                ang = z_atoms[i]['a'] * DEG2RAD
                 ia = z_atoms[i]['ia']
-                dih = z_atoms[i]['d'] * math.pi / 180.0
+                dih = z_atoms[i]['d'] * DEG2RAD
                 id = z_atoms[i]['id']
 
                 # for this construction the new atom is at point A, atom ir is

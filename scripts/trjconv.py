@@ -10,7 +10,7 @@ from mstk.trajectory import Trajectory
 parser = argparse.ArgumentParser()
 parser.add_argument('input', nargs='+', type=str,
                     help='trajectory file for atomic positions')
-parser.add_argument('-t', '--topology', required=True, type=str,
+parser.add_argument('-p', '--top', required=True, type=str,
                     help='psf or lammps data file for topology information')
 parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
 parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to output')
@@ -27,7 +27,7 @@ parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
                     help='shift the positions of all atoms')
 args = parser.parse_args()
 
-top = Topology.open(args.topology)
+top = Topology.open(args.top)
 if args.topignore != []:
     molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
     top = Topology()
@@ -41,7 +41,7 @@ if (top.n_atom != trj.n_atom):
 
 trj_out = Trajectory.open(args.output, 'w')
 
-if args.ignore != []:
+if args.ignore or args.ignoreatom:
     subset = [atom.id for atom in top.atoms
               if atom.type not in args.ignoreatom and atom.molecule.name not in args.ignore]
 else:

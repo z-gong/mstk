@@ -3,6 +3,7 @@
 import tempfile
 import filecmp
 import pytest
+from mstk.chem.constant import *
 from mstk.forcefield import ForceField, Ppf
 
 import os
@@ -66,7 +67,7 @@ def test_read():
     assert angle.type1 == 'c_3a'
     assert angle.type2 == 'c_3a'
     assert angle.type3 == 'h_1'
-    assert pytest.approx(angle.theta, abs=1E-6) == 118.916
+    assert pytest.approx(angle.theta, abs=1E-6) == 118.916 * DEG2RAD
     assert pytest.approx(angle.k / 4.184, abs=1E-6) == 43.8769
     assert angle.version == '0.1'
 
@@ -82,7 +83,7 @@ def test_read():
     para2 = dihedral.parameters[1]
     assert pytest.approx(para2.k / 4.184, abs=1E-6) == 0.0507
     assert para2.n == 2
-    assert para2.phi == 180.0
+    assert pytest.approx(para2.phi, abs=1E-6) == PI
     para0 = dihedral.parameters[2]
     assert pytest.approx(para0.k / 4.184, abs=1E-6) == 0.0688
     assert para0.n == 3
@@ -94,14 +95,3 @@ def test_read():
     assert improper.version == '0.21'
 
     assert len(ff.polarizable_terms) == 0
-
-
-def test_write():
-    tmpdir = tempfile.mkdtemp()
-
-    ff = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
-    tmp = os.path.join(tmpdir, 'out-CLP.ppf')
-    Ppf.save_to(ff, tmp)
-    assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLP.ppf')
-
-    shutil.rmtree(tmpdir)

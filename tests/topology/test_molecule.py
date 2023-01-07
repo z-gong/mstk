@@ -3,6 +3,7 @@
 import os
 import math
 import pytest
+from mstk.chem.constant import *
 from mstk.topology import Topology, Molecule
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -23,10 +24,10 @@ def test_smiles():
 def test_connectivity():
     ethane = Topology.open(cwd + '/files/CH3NH2.pdb').molecules[0]
     assert pytest.approx(ethane.bonds[0].evaluate(), abs=1E-4) == 0.1070
-    assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278 / 180 * math.pi
-    assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301 / 180 * math.pi
-    assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159 / 180 * math.pi
-    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905 / 180 * math.pi
+    assert pytest.approx(ethane.angles[0].evaluate(), abs=1E-4) == 109.5278 * DEG2RAD
+    assert pytest.approx(ethane.dihedrals[0].evaluate(), abs=1E-4) == 60.0301 * DEG2RAD
+    assert pytest.approx(ethane.dihedrals[-1].evaluate(), abs=1E-4) == -60.0159 * DEG2RAD
+    assert pytest.approx(ethane.impropers[0].evaluate(), abs=1E-4) == -33.0905 * DEG2RAD
 
 
 def test_distance_matrix():

@@ -1,4 +1,5 @@
 import numpy as np
+from mstk.chem.constant import *
 from mstk.trajectory import Frame
 from mstk.trajectory.handler import TrjHandler
 
@@ -44,7 +45,7 @@ class Xtc(TrjHandler):
         cf_frame = self._xtc.read_step(i_frame)
         cf_cell = cf_frame.cell
         lengths = [i / 10 for i in cf_cell.lengths]
-        angles = cf_cell.angles
+        angles = [i * DEG2RAD for i in cf_cell.angles]
         frame.positions = cf_frame.positions.astype(np.float32) / 10
         frame.cell.set_box([lengths, angles])
         frame.step = frame.step
@@ -70,9 +71,10 @@ class Xtc(TrjHandler):
         cf_frame = chemfiles.Frame()
         cf_frame.resize(len(positions))
         cf_frame.positions[:] = positions * 10
-        cf_frame.cell = chemfiles.UnitCell(frame.cell.lengths * 10, frame.cell.angles)
+        cf_frame.cell = chemfiles.UnitCell(frame.cell.lengths * 10, frame.cell.angles * RAD2DEG)
         cf_frame.step = frame.step
 
         self._xtc.write(cf_frame)
+
 
 TrjHandler.register_format('.xtc', Xtc)

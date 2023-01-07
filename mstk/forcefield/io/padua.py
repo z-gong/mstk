@@ -146,7 +146,7 @@ class Padua():
     def _parse_angle(self, ff, words):
         if words[3] not in ['harm', 'cons']:
             raise Exception('Unsupported angle function: %s' % (words[3]))
-        term = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]),
+        term = HarmonicAngleTerm(words[0], words[1], words[2], theta=float(words[4]) * DEG2RAD,
                                  k=float(words[5]) / 2, fixed=(words[3] == 'cons'))
         if term.name in ff.angle_terms.keys():
             raise Exception('Duplicated angle term: %s' % str(term))
@@ -158,9 +158,9 @@ class Padua():
         term = PeriodicDihedralTerm(words[0], words[1], words[2], words[3])
         k1, k2, k3, k4 = list(map(lambda x: float(x) / 2, words[5:9]))
         if k1 != 0: term.add_parameter(0.0, k1, 1)
-        if k2 != 0: term.add_parameter(180, k2, 2)
+        if k2 != 0: term.add_parameter(PI, k2, 2)
         if k3 != 0: term.add_parameter(0.0, k3, 3)
-        if k4 != 0: term.add_parameter(180, k4, 4)
+        if k4 != 0: term.add_parameter(PI, k4, 4)
         if term.name in ff.dihedral_terms.keys():
             raise Exception('Duplicated dihedral term: %s' % str(term))
         ff.dihedral_terms[term.name] = term

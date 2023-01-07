@@ -1,3 +1,4 @@
+from mstk.chem.constant import *
 from mstk.chem.element import Element
 from mstk.topology.atom import Atom
 from mstk.topology.molecule import Molecule
@@ -20,6 +21,8 @@ class Pdb():
     file : str
     atom_type : bool
         If True, the atom name column will be parsed as atom type
+    split_molecule : str
+        Can be 'residue', 'whole' or 'bond'
 
     Attributes
     ----------
@@ -38,7 +41,7 @@ class Pdb():
         self._molecule = Molecule()
         self._parse(file, **kwargs)
 
-    def _parse(self, file, atom_type=False):
+    def _parse(self, file, atom_type=False, split_molecule='residue'):
         '''
         Parse a PDB file
 
@@ -62,7 +65,8 @@ class Pdb():
                 break
             if line.startswith('CRYST1'):
                 a, b, c, alpha, beta, gamma = list(map(float, line.split()[1:7]))
-                self.topology.cell.set_box([[a / 10, b / 10, c / 10], [alpha, beta, gamma]])
+                self.topology.cell.set_box([[a / 10, b / 10, c / 10],
+                                            [alpha * DEG2RAD, beta * DEG2RAD, gamma * DEG2RAD]])
             if line.startswith('ATOM') or line.startswith('HETATM'):
                 _atom_started = True
                 atom_id = int(line[6:11])
@@ -100,6 +104,7 @@ class Pdb():
             mol.add_residue(resname, atoms)
 
         prev_section = ''
+        connects = {}
         for line in lines:
             line = line.rstrip()
             section = line[:6]
@@ -109,24 +114,31 @@ class Pdb():
             if section == 'CONECT':
                 id1 = int(line[6:11])
                 id2 = int(line[11:16])
-                atom1 = atom_ids[id1]
-                atom2 = atom_ids[id2]
-                mol.add_bond(atom1, atom2, check_existence=True)
+                connects[tuple(sorted([id1, id2]))] = None
                 if len(line) > 16:
                     id3 = int(line[16:21])
-                    atom3 = atom_ids[id3]
-                    mol.add_bond(atom1, atom3, check_existence=True)
+                    connects[tuple(sorted([id1, id3]))] = None
                 if len(line) > 21:
                     id4 = int(line[21:26])
-                    atom4 = atom_ids[id4]
-                    mol.add_bond(atom1, atom4, check_existence=True)
+                    connects[tuple(sorted([id1, id4]))] = None
                 if len(line) > 26:
                     id5 = int(line[26:31])
-                    atom5 = atom_ids[id5]
-                    mol.add_bond(atom1, atom5, check_existence=True)
+                    connects[tuple(sorted([id1, id5]))] = None
             prev_section = section
 
-        self.topology.update_molecules(mol.split(consecutive=True))
+        for id1, id2 in connects:
+            atom1 = atom_ids[id1]
+            atom2 = atom_ids[id2]
+            mol.add_bond(atom1, atom2)
+
+        if split_molecule == 'residue':
+            self.topology.update_molecules(mol.split_residues())
+        elif split_molecule == 'whole':
+            self.topology.update_molecules([mol])
+        elif split_molecule == 'bond':
+            self.topology.update_molecules(mol.split(consecutive=True))
+        else:
+            raise Exception(f'Invalid option or split_molecule: {split_molecule}')
         self.topology.generate_angle_dihedral_improper()
 
     @staticmethod
@@ -148,7 +160,7 @@ class Pdb():
         angles = top.cell.angles
         string = 'REMARK   Created by mstk\n'
         string += 'CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1 \n' % (
-            lengths[0], lengths[1], lengths[2], angles[0], angles[1], angles[2])
+            lengths[0], lengths[1], lengths[2], angles[0] * RAD2DEG, angles[1] * RAD2DEG, angles[2] * RAD2DEG)
 
         for atom in top.atoms:
             pos = atom.position * 10  # convert from nm to A

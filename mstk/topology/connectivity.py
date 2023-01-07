@@ -94,15 +94,15 @@ class Bond():
         return '%s-%s' % (self.atom1.name, self.atom2.name)
 
     @property
-    def id_atoms(self):
+    def atoms(self):
         '''
-        The ids of atoms forming this bond
+        The atoms forming this bond
 
         Returns
         -------
-        id_tuple : tuple of int
+        atoms : tuple of Atom
         '''
-        return self.atom1.id, self.atom2.id
+        return self.atom1, self.atom2
 
     @property
     def is_drude(self):
@@ -193,15 +193,15 @@ class Angle():
         return '%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name)
 
     @property
-    def id_atoms(self):
+    def atoms(self):
         '''
-        The ids of atoms forming this angle
+        The atoms forming this angle
 
         Returns
         -------
-        id_tuple : tuple of int
+        atoms : tuple of Atom
         '''
-        return self.atom1.id, self.atom2.id, self.atom3.id
+        return self.atom1, self.atom2, self.atom3
 
     @property
     def bonds(self):
@@ -300,15 +300,66 @@ class Dihedral():
                % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
     @property
-    def id_atoms(self):
+    def atoms(self):
         '''
-        The ids of atoms forming this dihedral
+        The atoms forming this dihedral
 
         Returns
         -------
-        id_tuple : tuple of int
+        atoms : tuple of Atom
         '''
-        return self.atom1.id, self.atom2.id, self.atom3.id, self.atom4.id
+        return self.atom1, self.atom2, self.atom3, self.atom4
+
+    @property
+    def bonds(self):
+        '''
+        The three bonds in this dihedral
+
+        Returns
+        -------
+        bonds : tuple of Bond
+        '''
+        _bond12 = Bond(self.atom1, self.atom2)
+        _bond23 = Bond(self.atom2, self.atom3)
+        _bond34 = Bond(self.atom3, self.atom4)
+        mol = self.atom1.molecule
+        try:
+            bond12 = next(b for b in self.atom1.bonds if b.equals(_bond12))
+        except StopIteration:
+            raise Exception(f'{_bond12} not found in {mol}')
+        try:
+            bond23 = next(b for b in self.atom2.bonds if b.equals(_bond23))
+        except StopIteration:
+            raise Exception(f'{_bond23} not found in {mol}')
+        try:
+            bond34 = next(b for b in self.atom3.bonds if b.equals(_bond34))
+        except StopIteration:
+            raise Exception(f'{_bond34} not found in {mol}')
+
+        return bond12, bond23, bond34
+
+    @property
+    def angles(self):
+        '''
+        The two angles in this dihedral
+
+        Returns
+        -------
+        angles : tuple of Angle
+        '''
+        _angle123 = Angle(self.atom1, self.atom2, self.atom3)
+        _angle234 = Angle(self.atom2, self.atom3, self.atom4)
+        mol = self.atom1.molecule
+        try:
+            angle123 = next(a for a in mol.angles if a.equals(_angle123))
+        except StopIteration:
+            raise Exception(f'{_angle123} not found in {mol}')
+        try:
+            angle234 = next(a for a in mol.angles if a.equals(_angle234))
+        except StopIteration:
+            raise Exception(f'{_angle234} not found in {mol}')
+
+        return angle123, angle234
 
     def evaluate(self):
         '''
@@ -389,15 +440,15 @@ class Improper():
         return '%s-%s-%s-%s' % (self.atom1.name, self.atom2.name, self.atom3.name, self.atom4.name)
 
     @property
-    def id_atoms(self):
+    def atoms(self):
         '''
-        The ids of atoms forming this improper torsion
+        The atoms forming this improper torsion
 
         Returns
         -------
-        id_tuple : tuple of int
+        atoms : tuple of Atom
         '''
-        return self.atom1.id, self.atom2.id, self.atom3.id, self.atom4.id
+        return self.atom1, self.atom2, self.atom3, self.atom4
 
     def evaluate(self):
         '''

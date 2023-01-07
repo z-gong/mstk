@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def polyfit(x, y, degree, weight=None):
     '''
     Least square n-th order polynomial fitting:
@@ -15,7 +18,6 @@ def polyfit(x, y, degree, weight=None):
     coeff : ndarray
     rsq : float
     '''
-    import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
 
@@ -96,7 +98,6 @@ def polyfit_2d(x, y, z, degree, weight=None):
     coeff : ndarray
     rsq : float
     '''
-    import numpy as np
     from sklearn import linear_model
     from sklearn.preprocessing import PolynomialFeatures
 
@@ -176,7 +177,6 @@ def curve_fit_rsq(func, x_list, y_list, guess=None, bounds=None):
     coeff: tuple of float
     rsq : float
     '''
-    import numpy as np
     from scipy.optimize import curve_fit
 
     x_array = np.array(x_list)
@@ -317,8 +317,6 @@ def vle_pvap(T, A, B):
 
 
 def fit_vle_pvap(T_list, pvap_list, guess=None, bounds=None):
-    import numpy as np
-
     y_array = np.log10(np.array(pvap_list))
 
     guess = guess or [10, 3000]

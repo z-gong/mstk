@@ -18,7 +18,7 @@ class GMX:
     One is the normal `gmx` binary without any acceleration.
     This is used for pre- and post-processing, which normally run on the front node of a HPC.
     The other one is the `mdrun` binary with full accelerations through MPI, OpenMP, GPU, etc...
-    This will be submitted to :class:`~mstk.jobmanager.JobManager` to run on the compute node of a HPC.
+    This will be submitted to :class:`~mstk.scheduler.Scheduler` to run on the compute node of a HPC.
     Refer to GROMACS documentation for the compiling options.
 
     If gmx_bin and gmx_mdrun are provided separately (recommended), you should make sure that they have the same version.
@@ -95,7 +95,7 @@ class GMX:
         silent : bool
             If set to True and `get_cmd` set to False, then `gmx grompp` will be executed silently, without output on screen.
         get_cmd : bool
-            If set to True, the command for running `gmx grompp` will be returned, which can be feed into :class:`~mstk.jobmanager.JobManager`.
+            If set to True, the command for running `gmx grompp` will be returned, which can be feed into :class:`~mstk.scheduler.Scheduler`.
             If set to False, `gmx grompp` will be executed.
 
         Returns
@@ -142,7 +142,7 @@ class GMX:
         silent : bool
             If set to True and `get_cmd` set to False, then `mdrun` will be executed silently, without output on screen.
         get_cmd : bool
-            If set to True, the command for running `mdrun` will be returned, which can be feed into :class:`~mstk.jobmanager.JobManager`.
+            If set to True, the command for running `mdrun` will be returned, which can be feed into :class:`~mstk.scheduler.Scheduler`.
             If set to False, `mdrun` will be executed.
 
         Returns
@@ -457,7 +457,7 @@ class GMX:
         silent : bool
             If set to True and `get_cmd` set to False, then `gmx density` will be executed silently, without output on screen.
         get_cmd : bool
-            If set to True, the command for running `gmx density` will be returned, which can be feed into :class:`~mstk.jobmanager.JobManager`.
+            If set to True, the command for running `gmx density` will be returned, which can be feed into :class:`~mstk.scheduler.Scheduler`.
             If set to False, `gmx density` will be executed.
 
         Returns

@@ -22,8 +22,8 @@ class Psf():
     Parameters
     ----------
     file : str
-    kwargs : dict
-        Ignored
+    split_molecule : str
+        Can be 'residue', 'whole' or 'bond'
 
     Attributes
     ----------
@@ -40,9 +40,9 @@ class Psf():
     def __init__(self, file, **kwargs):
         self.topology = Topology()
         self._molecule = Molecule()  # a single molecule holds all the atoms
-        self._parse(file)
+        self._parse(file, **kwargs)
 
-    def _parse(self, file):
+    def _parse(self, file, split_molecule='residue'):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -85,7 +85,14 @@ class Psf():
             if section == 'NUMLP NUMLPH':
                 self._parse_virtual_sites(lines[iline: iline_next])
 
-        self.topology.update_molecules(self._molecule.split(consecutive=True))
+        if split_molecule == 'residue':
+            self.topology.update_molecules(self._molecule.split_residues())
+        elif split_molecule == 'whole':
+            self.topology.update_molecules([self._molecule])
+        elif split_molecule == 'bond':
+            self.topology.update_molecules(self._molecule.split(consecutive=True))
+        else:
+            raise Exception(f'Invalid option or split_molecule: {split_molecule}')
 
     def _parse_title(self, lines):
         nline = int(lines[0].strip().split()[0])
@@ -242,8 +249,8 @@ class Psf():
 
         string += '%8i !NATOM\n' % top.n_atom
         for i, atom in enumerate(top.atoms):
-            string += '%7i  S  %4i %8s %8s %8s %10.6f %8.4f %4i %8.4f %8.4f\n' % (
-                atom.id + 1, atom.residue.id + 1, atom.residue.name, atom.name, atom.type,
+            string += '%8i %-4s %-4i %-4s %-4s %-4s %10.6f %13.4f %11i %8.4f %8.4f\n' % (
+                atom.id + 1, 'S', atom.residue.id + 1, atom.residue.name, atom.name, atom.type,
                 atom.charge, atom.mass, 0, -atom.alpha * 1000, atom.thole / 2
             )
         string += '\n'

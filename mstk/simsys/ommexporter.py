@@ -139,7 +139,7 @@ class OpenMMExporter:
                     aterm = system.angle_terms[angle]
                     if type(aterm) == HarmonicAngleTerm:
                         aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
-                                        aterm.theta * PI / 180, aterm.k * 2)
+                                        aterm.theta, aterm.k * 2)
             elif angle_class == SDKAngleTerm:
                 logger.debug('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
@@ -162,7 +162,7 @@ class OpenMMExporter:
                     if type(vdw) != MieTerm or vdw.repulsion != 9 or vdw.attraction != 6:
                         raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id],
-                                   [aterm.theta * PI / 180, aterm.k, vdw.epsilon, vdw.sigma])
+                                   [aterm.theta, aterm.k, vdw.epsilon, vdw.sigma])
             elif angle_class == LinearAngleTerm:
                 logger.debug('Setting up linear angles...')
                 aforce = mm.CustomCompoundBondForce(
@@ -216,7 +216,7 @@ class OpenMMExporter:
                         dterm = dterm.to_periodic_term()
                     if type(dterm) == PeriodicDihedralTerm:
                         for par in dterm.parameters:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi * PI / 180, par.k)
+                            dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi, par.k)
             else:
                 raise Exception('Dihedral terms other that OplsDihedralTerm and PeriodicDihedralTerm '
                                 'haven\'t been implemented')
@@ -239,9 +239,8 @@ class OpenMMExporter:
                                           improper.atom1.id, improper.atom4.id, [iterm.k])
             elif improper_class == HarmonicImproperTerm:
                 logger.debug('Setting up harmonic impropers...')
-                iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*pi-dtheta)^2;'
-                                               f'dtheta=abs(theta-phi0);'
-                                               f'pi={PI}')
+                iforce = mm.CustomTorsionForce(f'k*min(dtheta,2*{PI}-dtheta)^2;'
+                                               f'dtheta=abs(theta-phi0)')
                 iforce.addPerTorsionParameter('phi0')
                 iforce.addPerTorsionParameter('k')
                 for improper in top.impropers:
@@ -249,7 +248,7 @@ class OpenMMExporter:
                     if type(iterm) == HarmonicImproperTerm:
                         iforce.addTorsion(improper.atom1.id, improper.atom2.id,
                                           improper.atom3.id, improper.atom4.id,
-                                          [iterm.phi * PI / 180, iterm.k])
+                                          [iterm.phi, iterm.k])
             else:
                 raise Exception('Improper terms other that PeriodicImproperTerm and '
                                 'HarmonicImproperTerm haven\'t been implemented')
