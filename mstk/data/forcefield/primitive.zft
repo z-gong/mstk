@@ -5,16 +5,16 @@ TypeDefinition
 
 H       [#1]
 H1      [#1;X1]
-H1po    [#1;X1][#7,#8]
+H1p     [#1;X1][#7,#8]
 C       [#6]
 C4      [#6;X4]
 C3      [#6;X3]
-C3ar    [c;X3]
-C3=o    [C;X3]=O
+C3a     [c;X3]
+C3=O    [C;X3]=O
 C2      [#6;X2]
 N       [#7]
 N3      [#7;X3]
-N3co    [N;X3]C=O
+N3CO    [N;X3]C=O
 O       [#8]
 O2      [#8;X2]
 O2w     [O;X2;H2]
@@ -25,16 +25,16 @@ HierarchicalTree
 
 H
     H1
-        H1po
+        H1p
 C
     C4
     C3
-        C3ar
-        C3=o
+        C3a
+        C3=O
     C2
 N
     N3
-        N3co
+        N3CO
 O
     O2
         O2w

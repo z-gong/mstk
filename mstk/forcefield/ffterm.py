@@ -253,6 +253,8 @@ class FFTerm():
                     string = ' %9.4f' % val
             elif type(val) is int:
                 string = ' %2i' % val
+            elif type(val) is bool:
+                string = ' %6s' % val
             else:
                 string = ' %-9s' % val
             line += string
@@ -276,6 +278,8 @@ class FFTerm():
                 string = ' %9s' % attr
             elif type(val) is int:
                 string = ' %2s' % attr
+            elif type(val) is bool:
+                string = ' %6s' % attr
             else:
                 string = ' %-9s' % attr
             line += string

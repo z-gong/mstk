@@ -59,7 +59,9 @@ class Zff():
                 raise Exception('Invalid force field line: ' + str_term)
 
             if len(parts) > 1:
-                term.comments.append(parts[1].strip())
+                comment = parts[1].strip()
+                if comment:
+                    term.comments.append(comment)
 
             try:
                 ff.add_term(term)
