@@ -4,6 +4,7 @@ import sys
 import pickle
 import traceback
 import argparse
+import random
 import numpy as np
 from openmm import openmm as mm
 from mstk.topology import Topology, Molecule
@@ -12,6 +13,7 @@ from mstk.forcefield import ForceField
 from mstk.forcefield.typer import ZftTyper, typer_primitive
 from mstk.forcefield.errors import *
 from mstk.simsys import System
+from mstk.chem import constant
 from mstk import logger
 
 
@@ -28,10 +30,15 @@ def parse_args():
                              'If set to primitive, then the ZftTyper defined by primitive.zft will be used')
     parser.add_argument('-c', '--conf', type=str,
                         help='configuration file with positions and box. The last frame will be used')
+    parser.add_argument('--density', type=float,
+                        help='the density of the target box in g/mL. '
+                             'The size of cubic box will be calculated from it. '
+                             'If the argument box is also provided, density will be ignored')
     parser.add_argument('--box', nargs='+', type=float,
                         help='periodic box size if not provided by topology or configuration')
     parser.add_argument('--packmol', action='store_true',
                         help='generate Packmol input files for building coordinates')
+    parser.add_argument('--ua', action='store_true', help='export united-atom model')
     return parser.parse_args()
 
 
@@ -53,26 +60,65 @@ def main():
         if inp.startswith(':') or inp.lower().endswith('.smi'):
             if typer is None:
                 raise Exception('--typer is required for SMILES input')
-        top = Topology.open(inp)
-        ref_mols += top.molecules
+        ref_mols += Topology.open(inp).molecules
 
     if args.number is None:
         args.number = [1] * len(ref_mols)
 
     if len(args.number) != len(ref_mols):
-        raise Exception('inconsistent molecules and numbers')
+        raise Exception('Inconsistent molecules and numbers')
 
-    molecules = []
-    for mol, n in zip(ref_mols, args.number):
-        molecules += [mol] * n
-    top = Topology(molecules)
-    top.remove_drude_particles()
-    top.remove_virtual_sites()
+    # in case number is 0 for some molecules
+    numbers = list(args.number)
+    for i in range(len(numbers) - 1, -1, -1):
+        if args.number[i] <= 0:
+            ref_mols.pop(i)
+            numbers.pop(i)
+
+    ff = ForceField.open(*args.ff)
+
+    for mol in ref_mols:
+        logger.info(f'Processing {mol}...')
+        mol.remove_drude_particles()
+        mol.remove_virtual_sites()
+        if mol.n_atom > 1 and mol.n_bond == 0:
+            logger.warning(f'{mol} carries no bond. Make sure the topology is correct')
+
+        if typer is not None:
+            try:
+                typer.type(mol)
+            except TypingNotSupportedError as e:
+                logger.warning(f'Failed typing {mol}: {e}. '
+                               f'This warning can be ignored if atom type is already assigned')
+            except TypingUndefinedError as e:
+                xyz = '_typing_' + mol.name + '.xyz'
+                Topology([mol]).write(xyz)
+                logger.error(f'Failed typing {mol}: {e}. Check {xyz}')
+                sys.exit(1)
+
+        if args.ua:
+            mol.remove_non_polar_hydrogens()
+
+        if ff.is_polarizable:
+            mol.generate_drude_particles(ff)
+        if ff.has_virtual_site:
+            mol.generate_virtual_sites(ff)
+        ff.assign_mass(mol)
+        ff.assign_charge(mol)
+
+    top = Topology(ref_mols, numbers)
 
     if args.conf is not None:
         frame = Trajectory.read_frame_from_file(args.conf, -1)
+        # do not set position because the frame may not contain Drude particles and virtual sites
         if frame.cell.volume != 0:
             top.cell.set_box(frame.cell.vectors)
+
+    if args.density is not None:
+        mass = sum(atom.mass for atom in top.atoms)  # g/mol
+        vol = mass / args.density / constant.AVOGADRO  # cm^3
+        box = [vol ** (1 / 3) * constant.CENTI / constant.NANO] * 3  # nm
+        top.cell.set_box(box)
 
     if args.box is not None:
         if len(args.box) == 3:
@@ -83,45 +129,12 @@ def main():
             raise Exception('box should be float or list of three floats')
         top.cell.set_box(box)
 
-    ff = ForceField.open(*args.ff)
-
-    mol_count = dict(zip(ref_mols, args.number))
-    for mol in mol_count.keys():
-        logger.info('Processing %s ...' % str(mol))
-        if typer is not None:
-            try:
-                typer.type(mol)
-            except TypingNotSupportedError as e:
-                pass
-            except TypingUndefinedError as e:
-                xyz = '_typing_' + mol.name + '.xyz'
-                Topology([mol]).write(xyz)
-                logger.error('Failed typing %s: %s. Check %s' % (mol, str(e), xyz))
-                sys.exit(1)
-
-        if mol.n_atom > 1 and mol.n_bond == 0:
-            if mol.has_position:
-                logger.warning(f'{str(mol)} carries no bond. Guessing connectivity from FF')
-                mol.guess_connectivity_from_ff(ff, pbc='xyz', cell=top.cell)
-            else:
-                logger.warning(f'{str(mol)} carries no bond. Make sure the topology is correct')
-
-        if ff.is_polarizable:
-            mol.generate_drude_particles(ff)
-        if ff.has_virtual_site:
-            mol.generate_virtual_sites(ff)
-        mol.assign_mass_from_ff(ff)
-        mol.assign_charge_from_ff(ff)
-
     if args.packmol:
-        top.update_molecules(list(mol_count.keys()))
-        top.scale_with_packmol(list(mol_count.values()))
+        top.update_molecules(ref_mols)
+        top.scale_with_packmol(numbers, seed=random.randrange(int(1E5), int(1E6)), tempdir='.')
         sys.exit(0)
 
     logger.info('Exporting ...')
-
-    top.update_molecules(list(mol_count.keys()), list(mol_count.values()))
-
     if args.conf is None:
         logger.warning('Trajectory file not provided. '
                        'Will use positions and cell from the topology')

@@ -12,7 +12,6 @@ class Residue:
         self.id_in_mol = -1
         self.name = name
         self._atoms = []
-        self._molecule = None
 
     def __repr__(self):
         return f'<Residue: {self.name} {self.id}>'
@@ -24,10 +23,6 @@ class Residue:
     @property
     def atoms(self):
         return self._atoms
-
-    @property
-    def molecule(self):
-        return self._molecule
 
     def _add_atom(self, atom):
         atom._residue = self

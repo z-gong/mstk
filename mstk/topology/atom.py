@@ -48,7 +48,7 @@ class Atom():
         self.id = -1
         self.id_in_mol = -1
         self.name = name
-        self.type = ''
+        self.type = 'UNK'
         self.symbol = 'UNK'
         self.mass = 0.
         self.charge = 0.

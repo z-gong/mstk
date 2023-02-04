@@ -25,8 +25,6 @@ class LammpsExporter():
     * :class:`~mstk.forcefield.OplsImproperTerm`
 
     In order to run simulation of SDK-CG model, the package CG-SDK should be included when compiling LAMMPS.
-
-    Polarizable system containing :class:`DrudeTerm` should be handled by :class:`LammpsDrudeExporter`.
     '''
 
     def __init__(self):
@@ -237,7 +235,7 @@ class LammpsExporter():
                         if vdw.is_sdk:
                             lj_style = f'lj{int(vdw.repulsion)}_{int(vdw.attraction)}'
                         else:
-                            raise Exception('Invalid MieTerm for SDK CG model')
+                            raise Exception('MieTerm other than SDK type are not implemented')
                     else:
                         lj_style = 'lj12_6'
                     cmd_paras += 'pair_coeff %4i %4i %8s %9.5f %8.4f  # %8s %8s %s\n' % (

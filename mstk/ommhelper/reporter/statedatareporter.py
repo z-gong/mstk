@@ -156,7 +156,8 @@ class StateDataReporter(object):
         self._totalSteps = totalSteps
         self._hasInitialized = False
         self._needsPositions = pressure or pxx or pyy or pzz
-        self._needsVelocities = pxx or pyy or pzz
+        # self._needsVelocities = pxx or pyy or pzz
+        self._needsVelocities = False
         self._needsForces = False
         self._needEnergy = potentialEnergy or kineticEnergy or totalEnergy or temperature \
                            or pressure or pxx or pyy or pzz

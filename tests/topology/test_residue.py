@@ -113,7 +113,7 @@ def test_top_residue():
     res1, res2 = top.residues
     assert res1.id == 0
     assert res1.id_in_mol == 0
-    assert res1.name == 'C6H6'
+    assert res1.name == 'c1ccccc1'
     assert res1.n_atom == 12
 
     assert res2.id == 1
@@ -126,7 +126,7 @@ def test_top_residue():
     res1, res2 = merged.residues
     assert res1.id == -1
     assert res1.id_in_mol == 0
-    assert res1.name == 'C6H6'
+    assert res1.name == 'c1ccccc1'
     assert res1.n_atom == 12
 
     assert res2.id == -1
@@ -140,7 +140,7 @@ def test_top_residue():
     res1, res2, res3 = merged.residues
     assert res1.id == -1
     assert res1.id_in_mol == 0
-    assert res1.name == 'C6H6'
+    assert res1.name == 'c1ccccc1'
     assert res1.n_atom == 6
 
     assert res2.id == -1
@@ -163,7 +163,7 @@ def test_top_residue():
 
     assert res2.id == -1
     assert res2.id_in_mol == 1
-    assert res2.name == 'C6H6'
+    assert res2.name == 'c1ccccc1'
     assert res2.n_atom == 6
 
     assert sol.n_residue == 1

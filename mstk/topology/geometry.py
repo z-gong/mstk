@@ -80,8 +80,9 @@ def periodic_distance(pos1, pos2, box, distance_max=None):
     distance : float or None
         May return None if distance is apparently larger than `distance_max`
     '''
-    delta = pos1 - pos2
-    if distance_max is not None and any((np.abs(delta) > distance_max) & (np.abs(delta) < box - distance_max)):
+    delta = pos2 - pos1
+    abs_delta = np.abs(delta)
+    if distance_max is not None and any((abs_delta > distance_max) & (abs_delta < box - distance_max)):
         return None
 
     ### elements of delta will be transformed to (-0.5, 0.5]
@@ -89,9 +90,6 @@ def periodic_distance(pos1, pos2, box, distance_max=None):
 
     ### elements of delta will be transformed to [-0.5, 0.5)
     # delta -= np.floor(delta / box + 0.5) * box
-
-    if distance_max is not None and any(np.abs(delta) > distance_max):
-        return None
 
     return math.sqrt(np.dot(delta, delta))
 
@@ -121,6 +119,7 @@ def periodic_angle(pos1, pos2, pos3, box):
 
     cos = vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))
     return float(np.arccos(np.clip(cos, -1, 1)))
+
 
 def periodic_dihedral(pos1, pos2, pos3, pos4, box):
     '''

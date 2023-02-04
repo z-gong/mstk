@@ -68,6 +68,6 @@ def test_typer_primitive_kekulize():
         mol.add_bond(C, C2, order=order)
 
     typer_primitive.type(mol)
-    assert [atom.type for atom in mol.atoms] == ['C3ar'] * 6 + ['H1'] * 6
+    assert [atom.type for atom in mol.atoms] == ['C3a'] * 6 + ['H1'] * 6
 
 

@@ -13,8 +13,8 @@ def test_primitive_ff():
     mol = Molecule.from_smiles('C=CCC#CCOC(=O)NC(O)C(=O)OC')
     typer_primitive.type(mol)
     assert [atom.type for atom in mol.atoms] == [
-        'C3', 'C3', 'C4', 'C2', 'C2', 'C4', 'O2', 'C3=o', 'O1', 'N3co', 'C4', 'O2', 'C3=o', 'O1', 'O2', 'C4',
-        'H1', 'H1', 'H1', 'H1', 'H1', 'H1', 'H1', 'H1po', 'H1', 'H1po', 'H1', 'H1', 'H1'
+        'C3', 'C3', 'C4', 'C2', 'C2', 'C4', 'O2', 'C3=O', 'O1', 'N3CO', 'C4', 'O2', 'C3=O', 'O1', 'O2', 'C4',
+        'H1', 'H1', 'H1', 'H1', 'H1', 'H1', 'H1', 'H1p', 'H1', 'H1p', 'H1', 'H1', 'H1'
     ]
     top = Topology([mol])
     ff = ForceField.open('primitive.zff')

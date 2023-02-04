@@ -17,7 +17,7 @@ def test_smiles():
 
     bf4 = Molecule.from_smiles('[B-](F)(F)(F)F')
     assert bf4.n_atom == 5
-    assert bf4.name == 'BF4-'
+    assert bf4.name == '[B-](F)(F)(F)F'
     assert bf4.n_improper == 0
 
 

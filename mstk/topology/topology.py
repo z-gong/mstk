@@ -181,7 +181,7 @@ class Topology():
         else:
             return {mol: flags.count(mol.id) for mol in mols_unique}
 
-    def scale_with_packmol(self, numbers, packmol=None, tempdir=None):
+    def scale_with_packmol(self, numbers, packmol=None, seed=1, tempdir=None):
         '''
         Enlarge the number of molecules in this topology with Packmol.
 
@@ -200,10 +200,13 @@ class Topology():
         numbers : int or list of int
             If numbers is a int, the topology will be scaled by this times.
             If numbers is a list of int, the each molecule will be scaled by corresponding times.
-        packmol : Packmol
+        packmol : Packmol, Optional
+            If is None, will generate input files for packmol.
+        seed : int
+            Seed for random number for Packmol
         tempdir : str, Optional
             The temporary directory to keep intermediate files for packmol. It should exist already
-            If is None. Will create a directory under system temporary directory
+            If is None, will create a directory under system temporary directory
         '''
         if type(numbers) is int:
             numbers = [numbers] * self.n_molecule
@@ -238,7 +241,7 @@ class Topology():
         tmp_out = tempdir + '/_out.xyz'
         if packmol is not None:
             packmol.build_box(xyz_files, numbers, tmp_out,
-                              size=self.cell.size - 0.2, inp_file=tmp_inp, seed=1, silent=True)
+                              size=self.cell.size - 0.2, inp_file=tmp_inp, seed=seed, silent=True)
             try:
                 xyz = Topology.open(tmp_out)
             except:
@@ -250,7 +253,7 @@ class Topology():
             self.update_molecules(self._molecules, numbers)
             self.set_positions(xyz.positions)
         else:
-            Packmol.gen_inp(xyz_files, numbers, tmp_out, size=self.cell.size - 0.2, inp_file=tmp_inp, seed=1)
+            Packmol.gen_inp(xyz_files, numbers, tmp_out, size=self.cell.size - 0.2, inp_file=tmp_inp, seed=seed)
 
     def scale_box(self, scale, rigid_group='atom'):
         '''

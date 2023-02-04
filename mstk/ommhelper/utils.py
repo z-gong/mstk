@@ -1,5 +1,6 @@
 import openmm
 import openmm.openmm as mm
+import numpy as np
 from openmm import app
 from .grofile import GroFile
 from .unit import kelvin, bar, nm, ps
@@ -25,12 +26,39 @@ def print_omm_info(logger=None):
 
 
 def minimize(sim, tolerance, gro_out=None, logger=None):
+    '''
+    Run energy minimization on a Simulation until the force on each atom is smaller than tolerance.
+
+    Note that the tolerance here differs from that in OpenMM LocalEnergyMinimizer.
+    In OpenMM, the tolerance is set for the root mean square of N*3 force components in the whole system.
+
+    Parameters
+    ----------
+    sim : app.Simulation
+    tolerance : float
+    gro_out : str
+    logger : Logger
+    '''
     if logger:
-        logger.info(f'Initial energy: {sim.context.getState(getEnergy=True).getPotentialEnergy()}')
-    sim.minimizeEnergy(tolerance=tolerance)
+        logger.info(f'Initial energy = {sim.context.getState(getEnergy=True).getPotentialEnergy()}')
+    i1_iter = 0
+    tol_iter = tolerance
+    while True:
+        i1_iter += 1
+        sim.minimizeEnergy(tolerance=tol_iter)
+        forces = sim.context.getState(getForces=True).getForces(asNumpy=True)._value
+        fsq = np.sum(forces * forces, axis=1)
+        imax = np.argmax(fsq)
+        fmax = fsq[imax] ** 0.5
+        if logger:
+            logger.info(f'Iter {i1_iter} Max force F_{imax} = {fmax} kJ/mol/nm')
+        if fmax < tolerance or i1_iter >= 10:
+            break
+        tol_iter /= 2
+
     state = sim.context.getState(getPositions=True, getEnergy=True)
     if logger:
-        logger.info(f'Minimized energy: {state.getPotentialEnergy()}')
+        logger.info(f'Minimized energy = {state.getPotentialEnergy()}')
 
     if gro_out:
         GroFile.writeFile(sim.topology, state.getPositions(), state.getPeriodicBoxVectors(), gro_out)

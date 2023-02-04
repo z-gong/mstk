@@ -120,7 +120,7 @@ for mol in mol_count.keys():
 
 if args.packmol:
     top.update_molecules(list(mol_count.keys()))
-    top.scale_with_packmol(list(mol_count.values()))
+    top.scale_with_packmol(list(mol_count.values()), tempdir='.')
     sys.exit(0)
 
 logger.info('Exporting ...')

@@ -216,7 +216,8 @@ class OpenMMExporter:
                         dterm = dterm.to_periodic_term()
                     if type(dterm) == PeriodicDihedralTerm:
                         for par in dterm.parameters:
-                            dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi, par.k)
+                            if par.k != 0:
+                                dforce.addTorsion(ia1, ia2, ia3, ia4, par.n, par.phi, par.k)
             else:
                 raise Exception('Dihedral terms other that OplsDihedralTerm and PeriodicDihedralTerm '
                                 'haven\'t been implemented')

@@ -135,7 +135,7 @@ class Molecule():
         if len(words) > 1:
             name = words[1]
         else:
-            name = None
+            name = smiles
 
         rdmol = create_mol_from_smiles(smiles)
         mol = Molecule.from_rdmol(rdmol, name)
@@ -268,17 +268,22 @@ class Molecule():
         '''
         return self._topology
 
-    def add_atom(self, atom, index=None, update_topology=True):
+    def add_atom(self, atom, residue=None, index=None, update_topology=True):
         '''
         Add an atom to this molecule.
 
-        The atom will also be added to the default residue.
         The id_in_mol attribute of all atoms will be updated after insertion.
+
+        TODO Make residue assignment more robust
 
         Parameters
         ----------
         atom : Atom
-        index : int or None
+        residue : Residue, Optional
+            Add the atom to this residue.
+            Make sure the residue belongs to this molecule. For performance concern, this is not checked.
+            If set to None, the atom will be added to the default residue.
+        index : int, Optional
             If None, the new atom will be the last atom. Otherwise, it will be inserted in front of index-th atom.
         update_topology : bool
             If True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
@@ -294,9 +299,10 @@ class Molecule():
                 at.id_in_mol = i
         self._is_rdmol_valid = False
 
-        self._default_residue._add_atom(atom)
-        # re-index residues because default residue start to count
-        if self._default_residue.n_atom == 1:
+        residue = residue or self._default_residue
+        residue._add_atom(atom)
+        # re-index residues because the residue starts to count
+        if residue.n_atom == 1:
             self._refresh_residues(update_topology)
 
         if self._topology is not None and update_topology:
@@ -334,6 +340,45 @@ class Molecule():
 
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+    def remove_non_polar_hydrogens(self, update_topology=True):
+        '''
+        Remove single-coordinated hydrogen atoms bonded to C and Si atoms
+
+        Parameters
+        ----------
+        update_topology : bool
+            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
+            Otherwise, you have to re-init the topology manually so that the topological information is correct.
+
+        Returns
+        -------
+        ids_removed : list of int
+            The number of atoms removed
+        '''
+        hydrogens = []
+        ids_removed = []
+        for atom in self.atoms[:]:
+            if atom.symbol != 'H' or len(atom.bonds) != 1:
+                continue
+            neigh = atom.bond_partners[0]
+            if neigh.symbol not in ('C', 'Si'):
+                continue
+            neigh.mass += atom.mass
+            neigh.charge += atom.charge
+            for conn in self.bonds[:] + self.angles[:] + self.dihedrals[:] + self.impropers[:]:
+                if atom in conn.atoms:
+                    self.remove_connectivity(conn)
+            ids_removed.append(atom.id_in_mol)
+            hydrogens.append(atom)
+
+        for atom in hydrogens:
+            self.remove_atom(atom, update_topology=False)
+
+        if self._topology is not None and update_topology:
+            self._topology.update_molecules(self._topology.molecules, deepcopy=False)
+
+        return ids_removed
 
     def add_residue(self, name, atoms, update_topology=True):
         '''

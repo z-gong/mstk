@@ -6,7 +6,7 @@ from mstk.topology.topology import Topology
 from mstk.topology.virtualsite import TIP4PSite
 
 
-class Psf():
+class Psf:
     '''
     Generate Topology from PSF file.
 
@@ -15,15 +15,15 @@ class Psf():
     but anisotroic polarizability are ignored.
     All others like hydrogen bonds are ignored.
 
-    This parser is designed for non-biological system.
-    Each residue is treated as one molecule.
-    So if there are bonds between residues, there might be bugs.
-
     Parameters
     ----------
     file : str
     split_molecule : str
-        Can be 'residue', 'whole' or 'bond'
+        Can be 'residue', 'whole', 'bond' or 'auto'. Default is 'auto'.
+        If set to 'residue', each residue will be parsed as a molecule. It works only if there is no inter-residue bonds.
+        If set to 'whole', all the atoms will be put into one molecule.
+        If set to 'bond', the atoms will be grouped into molecules based on connectivity.
+        if set to 'auto', it will try 'residue' first. If there's inter-residue connectivity, will use 'whole' instead.
 
     Attributes
     ----------
@@ -42,7 +42,7 @@ class Psf():
         self._molecule = Molecule()  # a single molecule holds all the atoms
         self._parse(file, **kwargs)
 
-    def _parse(self, file, split_molecule='residue'):
+    def _parse(self, file, split_molecule='auto'):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -91,8 +91,15 @@ class Psf():
             self.topology.update_molecules([self._molecule])
         elif split_molecule == 'bond':
             self.topology.update_molecules(self._molecule.split(consecutive=True))
+        elif split_molecule == 'auto':
+            try:
+                pieces = self._molecule.split_residues()
+            except:
+                self.topology.update_molecules([self._molecule])
+            else:
+                self.topology.update_molecules(pieces)
         else:
-            raise Exception(f'Invalid option or split_molecule: {split_molecule}')
+            raise Exception(f'Invalid option for split_molecule: {split_molecule}')
 
     def _parse_title(self, lines):
         nline = int(lines[0].strip().split()[0])

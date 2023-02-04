@@ -126,7 +126,7 @@ if __name__ == '__main__':
     print('Running...')
     oh.energy_decomposition(sim)
     if args.min:
-        oh.minimize(sim, 100, 'em.gro')
+        oh.minimize(sim, 500.0, 'em.gro')
     i_step = 0
     while i_step < args.nstep:
         if sig_handler.SIGINT:

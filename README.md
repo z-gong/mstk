@@ -55,3 +55,4 @@ https://mstk.readthedocs.io/en/latest/index.html
 ## TODO
 
 - [ ] Take bond order into consideration for force field assignment
+- [ ] Re-organize algorithms scattered in topology and analyzer modules

@@ -2,11 +2,10 @@ import copy
 import itertools
 from ..topology import *
 from ..forcefield import *
-from ..chem.constant import *
 from .. import logger
 
 
-class System():
+class System:
     '''
     System is a combination of topology and forcefield, ready for simulation.
 
@@ -275,11 +274,7 @@ class System():
 
         _dterm_not_found = set()
         _dterm_transferred = set()
-        _n_dihedral_to_remove = 0
-        _dterm_to_remove = set()
         for mol in self._topology.molecules:
-            _dihedral_to_remove = []
-            _dihedrals_to_keep = []
             for dihedral in mol.dihedrals:
                 _found = False
                 ats_list = ff.get_eqt_for_dihedral(dihedral)
@@ -301,29 +296,8 @@ class System():
                 if not _found:
                     _dterm_not_found.add(_term.name)
                 else:
-                    _remove = False
-                    # remove linear dihedrals in case linear groups like alkyne and nitrile give energy of NaN
-                    # TODO Disable it because of performance issue
-                    # if dterm.is_zero:
-                    #     angle1, angle2 = dihedral.angles
-                    #     aterm1, aterm2 = self.angle_terms[angle1], self.angle_terms[angle2]
-                    #     if aterm1.is_linear or aterm2.is_linear:
-                    #         _remove = True
-                    if _remove:
-                        _dihedral_to_remove.append(dihedral)
-                        _n_dihedral_to_remove += 1
-                        _dterm_to_remove.add(dterm.name)
-                    else:
-                        _dihedrals_to_keep.append(dihedral)
-                        self._ff.add_term(dterm, replace=True)
-                        self.dihedral_terms[dihedral] = dterm
-            # extremely slow to remove lots of dihedrals by calling mol.remove_connectivity()
-            mol._dihedrals = _dihedrals_to_keep
-
-        if _n_dihedral_to_remove > 0:
-            logger.warning('%i dihedrals removed because they are linear and have zero energy\n'
-                           '        %s' % (_n_dihedral_to_remove,
-                                           '\n        '.join(_dterm_to_remove)))
+                    self._ff.add_term(dterm, replace=True)
+                    self.dihedral_terms[dihedral] = dterm
 
         _iterm_not_found = set()
         _iterm_transferred = set()
