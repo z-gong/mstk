@@ -4,6 +4,7 @@ import argparse
 from mstk.topology import Topology
 from mstk.trajectory import Trajectory
 from mstk.forcefield import ForceField
+from mstk import logger
 
 
 def parse_args():
@@ -11,15 +12,14 @@ def parse_args():
     parser.add_argument('input', nargs='+', type=str, help='topology file')
     parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
     parser.add_argument('-c', '--conf', type=str,
-                        help='configuration file with positions and box. The last frame will be used')
+                        help='configuration file with positions and box. The last frame will be used. '
+                             'This is for writing topology in formats supporting positions, e.g. PDB, XYZ')
     parser.add_argument('-o', '--output', required=True, type=str, help='output topology file')
     parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule types')
     parser.add_argument('-f', '--ff', type=str, help='reassign charge from FF')
     parser.add_argument('--qscale', default=1, type=float, help='scale the charge of atoms')
     parser.add_argument('--qscaleignore', nargs='+', default=[], type=str,
                         help='ignore these molecule names for charge scaling')
-    parser.add_argument('--qscaleignoreatom', nargs='+', default=[], type=str,
-                        help='ignore these atom types for charge scaling')
     parser.add_argument('--box', nargs='+', type=float,
                         help='overwrite the box dimensions')
     parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     top = top_list[0]
     top.update_molecules(molecules)
-    print(f'Topology info: {top.n_atom} atoms {top.n_molecule} molecules')
+    logger.info(str(top))
 
     if args.conf:
         frame = Trajectory.read_frame_from_file(args.conf, -1)
@@ -57,18 +57,19 @@ if __name__ == '__main__':
         for mol in top.molecules:
             mol.remove_non_polar_hydrogens(update_topology=False)
         top.update_molecules(top.molecules)
-        print(f'United-atom topology info: {top.n_atom} atoms')
+        logger.info(str(top))
 
     if args.ff:
         ff = ForceField.open(args.ff)
         ff.assign_charge(top)
-        print(f'Net charge = {sum(a.charge for a in top.atoms)}')
+        logger.info(f'Net charge = {sum(a.charge for a in top.atoms)}')
 
     if args.qscale != 1:
-        for atom in top.atoms:
-            if atom.type in args.qscaleignoreatom or atom.molecule.name in args.qscaleignore:
+        for mol in top.molecules:
+            if mol.name in args.qscaleignore:
                 continue
-            atom.charge *= args.qscale
+            for atom in mol.atoms:
+                atom.charge *= args.qscale
 
     if args.box is not None:
         if len(args.box) == 3:

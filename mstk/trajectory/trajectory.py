@@ -76,6 +76,9 @@ class Trajectory():
     def __del__(self):
         self.close()
 
+    def __repr__(self):
+        return f'<Trajectory: {self.n_frame} frames {self.n_atom} atoms>'
+
     def close(self):
         '''
         Close the opened trajectory file(s).
@@ -97,7 +100,8 @@ class Trajectory():
         this method should not be used because all the frames actually point to the same frame.
         In this case, use :func:`read_frames` instead.
 
-        i_frame should be in the range of [0, n_frame), otherwise and Exception will be raised.
+        i_frame should be in the range of [-1, n_frame), otherwise and Exception will be raised.
+        -1 means the last frame.
 
         Parameters
         ----------
@@ -123,6 +127,8 @@ class Trajectory():
         # Reset the information in self.frame in case the frames read from different trajectory files pollute each other for CombinedTrajectory
         self.frame.reset()
 
+        if i_frame == -1:
+            i_frame = self.n_frame - 1
         self._handler.read_frame(i_frame, self.frame)
         return self.frame
 
@@ -134,7 +140,8 @@ class Trajectory():
         Instead, a new Frame object is constructed for each frame.
         This method should be called when you want to multiprocess several frames in parallel.
 
-        All the items in i_frames should be in the range of (0, n_frame), otherwise and Exception will be raised.
+        All the items in i_frames should be in the range of [-1, n_frame), otherwise and Exception will be raised.
+        -1 means the last frame.
 
         Parameters
         ----------
@@ -153,6 +160,8 @@ class Trajectory():
 
         frames = [Frame(self.n_atom) for _ in i_frames]
         for ii, i_frame in enumerate(i_frames):
+            if i_frame == -1:
+                i_frame = self.n_frame - 1
             self._handler.read_frame(i_frame, frames[ii])
         return frames
 
@@ -219,8 +228,6 @@ class Trajectory():
 
         '''
         trj = Trajectory(file, 'r')
-        if i_frame == -1:
-            i_frame = trj.n_frame - 1
         frame = trj.read_frame(i_frame)
         trj.close()
         return frame

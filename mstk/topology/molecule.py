@@ -317,6 +317,8 @@ class Molecule():
         The angle, dihedral and improper involving this atom are untouched.
         Therefore, you may call `generate_angle_dihedral_improper` to refresh the connectivity.
 
+        # TODO This operation is extremely slow
+
         Parameters
         ----------
         atom : Atom
@@ -351,13 +353,14 @@ class Molecule():
             If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
             Otherwise, you have to re-init the topology manually so that the topological information is correct.
 
+        # TODO This operation is extremely slow
+
         Returns
         -------
         ids_removed : list of int
             The number of atoms removed
         '''
         hydrogens = []
-        ids_removed = []
         for atom in self.atoms[:]:
             if atom.symbol != 'H' or len(atom.bonds) != 1:
                 continue
@@ -366,11 +369,13 @@ class Molecule():
                 continue
             neigh.mass += atom.mass
             neigh.charge += atom.charge
-            for conn in self.bonds[:] + self.angles[:] + self.dihedrals[:] + self.impropers[:]:
-                if atom in conn.atoms:
-                    self.remove_connectivity(conn)
-            ids_removed.append(atom.id_in_mol)
             hydrogens.append(atom)
+        ids_hydrogens = [atom.id_in_mol for atom in hydrogens]
+
+        for conn in self.bonds[:] + self.angles[:] + self.dihedrals[:] + self.impropers[:]:
+            ids_set = {atom.id_in_mol for atom in conn.atoms}
+            if ids_set.intersection(ids_hydrogens):
+                self.remove_connectivity(conn)
 
         for atom in hydrogens:
             self.remove_atom(atom, update_topology=False)
@@ -378,7 +383,7 @@ class Molecule():
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-        return ids_removed
+        return ids_hydrogens
 
     def add_residue(self, name, atoms, update_topology=True):
         '''
@@ -562,6 +567,8 @@ class Molecule():
 
         Note that when a bond get removed, the relevant angles, dihedrals and impropers are still there.
         You may call `generate_angle_dihedral_improper` to refresh connectivity.
+
+        # TODO This operation is extremely slow
 
         Parameters
         ----------
