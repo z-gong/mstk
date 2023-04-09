@@ -143,26 +143,29 @@ class OpenMMExporter:
             elif angle_class == SDKAngleTerm:
                 logger.debug('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
-                    3, 'k*(theta-theta0)^2+step(rmin-r)*LJ96;'
-                       'LJ96=6.75*epsilon*((sigma/r)^9-(sigma/r)^6)+epsilon;'
+                    3, 'k*(theta-theta0)^2+step(rmin-r)*LJ;'
+                       'LJ=C*epsilon*((sigma/r)^n-(sigma/r)^m)+epsilon;'
                        'theta=angle(p1,p2,p3);'
                        'r=distance(p1,p3);'
-                       'rmin=1.144714*sigma')
+                       'C=n/(n-m)*(n/m)^(m/(n-m));'
+                       'rmin=(n/m)^(1/(n-m))*sigma')
                 aforce.addPerBondParameter('theta0')
                 aforce.addPerBondParameter('k')
                 aforce.addPerBondParameter('epsilon')
                 aforce.addPerBondParameter('sigma')
+                aforce.addPerBondParameter('n')
+                aforce.addPerBondParameter('m')
                 for angle in top.angles:
                     if angle in system.constrain_angles:
                         continue
                     aterm = system.angle_terms[angle]
                     if type(aterm) != SDKAngleTerm:
                         continue
-                    vdw = ff.get_vdw_term(ff.atom_types[angle.atom1.type], ff.atom_types[angle.atom2.type])
-                    if type(vdw) != MieTerm or vdw.repulsion != 9 or vdw.attraction != 6:
-                        raise Exception(f'Corresponding 9-6 MieTerm for {aterm} not found in FF')
+                    vdw = ff.get_vdw_term(ff.atom_types[angle.atom1.type], ff.atom_types[angle.atom3.type])
+                    if type(vdw) != MieTerm:
+                        raise Exception(f'Corresponding MieTerm for {aterm} not found in FF')
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id],
-                                   [aterm.theta, aterm.k, vdw.epsilon, vdw.sigma])
+                                   [aterm.theta, aterm.k, vdw.epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
             elif angle_class == LinearAngleTerm:
                 logger.debug('Setting up linear angles...')
                 aforce = mm.CustomCompoundBondForce(
