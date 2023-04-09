@@ -214,26 +214,21 @@ class Molecule():
         The `rdkit.Chem.Mol` object associated with this molecule.
 
         It is required by ZftTyper typing engine, which performs SMARTS matching on the molecule.
-        The obmol attribute will be assigned if the molecule is initialized from SMILES or Pybel Molecule.
-        If this information is not available, an Exception will be raised.
+        The `rdmol` attribute will be assigned if the molecule is initialized from SMILES or RDKit Molecule.
+        If it is not available, a RDKit molecule will be constructed from atoms and bonds.
+        The positions will not be preserved.
 
         Returns
         -------
         rdmol : rdkit.Chem.Mol
         '''
-        if not self._is_rdmol_valid:
-            self._construct_rdmol()
-
-        return self._rdmol
-
-    def _construct_rdmol(self):
-        '''
-        Construct a RDKit molecule from atoms and bonds. The positions will not be preserved.
-        '''
         try:
             from rdkit import Chem
         except ImportError:
             raise ImportError('RDKit not found')
+
+        if self._is_rdmol_valid:
+            return self._rdmol
 
         if any(b.order == Bond.Order.UNSPECIFIED for b in self.bonds):
             logger.warning(f'Not all bond orders are specified in {self}')
@@ -255,6 +250,38 @@ class Molecule():
         Chem.SanitizeMol(rwmol)
         self._rdmol = rwmol.GetMol()
         self._is_rdmol_valid = True
+
+        return self._rdmol
+
+    def generate_conformers(self, n_conformer=1):
+        '''
+        Generate several conformers with RDKit.
+
+        The positions will be generated from only elements and bonds. The chiral center will not be respected.
+
+        Parameters
+        ----------
+        n_conformer : int
+            How many conformers to generate
+
+        Returns
+        -------
+        molecules : list of Molecule
+            Each conformer will be a independent molecule object
+        '''
+        try:
+            from rdkit.Chem import AllChem as Chem
+        except ImportError:
+            raise ImportError('RDKit not found')
+
+        molecules = []
+        rdmol = Chem.Mol(self.rdmol)
+        Chem.EmbedMultipleConfs(rdmol, numConfs=n_conformer, clearConfs=True)
+        for i in range(rdmol.GetNumConformers()):
+            molecules.append(Molecule.from_rdmol(rdmol, name=self.name))
+            rdmol.RemoveConformer(i)
+
+        return molecules
 
     @property
     def topology(self):

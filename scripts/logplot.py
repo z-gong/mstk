@@ -46,6 +46,10 @@ class Analyzer:
         else:
             raise Exception('unknown log file type: ' + file_type)
 
+        # in case times in all frames are zero
+        if all(i == 0 for i in self.data_list[0]):
+            self.data_list[0] = [i for i in range(len(self.data_list[0]))]
+
     def read_openmm_log(self):
         _START = False
         for line in open(self.log_file):
@@ -123,8 +127,8 @@ class Analyzer:
                 continue
             if args.end > 0 and step > args.end:
                 break
-            for i, word in enumerate(words):
-                self.data_list[i].append(float(word))
+            for i in range(len(self.data_list)):
+                self.data_list[i].append(float(words[i]))
 
     def detect_converge(self):
         for i in range(1, len(self.data_list)):

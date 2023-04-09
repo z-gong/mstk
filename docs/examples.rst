@@ -4,7 +4,7 @@ Examples
 Assign atom types using customized typing rule
 ----------------------------------------------
 
-Atom type is the most basic element in a force field.
+Atom type is the most fundamental element in a force field.
 It determines which parameters should be used for describing the potential energy of each topological element (bond, angle, etc...) in a simulation system.
 The assignment of atom types is usually the most cumbersome task in a simulation workflow.
 For bio simulations, template matching is commonly used, because almost all bio-polymers are made of several kinds of repeating units.
@@ -13,13 +13,19 @@ However, the template matching won't work well for other molecules because there
 `mstk` provide a typing engine :class:`~mstk.forcefield.typer.ZftTyper` for assigning atom types.
 It is based on local chemical environment defined by SMARTS pattern and a hierarchical rule described in a type definition file.
 
-Herein, an example of using :class:`~mstk.forcefield.typer.ZftTyper` to assign atom types is provided.
-A type definition should be fed to this typing engine, either by file name or by string of its content.
-In order to construct the type definition file correctly, knowledge about
+In order to write the type definition file correctly, knowledge about
 `SMARTS pattern <https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html>`_ is required.
 The idea of the hierarchical rule is described in
 `this article <https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.24244>`_.
-The script below will assign atom types for butane using the convention of `TEAM` force field.
+
+Herein, an example of using :class:`~mstk.forcefield.typer.ZftTyper` to assign atom types is provided.
+A type definition file should be fed to this typing engine.
+The text below shows the type definition for linear alkane in `TEAM` force field.
+Let's copy its content and save it to file `alkane.zft`.
+
+.. literalinclude:: examples/alkane.zft
+
+The script below will assign atom types for butane using this type definition.
 
 .. literalinclude:: examples/type.py
 

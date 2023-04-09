@@ -14,13 +14,18 @@ def parse_args():
     parser.add_argument('input', nargs='+', type=str, help='trajectory files')
     parser.add_argument('-p', '--top', required=True, type=str, help='topology file')
     parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
-    parser.add_argument('-b', '--begin', default=0, type=int, help='first frame to read')
-    parser.add_argument('-e', '--end', default=-1, type=int, help='last frame (not included unless set to -1) to read')
+    parser.add_argument('-b', '--begin', default=0, type=int,
+                        help='read from this frame (included). '
+                             'A negative value has the same meaning as in Python list')
+    parser.add_argument('-e', '--end', type=int,
+                        help='read until this frame (not included). '
+                             'A negative value has the same meaning as in Python list. '
+                             'If not set, will read until the end of the trajectory')
     parser.add_argument('--skip', default=1, type=int, help='read every N frames')
-    parser.add_argument('--topignore', nargs='+', default=[], type=str,
-                        help='ignore these molecule names in topology in case topology and trajectory do not match')
     parser.add_argument('--ignore', nargs='+', default=[], type=str, help='ignore these molecule names')
     parser.add_argument('--ignoreatom', nargs='+', default=[], type=str, help='ignore these atom types')
+    parser.add_argument('--wrapfirst', action='store_true',
+                        help='shift the positions of all atoms so that all residues in the first frame are in the main cell')
     parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
                         help='overwrite the box dimensions')
     parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
@@ -32,14 +37,10 @@ if __name__ == '__main__':
     args = parse_args()
 
     top = Topology.open(args.top)
-    if args.topignore != []:
-        molecules = [mol for mol in top.molecules if mol.name not in args.topignore]
-        top = Topology()
-        top.update_molecules(molecules)
-    logger.info(str(top))
+    logger.info(top)
 
     trj = Trajectory.open(args.input)
-    logger.info(str(trj))
+    logger.info(trj)
 
     if (top.n_atom != trj.n_atom):
         raise Exception('Number of atoms in topology and trajectory files do not match')
@@ -52,10 +53,23 @@ if __name__ == '__main__':
     else:
         subset = None
 
-    if args.end > trj.n_frame or args.end == -1:
+    if args.begin < 0:
+        args.begin += trj.n_frame
+    if args.end is None or args.end > trj.n_frame:
         args.end = trj.n_frame
+    elif args.end < 0:
+        args.end += trj.n_frame
 
-    if args.shift[0] != 0 or args.shift[1] != 0 or args.shift[2] != 0:
+    cell_offset = np.zeros((top.n_atom, 3), dtype=int)
+    if args.wrapfirst:
+        frame = trj.read_frame(args.begin)
+        for res in top.residues:
+            ids = [atom.id for atom in res.atoms]
+            positions = frame.positions[ids]
+            center = np.sum(positions, axis=0) / len(positions)
+            cell_offset[ids] = np.floor(center / frame.cell.size).astype(int)
+
+    if any(val != 0 for val in args.shift):
         pos_shift = np.array([args.shift] * top.n_atom)
     else:
         pos_shift = None
@@ -65,6 +79,8 @@ if __name__ == '__main__':
         frame = trj.read_frame(i)
         box = np.array([args.box[k] if args.box[k] != -1 else frame.cell.size[k] for k in range(3)])
         frame.cell.set_box(box)
+        if args.wrapfirst:
+            frame.positions -= cell_offset * box
         if pos_shift is not None:
             frame.positions += pos_shift
         trj_out.write_frame(frame, top, subset=subset)

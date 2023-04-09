@@ -1,5 +1,6 @@
 import numpy as np
 from .atom import Atom
+from .geometry import periodic_distance, periodic_angle, periodic_dihedral
 
 __all__ = [
     'Bond',
@@ -115,14 +116,21 @@ class Bond():
         '''
         return self.atom1.is_drude or self.atom2.is_drude
 
-    def evaluate(self):
+    def evaluate(self, cell=None):
         '''
         Evaluate the length of this bond
+
+        Parameters
+        ----------
+        box : UnitCell, Optional
 
         Returns
         -------
         value : float
         '''
+        if cell:
+            return periodic_distance(self.atom1.position, self.atom2.position, cell.size)
+
         delta = self.atom2.position - self.atom1.position
         return float(np.sqrt(delta.dot(delta)))
 
@@ -225,14 +233,21 @@ class Angle():
 
         return bond12, bond23
 
-    def evaluate(self):
+    def evaluate(self, cell=None):
         '''
         Evaluate the value of this angle in unit of radian
+
+        Parameters
+        ----------
+        cell : UnitCell, Optional
 
         Returns
         -------
         value : float
         '''
+        if cell:
+            return periodic_angle(self.atom1.position, self.atom2.position, self.atom3.position, cell)
+
         vec1 = self.atom1.position - self.atom2.position
         vec2 = self.atom3.position - self.atom2.position
         cos = vec1.dot(vec2) / np.sqrt(vec1.dot(vec1) * vec2.dot(vec2))
@@ -361,14 +376,22 @@ class Dihedral():
 
         return angle123, angle234
 
-    def evaluate(self):
+    def evaluate(self, cell=None):
         '''
         Evaluate the value of this dihedral in unit of radian
+
+        Parameters
+        ----------
+        cell : UnitCell, Optional
 
         Returns
         -------
         value : float
         '''
+        if cell:
+            return periodic_dihedral(self.atom1.position, self.atom2.position, self.atom3.position, self.atom4.position,
+                                     cell.size)
+
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position
         vec3 = self.atom4.position - self.atom3.position
@@ -450,15 +473,23 @@ class Improper():
         '''
         return self.atom1, self.atom2, self.atom3, self.atom4
 
-    def evaluate(self):
+    def evaluate(self, cell=None):
         '''
         Evaluate the value of this improper torsion in unit of radian.
         The improper is defined as the angle between plane a1-a2-a3 and a2-a3-a4.
+
+        Parameters
+        ----------
+        cell : UnitCell, Optional
 
         Returns
         -------
         value : float
         '''
+        if cell:
+            return periodic_dihedral(self.atom1.position, self.atom2.position, self.atom3.position, self.atom4.position,
+                                     cell.size)
+
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position
         vec3 = self.atom4.position - self.atom3.position

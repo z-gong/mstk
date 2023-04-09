@@ -5,18 +5,23 @@ Setting          scale_14_vdw     0.5
 Setting          scale_14_coulomb 0.8333333333333334
 
 #AtomType        name           mass    charge eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
-AtomType         c_4h2       12.0110    0.0000 c_4       c_4h2     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h2    
-AtomType         c_4h3       12.0110    0.0000 c_4       c_4h3     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h3    
-AtomType         h_1          1.0079    0.0000 h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1      
+AtomType         c_4h2       12.0110    0.0000 c_4       c_4h2     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h2
+AtomType         c_4h3       12.0110    0.0000 c_4       c_4h3     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h3
+AtomType         h_1          1.0079    0.0000 h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1
+#ChargeIncrement type1     type2         value
 ChargeIncrement  c_4       h_1         -0.0600
+#LJ126           type1     type2       epsilon     sigma
 LJ126            c_4h2     c_4h2        0.3138    0.3492
 LJ126            c_4h3     c_4h3        0.3284    0.3645
 LJ126            h_1       h_1          0.0891    0.2434
-HarmonicBond     c_4       c_4          0.1533   89309.6
-HarmonicBond     c_4       h_1          0.1097  150741.0   true
-HarmonicAngle    c_4       c_4       c_4        114.1793  260.5306
-HarmonicAngle    c_4       c_4       h_1        110.1319  190.5402
-HarmonicAngle    h_1       c_4       h_1        106.6794  149.1466
+#HarmonicBond    type1     type2        length         k  fixed
+HarmonicBond     c_4       c_4          0.1533   89309.6  False
+HarmonicBond     c_4       h_1          0.1097  150741.0   True
+#HarmonicAngle   type1     type2     type3         theta         k  fixed
+HarmonicAngle    c_4       c_4       c_4        114.1800  260.5306  False
+HarmonicAngle    c_4       c_4       h_1        110.1300  190.5402  False
+HarmonicAngle    h_1       c_4       h_1        106.6800  149.1466  False
+#OplsDihedral    type1     type2     type3     type4            k1        k2        k3        k4
 OplsDihedral     c_4       c_4       c_4       c_4         -1.6891   -0.0075    0.2657    0.0000
 OplsDihedral     c_4       c_4       c_4       h_1         -1.0544    0.7448    0.7870    0.0000
 OplsDihedral     h_1       c_4       c_4       h_1          0.6485    1.0678    0.6226    0.0000

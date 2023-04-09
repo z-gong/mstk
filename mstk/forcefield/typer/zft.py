@@ -98,7 +98,7 @@ class ZftTyper(Typer):
 
     Notes
     -----
-    * SMARTS is parsed by using OpenBabel package. Therefore `pybel` module should be installed.
+    * SMARTS is parsed by using RDKit package. Make sure it is installed.
     * In type definition file, empty lines are ignored, and comments should start with ##.
 
     '''

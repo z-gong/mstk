@@ -109,8 +109,8 @@ class Slurm(Scheduler):
         workdir = Path(workdir).absolute().as_posix()
         sh = sh or self.sh
         sh_basename = Path(sh).stem
-        out = os.path.join(workdir, sh_basename + '.out')
-        err = os.path.join(workdir, sh_basename + '.err')
+        out = sh_basename + '.out'
+        err = sh_basename + '.err'
         node_cmd = f'#SBATCH --nodes={self.n_node}\n' if self.n_node > 0 else ''
         gpu_cmd = f'#SBATCH --gres=gpu:{self.n_gpu}\n' if self.n_gpu > 0 else ''
         dep_cmd = f'#SBATCH --dependency=afterok:{id_prior}\n' if id_prior is not None else ''  # id_prior can be 0

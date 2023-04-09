@@ -1,25 +1,9 @@
-import io
 from mstk.topology import Molecule, Topology, UnitCell
 from mstk.forcefield import ForceField, ZftTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
-definition = '''
-TypeDefinition
-
-h_1    [H][CX4]
-c_4    [CX4]
-c_4h2  [CX4;H2]
-c_4h3  [CX4;H3]
-
-HierarchicalTree
-
-h_1
-c_4
-    c_4h2
-    c_4h3
-'''
-typer = ZftTyper(io.StringIO(definition))
+typer = ZftTyper('alkane.zft')
 
 butane = Molecule.from_smiles('CCCC    butane')
 typer.type(butane)

@@ -21,14 +21,14 @@
     <HarmonicBondTerm type1="c_4" type2="h_1" length="0.1097" k="150741.0" fixed="True"/>
   </BondTerms>
   <AngleTerms>
-    <HarmonicAngleTerm type1="c_4" type2="c_4" type3="c_4" theta="114.1793" k="260.5306" fixed="False"/>
-    <HarmonicAngleTerm type1="c_4" type2="c_4" type3="h_1" theta="110.1319" k="190.5402" fixed="False"/>
-    <HarmonicAngleTerm type1="h_1" type2="c_4" type3="h_1" theta="106.6794" k="149.1466" fixed="False"/>
+    <HarmonicAngleTerm type1="c_4" type2="c_4" type3="c_4" theta="114.18" k="260.5306" fixed="False"/>
+    <HarmonicAngleTerm type1="c_4" type2="c_4" type3="h_1" theta="110.13" k="190.5402" fixed="False"/>
+    <HarmonicAngleTerm type1="h_1" type2="c_4" type3="h_1" theta="106.68" k="149.1466" fixed="False"/>
   </AngleTerms>
   <DihedralTerms>
-    <PeriodicDihedralTerm type1="c_4" type2="c_4" type3="c_4" type4="c_4" phi_1="0.0" k_1="-1.6891" phi_2="180.0" k_2="-0.0075" phi_3="0.0" k_3="0.2657"/>
-    <PeriodicDihedralTerm type1="c_4" type2="c_4" type3="c_4" type4="h_1" phi_1="0.0" k_1="-1.0544" phi_2="180.0" k_2="0.7448" phi_3="0.0" k_3="0.7870"/>
-    <PeriodicDihedralTerm type1="h_1" type2="c_4" type3="c_4" type4="h_1" phi_1="0.0" k_1="0.6485" phi_2="180.0" k_2="1.0678" phi_3="0.0" k_3="0.6226"/>
+    <OplsDihedralTerm type1="c_4" type2="c_4" type3="c_4" type4="c_4" k1="-1.6891" k2="-0.0075" k3="0.2657" k4="0.0"/>
+    <OplsDihedralTerm type1="c_4" type2="c_4" type3="c_4" type4="h_1" k1="-1.0544" k2="0.7448" k3="0.787" k4="0.0"/>
+    <OplsDihedralTerm type1="h_1" type2="c_4" type3="c_4" type4="h_1" k1="0.6485" k2="1.0678" k3="0.6226" k4="0.0"/>
   </DihedralTerms>
   <ImproperTerms/>
   <PolarizableTerms/>
