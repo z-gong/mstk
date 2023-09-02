@@ -36,7 +36,7 @@ parser.add_argument('--dr', default=0.02, type=float, help='interval for density
 args = parser.parse_args()
 
 top = Topology.open(args.topology)
-charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+charges = np.array([atom.charge for atom in top.atoms], dtype=float)
 
 idx_zif = [atom.id for atom in top.atoms if atom.molecule.name == 'ZIF8']
 idx_sol = [atom.id for atom in top.atoms if atom.molecule.name != 'ZIF8']

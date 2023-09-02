@@ -103,7 +103,7 @@ def test_write_swm4():
     mol = Topology.open(cwd + '/files/TIP3P.zmat').molecules[0]
     mol.generate_virtual_sites(ff)
     mol.generate_drude_particles(ff)
-    mol.assign_charge_from_ff(ff)
+    ff.assign_charge(mol)
 
     top = Topology([mol], numbers=[10])
     tmp = os.path.join(tmpdir, 'swm4-out.psf')

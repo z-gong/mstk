@@ -44,8 +44,9 @@ system.export_lammps()
 system.export_gromacs()
 system.export_namd()
 
-# generate an OpenMM system
+# generate OpenMM system and topology
 omm_sys = system.to_omm_system()
+omm_top = top.to_omm_topology()
 ```
 
 ## Documentation
@@ -54,5 +55,15 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 ## TODO
 
+- [ ] Design a file format to store all the information in a topology
 - [ ] Take bond order into consideration for force field assignment
 - [ ] Re-organize algorithms scattered in topology and analyzer modules
+- [ ] Remove dependency on `mdtraj`
+
+## Known issue
+`mstk` use `chemfiles` to write `XTC` trajectory. However, lastest `chemfiles` fails writing binary trajectory format under WSL. 
+If you are working under WSL, please install `chemfiles 0.10.2`
+
+```
+conda install chemfiles-lib=0.10.2 chemfiles-python=0.10.2
+```

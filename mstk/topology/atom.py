@@ -59,7 +59,7 @@ class Atom():
         self.virtual_site = None
         self.has_position = False
 
-        self._position = np.zeros(3, dtype=np.float32)
+        self._position = np.zeros(3, dtype=float)
         self._molecule = None
         self._bonds = []
         self._residue = None

@@ -7,6 +7,7 @@ import subprocess
 import random
 import string
 import numpy as np
+from typing import Iterable
 
 
 def greatest_common_divisor(numbers):
@@ -187,3 +188,11 @@ def align_mpl_axis(ax1, ax2):
 
     ax1.set(ylim=ylims1)
     ax2.set(ylim=ylims2)
+
+
+def flatten(it):
+    for x in it:
+        if (isinstance(x, Iterable) and not isinstance(x, str)):
+            yield from flatten(x)
+        else:
+            yield x

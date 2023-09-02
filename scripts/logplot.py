@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import re
 import pandas as pd
 from mstk.analyzer.series import block_average, is_converged
@@ -28,15 +29,15 @@ class Analyzer:
         self.when_list: [int] = []
         self.fit_coeff: [(float)] = []
         self.log_file = log_file
-        if not file_type:
-            if log_file.endswith('xvg'):
-                file_type = 'xvg'
-            elif log_file.endswith('out'):
-                file_type = 'openmm'
-            elif log_file.endswith('log'):
-                file_type = 'lammps'
-            else:
-                raise Exception('unknown log file type')
+
+        _ext_filetype = {
+            'xvg': 'xvg',
+            'out': 'openmm',
+            'txt': 'openmm',
+            'log': 'lammps'
+        }
+        ext = os.path.splitext(log_file)[1].lstrip('.').lower()
+        file_type = file_type or _ext_filetype.get(ext, ext)
         if file_type == 'xvg':
             self.read_xvg()
         elif file_type == 'openmm':
@@ -49,6 +50,14 @@ class Analyzer:
         # in case times in all frames are zero
         if all(i == 0 for i in self.data_list[0]):
             self.data_list[0] = [i for i in range(len(self.data_list[0]))]
+
+    @staticmethod
+    def str2float(string):
+        try:
+            val = float(string)
+        except ValueError:
+            val = 0
+        return val
 
     def read_openmm_log(self):
         _START = False
@@ -65,7 +74,7 @@ class Analyzer:
                 if len(words) != len(self.labels):
                     continue
                 try:
-                    values = list(map(float, words))
+                    values = list(map(Analyzer.str2float, words))
                 except ValueError:
                     continue
                 step = values[0]

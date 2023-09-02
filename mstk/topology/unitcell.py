@@ -2,12 +2,12 @@ import math
 import numpy as np
 
 
-class UnitCell():
+class UnitCell:
     '''
     UnitCell represents the periodic boundary condition of simulation system.
 
-    Both rectangular and triclinic unit cells are supported.
-    However, note that some other modules in `mstk` may only support rectangular cell.
+    Both rectangular and triclinic unit cells are supported by this class.
+    However, almost all other modules in `mstk` only support rectangular cell.
 
     Parameters
     ----------
@@ -37,27 +37,27 @@ class UnitCell():
         '''
         if box is None:
             if self._vectors is None:
-                self._vectors = np.zeros((3, 3), dtype=np.float32)
+                self._vectors = np.zeros((3, 3), dtype=float)
             else:
                 self._vectors.fill(0.0)
             if self._lengths is None:
-                self._lengths = np.zeros(3, dtype=np.float32)
+                self._lengths = np.zeros(3, dtype=float)
             else:
                 self._lengths.fill(0.0)
             if self._angles is None:
-                self._angles = np.empty(3, dtype=np.float32)
+                self._angles = np.empty(3, dtype=float)
             self._angles.fill(math.pi / 2)
             return
 
         if not isinstance(box, (tuple, list, np.ndarray)):
             raise ValueError('Invalid argument')
-        array = np.array(box, dtype=np.float32)
+        array = np.array(box, dtype=float)
         if array.shape == (3,):
             self._vectors = np.array([[array[0], 0, 0],
                                       [0, array[1], 0],
-                                      [0, 0, array[2]]], dtype=np.float32)
+                                      [0, 0, array[2]]], dtype=float)
             self._lengths = array
-            self._angles = np.array([math.pi / 2] * 3, dtype=np.float32)
+            self._angles = np.array([math.pi / 2] * 3, dtype=float)
         elif array.shape == (3, 3):
             if array[0][1] != 0 or array[0][2] != 0 or array[1][2] != 0:
                 raise ValueError('Invalid value for box vectors')
@@ -191,14 +191,14 @@ class UnitCell():
         if all(angles - math.pi / 2 < 1e-4):
             return np.array([[la, 0, 0],
                              [0, lb, 0],
-                             [0, 0, lc]], dtype=np.float32)
+                             [0, 0, lc]], dtype=float)
 
-        a = np.array([la, 0, 0], dtype=np.float32)
-        b = np.array([lb * math.cos(gamma), lb * math.sin(gamma), 0], dtype=np.float32)
+        a = np.array([la, 0, 0], dtype=float)
+        b = np.array([lb * math.cos(gamma), lb * math.sin(gamma), 0], dtype=float)
         cx = lc * math.cos(beta)
         cy = lc * (math.cos(alpha) - math.cos(beta) * math.cos(gamma)) / math.sin(gamma)
         cz = math.sqrt(lc * lc - cx * cx - cy * cy)
-        c = np.array([cx, cy, cz], dtype=np.float32)
+        c = np.array([cx, cy, cz], dtype=float)
 
         # if any element is very close to 0, set it to exactly 0
         for i in range(3):
@@ -253,5 +253,4 @@ class UnitCell():
             if abs(gamma - math.pi / 2) < 1e-4:
                 gamma = math.pi / 2
 
-        return np.array([la, lb, lc], dtype=np.float32), \
-               np.array([alpha, beta, gamma], dtype=np.float32)
+        return np.array([la, lb, lc], dtype=float), np.array([alpha, beta, gamma], dtype=float)

@@ -705,7 +705,7 @@ class ForceField():
 
         return qterm, direction
 
-    def assign_mass(self, top):
+    def assign_mass(self, top_or_mol):
         '''
         Assign masses for all atoms in a topology or molecule from the force field.
 
@@ -716,11 +716,12 @@ class ForceField():
 
         Parameters
         ----------
-        top : Topology or Molecule
+        top_or_mol : Topology or Molecule
         '''
         _atype_not_found = set()
         _atype_no_mass = set()
         _zero_mass = set()
+        top = top_or_mol
         for atom in top.atoms:
             if atom.is_drude:
                 continue
@@ -756,7 +757,7 @@ class ForceField():
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge(self, top, transfer_qinc_terms=False):
+    def assign_charge(self, top_or_mol, transfer_qinc_terms=False):
         '''
         Assign charges for all atoms in a topology or molecule from the force field.
 
@@ -775,12 +776,13 @@ class ForceField():
 
         Parameters
         ----------
-        top : Topology or Molecule
+        top_or_mol : Topology or Molecule
         transfer_qinc_terms : bool, optional
         '''
         from .dff_utils import dff_fuzzy_match
 
         _q_zero = []
+        top = top_or_mol
         for atom in top.atoms:
             if atom.is_drude:
                 continue

@@ -20,7 +20,7 @@ def test_read():
 
     atom = pdb.atoms[-1]
     assert atom.name == 'H16'
-    assert atom.type == 'UNK'
+    assert atom.type == 'H16'
     assert atom.symbol == 'H'
     assert pytest.approx(atom.position, abs=1E-6) == [0.3369, 0.2249, -0.0890]
     assert atom.has_position

@@ -1,7 +1,7 @@
-import openmm
-import openmm.openmm as mm
 import numpy as np
-from openmm import app
+import openmm
+from logging import Logger
+from openmm import openmm as mm, app
 from .grofile import GroFile
 from .unit import kelvin, bar, nm, ps
 
@@ -64,38 +64,60 @@ def minimize(sim, tolerance, gro_out=None, logger=None):
         GroFile.writeFile(sim.topology, state.getPositions(), state.getPeriodicBoxVectors(), gro_out)
 
 
-def apply_mc_barostat(system, pcoupl, P, T, nsteps=100, logger=None):
+def apply_mc_barostat(system, pcoupl, P, T, nstep=100, rigid_molecule=True, logger=None):
     '''
-    Add a MonteCarlo barostat to the system and return the index of the added barostat
+    Add a MonteCarlo barostat to the system and return the added barostat
+    
+    #TODO It requires the forked OpenMM https://github.com/openmm/openmm/pull/3797
+
+    Parameters
+    ----------
+    system : mm.System
+    pcoupl : str
+        The type of barostat. Can be one of the following: iso, semi-iso, aniso, xy, z.
+    P : float
+        Pressure in bar
+    T : float
+        Temperature in Kelvin
+    nstep : int
+    rigid_molecule : bool
+    logger : Logger
 
     Returns
     -------
-    idx : index of the added barostat force
+    barostat : mm.Force
+        The added barostat force
     '''
     if pcoupl == 'iso':
         msg = 'Isotropic barostat'
-        force = mm.MonteCarloBarostat(P * bar, T * kelvin, nsteps)
+        force = mm.MonteCarloBarostat(P * bar, T * kelvin, nstep, rigid_molecule)
     elif pcoupl == 'semi-iso':
         msg = 'Anisotropic barostat with coupled XY'
         force = mm.MonteCarloMembraneBarostat(P * bar, 0 * bar * nm, T * kelvin,
                                               mm.MonteCarloMembraneBarostat.XYIsotropic,
-                                              mm.MonteCarloMembraneBarostat.ZFree, nsteps)
-    elif pcoupl == 'xyz':
+                                              mm.MonteCarloMembraneBarostat.ZFree,
+                                              nstep, rigid_molecule)
+    elif pcoupl == 'aniso':
         msg = 'Anisotropic barostat'
-        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, True, nsteps)
+        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, True, nstep, rigid_molecule)
     elif pcoupl == 'xy':
         msg = 'Anisotropic barostat only for X and Y'
-        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, False, nsteps)
+        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, True, True, False, nstep, rigid_molecule)
     elif pcoupl == 'z':
         msg = 'Anisotropic barostat only for Z'
-        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, nsteps)
+        force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, nstep, rigid_molecule)
     else:
         raise Exception('Available pressure coupling types: iso, semi-iso, xyz, xy, z')
+
+    scaled_unit = 'molecules' if rigid_molecule else 'constrained groups'
+    msg += f' with {scaled_unit} scaled'
 
     if logger:
         logger.info(msg)
 
-    return system.addForce(force)
+    system.addForce(force)
+
+    return force
 
 
 def energy_decomposition(sim: app.Simulation, logger=None):

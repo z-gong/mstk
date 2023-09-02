@@ -10,6 +10,7 @@ class Pdb:
     Generate Topology from PDB file.
 
     Atom name, residue information, unit cell and positions are parsed.
+    The atom name colume will be used as both atom name and atom type.
     The connectivity is parsed if CONECT section is provided in the PDB file.
 
     Only the first frame will be considered.
@@ -17,8 +18,6 @@ class Pdb:
     Parameters
     ----------
     file : str
-    atom_type : bool
-        If True, the atom name column will be parsed as atom type
     split_molecule : str
         Can be 'residue', 'whole', 'bond' or 'auto'. Default is 'auto'.
         If set to 'residue', each residue will be parsed as a molecule. It works only if there is no inter-residue bonds.
@@ -43,7 +42,7 @@ class Pdb:
         self._molecule = Molecule()
         self._parse(file, **kwargs)
 
-    def _parse(self, file, atom_type=False, split_molecule='auto'):
+    def _parse(self, file, split_molecule='auto'):
         '''
         Parse a PDB file
 
@@ -85,14 +84,10 @@ class Pdb:
                     element = Element.guess_from_atom_type(atom_name)
 
                 atom = Atom(atom_name)
+                atom.type = atom_name
                 atom.position = (x, y, z,)
                 atom.symbol = element.symbol
                 atom.mass = element.mass
-                if atom_type:
-                    atom.type = atom_name
-                else:
-                    atom.name = atom_name
-
                 mol.add_atom(atom)
 
                 atom_ids[atom_id] = atom
@@ -103,7 +98,8 @@ class Pdb:
 
         for resid, resname in res_names.items():
             atoms = res_atoms[resid]
-            mol.add_residue(resname, atoms)
+            mol.add_residue(resname, atoms, refresh_residues=False)
+        mol.refresh_residues()
 
         prev_section = ''
         connects = {}
@@ -176,7 +172,7 @@ class Pdb:
             atom_name = atom.type if atom_type else atom.name
             resname = atom.residue.name
             resid = atom.residue.id + 1
-            line = 'HETATM%5d %4s %4s %4d    %8.3f%8.3f%8.3f                      %2s\n' % (
+            line = 'HETATM%5d %4s %-4s %4d    %8.3f%8.3f%8.3f                      %2s\n' % (
                 (atom.id + 1) % 100000, atom_name[:4], resname[:4], resid % 10000,
                 pos[0], pos[1], pos[2], atom.symbol[:2])
             string += line

@@ -16,7 +16,7 @@ parser.add_argument('--dt', type=float, default=0.001, help='step size in ps')
 parser.add_argument('--thermostat', type=str, default='langevin',
                     choices=['langevin', 'nose-hoover'], help='thermostat')
 parser.add_argument('--barostat', type=str, default='iso',
-                    choices=['no', 'iso', 'semi-iso', 'xyz', 'xy', 'z'], help='barostat')
+                    choices=['none', 'iso', 'semi-iso', 'aniso', 'xy', 'z'], help='barostat')
 parser.add_argument('--cos', type=float, default=0,
                     help='cosine acceleration for viscosity calculation')
 parser.add_argument('--gro', type=str, default='conf.gro', help='gro file')
@@ -75,7 +75,7 @@ def run_simulation(gro_file='conf.gro', psf_file='topol.psf', prm_file='ff.prm',
     else:
         raise Exception('Available thermostat: langevin, nose-hoover')
 
-    if pcoupl != 'no':
+    if pcoupl != 'none':
         oh.apply_mc_barostat(system, pcoupl, P, T)
 
     if cos != 0:

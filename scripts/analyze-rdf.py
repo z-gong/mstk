@@ -79,9 +79,9 @@ if __name__ == '__main__':
 
     dr = args.dr
     n_bin = math.ceil(args.maxr / dr) + 1
-    edges = np.array([dr * (i - 0.5) for i in range(n_bin + 1)], dtype=np.float32)
+    edges = np.array([dr * (i - 0.5) for i in range(n_bin + 1)], dtype=float)
     r_array = (edges[1:] + edges[:-1]) / 2
-    rdf_array = np.zeros(n_bin, dtype=np.float32)
+    rdf_array = np.zeros(n_bin, dtype=float)
 
 
     def _get_weighted_center(positions, weight):
@@ -112,7 +112,7 @@ if __name__ == '__main__':
         vol = frame.cell.volume
         density_pair = len(group1) * len(group2) / vol
 
-        density_array = np.zeros(len(r_array), dtype=np.float32)
+        density_array = np.zeros(len(r_array), dtype=float)
         for com1 in com_group1:
             for com2 in com_group2:
                 distance = periodic_distance(com1, com2, frame.cell.size, args.maxr + dr / 2)

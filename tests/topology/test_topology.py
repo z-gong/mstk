@@ -14,11 +14,11 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 def test_assign_charge():
     top = Topology.open(cwd + '/files/c_3oh.msd')
     ff = ForceField.open(cwd + '/files/c_3oh.ppf')
-    top.assign_charge_from_ff(ff)
+    ff.assign_charge(top)
     charges = [atom.charge for atom in top.atoms]
     assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.16, 0.4791, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
-    top.assign_charge_from_ff(ff, transfer_qinc_terms=True)
+    ff.assign_charge(top, transfer_qinc_terms=True)
     charges = [atom.charge for atom in top.atoms]
     assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.1954, 0.5145, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
@@ -49,8 +49,9 @@ def test_compress():
 
 
 def test_packmol():
+    # use fixed path so that _pack.inp has fixed content
     tmpdir = os.path.join(tempfile.gettempdir(), '_mstk_' + test_packmol.__name__)
-    os.mkdir(tmpdir)
+    os.makedirs(tmpdir, exist_ok=True)
     top = Topology.open(cwd + '/files/Im11.zmat')
     top.cell.set_box([3, 3, 3])
     top.scale_with_packmol(10, tempdir=tmpdir)

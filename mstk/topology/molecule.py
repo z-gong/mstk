@@ -109,7 +109,8 @@ class Molecule():
 
         for residue in self._added_residues:
             atoms = [mol.atoms[atom.id_in_mol] for atom in residue.atoms]
-            mol.add_residue(residue.name, atoms)
+            mol.add_residue(residue.name, atoms, refresh_residues=False)
+        mol.refresh_residues()
 
         return mol
 
@@ -322,15 +323,15 @@ class Molecule():
             atom.id_in_mol = len(self._atoms) - 1
         else:
             self._atoms.insert(index, atom)
-            for i, at in enumerate(self._atoms):
-                at.id_in_mol = i
+            for i in range(index, len(self._atoms)):
+                self._atoms[i].id_in_mol = i
         self._is_rdmol_valid = False
 
         residue = residue or self._default_residue
         residue._add_atom(atom)
         # re-index residues because the residue starts to count
         if residue.n_atom == 1:
-            self._refresh_residues(update_topology)
+            self.refresh_residues(update_topology)
 
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
@@ -344,7 +345,23 @@ class Molecule():
         The angle, dihedral and improper involving this atom are untouched.
         Therefore, you may call `generate_angle_dihedral_improper` to refresh the connectivity.
 
-        # TODO This operation is extremely slow
+        Parameters
+        ----------
+        atom : Atom
+        update_topology : bool
+            If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
+            Otherwise, you have to re-init the topology manually so that the topological information is correct.
+        '''
+        self.remove_atoms([atom], update_topology=update_topology)
+
+    def remove_atoms(self, atoms, update_topology=True):
+        '''
+        Remove multiple atoms and all the bonds connected to these atoms from this molecule.
+
+        The atom will also be removed from its residue.
+        The id_in_mol attribute of all atoms will be updated after removal.
+        The angle, dihedral and improper involving this atom are untouched.
+        Therefore, you may call `generate_angle_dihedral_improper` to refresh the connectivity.
 
         Parameters
         ----------
@@ -353,19 +370,28 @@ class Molecule():
             If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
             Otherwise, you have to re-init the topology manually so that the topological information is correct.
         '''
-        for bond in atom._bonds[:]:
-            self.remove_connectivity(bond)
-        self._atoms.remove(atom)
-        atom._molecule = None
+        _refresh_residues = False
+        for atom in atoms:
+            for bond in atom._bonds[:]:
+                self.remove_connectivity(bond)
+            # self._atoms.remove(atom)
+            atom._molecule = None
+
+            residue = atom.residue
+            residue._remove_atom(atom)
+            if not _refresh_residues and residue.n_atom == 0:
+                _refresh_residues = True
+
+        # it's faster to reconstruct atom list than iteratively calling _atoms.remove()
+        self._atoms = list(sorted(set(self._atoms) - set(atoms), key=lambda x: x.id_in_mol))
+
         for i, at in enumerate(self._atoms):
             at.id_in_mol = i
         self._is_rdmol_valid = False
 
-        residue = atom.residue
-        residue._remove_atom(atom)
-        # re-index residues because the residue this atom belongs to becomes empty
-        if residue.n_atom == 0:
-            self._refresh_residues(update_topology)
+        # re-index residues because some residues become empty
+        if _refresh_residues:
+            self.refresh_residues(update_topology)
 
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
@@ -379,8 +405,6 @@ class Molecule():
         update_topology : bool
             If update_topology is True, the topology this molecule belongs to will update its atom list and assign id for all atoms and residues.
             Otherwise, you have to re-init the topology manually so that the topological information is correct.
-
-        # TODO This operation is extremely slow
 
         Returns
         -------
@@ -397,22 +421,26 @@ class Molecule():
             neigh.mass += atom.mass
             neigh.charge += atom.charge
             hydrogens.append(atom)
+
         ids_hydrogens = [atom.id_in_mol for atom in hydrogens]
+        set_hydrogens = set(hydrogens)
 
-        for conn in self.bonds[:] + self.angles[:] + self.dihedrals[:] + self.impropers[:]:
-            ids_set = {atom.id_in_mol for atom in conn.atoms}
-            if ids_set.intersection(ids_hydrogens):
-                self.remove_connectivity(conn)
+        # cannot modify _atoms and _bonds directly because there are internal data structures to maintain
+        # have to call remove_atoms()
+        # remove_atoms() will also remove relevant bonds
+        self.remove_atoms(hydrogens, update_topology=False)
 
-        for atom in hydrogens:
-            self.remove_atom(atom, update_topology=False)
+        # it's faster to reconstruct angle list than iteratively calling _angles.remove()
+        self._angles = [conn for conn in self.angles if not set(conn.atoms).intersection(set_hydrogens)]
+        self._dihedrals = [conn for conn in self.dihedrals if not set(conn.atoms).intersection(set_hydrogens)]
+        self._impropers = [conn for conn in self.impropers if not set(conn.atoms).intersection(set_hydrogens)]
 
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
         return ids_hydrogens
 
-    def add_residue(self, name, atoms, update_topology=True):
+    def add_residue(self, name, atoms, refresh_residues=True):
         '''
         Put a group of atoms into a new residue. These atoms will be removed from their old residues.
 
@@ -423,9 +451,10 @@ class Molecule():
         ----------
         name : str
         atoms : list of Atom
-        update_topology : bool
-            If True, the topology this molecule belongs to will assign `id` for all residues.
-            Otherwise, you have to assign the `id` of all residues in the topology manually.
+        refresh_residues: bool
+            If True, the residue list of this molecule will be updated. The `id` and `id_in_mol` for all residues will be assigned.
+            This operation can be slow. If you have a lot of residues to add, it is more efficient to set it to False,
+            and call `refresh_residues` manually after all residues are added.
 
         Returns
         -------
@@ -436,11 +465,12 @@ class Molecule():
             atom.residue._remove_atom(atom)
             residue._add_atom(atom)
         self._added_residues.append(residue)
-        self._refresh_residues(update_topology)
+        if refresh_residues:
+            self.refresh_residues()
 
         return residue
 
-    def remove_residue(self, residue, update_topology=True):
+    def remove_residue(self, residue, refresh_residues=True):
         '''
         Remove a residue from this molecule, and put the relevant atoms into the default residue
 
@@ -450,16 +480,18 @@ class Molecule():
         Parameters
         ----------
         residue : Residue
-        update_topology : bool
-            If True, the topology this molecule belongs to will assign `id` for all residues
-            Otherwise, you have to assign the `id` of all residues in the topology manually.
+        refresh_residues: bool
+            If True, the residue list of this molecule will be updated. The `id` and `id_in_mol` for all residues will be assigned.
+            This operation can be slow. If you have a lot of residues to remove, it is more efficient to set it to False,
+            and call `refresh_residues` manually after all residues are removed.
         '''
         for atom in residue.atoms[:]:
             self._default_residue._add_atom(atom)
         self._added_residues.remove(residue)
-        self._refresh_residues(update_topology)
+        if refresh_residues:
+            self.refresh_residues()
 
-    def _refresh_residues(self, update_topology=True):
+    def refresh_residues(self, update_topology=True):
         '''
         Remove empty residues, update `id_in_mol` attributes of each residue in this molecule
 
@@ -468,9 +500,7 @@ class Molecule():
         update_topology : bool
             If True, the topology this molecule belongs to will assign `id` for all residues
         '''
-        for i in reversed(range(len(self._added_residues))):
-            if self._added_residues[i].n_atom == 0:
-                self._added_residues.pop(i)
+        self._added_residues = [res for res in self._added_residues if res.n_atom != 0]
         for i, residue in enumerate(self.residues):
             residue.id_in_mol = i
         if self._topology is not None and update_topology:
@@ -595,7 +625,7 @@ class Molecule():
         Note that when a bond get removed, the relevant angles, dihedrals and impropers are still there.
         You may call `generate_angle_dihedral_improper` to refresh connectivity.
 
-        # TODO This operation is extremely slow
+        # TODO This operation is slow. A batch version is required for better performance
 
         Parameters
         ----------
@@ -834,6 +864,30 @@ class Molecule():
         has : bool
         '''
         return all(atom.has_position for atom in self.atoms)
+
+    @property
+    def positions(self):
+        '''
+        Positions of all the atoms in this molecule
+
+        Returns
+        -------
+        positions : array_like
+        '''
+        return np.array([atom.position for atom in self.atoms])
+
+    def set_positions(self, positions):
+        '''
+        Set the positions of all atoms in this molecule
+
+        Parameters
+        ----------
+        positions : array_like
+        '''
+        if self.n_atom != len(positions):
+            raise Exception('Length of positions should equal to the number of atoms')
+        for i, atom in enumerate(self.atoms):
+            atom.position = positions[i]
 
     def get_drude_pairs(self):
         '''
@@ -1268,35 +1322,6 @@ class Molecule():
         if self._topology is not None and update_topology:
             self._topology.update_molecules(self._topology.molecules, deepcopy=False)
 
-    def assign_mass_from_ff(self, ff):
-        '''
-        Assign masses for all atoms and Drude particles from the force field.
-
-        Parameters
-        ----------
-        ff : ForceField
-
-        See Also
-        --------
-        ForceField.assign_mass
-        '''
-        ff.assign_mass(self)
-
-    def assign_charge_from_ff(self, ff, transfer_qinc_terms=False):
-        '''
-        Assign charges for all atoms and Drude particles from the force field.
-
-        Parameters
-        ----------
-        ff : ForceField
-        transfer_qinc_terms : bool, optional
-
-        See Also
-        --------
-        ForceField.assign_charge
-        '''
-        ff.assign_charge(self, transfer_qinc_terms)
-
     def get_sub_molecule(self, indexes, deepcopy=True):
         '''
         Extract a substructure from this molecule by indexes of atoms.
@@ -1362,22 +1387,26 @@ class Molecule():
         # reconstruct residues
         if len(residues) > 1:
             for resname, atoms in residue_name_atoms:
-                sub.add_residue(resname, atoms)
+                sub.add_residue(resname, atoms, refresh_residues=False)
+            sub.refresh_residues()
         else:
             sub.name = residues[0].name
 
         return sub
 
     @staticmethod
-    def merge(molecules):
+    def merge(molecules, deepcopy=True):
         '''
         Merge several molecules into a single molecule.
 
-        The molecules will be deep-copied before the mergence.
 
         Parameters
         ----------
         molecules : list of Molecule
+        deepcopy: bool
+            If True, the molecules will be deep-copied, and be intact after the mergence.
+            Otherwise, the atoms of the merged molecule and of the original molecules will be the same objects.
+            Then the original molecules will be unusable.
 
         Returns
         -------
@@ -1385,7 +1414,10 @@ class Molecule():
         '''
         merged = Molecule()
         for mol in molecules:
-            m_copy = copy.deepcopy(mol)
+            if deepcopy:
+                m_copy = copy.deepcopy(mol)
+            else:
+                m_copy = mol
             # should always call `add_atom()` instead of manipulating `_atoms` directly
             for atom in m_copy.atoms:
                 merged.add_atom(atom)
@@ -1396,7 +1428,9 @@ class Molecule():
 
             # all atoms goes to the default residue after `add_atom`, but the old residue still holds the atom list
             for residue in m_copy.residues:
-                merged.add_residue(residue.name, residue.atoms)
+                merged.add_residue(residue.name, residue.atoms, refresh_residues=False)
+
+        merged.refresh_residues()
 
         return merged
 

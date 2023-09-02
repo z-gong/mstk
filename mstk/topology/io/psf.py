@@ -146,7 +146,8 @@ class Psf:
 
         for resid, resname in res_names.items():
             atoms = res_atoms[resid]
-            mol.add_residue(resname, atoms)
+            mol.add_residue(resname, atoms, refresh_residues=False)
+        mol.refresh_residues()
 
     def _parse_bonds(self, lines):
         n_bond = int(lines[0].strip().split()[0])

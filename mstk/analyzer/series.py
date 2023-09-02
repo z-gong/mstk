@@ -85,7 +85,7 @@ def is_converged(series: Series, frac_min=0.5):
 
     n_points = len(series)
     array = np.array(series)
-    t0, g, Neff_max = timeseries.detectEquilibration(array, nskip=max(1, n_points // 100))
+    t0, g, Neff_max = timeseries.detect_equilibration(array, nskip=max(1, n_points // 100))
     if t0 > n_points * (1 - frac_min):
         return False, series.index[t0]
     return True, series.index[t0]
@@ -140,5 +140,5 @@ def mean_and_uncertainty(series: Series, inefficiency=None) -> (float, float):
     ave = np.mean(series)
     array = np.array(series)
     if inefficiency == None:
-        inefficiency = timeseries.statisticalInefficiency(array)
+        inefficiency = timeseries.statistical_inefficiency(array)
     return ave, np.std(array, ddof=1) / math.sqrt(len(array) / inefficiency)

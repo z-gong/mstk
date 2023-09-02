@@ -23,7 +23,7 @@ def get_omm_integrator_platform():
 def test_transfer_bonded_terms():
     top = Topology.open(cwd + '/../topology/files/c_3oh.msd')
     ff = ForceField.open(cwd + '/../topology/files/c_3oh.ppf')
-    top.assign_charge_from_ff(ff, transfer_qinc_terms=True)
+    ff.assign_charge(top, transfer_qinc_terms=True)
     system = System(top, ff, transfer_bonded_terms=True)
     angle = next(a for a in system.topology.angles if a.name == 'C2-C3-H8')
     assert ff.get_eqt_for_angle(angle)[0] == ('c_3', 'c_3o', 'h_1')
@@ -34,7 +34,7 @@ def test_transfer_bonded_terms():
 def test_team():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
-    top.assign_charge_from_ff(ff)
+    ff.assign_charge(top)
     system = System(top, ff)
 
     context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
@@ -66,7 +66,7 @@ def test_vdw_shift():
 def test_team_vacuum():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
-    top.assign_charge_from_ff(ff)
+    ff.assign_charge(top)
     system = System(top, ff, cell=UnitCell([0, 0, 0]))
 
     context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
@@ -81,7 +81,7 @@ def test_team_vacuum():
 def test_eqt_vdw():
     ff = ForceField.open(cwd + '/files/c_3ad.ppf')
     top = Topology.open(cwd + '/files/c_3ad.msd')
-    top.assign_charge_from_ff(ff)
+    ff.assign_charge(top)
     system = System(top, ff)
 
     context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
@@ -99,7 +99,7 @@ def test_drude():
     top.generate_angle_dihedral_improper()
     # top.remove_drude_particles()
     # top.generate_drude_particles(ff)
-    top.assign_charge_from_ff(ff)
+    ff.assign_charge(top)
 
     system = System(top, ff)
 
@@ -116,7 +116,7 @@ def test_tip4p():
     mol = Topology.open(cwd + '/../topology/files/TIP3P.zmat').molecules[0]
     ff = ForceField.open(cwd + '/../forcefield/files/TIP4P.zfp')
     mol.generate_virtual_sites(ff)
-    mol.assign_charge_from_ff(ff)
+    ff.assign_charge(mol)
 
     top = Topology([mol], numbers=[100], cell=UnitCell([3, 3, 3]))
     top.set_positions(Topology.open(cwd + '/files/100-TIP4P.pdb').positions)

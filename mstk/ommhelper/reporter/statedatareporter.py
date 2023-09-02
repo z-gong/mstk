@@ -122,7 +122,7 @@ class StateDataReporter(object):
     '''
 
     def __init__(self, file, reportInterval, step=True, time=False, potentialEnergy=True,
-                 kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
+                 kineticEnergy=False, totalEnergy=False, temperature=True, volume=True, box=True,
                  density=True, progress=False, remainingTime=False, speed=True, elapsedTime=False,
                  separator='\t', systemMass=None, totalSteps=None, append=False,
                  cvs=None, pressure=True, pxx=False, pyy=False, pzz=False, extra={}):
@@ -314,8 +314,7 @@ class StateDataReporter(object):
 
         bool_press = [self._pxx, self._pyy, self._pzz]
         if any(bool_press):
-            indexes = [i for i in range(3) if bool_press[i]]
-            values.extend(self._compute_anisotropic_pressure(simulation.context, state, indexes))
+            values.extend(self._compute_anisotropic_pressure(simulation.context, state, *bool_press))
 
         if self._extra:
             values.extend(self._extra.values())
@@ -467,9 +466,20 @@ class StateDataReporter(object):
 
         return p_kinetic + p_virial
 
-    def _compute_anisotropic_pressure(self, context: mm.Context, state: mm.State, indexes: [bool]):
+    def _compute_anisotropic_pressure(self, context, state, pxx, pyy, pzz):
         '''
         Compute the anisotropic pressure of a rectangular system
+
+        Parameters
+        ----------
+        context : mm.Context
+        state : mm.State
+        pxx : bool
+            Whether or not the Pxx be calculated
+        pyy : bool
+            Whether or not the Pyy be calculated
+        pzz : bool
+            Whether or not the Pzz be calculated
         '''
         box = state.getPeriodicBoxVectors(asNumpy=True)
         positions = state.getPositions(asNumpy=True)
@@ -485,7 +495,9 @@ class StateDataReporter(object):
 
         scale = 0.0001
         pressures = []
-        for index in indexes:
+        for index, _bool in enumerate([pxx, pyy, pzz]):
+            if not _bool:
+                continue
             scale_array = np.array([1.0, 1.0, 1.0])
             scale_array[index] = 1 + scale
 

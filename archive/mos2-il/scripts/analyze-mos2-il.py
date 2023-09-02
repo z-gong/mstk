@@ -109,7 +109,7 @@ dz = args.dz
 # increase both the bottom and top by 0.4 nm to consider electrodes
 # add one extra bin and move edges by 0.5*dz so that the centers of bins are prettier
 n_bin = math.ceil((lz + 0.8) / dz) + 1
-edges = np.array([dz * (i - 0.5) + elecd_l - 0.4 for i in range(n_bin + 1)], dtype=np.float32)
+edges = np.array([dz * (i - 0.5) + elecd_l - 0.4 for i in range(n_bin + 1)], dtype=float)
 z_array = (edges[1:] + edges[:-1]) / 2
 
 if args.end > trj.n_frame or args.end == -1:
@@ -410,7 +410,7 @@ def drude_dipole():
     '''
     Calculate the distribution of Drude induced dipoles
     '''
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     drude_pairs = top.get_drude_pairs()
     parent_ids = [parent.id for parent, drude in drude_pairs]
     drude_ids = [drude.id for parent, drude in drude_pairs]
@@ -468,7 +468,7 @@ def dipole():
     '''
     Calculate the distribution of molecular dipoles
     '''
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     name_z_dipoles_dict = {}  # {'ring': [[array, array, ...], [array, array, ...] , ...]}
     name_z_dipole_dict = {}  # {'ring': array([array, array , ...])}
     n_frame = 0
@@ -526,7 +526,7 @@ def dipole():
 
 def voltage():
     charges = np.zeros(n_bin)
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
         n_frame += 1
@@ -599,7 +599,7 @@ def voltage():
 
 def charge_petersen():
     _conv = ELEMENTARY_CHARGE / area / NANO ** 2 * 1000  # convert from charge (e) to charge density (mC/m^2)
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     frame_list = []
     q_left_list = []
     for i in range(args.begin, args.end, args.skip):
@@ -652,7 +652,7 @@ def permittivity():
     Calculate the static relative permittivity from the fluctuation of dipole
     \eps_r = 1 + (<M^2> - <M>^2) / (3VkT 4\pi\eps_0)
     '''
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     frame_list = []
     dipoles_scalar: [float] = []
     for i in range(args.begin, args.end, args.skip):
@@ -706,7 +706,7 @@ def number_1st(thickness=0.5):
 
 
 def charge_1st(thickness=0.5):
-    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=np.float32)
+    top_atom_charges = np.array([atom.charge for atom in top.atoms], dtype=float)
     frame_list = []
     q1st_list = []
     for i in range(args.begin, args.end, args.skip):

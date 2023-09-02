@@ -115,8 +115,8 @@ for mol in mol_count.keys():
         mol.generate_drude_particles(ff)
     if ff.has_virtual_site:
         mol.generate_virtual_sites(ff)
-    mol.assign_mass_from_ff(ff)
-    mol.assign_charge_from_ff(ff)
+    ff.assign_mass(mol)
+    ff.assign_charge(mol)
 
 if args.packmol:
     top.update_molecules(list(mol_count.keys()))

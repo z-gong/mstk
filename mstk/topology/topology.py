@@ -71,7 +71,7 @@ class Topology():
         Parameters
         ----------
         molecules : list of Molecule
-        numbers : list of int
+        numbers : list of int, Optional
         deepcopy : bool
 
         Notes
@@ -100,42 +100,17 @@ class Topology():
 
         for mol in self._molecules:
             mol._topology = self
+
+        # cache atoms
         self._atoms = [atom for mol in self._molecules for atom in mol.atoms]
 
-        self._assign_id()
-
-    def _assign_id(self):
-        '''
-        Assign the id of molecules, atoms and residues belonging to this topology
-        '''
+        # assign the id of molecules, atoms and residues belonging to this topology
         for i, mol in enumerate(self._molecules):
             mol.id = i
         for i, atom in enumerate(self._atoms):
             atom.id = i
         for i, residue in enumerate(self.residues):
             residue.id = i
-
-    def add_molecule(self, molecule):
-        '''
-        Add a molecule into this topology.
-
-        The index of the added molecule and atoms will be updated.
-
-        Parameters
-        ----------
-        molecule : Molecule
-
-        Notes
-        -----
-        The molecule and atoms are not deep copied, the references are passed.
-
-        '''
-        molecule.id = self.n_molecule
-        molecule._topology = self
-        self._molecules.append(molecule)
-        for atom in molecule.atoms:
-            atom.id = self.n_atom
-            self._atoms.append(atom)
 
     def set_positions(self, positions):
         '''
@@ -311,6 +286,18 @@ class Topology():
         return len(self._atoms)
 
     @property
+    def n_residue(self):
+        '''
+        Number of residues belong to this topology
+
+        Returns
+        -------
+        n : int
+
+        '''
+        return sum(mol.n_residue for mol in self._molecules)
+
+    @property
     def molecules(self):
         '''
         List of molecules belong to this topology
@@ -345,10 +332,6 @@ class Topology():
         residues : list of Residue
         '''
         return [residue for mol in self._molecules for residue in mol.residues]
-
-    @property
-    def n_residue(self):
-        return sum(mol.n_residue for mol in self._molecules)
 
     @property
     def n_bond(self):
@@ -758,32 +741,3 @@ class Topology():
         for mol in self._molecules:
             mol.remove_virtual_sites(update_topology=False)
         self.update_molecules(self._molecules, deepcopy=False)
-
-    def assign_mass_from_ff(self, ff):
-        '''
-        Assign masses for all atoms and Drude particles from the AtomType saved in force field.
-
-        Parameters
-        ----------
-        ff : ForceField
-
-        See Also
-        --------
-        ForceField.assign_mass
-        '''
-        ff.assign_mass(self)
-
-    def assign_charge_from_ff(self, ff, transfer_qinc_terms=False):
-        '''
-        Assign charges for all atoms and Drude particles from the AtomType saved in force field.
-
-        Parameters
-        ----------
-        ff : ForceField
-        transfer_qinc_terms : bool, optional
-
-        See Also
-        --------
-        ForceField.assign_charge
-        '''
-        ff.assign_charge(self, transfer_qinc_terms)

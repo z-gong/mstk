@@ -71,7 +71,7 @@ lz = frame0.cell.size[2]
 dz = args.dz
 n_bin = int(round((lz / dz)))
 dz = lz / n_bin
-edges = np.arange(n_bin + 1, dtype=np.float32) * dz
+edges = np.arange(n_bin + 1, dtype=float) * dz
 z_array = (edges[1:] + edges[:-1]) / 2
 
 if args.end > trj.n_frame or args.end == -1:

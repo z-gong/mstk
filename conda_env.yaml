@@ -8,8 +8,7 @@ dependencies:
   - rdkit
   - openmm
   - mdtraj
-  - chemfiles-lib=0.10.2
-  - chemfiles-python=0.10.2
+  - chemfiles>=0.10.4
   - scipy
   - scikit-learn
-  - pymbar=3.1
+  - pymbar-core

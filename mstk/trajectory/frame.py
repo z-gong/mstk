@@ -43,11 +43,11 @@ class Frame():
         self.step = -1  # -1 means step information not found
         self.time = -1  # in ps. -1 means time information not found
         self.cell = UnitCell()
-        self.positions = np.zeros((n_atom, 3), dtype=np.float32)
+        self.positions = np.zeros((n_atom, 3), dtype=float)
         self.has_velocity = False
-        self.velocities = np.zeros((n_atom, 3), dtype=np.float32)
+        self.velocities = np.zeros((n_atom, 3), dtype=float)
         self.has_charge = False
-        self.charges = np.zeros(n_atom, dtype=np.float32)  # for fluctuating charge simulations
+        self.charges = np.zeros(n_atom, dtype=float)  # for fluctuating charge simulations
 
     def reset(self):
         '''

@@ -4,6 +4,9 @@ Analyzer
 Analyzer module provides a bunch of shortcuts for performing the most commonly used analysing method,
 like curve fitting, structure determination and time series analysis.
 
+.. note::
+   *This module is developed for personal projects. It's not a comprehensive analysis toolkit.*
+
 Structural analysis
 -------------------
 
@@ -15,6 +18,7 @@ Structural analysis
     calc_weighted_average
     calc_com
     calc_rg
+    calc_hull_volume
 
 Structural analysis for vapor-liquid interface
 ----------------------------------------------

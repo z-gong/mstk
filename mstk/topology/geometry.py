@@ -62,6 +62,22 @@ def grow_particle(pos1, pos2, bond, angle):
     return pos2 + w * bond
 
 
+def relocate_hydrogen(hydrogen):
+    '''
+    Update the position of a hydrogen atom according to the parent atom and other neighbors of parent
+
+    Parameters
+    ----------
+    hydrogen : Atom
+    '''
+    vector = np.array([0., 0., 0.])
+    parent = hydrogen.bond_partners[0]
+    for atom in parent.bond_partners:
+        if atom is not hydrogen:
+            vector += atom.position - parent.position
+    hydrogen.position = parent.position - vector / np.sqrt(np.dot(vector, vector)) * 0.1  # bXH = 0.1 nm
+
+
 def periodic_distance(pos1, pos2, box, distance_max=None):
     '''
     Calculate the distance between two points under periodic boundary condition
@@ -155,7 +171,45 @@ def periodic_dihedral(pos1, pos2, pos3, pos4, box):
     return sign * value
 
 
-def find_clusters(elements, func):
+def rotate_points(positions, reference, target):
+    '''
+    Rotate a group of points as a whole so that a reference vector aligns with a target vector
+
+    https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
+
+    Parameters
+    ----------
+    positions : array
+        The positions of the points
+    reference : array
+        The reference vector for the roratition
+    target : array
+        The target vector to align with
+
+    Returns
+    -------
+    positions_rotated : array
+        The positions after the rotation
+    '''
+    # unit vectors
+    vec_unit = reference / np.linalg.norm(reference)
+    tar_unit = target / np.linalg.norm(target)
+
+    # determine the axis of rotation and angle of rotation
+    axis = np.cross(vec_unit, tar_unit)
+    sin = np.linalg.norm(axis)
+    cos = np.dot(vec_unit, tar_unit)
+
+    # construct the rotation matrix
+    skew_matrix = np.array([[0, -axis[2], axis[1]],
+                            [axis[2], 0, -axis[0]],
+                            [-axis[1], axis[0], 0]])
+    rotation_matrix = np.eye(3) + skew_matrix + (1 - cos) / sin ** 2 * np.dot(skew_matrix, skew_matrix)
+
+    return np.array([np.dot(rotation_matrix, p) for p in positions])
+
+
+def find_clusters(elements, func, show_progress=False):
     '''
     Group elements into clusters
 
@@ -175,7 +229,12 @@ def find_clusters(elements, func):
     flag = [0] * n_element
     n_cluster = 0
     clusters = []
-    for i in range(n_element):
+    if show_progress:
+        from tqdm import tqdm
+        _iterator = tqdm(range(n_element))
+    else:
+        _iterator = range(n_element)
+    for i in _iterator:
         if flag[i]:
             continue
         path = {i}
@@ -203,7 +262,7 @@ def find_clusters(elements, func):
     return clusters
 
 
-def find_clusters_consecutive(elements, func):
+def find_clusters_consecutive(elements, func, show_progress=False):
     '''
     Group elements into clusters. If element i and j are in the same group, all elements between i and j will also be put in the same group.
 
@@ -223,7 +282,12 @@ def find_clusters_consecutive(elements, func):
     flag = [0] * n_element
     n_cluster = 0
     clusters = []
-    for i in range(n_element):
+    if show_progress:
+        from tqdm import tqdm
+        _iterator = tqdm(range(n_element))
+    else:
+        _iterator = range(n_element)
+    for i in _iterator:
         if not flag[i]:
             n_cluster += 1
             flag[i] = n_cluster

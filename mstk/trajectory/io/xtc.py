@@ -46,7 +46,7 @@ class Xtc(TrjHandler):
         cf_cell = cf_frame.cell
         lengths = [i / 10 for i in cf_cell.lengths]
         angles = [i * DEG2RAD for i in cf_cell.angles]
-        frame.positions = cf_frame.positions.astype(np.float32) / 10
+        frame.positions = cf_frame.positions.astype(float) / 10
         frame.cell.set_box([lengths, angles])
         frame.step = frame.step
 
