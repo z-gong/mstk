@@ -1,7 +1,7 @@
 import io
 import os
 from .typer import Typer
-from mstk import DIR_MSTK
+from mstk import DIR_MSTK, MSTK_FORCEFIELD_PATH
 from mstk.forcefield.errors import *
 from mstk.topology import Bond
 
@@ -92,9 +92,8 @@ class ZftTyper(Typer):
     Parameters
     ----------
     file : str or file-like object, optional
-        Type definition file
-    content : str, optional
-        Content of type definition file
+        Type definition file.
+        If the file does not exist, will search it under directories defined by `MSTK_FORCEFIELD_PATH`.
 
     Notes
     -----
@@ -112,8 +111,14 @@ class ZftTyper(Typer):
 
         content = None
         if type(file) is str:
-            with open(file) as f:
-                content = f.read()
+            for dir in ['.'] + MSTK_FORCEFIELD_PATH:
+                p = os.path.join(dir, file)
+                if os.path.exists(p):
+                    with open(p) as f:
+                        content = f.read()
+                    break
+            else:
+                raise Exception(f'Typing file not found: {file}')
         elif isinstance(file, io.IOBase):
             content = file.read()
         if content is None:
@@ -216,7 +221,3 @@ class ZftTyper(Typer):
             if define in defines:
                 return self._get_deepest_define(defines, define)
         return parent
-
-
-#: A instance of :class:`ZftTyper` defined by `data/forcefield/primitive.zft`
-typer_primitive = ZftTyper(os.path.join(DIR_MSTK, 'data', 'forcefield', 'primitive.zft'))

@@ -12,7 +12,7 @@ Typing engine
 
     Typer
     ZftTyper
-    typer_primitive
+    GaffTyper
 
 Force field definition
 ----------------------

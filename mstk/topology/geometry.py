@@ -33,9 +33,9 @@ def grow_particle(pos1, pos2, bond, angle):
     Parameters
     ----------
     pos1 : np.ndarray
-        coordinates of far parent
+        position of far parent
     pos2 : np.ndarray
-        coordinates of near parent
+        position of near parent
     bond : float
         bond between near parent and new particle
     angle : float
@@ -43,8 +43,8 @@ def grow_particle(pos1, pos2, bond, angle):
 
     Returns
     -------
-    xyz_new : array
-        coordinates of new particle
+    pos3 : array
+        position of new particle
     '''
     delta = pos2 - pos1
     v = delta / np.sqrt(np.dot(delta, delta))
@@ -57,7 +57,8 @@ def grow_particle(pos1, pos2, bond, angle):
     yb = np.cross(v, xb)
 
     phi = np.random.random() * 2 * np.pi
-    w = np.sin(angle) * np.cos(phi) * xb + np.sin(angle) * np.sin(phi) * yb + np.cos(angle) * v
+    theta = np.pi - angle
+    w = np.sin(theta) * np.cos(phi) * xb + np.sin(theta) * np.sin(phi) * yb + np.cos(theta) * v
 
     return pos2 + w * bond
 

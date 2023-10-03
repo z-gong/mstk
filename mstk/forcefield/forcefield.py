@@ -1,8 +1,7 @@
 import os
-from pathlib import Path
 from .ffterm import *
 from .errors import *
-from mstk import DIR_MSTK, logger
+from mstk import DIR_MSTK, MSTK_FORCEFIELD_PATH, logger
 
 
 class ForceField():
@@ -145,7 +144,7 @@ class ForceField():
         '''
         Load ForceField from files.
 
-        If the file does not exist, will try to locate it from `mstk/data/forcefield`.
+        If a file does not exist, will search it under directories defined by `MSTK_FORCEFIELD_PATH`.
 
         The parser for reading the files will be determined from the extension of the first file.
         Therefore, all the files should be in the same format.
@@ -165,21 +164,21 @@ class ForceField():
         forcefield : ForceField
 
         '''
-        files_path = [f for f in files]
-        for i, file in enumerate(files_path):
-            if not Path(file).exists():
-                file_internal = Path(DIR_MSTK) / 'data' / 'forcefield' / file
-                if not file_internal.exists():
-                    raise Exception(f'FF file not found: {file}')
-                else:
-                    files_path[i] = file_internal.as_posix()
+        files_path = []
+        for i, file in enumerate(files):
+            for dir in ['.'] + MSTK_FORCEFIELD_PATH:
+                p = os.path.join(dir, file)
+                if os.path.exists(p):
+                    files_path.append(p)
+                    break
+            else:
+                raise Exception(f'FF file not found: {file}')
 
-        file = files_path[0]
-        basename, ext = os.path.splitext(file)
+        basename, ext = os.path.splitext(files_path[0])
         try:
             cls = ForceField._class_map[ext]
         except KeyError:
-            raise Exception(f'Unsupported FF format: {file}')
+            raise Exception(f'Unsupported FF file format: {ext}')
 
         return cls(*files_path).forcefield
 

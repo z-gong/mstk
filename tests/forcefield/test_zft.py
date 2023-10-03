@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-from mstk.forcefield.typer import ZftTyper, typer_primitive
+from mstk.forcefield.typer import ZftTyper
 from mstk.topology import Topology, Molecule, Atom, Bond
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
+typer_primitive = ZftTyper('primitive.zft')
 
 def test_typing():
     im61 = Molecule.from_smiles('C[n+]1cn(cc1)CCCCCC')

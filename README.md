@@ -17,7 +17,7 @@ The following code builds a liquid mixture of 100 benzene and 1000 water molecul
 
 ```python
 from mstk.topology import Molecule, Topology
-from mstk.forcefield import ForceField, typer_primitive
+from mstk.forcefield import ForceField, ZftTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
@@ -27,7 +27,8 @@ water = Molecule.from_smiles('O')
 top = Topology([benzene, water])
 
 # Assign atom type as defined in `data/forcefield/primitive.zft`
-typer_primitive.type(top)
+typer = ZftTyper('primitive.zft')
+typer.type(top)
 
 # Build a bulk liquid simulation box with Packmol
 packmol = Packmol('/path/to/packmol')
@@ -61,8 +62,9 @@ https://mstk.readthedocs.io/en/latest/index.html
 - [ ] Remove dependency on `mdtraj`
 
 ## Known issue
-`mstk` use `chemfiles` to write `XTC` trajectory. However, lastest `chemfiles` fails writing binary trajectory format under WSL. 
-If you are working under WSL, please install `chemfiles 0.10.2`
+
+`mstk` use `chemfiles` to write `XTC` trajectory. However, lastest `chemfiles` fails writing binary trajectory format
+under WSL. If you are working under WSL, please install `chemfiles 0.10.2`
 
 ```
 conda install chemfiles-lib=0.10.2 chemfiles-python=0.10.2

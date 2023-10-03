@@ -10,7 +10,7 @@ from openmm import openmm as mm
 from mstk.topology import Topology, Molecule
 from mstk.trajectory import Trajectory
 from mstk.forcefield import ForceField
-from mstk.forcefield.typer import ZftTyper, typer_primitive
+from mstk.forcefield.typer import ZftTyper
 from mstk.forcefield.errors import *
 from mstk.simsys import System
 from mstk.chem import constant
@@ -47,13 +47,9 @@ def main():
     for arg, val in vars(args).items():
         logger.info(f'--{arg:10s} {val}')
 
+    typer = None
     if args.typer is not None:
-        if args.typer == 'primitive':
-            typer = typer_primitive
-        else:
-            typer = ZftTyper(args.typer)
-    else:
-        typer = None
+        typer = ZftTyper(args.typer)
 
     ref_mols = []
     for inp in args.input:

@@ -65,7 +65,7 @@ def main():
         ljterm = LJ126Term(atype, atype, epsilon, sigma)
         ff.add_term(ljterm)
 
-    ff.write('gaff.zfp')
+    ff.write('gaff.zff')
 
 
 if __name__ == '__main__':

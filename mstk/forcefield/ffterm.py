@@ -1454,6 +1454,8 @@ class PeriodicDihedralTerm(DihedralTerm):
                 k = float(d['k_%i' % n])
                 if k != 0:
                     self.add_parameter(phi, k, n)
+        if not self.parameters:
+            self.add_parameter(0.0, 0.0, 1)
 
     def to_zff(self):
         line = '%-16s %-9s %-9s %-9s %-9s' % (self.__class__.get_alias(),

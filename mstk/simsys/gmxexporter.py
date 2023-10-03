@@ -66,6 +66,8 @@ class GromacsExporter():
             logger.warning('MieTerm not supported by GROMACS. Exported in LJ-12-6 form')
         if SDKAngleTerm in system.ff_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Exported in harmonic form')
+        if DrudeTerm in system.ff_classes:
+            logger.warning('DrudeTerm not well tested in GROMACS. Use it with caution')
 
         if system.vsite_types - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
@@ -142,7 +144,8 @@ class GromacsExporter():
                 if atom in system.drude_pairs:
                     mass += system.drude_pairs[atom].mass
                 string += '%6i %10s %6i %10s %6s %6i %12.6f %10.4f\n' % (
-                    j + 1, atom.type, 1, mol.name, atom.symbol, j + 1, atom.charge, mass)
+                    j + 1, atom.type, atom.residue.id_in_mol + 1, atom.residue.name,
+                    atom.symbol, j + 1, atom.charge, mass)
 
             if TIP4PSite in system.vsite_types:
                 string += '\n[ virtual_sites3 ]\n'

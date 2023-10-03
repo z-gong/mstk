@@ -1,4 +1,4 @@
-class Typer():
+class Typer:
     '''
     Base class for typing engines.
 
@@ -8,23 +8,23 @@ class Typer():
     A well defined typing rule will make the force field development much less painful.
     '''
 
-    def type(self, topology):
+    def type(self, top_or_mol):
         '''
-        Assign types for all atoms in the topology or molecule.
+        Assign types for all atoms in a topology or molecule.
 
         The :attr:`~mstk.topology.Atom.type` attribute of all atoms in the topology/molecule will be updated.
 
         Parameters
         ----------
-        topology : Topology, Molecule
+        top_or_mol: Topology, Molecule
         '''
         from mstk.topology import Topology, Molecule
 
-        if type(topology) is Topology:
-            for mol in topology.molecules:
+        if type(top_or_mol) is Topology:
+            for mol in top_or_mol.molecules:
                 self._type_molecule(mol)
-        elif type(topology) is Molecule:
-            self._type_molecule(topology)
+        elif type(top_or_mol) is Molecule:
+            self._type_molecule(top_or_mol)
         else:
             raise Exception('A topology or molecule is expected')
 
