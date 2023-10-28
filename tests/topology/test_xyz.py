@@ -34,8 +34,10 @@ def test_write():
     assert filecmp.cmp(tmp, cwd + '/files/baselines/zmat-out.xyz')
 
     mol = Molecule.from_smiles('C[n+]1cn(cc1)CCCC[B-](F)(F)F')
+    for atom in mol.atoms:
+        atom.type = f'{atom.symbol}{len(atom.bonds)}'
     top = Topology([mol])
     tmp = os.path.join(tmpdir, 'smi-out.xyz')
     top.write(tmp)
-    filecmp.cmp(tmp, cwd + '/files/baselines/smi-out.xyz')
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/smi-out.xyz')
     shutil.rmtree(tmpdir)

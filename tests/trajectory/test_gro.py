@@ -38,6 +38,6 @@ def test_write():
         frame = xtc.read_frame(i)
         gro.write_frame(frame, top, subset=list(range(150, 300)))
     gro.close()
-    filecmp.cmp(tmp, cwd + '/files/baselines/xtc-out.gro')
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/xtc-out.gro')
 
     shutil.rmtree(tmpdir)

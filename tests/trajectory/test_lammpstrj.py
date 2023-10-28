@@ -9,7 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_read():
-    trj = Trajectory.open(cwd + '/files/100-SPCE.lammpstrj')
+    trj = Trajectory.open(cwd + '/files/100HOH.lammpstrj')
     assert trj.n_atom == 300
     assert trj.n_frame == 4
 

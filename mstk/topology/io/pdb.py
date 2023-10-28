@@ -3,6 +3,7 @@ from mstk.chem.element import Element
 from mstk.topology.atom import Atom
 from mstk.topology.molecule import Molecule
 from mstk.topology.topology import Topology
+from mstk import logger
 
 
 class Pdb:
@@ -161,30 +162,40 @@ class Pdb:
         if not top.has_position:
             raise Exception('Position is required for writing PDB file')
 
+        if top.n_atom > 99999:
+            logger.warning('Number of atoms exceeds the maximum supported by PDB (99999)')
+
+        def format_float(value, max_length, default_decimal):
+            if value >= 10 ** max_length or value <= -10 ** (max_length - 1):
+                raise Exception(f'{value} too long for formatter')
+            formatter = f'%{max_length}.{default_decimal}f'
+            return (formatter % value)[:max_length]
+
         lengths = top.cell.lengths * 10
         angles = top.cell.angles
         string = 'REMARK   Created by mstk\n'
-        string += 'CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1 \n' % (
-            lengths[0], lengths[1], lengths[2], angles[0] * RAD2DEG, angles[1] * RAD2DEG, angles[2] * RAD2DEG)
+        string += 'CRYST1%9s%9s%9s%7s%7s%7s P 1           1 \n' % (
+            *(format_float(x, 9, 3) for x in lengths),
+            *(format_float(x * RAD2DEG, 7, 2) for x in angles))
 
         for atom in top.atoms:
             pos = atom.position * 10  # convert from nm to A
             atom_name = atom.type if atom_type else atom.name
             resname = atom.residue.name
             resid = atom.residue.id + 1
-            line = 'HETATM%5d %4s %-4s %4d    %8.3f%8.3f%8.3f                      %2s\n' % (
+            line = 'HETATM%5d %4s %-4s %4d    %8s%8s%8s                      %2s\n' % (
                 (atom.id + 1) % 100000, atom_name[:4], resname[:4], resid % 10000,
-                pos[0], pos[1], pos[2], atom.symbol[:2])
+                *[format_float(x, 8, 3) for x in pos], atom.symbol[:2])
             string += line
 
         for atom in top.atoms:
             partners = [a for a in atom.bond_partners if a.id > atom.id]
             if len(partners) > 0:
-                line = 'CONECT%5d' % (atom.id + 1)
+                line = 'CONECT%5d' % ((atom.id + 1) % 100000)
                 for i, partner in enumerate(partners):
                     if i > 0 and i % 4 == 0:
-                        line += '\nCONECT%5d' % (atom.id + 1)
-                    line += '%5d' % (partner.id + 1)
+                        line += '\nCONECT%5d' % ((atom.id + 1) % 100000)
+                    line += '%5d' % ((partner.id + 1) % 100000)
                 line += '\n'
                 string += line
 
