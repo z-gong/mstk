@@ -9,7 +9,7 @@ A toolkit to make molecular simulation less painful
 * Support Drude polarizable model, coarse-grained model, virtual site, linear angle...
 * Read/write common topology files (LAMMPS, PSF, PDB, ZMAT etc...)
 * Read/write common trajectory files (LAMMPS, GRO, DCD, XTC, etc...)
-* Access local and remote job schedulers like Slurm, Torque
+* Access local and remote job schedulers like Slurm
 
 ## Examples
 
@@ -56,7 +56,7 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 ## TODO
 
-- [ ] Design a file format to store all the information in a topology
+- [ ] Rework `quick-sim.py` script
 - [ ] Take bond order into consideration for force field assignment
 - [ ] Re-organize algorithms scattered in topology and analyzer modules
 - [ ] Remove dependency on `mdtraj`
