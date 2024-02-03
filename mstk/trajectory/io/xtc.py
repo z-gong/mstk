@@ -24,7 +24,7 @@ class Xtc(TrjHandler):
         if mode not in ('r', 'w', 'a'):
             raise Exception('Invalid mode')
 
-        self._xtc = chemfiles.Trajectory(file, mode)
+        self._xtc = chemfiles.Trajectory(file, mode, format='XTC')
 
     def close(self):
         try:

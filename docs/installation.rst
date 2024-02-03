@@ -6,7 +6,7 @@ Install dependencies
 
 `mstk` requires `numpy`, `pandas` and `rdkit` for most of its functionalities.
 `openmm` is required for energy calculation, minimization etc...
-`chemfiles` and `mdtraj` are required for parsing `XTC` and `DCD` trajectory formats.
+`chemfiles` is required for parsing `XTC` and `DCD` trajectory formats.
 `scipy`, `scikit-learn` and `pymbar` are required by `analyzer` module.
 
 It is recommended to install these dependencies with `conda`.

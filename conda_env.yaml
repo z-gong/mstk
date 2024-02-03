@@ -7,7 +7,6 @@ dependencies:
   - pandas
   - rdkit
   - openmm
-  - mdtraj
   - chemfiles>=0.10.4
   - scipy
   - scikit-learn

@@ -36,7 +36,5 @@ def test_write():
         frame = gro.read_frame(i)
         dcd.write_frame(frame)
     dcd.close()
-    # It's annoying that DCD files generated are different every time. Compare the size instead of the content.
-    assert os.path.getsize(tmp) == os.path.getsize(cwd + '/files/baselines/gro-out.dcd')
-
+    assert filecmp.cmp(tmp, cwd + '/files/baselines/gro-out.dcd')
     shutil.rmtree(tmpdir)
