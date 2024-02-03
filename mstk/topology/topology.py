@@ -192,13 +192,13 @@ class Topology():
                 raise Exception('Numbers should be list of integers')
 
         if self.cell.volume == 0:
-            raise Exception('Unit cell should be defined first')
+            raise Exception('Unit cell required by Packmol')
 
         if not self.cell.is_rectangular:
             raise Exception('Triclinic unit cell haven\'t been implemented')
 
         if not self.has_position:
-            raise Exception('Positions are required for scaling box')
+            raise Exception('Positions required by Packmol')
 
         from ..wrapper.packmol import Packmol
         if packmol is not None and not isinstance(packmol, Packmol):

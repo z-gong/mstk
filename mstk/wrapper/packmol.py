@@ -124,6 +124,8 @@ class Packmol:
             box_gas = '0 0 %f %f %f %f' % (slab * 10, size[0] * 10, size[1] * 10, size[2] * 10)  # nm -> A
             for i, filename in enumerate(files):
                 # put 1/50 molecules in gas phase. Do not put too many in case of nucleation in gas phase
+                if numbers[i] == 0:
+                    continue
                 n_gas = numbers[i] // 50
                 n_liq = numbers[i] - n_gas
                 inp += (
@@ -140,7 +142,8 @@ class Packmol:
 
         else:
             for i, filename in enumerate(files):
-                number = numbers[i]
+                if numbers[i] == 0:
+                    continue
                 # slab model for multiple components
                 if slab_multiple:
                     lz_per_slab = size[3] / len(numbers)
@@ -153,7 +156,7 @@ class Packmol:
                     'structure {filename}\n'
                     'number {number}\n'
                     'inside box {box}\n'
-                    'end structure\n'.format(filename=filename, number=number, box=box)
+                    'end structure\n'.format(filename=filename, number=numbers[i], box=box)
                 )
 
         with open(inp_file, 'w') as f:
