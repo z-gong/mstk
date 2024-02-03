@@ -56,15 +56,15 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 ## TODO
 
-- [ ] Rework `quick-sim.py` script
 - [ ] Take bond order into consideration for force field assignment
+- [ ] Add frozen marker in ZFF and ZFP for force field optimization
+- [ ] Read/write GRO file as topology
 - [ ] Re-organize algorithms scattered in topology and analyzer modules
-- [ ] Remove dependency on `mdtraj`
 
 ## Known issue
 
 `mstk` use `chemfiles` to write `XTC` trajectory. However, lastest `chemfiles` fails writing binary trajectory format
-under WSL. If you are working under WSL, please install `chemfiles 0.10.2`
+under WSL 1. If you are using WSL 1, please install `chemfiles 0.10.2`
 
 ```
 conda install chemfiles-lib=0.10.2 chemfiles-python=0.10.2
