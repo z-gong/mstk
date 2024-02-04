@@ -58,7 +58,6 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 - [ ] Take bond order into consideration for force field assignment
 - [ ] Add frozen marker in ZFF and ZFP for force field optimization
-- [ ] Read/write GRO file as topology
 - [ ] Re-organize algorithms scattered in topology and analyzer modules
 
 ## Known issue

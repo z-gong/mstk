@@ -52,4 +52,5 @@ Topology parser
     Pdb
     Zmat
     Smi
+    GroTopology
     XyzTopology
