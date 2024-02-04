@@ -5,11 +5,10 @@ import argparse
 import random
 import numpy as np
 from mstk.topology import Topology, Molecule
-from mstk.trajectory import Trajectory
+from mstk.trajectory import Trajectory, Frame
 from mstk.forcefield import ForceField
 from mstk.forcefield.typer import ZftTyper, GaffTyper
 from mstk.forcefield.errors import *
-from mstk.simsys import System, GromacsExporter
 from mstk.chem import constant
 from mstk import logger
 
@@ -24,6 +23,8 @@ def parse_args():
                              'Positions are required to build box and write coordinates. '
                              'If the topology doesn\'t contain positions, it must be provided by this argument. '
                              'The number of conf files can be smaller or equal to the number of molecule types')
+    parser.add_argument('--op', type=str, default='top.psf', help='output topology file')
+    parser.add_argument('--oc', type=str, default='conf.gro', help='output configuration file')
     parser.add_argument('-n', '--number', nargs='+', type=int, help='number of each molecule')
     parser.add_argument('-f', '--ff', nargs='+', required=True, type=str, help='forcefield files')
     parser.add_argument('-t', '--typer', type=str,
@@ -143,16 +144,19 @@ def main():
     logger.info(f'box = {box}')
     top.cell.set_box(box)
 
-    # check the integrity of the system
-    system = System(top, ff)
-    top.write('_topol.psf')
+    top.write(args.op)
 
     if args.packmol:
         top.update_molecules(ref_mols)
         # write the Packmol input files only. Can modify it before execution
         top.scale_with_packmol(args.number, seed=random.randrange(int(1E5), int(1E6)), tempdir='.')
     else:
-        GromacsExporter._export_gro(system, '_conf.gro')
+        frame = Frame(top.n_atom)
+        frame.cell = top.cell
+        frame.positions = top.positions
+        trj = Trajectory.open(args.oc, 'w')
+        trj.write_frame(frame, top)
+        trj.close()
 
 
 if __name__ == '__main__':

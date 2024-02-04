@@ -12,3 +12,4 @@ from .io.lammps import LammpsData
 from .io.xyz import XyzTopology
 from .io.msd import Msd
 from .io.smi import Smi
+from .io.gro import GroTopology

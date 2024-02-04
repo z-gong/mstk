@@ -44,15 +44,6 @@ class Pdb:
         self._parse(file, **kwargs)
 
     def _parse(self, file, split_molecule='auto'):
-        '''
-        Parse a PDB file
-
-
-        Returns
-        -------
-        topology : Topology
-        '''
-
         with open(file) as f:
             lines = f.read().splitlines()
 
