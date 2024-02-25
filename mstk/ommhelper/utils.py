@@ -30,7 +30,7 @@ def minimize(sim, tolerance, gro_out=None, logger=None):
     Run energy minimization on a Simulation until the force on each atom is smaller than tolerance.
 
     Note that the tolerance here differs from that in OpenMM LocalEnergyMinimizer.
-    In OpenMM, the tolerance is set for the root mean square of N*3 force components in the whole system.
+    In OpenMM, the tolerance is set for the root-mean-square of N*3 force components in the whole system.
 
     Parameters
     ----------
@@ -67,8 +67,8 @@ def minimize(sim, tolerance, gro_out=None, logger=None):
 def apply_mc_barostat(system, pcoupl, P, T, nstep=100, rigid_molecule=True, logger=None):
     '''
     Add a MonteCarlo barostat to the system and return the added barostat
-    
-    #TODO It requires the forked OpenMM https://github.com/openmm/openmm/pull/3797
+
+    TODO It requires the forked OpenMM https://github.com/openmm/openmm/pull/3797
 
     Parameters
     ----------
@@ -107,7 +107,7 @@ def apply_mc_barostat(system, pcoupl, P, T, nstep=100, rigid_molecule=True, logg
         msg = 'Anisotropic barostat only for Z'
         force = mm.MonteCarloAnisotropicBarostat([P * bar] * 3, T * kelvin, False, False, True, nstep, rigid_molecule)
     else:
-        raise Exception('Available pressure coupling types: iso, semi-iso, xyz, xy, z')
+        raise Exception('Available pressure coupling types: iso, semi-iso, aniso, xy, z')
 
     scaled_unit = 'molecules' if rigid_molecule else 'constrained groups'
     msg += f' with {scaled_unit} scaled'
@@ -121,7 +121,20 @@ def apply_mc_barostat(system, pcoupl, P, T, nstep=100, rigid_molecule=True, logg
 
 
 def energy_decomposition(sim: app.Simulation, logger=None):
-    groups = {}
+    '''
+    Get the energy contribution of different force groups
+
+    Parameters
+    ----------
+    sim : app.Simulation
+    logger : Logger
+
+    Returns
+    -------
+    energies : Dict[str, float]
+        The name and energy contribution of each force group
+    '''
+    groups = {}  # {id_group: {force1_name, force2_name, ...}, ...}
     for force in sim.system.getForces():
         i = force.getForceGroup()
         if i not in groups:
@@ -132,9 +145,7 @@ def energy_decomposition(sim: app.Simulation, logger=None):
     for i in sorted(groups.keys()):
         energy = sim.context.getState(getEnergy=True, groups={i}).getPotentialEnergy()._value
         if energy != 0 or i != 0:
-            name = '+'.join(groups[i])
-            if name in energies:
-                name += f'_{i}'
+            name = f'{i}_{"+".join(groups[i])}'
             energies[name] = energy
 
     if logger:

@@ -132,11 +132,14 @@ class Molecule():
         molecule : Molecule
         '''
         words = smiles.strip().split()
+        if not words:
+            raise Exception('Invalid SMILES string')
+
         smiles = words[0]
         if len(words) > 1:
             name = words[1]
         else:
-            name = smiles
+            name = None
 
         rdmol = create_mol_from_smiles(smiles)
         mol = Molecule.from_rdmol(rdmol, name)

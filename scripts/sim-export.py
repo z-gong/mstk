@@ -113,7 +113,7 @@ def main():
     if args.namd or args.all:
         logger.info('Exporting NAMD...')
         try:
-            system.export_namd(pdb_out='_namd-conf.pdb', psf_out='_namd-topol.psf', prm_out=None, pdb_atom_type=True)
+            system.export_namd(pdb_out='_namd-conf.pdb', psf_out='_namd-top.psf', prm_out=None)
         except Exception as e:
             logger.error('Failed exporting NAMD')
             traceback.print_exc()

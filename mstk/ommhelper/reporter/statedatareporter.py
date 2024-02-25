@@ -61,7 +61,7 @@ class StateDataReporter(object):
     StateDataReporter outputs information about a simulation, such as energy and temperature, to a file.
 
     This reporter is modified from the StateDataReporter shipped with OpenMM python API.
-    It adds support for reporting box size and collective variables.
+    It adds support for reporting pressure, energy contribution of individual force group, collective variables and box size.
 
     To use it, create a StateDataReporter, then add it to the Simulation's list of reporters.  The set of
     data to write is configurable using boolean flags passed to the constructor.  By default the data is
@@ -117,15 +117,21 @@ class StateDataReporter(object):
         The total number of steps that will be included in the simulation.
         This is required if either progress or remainingTime is set to True,
         and defines how many steps will indicate 100% completion.
+    forceGroups : list=[]
+        Write the energy contribution of each force group in this list separately
     cvs : list=[]
-        Collective variables defined by CustomCVForce
+        Write the value of each collective variable in this list separately.
+        Each element is a CustomCVForce object
+    extra : dict={}
+        Write extra data from a dictionary. The keys will be used as header names.
+        The values can change during the simulation.
     '''
 
     def __init__(self, file, reportInterval, step=True, time=False, potentialEnergy=True,
-                 kineticEnergy=False, totalEnergy=False, temperature=True, volume=True, box=True,
+                 kineticEnergy=False, totalEnergy=False, temperature=True, volume=False, box=True,
                  density=True, progress=False, remainingTime=False, speed=True, elapsedTime=False,
                  separator='\t', systemMass=None, totalSteps=None, append=False,
-                 cvs=None, pressure=True, pxx=False, pyy=False, pzz=False, extra={}):
+                 pressure=True, pxx=False, pyy=False, pzz=False, forceGroups=None, cvs=None, extra=None):
         self._reportInterval = reportInterval
         self._openedFile = isinstance(file, str)
         if (progress or remainingTime) and totalSteps is None:
@@ -164,12 +170,13 @@ class StateDataReporter(object):
 
         self._boxSizeList = [[], [], []]
 
-        self._cvs = cvs or []
         self._pressure = pressure
         self._pxx = pxx
         self._pyy = pyy
         self._pzz = pzz
-        self._extra = extra
+        self._forceGroups = forceGroups or []
+        self._cvs = cvs or []
+        self._extra = extra or {}
 
     def describeNextReport(self, simulation):
         """Get information about the next report this object will generate.
@@ -202,7 +209,7 @@ class StateDataReporter(object):
         """
         if not self._hasInitialized:
             self._initializeConstants(simulation)
-            headers = self._constructHeaders()
+            headers = self._constructHeaders(simulation)
             print('#"%s"' % ('"' + self._separator + '"').join(headers), file=self._out)
             try:
                 self._out.flush()
@@ -309,13 +316,15 @@ class StateDataReporter(object):
                     value = "0:%02d" % remainingSeconds
             values.append(value)
 
-        for cv in self._cvs:
-            values.append(cv.getCollectiveVariableValues(simulation.context)[0])
-
         bool_press = [self._pxx, self._pyy, self._pzz]
         if any(bool_press):
             values.extend(self._compute_anisotropic_pressure(simulation.context, state, *bool_press))
 
+        for group in self._forceGroups:
+            values.append(simulation.context.getState(getEnergy=True, groups={group}).getPotentialEnergy().
+                          value_in_unit(unit.kilojoules_per_mole))
+        for cv in self._cvs:
+            values.append(cv.getCollectiveVariableValues(simulation.context)[0])
         if self._extra:
             values.extend(self._extra.values())
 
@@ -368,7 +377,7 @@ class StateDataReporter(object):
                     matrix[a2][a1] = True
                 self._constrained_groups = find_clusters(list(range(n_atom)), lambda x, y: matrix[x][y])
 
-    def _constructHeaders(self):
+    def _constructHeaders(self, simulation):
         """Construct the headers for the CSV output
 
         Returns: a list of strings giving the title of each observable being reported on.
@@ -404,14 +413,17 @@ class StateDataReporter(object):
             headers.append('Elapsed')
         if self._remainingTime:
             headers.append('Remaining')
-        for i, cv in enumerate(self._cvs):
-            headers.append('CV%i' % i)
         if self._pxx:
             headers.append('Pxx')
         if self._pyy:
             headers.append('Pyy')
         if self._pzz:
             headers.append('Pzz')
+        for group in self._forceGroups:
+            names = set(force.getName() for force in simulation.system.getForces() if force.getForceGroup() == group)
+            headers.append(f'E_{group}_{"+".join(names)}')
+        for i, cv in enumerate(self._cvs):
+            headers.append(f'CV_{i}')
         if self._extra:
             headers.extend(self._extra.keys())
         return headers

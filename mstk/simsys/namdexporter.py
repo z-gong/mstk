@@ -27,7 +27,7 @@ class NamdExporter():
         pass
 
     @staticmethod
-    def export(system, pdb_out, psf_out, prm_out, pdb_atom_type=False, **kwargs):
+    def export(system, pdb_out, psf_out, prm_out, **kwargs):
         '''
         Generate input files for NAMD from a system
 
@@ -42,18 +42,18 @@ class NamdExporter():
             raise Exception('PBC required for exporting NAMD')
 
         if pdb_out is not None:
-            NamdExporter._export_pdb(system, pdb_out, atom_type=pdb_atom_type)
+            NamdExporter._export_pdb(system, pdb_out)
         if psf_out is not None:
             NamdExporter._export_psf(system, psf_out)
         if prm_out is not None:
             NamdExporter._export_prm(system, prm_out)
 
     @staticmethod
-    def _export_pdb(system, pdb_out='conf.pdb', atom_type=False):
-        Pdb.save_to(system.topology, pdb_out, atom_type=atom_type)
+    def _export_pdb(system, pdb_out='conf.pdb'):
+        Pdb.save_to(system.topology, pdb_out)
 
     @staticmethod
-    def _export_psf(system, psf_out='topol.psf'):
+    def _export_psf(system, psf_out='top.psf'):
         Psf.save_to(system.topology, psf_out)
 
     @staticmethod

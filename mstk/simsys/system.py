@@ -409,7 +409,7 @@ class System:
         from .gmxexporter import GromacsExporter
         GromacsExporter.export(self, gro_out, top_out, mdp_out, **kwargs)
 
-    def export_namd(self, pdb_out='conf.pdb', psf_out='topol.psf', prm_out='ff.prm', **kwargs):
+    def export_namd(self, pdb_out='conf.pdb', psf_out='top.psf', prm_out='ff.prm', **kwargs):
         '''
         Generate input files for NAMD
 

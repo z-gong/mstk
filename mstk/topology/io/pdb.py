@@ -139,7 +139,7 @@ class Pdb:
         self.topology.generate_angle_dihedral_improper()
 
     @staticmethod
-    def save_to(top, file, atom_type=False, **kwargs):
+    def save_to(top, file, **kwargs):
         '''
         Save topology into a PDB file
 
@@ -147,8 +147,6 @@ class Pdb:
         ----------
         top : Topology
         file : str
-        atom_type : bool
-            If True, atom type will be written in the atom name column, which is useful for visualizing
         '''
         if not top.has_position:
             raise Exception('Position is required for writing PDB file')
@@ -171,11 +169,10 @@ class Pdb:
 
         for atom in top.atoms:
             pos = atom.position * 10  # convert from nm to A
-            atom_name = atom.type if atom_type else atom.name
             resname = atom.residue.name
             resid = atom.residue.id + 1
             line = 'HETATM%5d %4s %-4s %4d    %8s%8s%8s                      %2s\n' % (
-                (atom.id + 1) % 100000, atom_name[:4], resname[:4], resid % 10000,
+                (atom.id + 1) % 100000, atom.name[:4], resname[:4], resid % 10000,
                 *[format_float(x, 8, 3) for x in pos], atom.symbol[:2])
             string += line
 
