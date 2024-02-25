@@ -7,13 +7,14 @@ Install dependencies
 `mstk` requires `numpy`, `pandas` and `rdkit` for most of its functionalities.
 `openmm` is required for energy calculation, minimization etc...
 `chemfiles` is required for parsing `XTC` and `DCD` trajectory formats.
-`scipy`, `scikit-learn` and `pymbar` are required by `analyzer` module.
+`packmol` is required for building simulation box.
+`scipy`, `scikit-learn` and `pymbar-core` are required by `analyzer` module.
 
 It is recommended to install these dependencies with `conda`.
 
 .. code-block:: bash
 
-    conda install -f conda_env.yaml
+    conda install -c conda-forge numpy pandas rdkit openmm chemfiles packmol scipy scikit-learn pymbar-core
 
 
 Install `mstk`

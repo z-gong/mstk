@@ -8,6 +8,7 @@ dependencies:
   - rdkit
   - openmm
   - chemfiles>=0.10.4
+  - packmol
   - scipy
   - scikit-learn
   - pymbar-core

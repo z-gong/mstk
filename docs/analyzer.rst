@@ -5,7 +5,7 @@ Analyzer module provides a bunch of shortcuts for performing the most commonly u
 like curve fitting, structure determination and time series analysis.
 
 .. note::
-   *This module is developed for personal projects. It's not a comprehensive analysis toolkit.*
+   *Deprecated. This module is developed for personal projects. It's not a comprehensive analysis toolkit.*
 
 Structural analysis
 -------------------

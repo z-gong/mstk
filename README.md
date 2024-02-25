@@ -1,19 +1,29 @@
 # mstk
 
-A toolkit to make molecular simulation less painful
+_A toolkit to make molecular simulation less painful_
 
-## Capabilities
+`mstk` is a Python toolkit designed to streamline the setup and management of molecular simulations, particularly geared
+towards non-biological applications in material science and chemical engineering. It simplifies atom typing, force field
+parameter assignment, and input file generation for major simulation engines.
+
+## Features
 
 * Assign atom types and force field parameters based on local chemical environment
-* Generate input files for simulation engines like LAMMPS, GROMACS, NAMD, OpenMM
+* Generate input files for LAMMPS, GROMACS, NAMD and OpenMM
 * Support Drude polarizable model, coarse-grained model, virtual site, linear angle...
-* Read/write common topology files (LAMMPS, PSF, PDB, ZMAT etc...)
-* Read/write common trajectory files (LAMMPS, GRO, DCD, XTC, etc...)
+* Read/write common topology (PSF, ZMAT, PDB, LAMMPS, etc...) and trajectory (GRO, XTC, DCD, LAMMPS, etc...) files
 * Access local and remote job schedulers like Slurm
 
-## Examples
+## Installation
 
-The following code builds a liquid mixture of 100 benzene and 1000 water molecules, ready for simulation.
+```
+conda install -c conda-forge numpy pandas rdkit openmm chemfiles packmol
+pip install mstk
+```
+
+## Quick Example
+
+Build a liquid mixture of 100 benzene and 1000 water molecules, ready for simulation.
 
 ```python
 from mstk.topology import Molecule, Topology
@@ -21,34 +31,39 @@ from mstk.forcefield import ForceField, ZftTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
-# Create molecule structures from SMILES
+# Create topology from SMILES
 benzene = Molecule.from_smiles('c1ccccc1')
 water = Molecule.from_smiles('O')
 top = Topology([benzene, water])
 
-# Assign atom type as defined in `data/forcefield/primitive.zft`
+# Assign atom types as defined in `data/forcefield/primitive.zft`
 typer = ZftTyper('primitive.zft')
 typer.type(top)
 
 # Build a bulk liquid simulation box with Packmol
-packmol = Packmol('/path/to/packmol')
+packmol = Packmol('packmol')
 top.cell.set_box([4.0, 4.0, 4.0])
 top.scale_with_packmol([100, 1000], packmol=packmol)
 
-# Assign force field as defined in `data/forcefield/primitive.zff`
+# Assign force field parameters as defined in `data/forcefield/primitive.zff`
 ff = ForceField.open('primitive.zff')
 ff.assign_charge(top)
 system = System(top, ff)
 
-# generate input files for LAMMPS, GROMACS and NAMD
+# Generate input files for LAMMPS, GROMACS and NAMD
 system.export_lammps()
 system.export_gromacs()
 system.export_namd()
 
-# generate OpenMM system and topology
+# Generate OpenMM system and topology
 omm_sys = system.to_omm_system()
 omm_top = top.to_omm_topology()
 ```
+
+__Important Note__:
+*The __primitive__ atom typing and force field used above are for demonstration purpose only and are __not__ well
+optimized for production use.*
+*For reliable simulation, please prepare you own `zft` and `zff` files or get them from a validated source.*
 
 ## Documentation
 
@@ -57,14 +72,16 @@ https://mstk.readthedocs.io/en/latest/index.html
 ## TODO
 
 - [ ] Take bond order into consideration for force field assignment
-- [ ] Add frozen marker in ZFF and ZFP for force field optimization
-- [ ] Re-organize algorithms scattered in topology and analyzer modules
+- [ ] Add frozen marker in `ZFF` and `ZFP` for force field optimization
+- [ ] Refactor algorithms across `topology` and `analyzer` modules
+- [ ] Separate `ommhelper` module into its own package
+- [ ] Remove `analyzer` module
 
 ## Known issue
 
-`mstk` use `chemfiles` to write `XTC` trajectory. However, lastest `chemfiles` fails writing binary trajectory format
-under WSL 1. If you are using WSL 1, please install `chemfiles 0.10.2`
+`mstk` use `chemfiles` to handle `XTC` trajectory. Latest `chemfiles` fails writing binary trajectory format under WSL
+1. If you are using WSL 1, please install `chemfiles 0.10.2`
 
 ```
-conda install chemfiles-lib=0.10.2 chemfiles-python=0.10.2
+conda install -c conda-forge chemfiles-lib=0.10.2 chemfiles-python=0.10.2
 ```
