@@ -11,7 +11,7 @@ parameter assignment, and input file generation for major simulation engines.
 * Assign atom types and force field parameters based on local chemical environment
 * Generate input files for LAMMPS, GROMACS, NAMD and OpenMM
 * Support Drude polarizable model, coarse-grained model, virtual site, linear angle...
-* Read/write common topology (PSF, ZMAT, PDB, LAMMPS, etc...) and trajectory (GRO, XTC, DCD, LAMMPS, etc...) files
+* Read/write common topology (PSF, ZMAT, PDB, LAMMPS, ...) and trajectory (GRO, XTC, DCD, LAMMPS, ...) files
 * Access local and remote job schedulers like Slurm
 
 ## Installation
@@ -79,8 +79,8 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 ## Known issue
 
-`mstk` use `chemfiles` to handle `XTC` trajectory. Latest `chemfiles` fails writing binary trajectory format under WSL
-1. If you are using WSL 1, please install `chemfiles 0.10.2`
+`mstk` use `chemfiles` to handle `XTC` trajectory. Latest `chemfiles` fails writing binary trajectory format under WSL 1.
+If you are using WSL 1, please install `chemfiles 0.10.2`
 
 ```
 conda install -c conda-forge chemfiles-lib=0.10.2 chemfiles-python=0.10.2
