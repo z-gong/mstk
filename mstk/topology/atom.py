@@ -159,3 +159,19 @@ class Atom():
             raise ValueError('position should has three elements')
         self._position[:] = value
         self.has_position = True
+
+    @property
+    def rdatom(self):
+        '''
+        The `rdkit.Chem.Atom` object associated with this atom.
+
+        It exists only if this atom belongs to a molecule.
+
+        Returns
+        -------
+        rdbond : rdkit.Chem.Atom
+        '''
+        if self.molecule is None:
+            return None
+
+        return self.molecule.rdmol.GetAtomWithIdx(self.id_in_mol)

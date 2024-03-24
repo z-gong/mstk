@@ -135,14 +135,32 @@ class Bond():
         return float(np.sqrt(delta.dot(delta)))
 
     @property
+    def rdbond(self):
+        '''
+        The `rdkit.Chem.Bond` object associated with this bond.
+
+        Returns
+        -------
+        rdbond : rdkit.Chem.Bond
+        '''
+        return self.atom1.molecule.rdmol.GetBondBetweenAtoms(self.atom1.id_in_mol, self.atom2.id_in_mol)
+
+    @property
     def is_aromatic(self):
-        rdbond = self.atom1.molecule.rdmol.GetBondBetweenAtoms(self.atom1.id_in_mol, self.atom2.id_in_mol)
-        return rdbond.GetIsAromatic()
+        return self.rdbond.GetIsAromatic()
 
     @property
     def is_conjugated(self):
-        rdbond = self.atom1.molecule.rdmol.GetBondBetweenAtoms(self.atom1.id_in_mol, self.atom2.id_in_mol)
-        return rdbond.GetIsConjugated()
+        return self.rdbond.GetIsConjugated()
+
+    @property
+    def is_rotatable(self):
+        if self.order != Bond.Order.SINGLE:
+            return False
+        if len(self.atom1.bonds) == 1 or (len(self.atom2.bonds)) == 1:
+            return False
+
+        return not self.rdbond.IsInRing()
 
 
 class Angle():

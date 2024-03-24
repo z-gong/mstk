@@ -251,7 +251,7 @@ class Molecule():
                 Bond.Order.TRIPLE     : Chem.rdchem.BondType.TRIPLE,
             }
             rwmol.AddBond(bond.atom1.id_in_mol, bond.atom2.id_in_mol, d_bond_order[bond.order])
-        Chem.SanitizeMol(rwmol)
+        Chem.SanitizeMol(rwmol) # TODO What is the purpose of this?
         self._rdmol = rwmol.GetMol()
         self._is_rdmol_valid = True
 
