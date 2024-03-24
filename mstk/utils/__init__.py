@@ -113,19 +113,20 @@ def n_diff_lines(f1: str, f2: str):
     return n_diff
 
 
-def get_last_line(filename):
-    # TODO implement windows version
-    cmd = 'tail -n 1 %s' % filename
-    try:
-        out = subprocess.check_output(cmd.split()).decode()
-    except:
-        raise Exception('Cannot open file: %s' % filename)
-
-    try:
-        string = out.splitlines()[-1]
-    except:
-        string = ''
-    return string
+def get_last_line(filename, n=1):
+    """Returns the nth before last line of a file (n=1 gives last line)"""
+    num_newlines = 0
+    with open(filename, 'rb') as f:
+        try:
+            f.seek(-2, os.SEEK_END)
+            while num_newlines < n:
+                f.seek(-2, os.SEEK_CUR)
+                if f.read(1) == b'\n':
+                    num_newlines += 1
+        except OSError:
+            f.seek(0)
+        last_line = f.readline().decode()
+    return last_line
 
 
 def histogram(data, bins, normed=False):

@@ -3,7 +3,7 @@ from mstk import logger
 from mstk.topology import UnitCell
 
 
-class Frame():
+class Frame:
     '''
     A frame records the positions and unit cell (and optionally velocities, charges, current step and current time)
     of the system at one specific time step.
@@ -43,11 +43,12 @@ class Frame():
         self.step = -1  # -1 means step information not found
         self.time = -1  # in ps. -1 means time information not found
         self.cell = UnitCell()
-        self.positions = np.zeros((n_atom, 3), dtype=float)
+        self.n_atom = n_atom
         self.has_velocity = False
-        self.velocities = np.zeros((n_atom, 3), dtype=float)
         self.has_charge = False
-        self.charges = np.zeros(n_atom, dtype=float)  # for fluctuating charge simulations
+        self._positions = np.zeros((n_atom, 3), dtype=float)
+        self._velocities = np.zeros((n_atom, 3), dtype=float)
+        self._charges = np.zeros(n_atom, dtype=float)  # for fluctuating charge simulations
 
     def reset(self):
         '''
@@ -65,16 +66,76 @@ class Frame():
 
         Usually it is not necessary to call this method explicitly.
         If n_atom is smaller than previous value, the information of the end atoms will be trimmed.
-        If n_atom is larger than previous value, the information for the new atoms will be random .
+        If n_atom is larger than previous value, the information for the new atoms will be random.
 
         Parameters
         ----------
         n_atom : int
             The new number of atoms
         '''
-        if n_atom < len(self.positions):
-            logger.warning('n_atom is smaller than original. '
-                           'The positions, velocities and charges at the end will be lost')
-        self.positions.resize((n_atom, 3), refcheck=False)
-        self.velocities.resize((n_atom, 3), refcheck=False)
-        self.charges.resize((n_atom, 3), refcheck=False)
+        self.n_atom = n_atom
+        self._positions.resize((n_atom, 3), refcheck=False)
+        self._velocities.resize((n_atom, 3), refcheck=False)
+        self._charges.resize((n_atom, 3), refcheck=False)
+
+    @property
+    def positions(self):
+        '''
+        The positions of all atoms in this frame
+
+        :setter: Set the positions of all atoms
+
+        Returns
+        -------
+        positions : array_like
+            The positions is a numpy array of shape (n_atom, 3)
+        '''
+        return self._positions
+
+    @positions.setter
+    def positions(self, value):
+        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != self.n_atom \
+                or not isinstance(value[0], (list, tuple, np.ndarray)) or len(value[0]) != 3:
+            raise ValueError(f'positions should have the shape of ({self.n_atom}, 3)')
+        self._positions[:] = value
+
+    @property
+    def velocities(self):
+        '''
+        The velocities of all atoms in this frame
+
+        :setter: Set the velocities of all atoms
+
+        Returns
+        -------
+        velocities : array_like
+            The velocities is a numpy array of shape (n_atom, 3)
+        '''
+        return self._velocities
+
+    @velocities.setter
+    def velocities(self, value):
+        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != self.n_atom \
+                or not isinstance(value[0], (list, tuple, np.ndarray)) or len(value[0]) != 3:
+            raise ValueError(f'velocities should have the shape of ({self.n_atom}, 3)')
+        self._velocities[:] = value
+
+    @property
+    def charges(self):
+        '''
+        The charges of all atoms in this frame
+
+        :setter: Set the charges of all atoms
+
+        Returns
+        -------
+        charges : array_like
+            The charges is a numpy array of shape (n_atom,)
+        '''
+        return self._charges
+
+    @charges.setter
+    def charges(self, value):
+        if not isinstance(value, (list, tuple, np.ndarray)) or len(value) != self.n_atom:
+            raise ValueError(f'charges should have {self.n_atom} elements')
+        self._charges[:] = value
