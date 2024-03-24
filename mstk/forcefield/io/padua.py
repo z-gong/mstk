@@ -157,10 +157,10 @@ class Padua():
             raise Exception('Unsupported dihedral function: %s' % (words[4]))
         term = PeriodicDihedralTerm(words[0], words[1], words[2], words[3])
         k1, k2, k3, k4 = list(map(lambda x: float(x) / 2, words[5:9]))
-        if k1 != 0: term.add_parameter(0.0, k1, 1)
-        if k2 != 0: term.add_parameter(PI, k2, 2)
-        if k3 != 0: term.add_parameter(0.0, k3, 3)
-        if k4 != 0: term.add_parameter(PI, k4, 4)
+        if k1 != 0: term.add_phase(0.0, k1, 1)
+        if k2 != 0: term.add_phase(PI, k2, 2)
+        if k3 != 0: term.add_phase(0.0, k3, 3)
+        if k4 != 0: term.add_phase(PI, k4, 4)
         if term.name in ff.dihedral_terms.keys():
             raise Exception('Duplicated dihedral term: %s' % str(term))
         ff.dihedral_terms[term.name] = term

@@ -50,7 +50,7 @@ def main():
         if dterm.name in ff.dihedral_terms and k == 0:
             continue
         dterm = ff.dihedral_terms.get(dterm.name, dterm)
-        dterm.add_parameter(phi, k, n)
+        dterm.add_phase(phi, k, n)
         ff.add_term(dterm, replace=True)
     for line in lines_improper:
         type1, type2, type3, type4 = line[:2].strip(), line[3:5].strip(), line[6:8].strip(), line[9:11].strip()

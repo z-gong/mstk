@@ -72,7 +72,6 @@ https://mstk.readthedocs.io/en/latest/index.html
 ## TODO
 
 - [ ] Take bond order into consideration for force field assignment
-- [ ] Add frozen marker in `ZFF` and `ZFP` for force field optimization
 - [ ] Refactor algorithms across `topology` and `analyzer` modules
 - [ ] Separate `ommhelper` module into its own package
 - [ ] Remove `analyzer` module

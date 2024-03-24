@@ -327,12 +327,12 @@ class GromacsExporter():
                     dterm = dterm.to_periodic_term()
                 a1, a2, a3, a4 = dihedral.atom1, dihedral.atom2, dihedral.atom3, dihedral.atom4
                 if dterm.__class__ == PeriodicDihedralTerm:
-                    for para in dterm.parameters:
+                    for phase in dterm.phases:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i\n' % (
                             a1.id_in_mol + 1, a2.id_in_mol + 1,
                             a3.id_in_mol + 1, a4.id_in_mol + 1,
-                            9, para.phi * RAD2DEG, para.k, para.n)
-                    if len(dterm.parameters) == 0:
+                            9, phase.phi * RAD2DEG, phase.k, phase.n)
+                    if len(dterm.phases) == 0:
                         string += '%6i %6i %6i %6i %6i %8.2f %12.4f %4i  ; no dihedral parameters\n' % (
                             a1.id_in_mol + 1, a2.id_in_mol + 1,
                             a3.id_in_mol + 1, a4.id_in_mol + 1,

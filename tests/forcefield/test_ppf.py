@@ -76,18 +76,18 @@ def test_read():
     assert dihedral.type2 == 'c_4'
     assert dihedral.type3 == 'c_4'
     assert dihedral.type4 == '*'
-    para1 = dihedral.parameters[0]
-    assert pytest.approx(para1.k / 4.184, abs=1E-6) == 0.6214
-    assert para1.n == 1
-    assert para1.phi == 0.0
-    para2 = dihedral.parameters[1]
-    assert pytest.approx(para2.k / 4.184, abs=1E-6) == 0.0507
-    assert para2.n == 2
-    assert pytest.approx(para2.phi, abs=1E-6) == PI
-    para0 = dihedral.parameters[2]
-    assert pytest.approx(para0.k / 4.184, abs=1E-6) == 0.0688
-    assert para0.n == 3
-    assert para0.phi == 0.0
+    phase1 = dihedral.phases[0]
+    assert pytest.approx(phase1.k / 4.184, abs=1E-6) == 0.6214
+    assert phase1.n == 1
+    assert phase1.phi == 0.0
+    phase2 = dihedral.phases[1]
+    assert pytest.approx(phase2.k / 4.184, abs=1E-6) == 0.0507
+    assert phase2.n == 2
+    assert pytest.approx(phase2.phi, abs=1E-6) == PI
+    phase3 = dihedral.phases[2]
+    assert pytest.approx(phase3.k / 4.184, abs=1E-6) == 0.0688
+    assert phase3.n == 3
+    assert phase3.phi == 0.0
     assert dihedral.version == '0.12'
 
     improper = ff.improper_terms.get('c_3o,o_1,*,*')

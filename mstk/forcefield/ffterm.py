@@ -5,7 +5,7 @@ from mstk.chem.constant import *
 from .errors import *
 
 
-class FFTermFactory():
+class FFTermFactory:
     '''
     Factory class for force field terms.
 
@@ -39,7 +39,7 @@ class FFTermFactory():
         Every class to be reconstructed should have a class attribute `_zfp_attrs`.
         This dict records which attributes should be saved into ZFP xml file,
         and it is also used as the arguments for initializing a FFTerm.
-        It also tell the data type of these attributes.
+        It also tells the data type of these attributes.
 
         Some force field terms can not be fully built from the constructor.
         Then :func:`FFTerm._from_zfp_extra` should be implemented for those terms,
@@ -64,8 +64,14 @@ class FFTermFactory():
         except:
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
+        adjustables = []
         for attr, func in cls._zfp_attrs.items():
-            val = func(d[attr])
+            str_val = d[attr]
+            if str_val.endswith('?'):
+                str_val = str_val[:-1]
+                if func is float:
+                    adjustables.append(attr)
+            val = func(str_val)
             if attr in cls._zfp_convert:
                 val = cls._zfp_convert[attr][0](val)
             kwargs[attr] = val
@@ -73,6 +79,7 @@ class FFTermFactory():
             term = cls(**kwargs)
         except:
             raise Exception('Cannot init %s with kwargs %s' % (name, str(d)))
+        term.adjustables = adjustables
         term._from_zfp_extra(d)
         return term
 
@@ -110,7 +117,12 @@ class FFTermFactory():
         except KeyError:
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
+        adjustables = []
         for (attr, func), str_val in zip(cls._zfp_attrs.items(), words[1:]):
+            if str_val.endswith('?'):
+                str_val = str_val[:-1]
+                if func is float:
+                    adjustables.append(attr)
             val = func(str_val)
             if attr in cls._zfp_convert:
                 val = cls._zfp_convert[attr][0](val)
@@ -119,12 +131,13 @@ class FFTermFactory():
             term = cls(**kwargs)
         except:
             raise Exception('Cannot init %s with line: %s' % (name, line))
+        term.adjustables = adjustables
         term._from_zff_extra(line)
 
         return term
 
 
-class FFTerm():
+class FFTerm:
     '''
     Base class for all force field terms like :class:`AtomType`, :class:`BondTerm`, etc...
 
@@ -166,6 +179,7 @@ class FFTerm():
     def __init__(self):
         self.version = None
         self.comments: [str] = []
+        self.adjustables: [str] = []  # parameters that are subject to optimization
 
     def __repr__(self):
         return '<%s: %s>' % (self.__class__.__name__, self.name)
@@ -195,11 +209,13 @@ class FFTerm():
         d : dict, [str, str]
         '''
         d = {}
-        for attr in self._zfp_attrs:
+        for attr, func in self._zfp_attrs.items():
             val = getattr(self, attr)
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
             d[attr] = str(val)
+            if func is float and attr in self.adjustables:
+                d[attr] += '?'
         d.update(self._to_zfp_extra())
         return d
 
@@ -235,28 +251,29 @@ class FFTerm():
         Every class to be packed should have a class property `zfp_attrs`.
         This dict records which attributes should be saved into ZFP xml file,
         and it is also used as the arguments for initializing a FFTerm.
-        It also tell the data type of these attributes.
+        It also tells the data type of these attributes.
 
         Returns
         -------
         line : string
         '''
         line = '%-16s' % self.__class__.get_alias()
-        for attr in self._zfp_attrs:
+        for attr, func in self._zfp_attrs.items():
             val = getattr(self, attr)
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
             if type(val) is float:
-                if val > 10000:
-                    string = ' %9.1f' % val
+                if val > 1000:
+                    string = ' %8.1f' % val
                 else:
-                    string = ' %9.4f' % val
+                    string = ' %8.4f' % val
             elif type(val) is int:
                 string = ' %2i' % val
             elif type(val) is bool:
                 string = ' %6s' % val
             else:
                 string = ' %-9s' % val
+            string += '?' if func is float and attr in self.adjustables else ' '
             line += string
 
         return line.rstrip()
@@ -275,7 +292,7 @@ class FFTerm():
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
             if type(val) is float:
-                string = ' %9s' % attr
+                string = ' %8s ' % attr
             elif type(val) is int:
                 string = ' %2s' % attr
             elif type(val) is bool:
@@ -1328,13 +1345,13 @@ class OplsDihedralTerm(DihedralTerm):
         '''
         term = PeriodicDihedralTerm(self.type1, self.type2, self.type3, self.type4)
         if self.k1 != 0:
-            term.add_parameter(0., self.k1, 1)
+            term.add_phase(0., self.k1, 1)
         if self.k2 != 0:
-            term.add_parameter(PI, self.k2, 2)
+            term.add_phase(PI, self.k2, 2)
         if self.k3 != 0:
-            term.add_parameter(0., self.k3, 3)
+            term.add_phase(0., self.k3, 3)
         if self.k4 != 0:
-            term.add_parameter(PI, self.k4, 4)
+            term.add_phase(PI, self.k4, 4)
 
         return term
 
@@ -1358,18 +1375,18 @@ class PeriodicDihedralTerm(DihedralTerm):
     During force field matching, the terms with wildcard will have lower priority.
     The terms with wildcard will be used only if exact match cannot be found.
 
-    PeriodicTermDihedral is initialized without parameters.
-    The parameters should be added by calling :func:`add_parameter`.
+    PeriodicTermDihedral is initialized without phases.
+    The parameters for phases should be added by calling :func:`add_phase`.
 
     Examples
     --------
 
     >>> term = PeriodicDihedralTerm('h_1', 'c_4', 'c_4', 'h_1')
-    >>> term.add_parameter(0.0, 0.6485, 1)
-    >>> term.add_parameter(3.14, 1.0678, 2)
-    >>> term.add_parameter(0.0, 0.6226, 3)
-    >>> for para in term.parameters:
-    >>>     print(para.phi, para.k, para.n)
+    >>> term.add_phase(0.0, 0.6485, 1)
+    >>> term.add_phase(3.14, 1.0678, 2)
+    >>> term.add_phase(0.0, 0.6226, 3)
+    >>> for phase in term.phases:
+    >>>     print(phase.phi, phase.k, phase.n)
         0.0 0.6485 1
         3.14 1.0678 2
         0.0 0.6226 3
@@ -1390,8 +1407,8 @@ class PeriodicDihedralTerm(DihedralTerm):
     type2 : str
     type3 : str
     type4 : str
-    parameters : list of namedtuple
-        Each element is a namedtuple :attr:`Parameter` describing the parameter for each multiplicity.
+    phases : list of namedtuple
+        Each element is a namedtuple :attr:`Phase` describing the parameters for each phase.
     '''
 
     _zfp_attrs = {
@@ -1401,7 +1418,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         'type4': str,
     }
 
-    class Parameter:
+    class Phase:
         def __init__(self, phi, k, n):
             if phi < -PI or phi > PI:
                 logger.error(f'phi should be in the range of -PI to PI')
@@ -1411,11 +1428,11 @@ class PeriodicDihedralTerm(DihedralTerm):
 
     def __init__(self, type1, type2, type3, type4):
         super().__init__(type1, type2, type3, type4)
-        self.parameters = []
+        self.phases = []
 
-    def add_parameter(self, phi, k, n):
+    def add_phase(self, phi, k, n):
         '''
-        Add parameters for a multiplicity to this dihedral term.
+        Add parameters for a phase to this dihedral term.
 
         Multiplicity must be a positive integer. Otherwise, an Exception will be raised.
         If there already exists parameter for this multiplicity, an Exception will be raised.
@@ -1431,18 +1448,18 @@ class PeriodicDihedralTerm(DihedralTerm):
         '''
         if not isinstance(n, int) or n < 1:
             raise Exception('Multiplicity should be a positive integer: %s' % self.name)
-        for para in self.parameters:
+        for para in self.phases:
             if para.n == n:
                 raise Exception('Duplicated multiplicity: %s' % self.name)
-        self.parameters.append(PeriodicDihedralTerm.Parameter(phi=phi, k=k, n=n))
-        self.parameters.sort(key=lambda x: x.n)
+        self.phases.append(PeriodicDihedralTerm.Phase(phi=phi, k=k, n=n))
+        self.phases.sort(key=lambda x: x.n)
 
     def _to_zfp_extra(self) -> {str: str}:
         d = {}
-        for para in self.parameters:
+        for phase in self.phases:
             d.update({
-                'phi_%i' % para.n: '%.1f' % (para.phi * RAD2DEG),  # the angle in ZFP or ZFF file is in unit of degree
-                'k_%i' % para.n  : '%.4f' % para.k,
+                'phi_%i' % phase.n: '%.1f' % (phase.phi * RAD2DEG),  # the angle in ZFP or ZFF file is in unit of degree
+                'k_%i' % phase.n  : '%.4f' % phase.k,
             })
         return d
 
@@ -1453,16 +1470,16 @@ class PeriodicDihedralTerm(DihedralTerm):
                 phi = float(d['phi_%i' % n]) * DEG2RAD  # the angle in ZFP or ZFF file is in unit of degree
                 k = float(d['k_%i' % n])
                 if k != 0:
-                    self.add_parameter(phi, k, n)
-        if not self.parameters:
-            self.add_parameter(0.0, 0.0, 1)
+                    self.add_phase(phi, k, n)
+        if not self.phases:
+            self.add_phase(0.0, 0.0, 1)
 
     def to_zff(self):
         line = '%-16s %-9s %-9s %-9s %-9s' % (self.__class__.get_alias(),
                                               self.type1, self.type2, self.type3, self.type4)
-        for para in self.parameters:
+        for phase in self.phases:
             # the angle in ZFP or ZFF file is in unit of degree
-            line += ' %9.1f %9.4f %2i' % (para.phi * RAD2DEG, para.k, para.n)
+            line += ' %9.1f %9.4f %2i' % (phase.phi * RAD2DEG, phase.k, phase.n)
         return line
 
     def _from_zff_extra(self, line):
@@ -1475,17 +1492,19 @@ class PeriodicDihedralTerm(DihedralTerm):
             k = float(str_vals[i * 3 + 1])
             n = int(str_vals[i * 3 + 2])
             if k != 0:
-                self.add_parameter(phi, k, n)
+                self.add_phase(phi, k, n)
+        if not self.phases:
+            self.add_phase(0.0, 0.0, 1)
 
     def evaluate_energy(self, val):
         energy = 0
-        for para in self.parameters:
+        for para in self.phases:
             energy += para.k * (1 + math.cos(para.n * val - para.phi))
         return energy
 
     @property
     def is_zero(self):
-        for para in self.parameters:
+        for para in self.phases:
             if para.k != 0:
                 return False
         return True
@@ -1503,7 +1522,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         term : OplsDihedralTerm
         '''
         k1 = k2 = k3 = k4 = 0.0
-        for para in self.parameters:
+        for para in self.phases:
             if para.n == 1:
                 if para.phi != 0:
                     raise Exception(f'{str(self)} does not follow OPLS convention, phi_1 != 0')

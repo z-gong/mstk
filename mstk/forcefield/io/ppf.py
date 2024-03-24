@@ -204,7 +204,7 @@ class Ppf():
                     # ignore nonsense values
                     if n == 0 and k == 0:
                         continue
-                    term.add_parameter(phi * DEG2RAD, k, n)
+                    term.add_phase(phi * DEG2RAD, k, n)
                 term.version = line.version
                 ff.dihedral_terms[term.name] = term
             elif line.term == 'IBCOS':

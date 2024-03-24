@@ -62,7 +62,7 @@ for par in j['params']:
         n = par['n']
         phi = par['d'] * DEG2RAD
         dterm = PeriodicDihedralTerm(*types)
-        dterm.add_parameter(phi, k, n)
+        dterm.add_phase(phi, k, n)
         ff.add_term(dterm)
     elif par['param'] == 'pair':
         types = par['types']

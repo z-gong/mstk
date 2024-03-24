@@ -145,10 +145,10 @@ class NamdExporter():
         for (at1, at2, at3, at4), dterm in unique_dihedrals.items():
             if type(dterm) is OplsDihedralTerm:
                 dterm = dterm.to_periodic_term()
-            for para in dterm.parameters:
+            for phase in dterm.phases:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f\n' % (
-                    at1, at2, at3, at4, para.k / 4.184, para.n, para.phi * RAD2DEG)
-            if len(dterm.parameters) == 0:
+                    at1, at2, at3, at4, phase.k / 4.184, phase.n, phase.phi * RAD2DEG)
+            if len(dterm.phases) == 0:
                 string += '%10s %10s %10s %10s %12.6f %4i %8.2f  ; no dihedral parameters\n' % (
                     at1, at2, at3, at4, 0.0, 1, 0.0)
 
