@@ -75,6 +75,7 @@ https://mstk.readthedocs.io/en/latest/index.html
 - [ ] Refactor algorithms across `topology` and `analyzer` modules
 - [ ] Separate `ommhelper` module into its own package
 - [ ] Remove `analyzer` module
+- [ ] Revise the implementation of Drude polarization and virtual sites
 
 ## Known issue
 
