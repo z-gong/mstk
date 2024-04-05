@@ -412,7 +412,7 @@ class Molecule():
         Returns
         -------
         ids_removed : list of int
-            The number of atoms removed
+            The list of `id_in_mol` of atoms removed
         '''
         hydrogens = []
         for atom in self.atoms[:]:

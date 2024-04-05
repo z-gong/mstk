@@ -262,18 +262,16 @@ class FFTerm:
             val = getattr(self, attr)
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
-            if type(val) is float:
+            if func is float:
                 if val > 1000:
                     string = ' %8.1f' % val
                 else:
                     string = ' %8.4f' % val
-            elif type(val) is int:
+                string += '?' if attr in self.adjustables else ' '
+            elif func is int:
                 string = ' %2i' % val
-            elif type(val) is bool:
-                string = ' %6s' % val
             else:
                 string = ' %-9s' % val
-            string += '?' if func is float and attr in self.adjustables else ' '
             line += string
 
         return line.rstrip()
@@ -287,16 +285,11 @@ class FFTerm:
         header : str
         '''
         line = '#%-15s' % self.__class__.get_alias()
-        for attr in self._zfp_attrs:
-            val = getattr(self, attr)
-            if attr in self._zfp_convert:
-                val = self._zfp_convert[attr][1](val)
-            if type(val) is float:
+        for attr, func in self._zfp_attrs.items():
+            if func is float:
                 string = ' %8s ' % attr
-            elif type(val) is int:
-                string = ' %2s' % attr
-            elif type(val) is bool:
-                string = ' %6s' % attr
+            elif func is int:
+                string = ' %2i' % attr
             else:
                 string = ' %-9s' % attr
             line += string

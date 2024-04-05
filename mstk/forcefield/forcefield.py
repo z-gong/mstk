@@ -348,7 +348,8 @@ class ForceField():
             If type2 is a AtomType object, then will search for its equivalent type for vdW parameters.
             If type2 is a str, them will match exactly this type.
         mixing : bool
-            Whether or not using combination rule for LJ126Term.
+            Whether to use mixing rule to construct a pairwise vdW term if not found from :attr:`pairwise_vdw_terms`.
+            If set to False, and the pairwise vdW term not found, an Exception will be raised even if this force field supports mixing rule.
 
         Returns
         -------
@@ -764,7 +765,7 @@ class ForceField():
         The charge of corresponding AtomType in FF will be assigned to the atoms first.
         Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
         The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
-        and the the same amount of charge will be subtracted from the parent atoms.
+        and the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
 
         If charge increment parameters required by the topology are not found in the force field,
