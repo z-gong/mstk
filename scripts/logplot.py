@@ -6,6 +6,7 @@ import re
 import pandas as pd
 from mstk.analyzer.series import block_average, is_converged
 from mstk.analyzer.fitting import polyfit, polyval
+from mstk.utils import print_data_to_file
 
 
 def parse_args():
@@ -13,6 +14,8 @@ def parse_args():
     parser.add_argument('input', type=str, help='log file of OpenMM or LAMMPS')
     parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this data')
     parser.add_argument('-e', '--end', default=-1, type=float, help='end at this data')
+    parser.add_argument('--skip', default=1, type=int, help='read every N rows')
+    parser.add_argument('-o', '--output', type=str, help='output data to a file')
     parser.add_argument('-c', '--converge', default=False, action='store_true', help='detect convergence')
     parser.add_argument('-p', '--plot', default=False, action='store_true', help='plot data')
     parser.add_argument('--type', type=str, choices=['openmm', 'lammps', 'xvg'])
@@ -23,7 +26,7 @@ def parse_args():
 
 
 class Analyzer:
-    def __init__(self, log_file, file_type=None):
+    def __init__(self, log_file, file_type=None, begin=-1, end=-1, skip=1):
         self.labels: [str] = []
         self.data_list: [[float]] = []
         self.when_list: [int] = []
@@ -39,11 +42,11 @@ class Analyzer:
         ext = os.path.splitext(log_file)[1].lstrip('.').lower()
         file_type = file_type or _ext_filetype.get(ext, ext)
         if file_type == 'xvg':
-            self.read_xvg()
+            self.read_xvg(begin, end, skip)
         elif file_type == 'openmm':
-            self.read_openmm_log()
+            self.read_openmm_log(begin, end, skip)
         elif file_type == 'lammps':
-            self.read_lammps_log()
+            self.read_lammps_log(begin, end, skip)
         else:
             raise Exception('unknown log file type: ' + file_type)
 
@@ -59,7 +62,8 @@ class Analyzer:
             val = 0
         return val
 
-    def read_openmm_log(self):
+    def read_openmm_log(self, begin, end, skip):
+        n_row = -1
         _START = False
         for line in open(self.log_file):
             if line.startswith('#"'):
@@ -78,20 +82,24 @@ class Analyzer:
                 except ValueError:
                     continue
                 step = values[0]
-                if step < args.begin:
+                if step < begin:
                     continue
-                if args.end > 0 and step > args.end:
+                if 0 < end < step:
                     break
+                n_row += 1
+                if n_row % skip != 0:
+                    continue
                 for i in range(len(self.labels)):
                     self.data_list[i].append(values[i])
 
-    def read_lammps_log(self):
+    def read_lammps_log(self, begin, end, skip):
         with open(self.log_file) as f:
             content = f.read()
         nMin = len(re.findall('\nMinimization', content))
         nRun = len(re.findall('\nStep', content)) - nMin
         print('%i Min, %i Run' % (nMin, nRun))
 
+        n_row = -1
         _START = False
         i_cycle = -nMin
         for line in content.splitlines():
@@ -112,14 +120,18 @@ class Analyzer:
                     step = int(line.strip().split()[0])
                 except:
                     continue
-                if step < args.begin:
+                if step < begin:
                     continue
-                if 0 < args.end < step:
+                if 0 < end < step:
                     break
+                n_row += 1
+                if n_row % skip != 0:
+                    continue
                 for i in range(len(self.labels)):
                     self.data_list[i].append(float(line.strip().split()[i]))
 
-    def read_xvg(self):
+    def read_xvg(self, begin, end, skip):
+        n_row = -1
         for line in open(self.log_file):
             if line.startswith('#'):
                 continue
@@ -132,10 +144,13 @@ class Analyzer:
                 continue
             words = line.strip().split()
             step = float(words[0])
-            if step < args.begin:
+            if step < begin:
                 continue
-            if args.end > 0 and step > args.end:
+            if 0 < end < step:
                 break
+            n_row += 1
+            if n_row % skip != 0:
+                continue
             for i in range(len(self.data_list)):
                 self.data_list[i].append(float(words[i]))
 
@@ -152,7 +167,7 @@ class Analyzer:
             coeff, score = polyfit(self.data_list[0][when:], self.data_list[i][when:], degree=1)
             self.fit_coeff.append(coeff)
 
-    def print_data(self):
+    def print_summary(self):
         string = 'File: %s, Steps: %i-%i, Samples: %i\n' % (
             self.log_file, self.data_list[0][0], self.data_list[0][-1], len(self.data_list[0]))
         string += ' %2s %12s %11s %8s %8s %8s %9s %9s\n' % (
@@ -170,7 +185,7 @@ class Analyzer:
 
         print(string, end='')
 
-    def plot_data(self):
+    def plot_data(self, plot_distribution=False):
         import matplotlib
         import matplotlib.pyplot as plt
 
@@ -179,7 +194,7 @@ class Analyzer:
 
         for idx in range(1, len(self.data_list)):
             when = self.when_list[idx]
-            if not args.dist:
+            if not plot_distribution:
                 fig, ax1 = plt.subplots()
             else:
                 fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -202,11 +217,13 @@ class Analyzer:
 if __name__ == '__main__':
     args = parse_args()
 
-    analyzer = Analyzer(args.input, args.type)
+    analyzer = Analyzer(args.input, args.type, args.begin, args.end, args.skip)
     if args.converge:
         analyzer.detect_converge()
     if args.fit:
         analyzer.fit()
-    analyzer.print_data()
+    analyzer.print_summary()
     if args.plot:
-        analyzer.plot_data()
+        analyzer.plot_data(plot_distribution=args.dist)
+    if args.output:
+        print_data_to_file(dict(zip(analyzer.labels, analyzer.data_list)), file=args.output)
