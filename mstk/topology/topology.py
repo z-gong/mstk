@@ -1,4 +1,5 @@
 import os
+import shutil
 import numpy as np
 import copy
 import tempfile
@@ -160,21 +161,22 @@ class Topology():
         '''
         Enlarge the number of molecules in this topology with Packmol.
 
-        It is used for building real simulation box from several different molecules.
-        It generates molecules with appropriate positions and addes them into the topology.
+        It is used for building real simulation box from several molecules.
+        It generates molecules with appropriate positions and adds them into the topology.
         The unit cell should already be defined, and it will not be touched during the scaling.
 
+        An input file for packmol and xyz files for molecules will be created under `tempdir`.
         If packmol is provided, then it will be invoked to pack the simulation box,
-        and the generated positions will be loaded back to the topology.
+        and the generated positions will be loaded back to the topology,
+        and the `tempdir` will be removed.
         Otherwise, the topology will be enlarged without correct positions,
-        and a input file for packmol and xyz files for molecules will be saved in current folder
-        so that positions can be built manually and loaded back to the topology later
+        and the files under `tempdir` will be kept so that positions can be built manually and loaded back to the topology later.
 
         Parameters
         ----------
         numbers : int or list of int
             If numbers is a int, the topology will be scaled by this times.
-            If numbers is a list of int, the each molecule will be scaled by corresponding times.
+            If numbers is a list of int, then each molecule will be scaled by corresponding times.
         packmol : Packmol, Optional
             If is None, will generate input files for packmol.
         seed : int
@@ -227,6 +229,7 @@ class Topology():
 
             self.update_molecules(self._molecules, numbers)
             self.set_positions(xyz.positions)
+            shutil.rmtree(tempdir)
         else:
             Packmol.gen_inp(xyz_files, numbers, tmp_out, size=self.cell.size - 0.2, inp_file=tmp_inp, seed=seed)
 
