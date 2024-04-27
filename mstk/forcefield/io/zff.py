@@ -4,32 +4,40 @@ from mstk.forcefield.forcefield import ForceField
 from mstk.forcefield.ffterm import *
 
 
-class Zff():
+class Zff:
     '''
     Parse ForceField from ZFF file.
 
     ZFF is the default plain text force field format in `mstk`.
     Comparing to ZFP, ZFF is more human-friendly but less program-friendly.
 
-    Several files can be read at one time.
-    Only one ForceField object will be created and it will contain force field terms from all of the files.
-    If there are duplicated terms, only the first term will be kept.
-    The force field settings will be read from the first file.
+    In ZFF file, there is no leading 1/2 for harmonic energy terms.
+    The length is in unit of nm, and angle is in unit of degree.
+    The energies for harmonic bond, harmonic angle and vdW are in unit of kJ/mol/nm^2, kJ/mol/rad^2 and kJ/mol.
+    The two values for LJ interaction are epsilon and sigma.
+
+    A force field term describing one topology element should only appear once.
+    If there are duplicated terms, an Exception will be raised.
+
+    There are three types of comments:
+    1. Lines start with '#' are completely ignored by the parser.
+    2. Lines start with '*' are comments for the force field. They will be stored in the ForceField object as a list of str.
+       Each such line will be an element of comments.
+    3. '#' in the middle of line is separator for parameters and comments. These comments will be stored in the FFTerm object as a list of str.
+       The comments in one line can contain several elements, separated by ';'
 
     Parameters
     ----------
-    files : list of str
+    file : str
 
     Attributes
     ----------
     forcefield : ForceField
     '''
 
-    def __init__(self, *files):
+    def __init__(self, file):
         self.forcefield = ForceField()
-        self._setting_read = False
-        for file in files:
-            self._parse(file)
+        self._parse(file)
 
     def _parse(self, file):
         with open(file) as f:
@@ -38,14 +46,14 @@ class Zff():
         ff = self.forcefield
         _duplicated = []
         for line in lines:
+            if line.startswith('*'):
+                ff.comments.append(line.lstrip('*').strip())
+                continue
             parts = line.split('#')
             str_term = parts[0].strip()
             if str_term == '':
                 continue
             if str_term.startswith('Setting'):
-                if self._setting_read:
-                    continue
-
                 words = str_term.split()
                 key, str_val = words[1:]
                 if key not in ForceField.SETTING_ATTRS:
@@ -59,22 +67,22 @@ class Zff():
                 raise Exception('Invalid force field line: ' + str_term)
 
             if len(parts) > 1:
-                comment = parts[1].strip()
-                if comment:
-                    term.comments.append(comment)
+                for comment in parts[1].split(';'):
+                    c = comment.strip()
+                    if c:
+                        term.comments.append(c)
 
             try:
                 ff.add_term(term)
             except:
                 _duplicated.append(term)
 
-        if _duplicated != []:
-            msg = 'Following duplicated terms are omitted:'
+        if _duplicated:
+            msg = f'{len(_duplicated)} duplicated terms from {file}'
             for term in _duplicated:
-                msg += ' ' + str(term)
-            logger.warning(msg)
-
-        self._setting_read = True
+                msg += f'\n        {term}'
+            logger.error(msg)
+            raise Exception('Duplicated terms in ZFF file')
 
     @staticmethod
     def save_to(ff, file):
@@ -87,6 +95,11 @@ class Zff():
         file : str
         '''
         line = ''
+        if ff.comments:
+            for comment in ff.comments:
+                line += f'* {comment}\n'
+            line += '\n'
+
         for attr in ForceField.SETTING_ATTRS:
             line += '%-16s %-16s %s\n' % ('Setting', attr, getattr(ff, attr))
         line += '\n'

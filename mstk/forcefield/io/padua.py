@@ -5,7 +5,7 @@ from mstk.forcefield.errors import *
 from mstk import logger
 
 
-class Padua():
+class Padua:
     '''
     Generate ForceField from the force field file of `fftool`.
 
@@ -22,23 +22,21 @@ class Padua():
     The energy terms are in k/2 form for bond, angle, dihedral and improper.
     The length is in unit of Angstrom, and angle is in unit of degree.
     The energies for bond, angle and vdW are in unit of kJ/mol/A^2, kJ/mol/rad^2 and kJ/mol.
-
-    Several files can be read at one time.
-    Only one ForceField object will be created and it will contain force field terms from all of the files.
+    The two values for LJ interaction are sigma and epsilon.
 
     A force field term describing one topology element should only appear once.
     If there are duplicated terms, an Exception will be raised.
 
     Parameters
     ----------
-    files : list of str
+    file : str
 
     Attributes
     ----------
     forcefield : ForceField
     '''
 
-    def __init__(self, *files):
+    def __init__(self, file):
         ff = ForceField()
         ff.lj_mixing_rule = ForceField.LJ_MIXING_GEOMETRIC
         ff.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
@@ -46,8 +44,7 @@ class Padua():
         ff.scale_14_vdw = 0.5
         ff.scale_14_coulomb = 0.5
 
-        for file in files:
-            self._parse(ff, file)
+        self._parse(ff, file)
         self._setup(ff)
 
         self.forcefield = ff
@@ -190,7 +187,7 @@ class Padua():
         ff.polarizable_terms[term.name] = term
 
 
-class Monomer():
+class Monomer:
     def __init__(self, name: str, charge: float, dipole: float, alpha: float = None):
         self.name = name
         self.charge = charge
@@ -202,7 +199,7 @@ class Monomer():
         return '<Monomer: %s>' % self.name
 
 
-class Dimer():
+class Dimer:
     C0 = 0.25
     C1 = 0.11
 
@@ -233,9 +230,9 @@ class Dimer():
         self.scale_factor = round(1 / (1 + k), 3)
 
 
-class PaduaLJScaler():
+class PaduaLJScaler:
     '''
-    PaduaLJScaler implements the empirical LJ scaling scheme of Goloviznina Kateryna.
+    PaduaLJScaler implements the empirical LJ scaling scheme of Goloviznina Kateryna.
 
     A scaling file should be providing,
     which provides information about fragments, dimers, atom types belongs to each fragments,

@@ -5,39 +5,40 @@ from mstk.forcefield.ffterm import *
 from mstk import logger
 
 
-class Zfp():
+class Zfp:
     '''
     Load ForceField from ZFP file.
 
     ZFP is the default format for storing ForceField in mstk.
     XML language is used by ZFP file to serialize the setting and all the FFTerms in a ForceField object.
 
-    Several files can be read at one time.
-    Only one ForceField object will be created and it will contain force field terms from all of the files.
-    Note that the settings of the ForceField is read from the first file.
-    The settings in other files will be ignored.
+    In ZFP file, there is no leading 1/2 for harmonic energy terms.
+    The length is in unit of nm, and angle is in unit of degree.
+    The energies for harmonic bond, harmonic angle and vdW are in unit of kJ/mol/nm^2, kJ/mol/rad^2 and kJ/mol.
 
     A force field term describing one topology element should only appear once.
-    If there are duplicated terms, the one appears later will be omitted.
+    If there are duplicated terms, an Exception will be raised.
     e.g. HarmonicAngleTerm('c_4', 'c_4', 'h_1') and SDKAngleTerm('c_4', 'c_4', 'h_1') are considered as duplicated,
     because both of them are describing the angle type ('c_4', 'c_4', 'h_1').
     LJ126Term('c_4', 'h_1') and MieTerm('c_4', 'h_1') are also duplicated,
     because both of them are describing the vdW interactions between atom types 'c_4' and 'h_1'.
 
+    TODO Because ZFP is designed mainly for FF parameters exchange, several features are not currently supported by ZFP format
+    1. Comments for force field and ffterm
+    2. Adjustable parameters
+
     Parameters
     ----------
-    files : list of str
+    file : str
 
     Attributes
     ----------
     forcefield : ForceField
     '''
 
-    def __init__(self, *files):
+    def __init__(self, file):
         self.forcefield = ForceField()
-        self._setting_read = False
-        for file in files:
-            self._parse(file)
+        self._parse(file)
 
     def _parse(self, file):
         try:
@@ -51,14 +52,12 @@ class Zfp():
 
         ff = self.forcefield
 
-        if not self._setting_read:
-            node = root.find('Setting')
-            ff.vdw_cutoff = float(node.attrib['vdw_cutoff'])
-            ff.vdw_long_range = node.attrib['vdw_long_range']
-            ff.lj_mixing_rule = node.attrib['lj_mixing_rule']
-            ff.scale_14_vdw = float(node.attrib['scale_14_vdw'])
-            ff.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
-            self._setting_read = True
+        node = root.find('Setting')
+        ff.vdw_cutoff = float(node.attrib['vdw_cutoff'])
+        ff.vdw_long_range = node.attrib['vdw_long_range']
+        ff.lj_mixing_rule = node.attrib['lj_mixing_rule']
+        ff.scale_14_vdw = float(node.attrib['scale_14_vdw'])
+        ff.scale_14_coulomb = float(node.attrib['scale_14_coulomb'])
 
         tags = {
             'AtomTypes'           : ff.atom_types,
@@ -87,11 +86,13 @@ class Zfp():
                     _duplicated.append(term)
                 else:
                     d[term.name] = term
-        if _duplicated != []:
-            msg = 'Following duplicated terms are omitted:'
+
+        if _duplicated:
+            msg = f'{len(_duplicated)} duplicated terms from {file}'
             for term in _duplicated:
-                msg += ' ' + str(term)
-            logger.warning(msg)
+                msg += f'\n        {term}'
+            logger.error(msg)
+            raise Exception('Duplicated terms in ZFP file')
 
     @staticmethod
     def save_to(ff, file):

@@ -5,7 +5,7 @@ from mstk.forcefield.errors import *
 from mstk import logger
 
 
-class PpfLine():
+class PpfLine:
     def __init__(self, term, key, value, comment):
         self.term = term.strip()
         self.key = key.strip()
@@ -35,7 +35,7 @@ class PpfLine():
         return [float(x.strip().strip('*')) for x in self.value.split(',')]
 
 
-class Ppf():
+class Ppf:
     '''
     Parse ForceField from PPF file.
 
@@ -50,8 +50,10 @@ class Ppf():
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicImproperTerm`
 
-    Several files can be read at one time.
-    Only one ForceField object will be created and it will contain force field terms from all of the files.
+    In PPF file, there is no leading 1/2 for harmonic energy terms.
+    The length is in unit of Angstrom, and angle is in unit of degree.
+    The energies for bond, angle and vdW are in unit of kcal/mol/A^2, kcal/mol/rad^2 and kcal/mol.
+    The two values for LJ interaction are r_min and epsilon.
 
     PPF format can optionally store the version of parameters.
     If a force field term describing one topology element appear several times,
@@ -60,19 +62,14 @@ class Ppf():
 
     Parameters
     ----------
-    files : list of str
+    file : str
 
     Attributes
     ----------
     forcefield : ForceField
-
-    Notes
-    -----
-    In PPF file, there is no 1/2 for all energy terms
-
     '''
 
-    def __init__(self, *files):
+    def __init__(self, file):
         ff = ForceField()
         ff.lj_mixing_rule = ForceField.LJ_MIXING_LB
         ff.vdw_long_range = ForceField.VDW_LONGRANGE_CORRECT
@@ -82,9 +79,7 @@ class Ppf():
 
         # save all lines to this so that we can keep only the latest version
         self._ppf_lines = {}
-        for file in files:
-            self._parse(file)
-
+        self._parse(file)
         self._setup(ff)
 
         self.forcefield = ff

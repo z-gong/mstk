@@ -1,10 +1,10 @@
 import os
 from .ffterm import *
 from .errors import *
-from mstk import DIR_MSTK, MSTK_FORCEFIELD_PATH, logger
+from mstk import MSTK_FORCEFIELD_PATH, logger
 
 
-class ForceField():
+class ForceField:
     '''
     ForceField is a set of :class:`FFTerm` objects describing the energy function of
     a :class:`~mstk.topology.Topology` with regard to the positions of atoms.
@@ -75,6 +75,8 @@ class ForceField():
         The scaling factor for 1-4 vdW interactions
     scale_14_coulomb : float
         The scaling factor for 1-4 Coulomb interactions
+    comments : list of str
+        Comments describes misc information for this force field
     '''
     #: Truncated vdW interactions with long range continuum correction
     VDW_LONGRANGE_CORRECT = 'correct'
@@ -119,6 +121,8 @@ class ForceField():
         self.scale_14_vdw = 0.5
         self.scale_14_coulomb = 0.5
 
+        self.comments: [str] = []
+
     @property
     def vdw_long_range(self):
         return self._vdw_long_range
@@ -142,12 +146,15 @@ class ForceField():
     @staticmethod
     def open(*files):
         '''
-        Load ForceField from files.
+        Load ForceField from one or multiple files.
 
         If a file does not exist, will search it under directories defined by `MSTK_FORCEFIELD_PATH`.
+        The parser will be determined from the extension of each file.
 
-        The parser for reading the files will be determined from the extension of the first file.
-        Therefore, all the files should be in the same format.
+        If multiple files are provided, they will be parsed in order and be combined into a single ForceField object.
+        These force fields must share the same setting. Otherwise an Exception will be raised.
+        If the force fields contain comments, only the ones from the first file will be kept.
+        If the same parameters appeared in several files, the ones parsed later will override the ones parsed earlier.
 
         Parameters
         ----------
@@ -174,13 +181,24 @@ class ForceField():
             else:
                 raise Exception(f'FF file not found: {file}')
 
-        basename, ext = os.path.splitext(files_path[0])
-        try:
-            cls = ForceField._class_map[ext]
-        except KeyError:
-            raise Exception(f'Unsupported FF file format: {ext}')
+        ffs = []
+        for path in files_path:
+            basename, ext = os.path.splitext(path)
+            try:
+                cls = ForceField._class_map[ext]
+            except KeyError:
+                raise Exception(f'Unsupported FF file format: {ext}')
+            ffs.append(cls(path).forcefield)
 
-        return cls(*files_path).forcefield
+        ff0: ForceField = ffs[0]
+        if len(ffs) > 1:
+            for ffi in ffs[1:]:
+                ffi: ForceField
+                if ff0.get_settings() != ffi.get_settings():
+                    raise Exception('Settings for several FFs are not the same')
+                for term in ffi.get_all_terms():
+                    ff0.add_term(term, replace=True)
+        return ff0
 
     def write(self, file):
         '''
@@ -704,6 +722,28 @@ class ForceField():
             raise FFTermNotFoundError(f'{str(qterm)} not found in FF')
 
         return qterm, direction
+
+    def get_all_terms(self):
+        '''
+        Get all the FFTerms in this force field
+
+        Returns
+        -------
+        terms : list of FFTerm
+        '''
+        terms = []
+        for d in (self.atom_types,
+                  self.qinc_terms,
+                  self.vdw_terms,
+                  self.pairwise_vdw_terms,
+                  self.bond_terms,
+                  self.angle_terms,
+                  self.dihedral_terms,
+                  self.improper_terms,
+                  self.polarizable_terms,
+                  self.virtual_site_terms):
+            terms.extend(d.values())
+        return terms
 
     def assign_mass(self, top_or_mol):
         '''
