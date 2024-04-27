@@ -200,7 +200,7 @@ class Molecule():
             mol.add_bond(atom1, atom2, order)
         mol.generate_angle_dihedral_improper()
 
-        # set aromaticiy so SMARTS matching works correctly for aromatic bonds
+        # set aromaticity so that SMARTS matching and is_aromatic works correctly
         Chem.SetAromaticity(rdmol)
         mol._rdmol = rdmol
         mol._is_rdmol_valid = True
@@ -251,7 +251,8 @@ class Molecule():
                 Bond.Order.TRIPLE     : Chem.rdchem.BondType.TRIPLE,
             }
             rwmol.AddBond(bond.atom1.id_in_mol, bond.atom2.id_in_mol, d_bond_order[bond.order])
-        Chem.SanitizeMol(rwmol) # TODO What is the purpose of this?
+        # set aromaticity so that SMARTS matching and is_aromatic works correctly
+        Chem.SanitizeMol(rwmol)
         self._rdmol = rwmol.GetMol()
         self._is_rdmol_valid = True
 
@@ -270,22 +271,24 @@ class Molecule():
 
         Returns
         -------
-        molecules : list of Molecule
-            Each conformer will be a independent molecule object
+        positions_list : list of array_like
         '''
         try:
             from rdkit.Chem import AllChem as Chem
         except ImportError:
             raise ImportError('RDKit not found')
 
-        molecules = []
+        positions_list = []
         rdmol = Chem.Mol(self.rdmol)
-        Chem.EmbedMultipleConfs(rdmol, numConfs=n_conformer, clearConfs=True)
-        for i in range(rdmol.GetNumConformers()):
-            molecules.append(Molecule.from_rdmol(rdmol, name=self.name))
-            rdmol.RemoveConformer(i)
+        useRandomCoords = False
+        while len(positions_list) < n_conformer:
+            Chem.EmbedMultipleConfs(rdmol, numConfs=n_conformer - len(positions_list), clearConfs=True,
+                                    useRandomCoords=useRandomCoords)
+            for i in range(rdmol.GetNumConformers()):
+                positions_list.append(rdmol.GetConformer(i).GetPositions() / 10)  # A -> nm
+            useRandomCoords = True
 
-        return molecules
+        return positions_list
 
     @property
     def topology(self):

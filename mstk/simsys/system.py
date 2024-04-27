@@ -9,9 +9,10 @@ class System:
     '''
     System is a combination of topology and forcefield, ready for simulation.
 
-    When a system is being initiated, the topology is deep copied.
-    A compressed set of force field is constructed, which only contains the terms required by the topology.
-    Any modification to the topology and force field after that will have no effect on the system.
+    When a system being initialized, a compressed set of force field is constructed with the terms required by the topology.
+    Note that the terms in the compressed force field are references to the terms in the original force field.
+    A series of data structures are also constructed to map the topological elements to force field terms.
+    Unless you are certain, DO NOT make any modification to the topology and force field after a system is initialized, as it may corrupt the system.
 
     During the initialization, all information in the topology will be kept untouched, which means:
 
@@ -32,10 +33,8 @@ class System:
     an Exception will be raised unless `allow_missing_terms` set to True.
     It won't check charge increment terms and virtual site terms, because they are already represented by the topology itself.
 
-    Positions and unit cell are usually included in the topology.
-    If not so, they can be provided by arguments `positions` and `cell`.
-    The explicitly provided positions and cell will override the ones in topology.
-    If positions are not included in the topology and not provided explicitly, an Exception will be raised.
+    Positions and unit cell should be included in the topology.
+    If positions are not included in the topology, an Exception will be raised.
     Unit cell is optional. If unit cell is not provided, cutoff will not be used for non-bonded interactions.
 
     If some bonded (bond, angle, dihedral, improper) parameters required by the topology are not found in the force field,
@@ -85,21 +84,16 @@ class System:
     missing_terms : list of FFTerm
     '''
 
-    def __init__(self, topology, ff, positions=None, cell=None,
+    def __init__(self, topology, ff,
                  ignore_missing_improper=False,
                  transfer_bonded_terms=False,
                  suppress_pbc_warning=False,
                  allow_missing_terms=False):
-        self._topology = copy.deepcopy(topology)
+        self._topology = topology
         self._ff = ForceField()
 
-        if positions is not None:
-            self._topology.set_positions(positions)
-        elif not topology.has_position:
-            raise Exception('Positions should be provided with topology or positions')
-
-        if cell is not None:
-            self._topology.cell = UnitCell(cell.vectors)
+        if not topology.has_position:
+            raise Exception('Positions should be provided with topology')
 
         if self._topology.n_atom == 0:
             logger.error('No atoms in the topology')
@@ -151,7 +145,7 @@ class System:
         self.polarizable_classes = set()
         self.ff_classes = set()
 
-        self._extract_terms(copy.deepcopy(ff), ignore_missing_improper, transfer_bonded_terms, allow_missing_terms)
+        self._extract_terms(ff, ignore_missing_improper, transfer_bonded_terms, allow_missing_terms)
 
     @property
     def topology(self):

@@ -66,8 +66,9 @@ def test_vdw_shift():
 def test_team_vacuum():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
+    top.cell.set_box([0, 0, 0])
     ff.assign_charge(top)
-    system = System(top, ff, cell=UnitCell([0, 0, 0]))
+    system = System(top, ff)
 
     context = mm.Context(system.to_omm_system(), *get_omm_integrator_platform())
     context.setPositions(top.positions)
