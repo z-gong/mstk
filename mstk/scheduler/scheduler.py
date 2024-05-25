@@ -32,7 +32,7 @@ class Scheduler(metaclass=DocstringMeta):
         The lifetime of cached jobs in seconds.
     '''
 
-    #: Whether or not this is a remote job scheduler
+    #: Whether this is a remote job scheduler
     is_remote = False
 
     def __init__(self, queue=None, n_proc=1, n_gpu=0, env_cmd=None):
@@ -55,59 +55,15 @@ class Scheduler(metaclass=DocstringMeta):
         self._cached_jobs = []
         self._cache_last_update = None
 
-    @property
-    def all_jobs(self):
-        '''
-        Retrieve all the jobs that are currently managed by job scheduler.
-
-        It call `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
-        If some jobs have finished long max_running_hour ago (depends on the setting of job scheduler on the machine),
-        they may disappeared from the list outputted by job scheduler.
-
-        In order not to apply too much pressure to the job scheduler, cache is used to stores the jobs.
-        This method will return the cached results without calling `scontrol` or `qstat` is the cache is not expired.
-        The lifetime of cache is determined by attribute :attr:`cached_jobs_expire` in seconds.
-
-        Returns
-        -------
-        jobs : list of PbsJob
-        '''
-        if self._cache_last_update is None or (
-                datetime.datetime.now() - self._cache_last_update).total_seconds() >= self.cached_jobs_expire:
-            self._update_stored_jobs()
-        return self._cached_jobs
-
     def is_working(self):
         '''
-        Whether or not this job scheduler is running normally.
+        Whether this job scheduler is running normally.
 
         Returns
         -------
         is : bool
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
-
-    def _update_stored_jobs(self):
-        logger.info('Update job information')
-        self._cached_jobs = []
-        jobs = []
-        for i in [3, 2, 1]:
-            # in case get_all_jobs() raise Exception
-            try:
-                jobs = self.get_all_jobs()
-            except Exception as e:
-                logger.warning(repr(e))
-            if jobs:
-                break
-            # in case get_all_jobs() failed, retry after 1s
-            if i > 1:
-                time.sleep(1)
-        for job in reversed(jobs):  # reverse the job list, in case jobs with same name
-            if job not in self._cached_jobs:
-                self._cached_jobs.append(job)
-
-        self._cached_jobs.reverse()  # reverse the job list
-        self._cache_last_update = datetime.datetime.now()
 
     def generate_sh(self, commands, name, workdir=None, sh=None):
         '''
@@ -138,7 +94,7 @@ class Scheduler(metaclass=DocstringMeta):
         Returns
         -------
         successful : bool
-            Whether or not the upload is successful
+            Whether the upload is successful
         '''
         pass
 
@@ -153,7 +109,7 @@ class Scheduler(metaclass=DocstringMeta):
         Returns
         -------
         successful : bool
-            Whether or not the download is successful
+            Whether the download is successful
         '''
         pass
 
@@ -190,14 +146,14 @@ class Scheduler(metaclass=DocstringMeta):
         job : PbsJob or None
         '''
         # if several job have same name, return the one with the largest id (most recent job)
-        for job in sorted(self.all_jobs, key=lambda x: x.id, reverse=True):
+        for job in sorted(self.get_jobs(), key=lambda x: x.id, reverse=True):
             if job.name == name:
                 return job
         return None
 
     def is_running(self, name):
         '''
-        Check whether or not a job is pending or running (not killed or finished or failed).
+        Check whether a job is pending or running (not killed or finished or failed).
 
         Parameters
         ----------
@@ -226,17 +182,60 @@ class Scheduler(metaclass=DocstringMeta):
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
 
-    def get_all_jobs(self):
+    def get_jobs(self, use_cache=True):
         '''
         Retrieve all the jobs that are currently managed by job scheduler.
 
-        It call `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
-        If some jobs have finished long max_running_hour ago (depends on the setting of job scheduler on the machine),
-        they may disappeared from the list outputted by job scheduler.
+        It calls `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
+        If some jobs have finished long time ago (depends on the setting of job scheduler on the machine),
+        they may disappear from the list output by job scheduler.
 
-        The difference between this method and property :attr:`all_jobs` is that, this method does not use the cached job list.
-        Therefore it get the up to date jobs, but it also gives more pressure to the job scheduler.
-        Usually, just call :attr:`all_jobs` instead of this method.
+        In order not to apply too much pressure to the job scheduler, cache can be used to stores the jobs.
+        If `use_cache` set to True and the cache is not expired, this method will return the cached results without calling `scontrol` or `qstat`.
+        The lifetime of cache is determined by attribute :attr:`cached_jobs_expire` in seconds.
+
+        Parameters
+        ----------
+        use_cache : bool
+            Whether the cached job list be used
+
+        Returns
+        -------
+        jobs : list of PbsJob
+        '''
+        if not use_cache or \
+                self._cache_last_update is None \
+                or (datetime.datetime.now() - self._cache_last_update).total_seconds() >= self.cached_jobs_expire:
+            logger.info('Updating job information...')
+            self._cached_jobs = []
+            jobs = []
+            for i in [3, 2, 1]:
+                # in case _get_jobs() raise Exception
+                try:
+                    jobs = self._get_jobs()
+                except Exception as e:
+                    logger.warning(repr(e))
+                if jobs:
+                    break
+                # in case _get_jobs() failed, retry after 1s
+                if i > 1:
+                    time.sleep(1)
+            for job in reversed(jobs):  # reverse the job list, in case jobs with same name
+                if job not in self._cached_jobs:
+                    self._cached_jobs.append(job)
+
+            self._cached_jobs.reverse()  # reverse the job list
+            self._cache_last_update = datetime.datetime.now()
+
+        return self._cached_jobs
+
+    def _get_jobs(self):
+        '''
+        Retrieve all the jobs that are currently managed by job scheduler.
+
+        It calls `scontrol show job` for Slurm or `qstat -f -u` for Torque to get the list of jobs.
+        If some jobs have finished long max_running_hour ago (depends on the setting of job scheduler on the machine),
+        they may disappear from the list outputted by job scheduler.
 
         Returns
         -------
@@ -250,14 +249,14 @@ class Scheduler(metaclass=DocstringMeta):
         The number of jobs that is currently pending or running (not killed or finished or failed)
 
         Only the jobs belongs to the specified :attr:`queue` will be considered.
+        This method does not use cached job list. Don't call it often.
 
         Returns
         -------
         n : int
         '''
-        self._update_stored_jobs()  # must update stored jobs first
         n = 0
-        for job in self.all_jobs:
+        for job in self.get_jobs(use_cache=False):
             if job.state != PbsJob.State.DONE and job.queue == self.queue:
                 n += 1
         return n

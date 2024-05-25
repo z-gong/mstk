@@ -68,7 +68,7 @@ class RemoteSlurm(Slurm):
         If is `sbatch` by default. But extra argument can be provided, e.g. `sbatch --qos=debug`.
     '''
 
-    #: Whether or not this is a remote job scheduler
+    #: Whether this is a remote job scheduler
     is_remote = True
 
     def __init__(self, queue, n_proc, n_gpu, host, username, remote_dir, port=22, n_node=0, exclude=None, env_cmd=None):
@@ -90,7 +90,7 @@ class RemoteSlurm(Slurm):
 
     def is_working(self) -> bool:
         '''
-        Check whether or not Slurm is working normally on the remote machine.
+        Check whether Slurm is working normally on the remote machine.
 
         It calls `sinfo --version` and check the output.
 
@@ -119,7 +119,7 @@ class RemoteSlurm(Slurm):
         Returns
         -------
         successful : bool
-            Whether or not the upload is successful
+            Whether the upload is successful
         '''
 
         local_dir = local_dir or os.getcwd()
@@ -151,7 +151,7 @@ class RemoteSlurm(Slurm):
         Returns
         -------
         successful : bool
-            Whether or not the download is successful
+            Whether the download is successful
         '''
         remote_dir = remote_dir or self.remote_dir
         local_dir = local_dir or os.getcwd()
@@ -219,7 +219,7 @@ class RemoteSlurm(Slurm):
         cmd = f'{self._ssh_cmd} scancel {job.id}'
         return subprocess.call(cmd, shell=True) == 0
 
-    def get_all_jobs(self):
+    def _get_jobs(self):
         # Show all jobs. Then check the user
         logger.info(f'Querying jobs on remote Slurm...')
 
