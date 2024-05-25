@@ -11,7 +11,8 @@ from mstk.utils import print_data_to_file
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input', type=str, help='log file of OpenMM or LAMMPS')
+    parser.add_argument('-i', '--input', type=str, required=True,
+                        help='XVG file or log file of OpenMM or LAMMPS')
     parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this data')
     parser.add_argument('-e', '--end', default=-1, type=float, help='end at this data')
     parser.add_argument('--skip', default=1, type=int, help='read every N rows')

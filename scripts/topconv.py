@@ -9,7 +9,7 @@ from mstk import logger
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', nargs='+', type=str, help='topology file')
+    parser.add_argument('-p', '--top', nargs='+', type=str, required=True, help='topology files')
     parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
     parser.add_argument('-c', '--conf', type=str,
                         help='configuration file with positions and box. The last frame will be used. '
@@ -34,7 +34,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    top_list = [Topology.open(inp) for inp in args.input]
+    top_list = [Topology.open(inp) for inp in args.top]
     if args.number is None:
         args.number = [1] * len(top_list)
 

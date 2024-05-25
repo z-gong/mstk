@@ -19,32 +19,30 @@ matplotlib.rcParams.update({'font.size': 15})
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input', nargs='+', type=str,
-                        help='trajectory files for atomic positions and charges')
-    parser.add_argument('-p', '--top', required=True, type=str,
-                        help='psf or lammps data file for topology information')
+    parser.add_argument('-p', '--top', type=str, required=True, help='topology file')
+    parser.add_argument('-c', '--conf', nargs='+', type=str, required=True, help='trajectory files')
+    parser.add_argument('-o', '--output', default='rdf', type=str, help='Basename for output files')
     parser.add_argument('--a1', type=str, nargs='+', help='type of central atoms')
     parser.add_argument('--a2', type=str, nargs='+', help='type of coordinate atoms')
     parser.add_argument('--m1', type=str, help='name of central molecules')
     parser.add_argument('--m2', type=str, help='name of coordinate molecules')
-    parser.add_argument('-o', '--output', required=True, type=str, help='Output prefix')
     parser.add_argument('-b', '--begin', default=0, type=int,
                         help='first frame to analyze. Index starts from 0')
     parser.add_argument('-e', '--end', default=-1, type=int,
                         help='last frame (not included) to analyze. Index starts from 0. '
                              '-1 means until last frames (included)')
+    parser.add_argument('--skip', default=1, type=int, help='read every N frames')
     parser.add_argument('--maxr', default=1.0, type=float,
                         help='max distance (nm) for calculation of distribution')
     parser.add_argument('--dr', default=0.01, type=float,
                         help='bin size (nm) for calculation of distribution')
     parser.add_argument('--ignore', nargs='+', default=[], type=str,
                         help='ignore these molecules in topology in case topology and trajectory do not match')
-    parser.add_argument('--skip', default=1, type=int, help='skip frames in trajectory')
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+def main():
     args = parse_args()
     top = Topology.open(args.top)
     if args.ignore != []:
@@ -52,7 +50,7 @@ if __name__ == '__main__':
         top.update_molecules(molecules)
     logger.info(top)
 
-    trj = Trajectory.open(args.input)
+    trj = Trajectory.open(args.conf)
     logger.info(trj)
 
     if (top.n_atom != trj.n_atom):
@@ -83,10 +81,8 @@ if __name__ == '__main__':
     r_array = (edges[1:] + edges[:-1]) / 2
     rdf_array = np.zeros(n_bin, dtype=float)
 
-
     def _get_weighted_center(positions, weight):
         return np.sum(positions * np.array(weight)[:, np.newaxis], axis=0) / sum(weight)
-
 
     def _get_com_group(positions, ids_group, masses_group):
         com_group = []
@@ -98,7 +94,6 @@ if __name__ == '__main__':
                 pos = _get_weighted_center(poss, masses)
             com_group.append(pos)
         return com_group
-
 
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
@@ -126,11 +121,15 @@ if __name__ == '__main__':
 
     name_column_dict = {'r'  : r_array,
                         'rdf': rdf_array}
-    print_data_to_file(name_column_dict, f'{args.output}-rdf.txt')
+    print_data_to_file(name_column_dict, f'{args.output}.txt')
 
     fig, ax = plt.subplots()
     ax.set(xlabel='r (nm)', ylabel='RDF')
     ax.plot(r_array, rdf_array, label='RDF')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(f'{args.output}-rdf.png')
+    fig.savefig(f'{args.output}.png')
+
+
+if __name__ == '__main__':
+    main()

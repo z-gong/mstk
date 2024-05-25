@@ -11,8 +11,8 @@ from mstk import logger
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', nargs='+', type=str, help='trajectory files')
-    parser.add_argument('-p', '--top', required=True, type=str, help='topology file')
+    parser.add_argument('-p', '--top', type=str, required=True, help='topology file')
+    parser.add_argument('-c', '--conf', nargs='+', type=str, required=True, help='trajectory files')
     parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
     parser.add_argument('-b', '--begin', default=0, type=int,
                         help='read from this frame (included). '
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     top = Topology.open(args.top)
     logger.info(top)
 
-    trj = Trajectory.open(args.input)
+    trj = Trajectory.open(args.conf)
     logger.info(trj)
 
     if (top.n_atom != trj.n_atom):

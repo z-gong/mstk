@@ -8,7 +8,7 @@ from mstk.forcefield import ForceField
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', nargs='+', type=str, help='force field files')
+    parser.add_argument('-f', '--ff', nargs='+', type=str, required=True, help='force field files')
     parser.add_argument('-o', '--output', required=True, type=str, help='output file')
     return parser.parse_args()
 
@@ -16,7 +16,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    ff = ForceField.open(*args.input)
+    ff = ForceField.open(*args.ff)
     print('%6i atom types\n'
           '%6i virtual site terms\n'
           '%6i self vdW terms\n'
