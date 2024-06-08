@@ -63,11 +63,12 @@ if __name__ == '__main__':
     cell_offset = np.zeros((top.n_atom, 3), dtype=int)
     if args.wrapfirst:
         frame = trj.read_frame(args.begin)
+        box = frame.cell.get_size()
         for res in top.residues:
             ids = [atom.id for atom in res.atoms]
             positions = frame.positions[ids]
             center = np.sum(positions, axis=0) / len(positions)
-            cell_offset[ids] = np.floor(center / frame.cell.size).astype(int)
+            cell_offset[ids] = np.floor(center / box).astype(int)
 
     if any(val != 0 for val in args.shift):
         pos_shift = np.array([args.shift] * top.n_atom)
@@ -77,7 +78,10 @@ if __name__ == '__main__':
     for i in range(args.begin, args.end, args.skip):
         sys.stdout.write('\r    %i' % i)
         frame = trj.read_frame(i)
-        box = np.array([args.box[k] if args.box[k] != -1 else frame.cell.size[k] for k in range(3)])
+        box = frame.cell.get_size()
+        for k in range(3):
+            if args.box[k] != -1:
+                box[k] = args.box[k]
         frame.cell.set_box(box)
         if args.wrapfirst:
             frame.positions -= cell_offset * box

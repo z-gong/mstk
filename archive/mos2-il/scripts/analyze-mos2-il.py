@@ -96,7 +96,8 @@ ids_anode = [i for i in range(len(frame0.positions)) if
 if len(ids_cathode) == 0 or len(ids_anode) == 0 or len(ids_cathode) != len(ids_anode):
     print('WARNING: Cannot identify consistent atoms for cathode and anode. '
           'Make sure positions of cathode and anode are correct')
-area = frame0.cell.size[0] * frame0.cell.size[1]
+box = frame0.cell.get_size()
+area = box[0] * box[1]
 
 elecd_l = min(args.cathode, args.anode)
 elecd_r = max(args.cathode, args.anode)

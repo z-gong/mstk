@@ -111,7 +111,7 @@ class GroTopology:
             )
 
         if top.cell.is_rectangular:
-            string += ' %.4f %.4f %.4f\n' % tuple(top.cell.size)
+            string += ' %.4f %.4f %.4f\n' % tuple(top.cell.get_size())
         else:
             a, b, c = top.cell.vectors
             string += ' %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n' % (

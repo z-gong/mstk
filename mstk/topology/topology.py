@@ -216,9 +216,9 @@ class Topology():
 
         tmp_inp = tempdir + '/_pack.inp'
         tmp_out = tempdir + '/_out.xyz'
+        box = self.cell.get_size()
         if packmol is not None:
-            packmol.build_box(xyz_files, numbers, tmp_out,
-                              size=self.cell.size - 0.2, inp_file=tmp_inp, seed=seed, silent=True)
+            packmol.build_box(xyz_files, numbers, tmp_out, size=box - 0.2, inp_file=tmp_inp, seed=seed, silent=True)
             try:
                 xyz = Topology.open(tmp_out)
             except:
@@ -231,7 +231,7 @@ class Topology():
             self.set_positions(xyz.positions)
             shutil.rmtree(tempdir)
         else:
-            Packmol.gen_inp(xyz_files, numbers, tmp_out, size=self.cell.size - 0.2, inp_file=tmp_inp, seed=seed)
+            Packmol.gen_inp(xyz_files, numbers, tmp_out, size=box - 0.2, inp_file=tmp_inp, seed=seed)
 
     def scale_box(self, scale, rigid_group='atom'):
         '''

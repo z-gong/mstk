@@ -66,8 +66,9 @@ if (top.n_atom != trj.n_atom):
 
 # The box is periodic, all bins must have the same interval so that density profile makes sense
 frame0 = trj.read_frame(0)
-area = frame0.cell.size[0] * frame0.cell.size[1]
-lz = frame0.cell.size[2]
+box = frame0.cell.get_size()
+area = box[0] * box[1]
+lz = box[2]
 dz = args.dz
 n_bin = int(round((lz / dz)))
 dz = lz / n_bin

@@ -34,7 +34,8 @@ atoms_catho = [atom for atom in top.atoms if atom.type == args.atom
 atoms_anode = [atom for atom in top.atoms if atom.type == args.atom
                and abs(atom.position[2] - args.anode) <= args.tolerance]
 
-area = top.cell.size[0] * top.cell.size[1]
+box = top.cell.get_size()
+area = box[0] * box[1]
 q_total = args.charge / 1000 * area * NANO ** 2 / ELEMENTARY_CHARGE
 voltage = args.charge / 1000 * (args.anode - args.cathode) * NANO / VACUUM_PERMITTIVITY
 q_catho = q_total / len(atoms_catho)

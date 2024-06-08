@@ -91,8 +91,7 @@ class UnitCell:
             self._vectors = self.calc_vectors_from_lengths_angles(self._lengths, self._angles)
         return self._vectors
 
-    @property
-    def size(self):
+    def get_size(self):
         '''
         The diagonal values of the box vectors.
 
@@ -188,7 +187,7 @@ class UnitCell:
         la, lb, lc = lengths
         alpha, beta, gamma = angles
 
-        if all(angles - math.pi / 2 < 1e-4):
+        if all(np.abs(angles - math.pi) / 2 < 1e-4):
             return np.array([[la, 0, 0],
                              [0, lb, 0],
                              [0, 0, lc]], dtype=float)

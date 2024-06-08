@@ -1,4 +1,4 @@
-from mstk.topology import Molecule, Topology, UnitCell
+from mstk.topology import Molecule, Topology
 from mstk.forcefield import ForceField, ZftTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
@@ -13,7 +13,8 @@ ff = ForceField.open('alkane.zff')
 
 # Initialize a topology with periodic boundary condition
 # For now, it contains only one butane molecule
-top = Topology([butane], cell=UnitCell([3, 3, 3]))
+top = Topology([butane])
+top.cell.set_box([3, 3, 3])
 
 # Assign atomic charges based on the charge parameters in the force field
 ff.assign_charge(top)

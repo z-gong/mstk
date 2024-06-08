@@ -72,6 +72,7 @@ class LammpsTrj(TrjHandler):
             ylo, yhi, cx = tuple(map(lambda x: float(x) / 10, lines[6].split()))
             zlo, zhi, cy = tuple(map(lambda x: float(x) / 10, lines[7].split()))
             frame.cell.set_box([[xhi - xlo, 0, 0], [bx, yhi - ylo, 0], [cx, cy, zhi - zlo]])
+        box = frame.cell.get_size()
 
         tokens = lines[8].split()
         title = tokens[2:]
@@ -85,26 +86,26 @@ class LammpsTrj(TrjHandler):
             df['z'] = df['z'] / 10
             wrapped = True
         elif 'xs' in df.columns:
-            df['x'] = df.xs * frame.cell.size[0] + xlo
-            df['y'] = df.ys * frame.cell.size[1] + ylo
-            df['z'] = df.zs * frame.cell.size[2] + zlo
+            df['x'] = df.xs * box[0] + xlo
+            df['y'] = df.ys * box[1] + ylo
+            df['z'] = df.zs * box[2] + zlo
             wrapped = True
         elif 'xu' in df.columns:
             df['x'] = df.xu / 10  # convert from A to nm
             df['y'] = df.yu / 10
             df['z'] = df.zu / 10
         elif 'xsu' in df.columns:
-            df['x'] = df.xsu * frame.cell.size[0] + xlo
-            df['y'] = df.ysu * frame.cell.size[1] + ylo
-            df['z'] = df.zsu * frame.cell.size[2] + zlo
+            df['x'] = df.xsu * box[0] + xlo
+            df['y'] = df.ysu * box[1] + ylo
+            df['z'] = df.zsu * box[2] + zlo
         if wrapped:
             if 'ix' not in df.columns:
                 logger.warning('Image flag not found for wrapped positions')
             else:
                 # ix is revered words for pandas, so use df['ix'] instead of df.ix
-                df['x'] += df['ix'] * frame.cell.size[0]
-                df['y'] += df['iy'] * frame.cell.size[1]
-                df['z'] += df['iz'] * frame.cell.size[2]
+                df['x'] += df['ix'] * box[0]
+                df['y'] += df['iy'] * box[1]
+                df['z'] += df['iz'] * box[2]
 
         frame.has_charge = 'q' in df.columns
         for row in df.itertuples():

@@ -6,7 +6,7 @@ import traceback
 import argparse
 import numpy as np
 from openmm import openmm as mm
-from mstk.topology import Topology, UnitCell, Molecule
+from mstk.topology import Topology, Molecule
 from mstk.trajectory import Trajectory
 from mstk.forcefield import ForceField, ZftTyper, PaduaLJScaler
 from mstk.forcefield.errors import *

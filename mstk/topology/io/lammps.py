@@ -174,6 +174,7 @@ class LammpsData():
     def _parse_atoms(self, lines, n_atom):
         atoms = [Atom() for i in range(n_atom)]
         mol_names: {int: str} = {}
+        box = self.topology.cell.get_size()
         for i in range(n_atom):
             words = lines[i].strip().split()
             atom_id = int(words[0])
@@ -205,9 +206,9 @@ class LammpsData():
                 atom.symbol = 'DP'
             else:
                 atom.symbol = Element.guess_from_atom_type(atom.type).symbol
-            atom.position = np.array([x - self.xlo + ix * self.topology.cell.size[0],
-                                      y - self.ylo + iy * self.topology.cell.size[1],
-                                      z - self.zlo + iz * self.topology.cell.size[2]])
+            atom.position = np.array([x - self.xlo + ix * box[0],
+                                      y - self.ylo + iy * box[1],
+                                      z - self.zlo + iz * box[2]])
 
         molecules = [Molecule(name) for id, name in sorted(mol_names.items())]
         for atom in sorted(atoms, key=lambda x: x.id):

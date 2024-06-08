@@ -129,7 +129,7 @@ class Bond():
         value : float
         '''
         if cell:
-            return periodic_distance(self.atom1.position, self.atom2.position, cell.size)
+            return periodic_distance(self.atom1.position, self.atom2.position, cell.get_size())
 
         delta = self.atom2.position - self.atom1.position
         return float(np.sqrt(delta.dot(delta)))
@@ -264,7 +264,7 @@ class Angle():
         value : float
         '''
         if cell:
-            return periodic_angle(self.atom1.position, self.atom2.position, self.atom3.position, cell)
+            return periodic_angle(self.atom1.position, self.atom2.position, self.atom3.position, cell.get_size())
 
         vec1 = self.atom1.position - self.atom2.position
         vec2 = self.atom3.position - self.atom2.position
@@ -408,7 +408,7 @@ class Dihedral():
         '''
         if cell:
             return periodic_dihedral(self.atom1.position, self.atom2.position, self.atom3.position, self.atom4.position,
-                                     cell.size)
+                                     cell.get_size())
 
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position
@@ -506,7 +506,7 @@ class Improper():
         '''
         if cell:
             return periodic_dihedral(self.atom1.position, self.atom2.position, self.atom3.position, self.atom4.position,
-                                     cell.size)
+                                     cell.get_size())
 
         vec1 = self.atom2.position - self.atom1.position
         vec2 = self.atom3.position - self.atom2.position

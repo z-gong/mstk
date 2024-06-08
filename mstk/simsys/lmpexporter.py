@@ -104,7 +104,7 @@ class LammpsExporter():
 
         if not top.cell.is_rectangular:
             raise Exception('Triclinic box haven\'t been implemented')
-        box = top.cell.size * 10
+        box = top.cell.get_size() * 10
         string += '\n0 %10.4f  xlo xhi\n' % box[0]
         string += '0 %10.4f  ylo yhi\n' % box[1]
         string += '0 %10.4f  zlo zhi\n' % box[2]

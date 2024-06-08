@@ -20,7 +20,7 @@ def test_read():
 
     frame = trj.read_frame(1)
     assert frame.cell.is_rectangular
-    assert pytest.approx(frame.cell.size, abs=1E-6) == [3.00906, 3.00906, 3.00906]
+    assert pytest.approx(frame.cell.get_size(), abs=1E-6) == [3.00906, 3.00906, 3.00906]
     assert pytest.approx(frame.velocities[-1], abs=1E-6) == [-1.0323, 0.5604, -0.3797]
 
 
@@ -32,5 +32,5 @@ def test_read():
 
     frame = trj.read_frame(3)
     assert frame.cell.is_rectangular
-    assert pytest.approx(frame.cell.size, abs=1E-6) == [3.0004316] * 3
+    assert pytest.approx(frame.cell.get_size(), abs=1E-6) == [3.0004316] * 3
     assert pytest.approx(frame.positions[-1], abs=1E-6) == [2.11148, 0.241373, 0.664092]

@@ -1040,7 +1040,7 @@ class Molecule():
             elif not cell.is_rectangular:
                 raise Exception('Triclinic cell haven\'t been implemented')
             else:
-                box = cell.size
+                box = cell.get_size()
 
         self._bonds = []
         self._angles = []
