@@ -111,6 +111,32 @@ def periodic_distance(pos1, pos2, box, distance_max=None):
     return math.sqrt(np.dot(delta, delta))
 
 
+def periodic_distances(positions1, positions2, box):
+    '''
+    Calculate the distances between two groups of points under periodic boundary condition
+
+    The length of positions1 and positions2 must be the same.
+    The output will be the distances between point pairs with the same length as positions1 and positions2.
+    This function makes use of the parallelization of numpy, and is preferred to calling `periodic_distance` in a loop.
+
+    Parameters
+    ----------
+    positions1 : np.ndarray
+    positions2 : np.ndarray
+    box : np.ndarray of shape (3,)
+        Lengths of rectangular periodic box. Triclinic box is not supported yet.
+
+    Returns
+    -------
+    distances : np.ndarray
+        The distances between each point pair
+    '''
+    delta_vectors = positions2 - positions1
+    delta_vectors -= np.ceil(delta_vectors / box - 0.5) * box
+
+    return np.sqrt(np.sum(delta_vectors ** 2, axis=1))
+
+
 def periodic_angle(pos1, pos2, pos3, box):
     '''
     Calculate the angle between three points under periodic boundary condition
@@ -210,7 +236,7 @@ def rotate_points(positions, reference, target):
     return np.array([np.dot(rotation_matrix, p) for p in positions])
 
 
-def find_clusters(elements, func, show_progress=False):
+def find_clusters(elements, func):
     '''
     Group elements into clusters
 
@@ -230,12 +256,7 @@ def find_clusters(elements, func, show_progress=False):
     flag = [0] * n_element
     n_cluster = 0
     clusters = []
-    if show_progress:
-        from tqdm import tqdm
-        _iterator = tqdm(range(n_element))
-    else:
-        _iterator = range(n_element)
-    for i in _iterator:
+    for i in range(n_element):
         if flag[i]:
             continue
         path = {i}
@@ -263,7 +284,7 @@ def find_clusters(elements, func, show_progress=False):
     return clusters
 
 
-def find_clusters_consecutive(elements, func, show_progress=False):
+def find_clusters_consecutive(elements, func):
     '''
     Group elements into clusters. If element i and j are in the same group, all elements between i and j will also be put in the same group.
 
@@ -283,12 +304,7 @@ def find_clusters_consecutive(elements, func, show_progress=False):
     flag = [0] * n_element
     n_cluster = 0
     clusters = []
-    if show_progress:
-        from tqdm import tqdm
-        _iterator = tqdm(range(n_element))
-    else:
-        _iterator = range(n_element)
-    for i in _iterator:
+    for i in range(n_element):
         if not flag[i]:
             n_cluster += 1
             flag[i] = n_cluster
