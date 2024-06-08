@@ -26,6 +26,8 @@ def parse_args():
     parser.add_argument('--a2', type=str, nargs='+', help='type of coordinate atoms')
     parser.add_argument('--m1', type=str, help='name of central molecules')
     parser.add_argument('--m2', type=str, help='name of coordinate molecules')
+    parser.add_argument('--type', default='all', type=str, choices=['all', 'inter', 'intra'],
+                        help='calculate RDF between all pairs, inter-molecular pairs, or intra-molecular pairs')
     parser.add_argument('-b', '--begin', default=0, type=int,
                         help='first frame to analyze. Index starts from 0')
     parser.add_argument('-e', '--end', default=-1, type=int,
@@ -44,8 +46,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    top = Topology.open(args.top)
-    if args.ignore != []:
+    # TODO need a better way to handle multi-residue molecule
+    top = Topology.open(args.top, split_molecule='bond')
+    if args.ignore:
         molecules = [mol for mol in top.molecules if mol.name not in args.ignore]
         top.update_molecules(molecules)
     logger.info(top)
@@ -53,24 +56,18 @@ def main():
     trj = Trajectory.open(args.conf)
     logger.info(trj)
 
-    if (top.n_atom != trj.n_atom):
+    if top.n_atom != trj.n_atom:
         raise Exception('Number of atoms in topology and trajectory files do not match')
 
-    if args.m1 is None:
-        group1 = [[atom] for atom in top.atoms if atom.type in args.a1]
+    if args.m1:
+        group1 = [atom for mol in top.molecules if mol.name == args.m1 for atom in mol.atoms if atom.type in args.a1]
     else:
-        group1 = [[atom for atom in mol.atoms if atom.type in args.a1]
-                  for mol in top.molecules if mol.name == args.m1]
-    ids_group1 = [[atom.id for atom in atoms] for atoms in group1]
-    masses_group1 = [[atom.mass for atom in atoms] for atoms in group1]
+        group1 = [atom for atom in top.atoms if atom.type in args.a1]
 
-    if args.m2 is None:
-        group2 = [[atom] for atom in top.atoms if atom.type in args.a2]
+    if args.m2:
+        group2 = [atom for mol in top.molecules if mol.name == args.m2 for atom in mol.atoms if atom.type in args.a2]
     else:
-        group2 = [[atom for atom in mol.atoms if atom.type in args.a2]
-                  for mol in top.molecules if mol.name == args.m2]
-    ids_group2 = [[atom.id for atom in atoms] for atoms in group2]
-    masses_group2 = [[atom.mass for atom in atoms] for atoms in group2]
+        group2 = [atom for atom in top.atoms if atom.type in args.a2]
 
     if args.end > trj.n_frame or args.end == -1:
         args.end = trj.n_frame
@@ -81,36 +78,25 @@ def main():
     r_array = (edges[1:] + edges[:-1]) / 2
     rdf_array = np.zeros(n_bin, dtype=float)
 
-    def _get_weighted_center(positions, weight):
-        return np.sum(positions * np.array(weight)[:, np.newaxis], axis=0) / sum(weight)
-
-    def _get_com_group(positions, ids_group, masses_group):
-        com_group = []
-        for ids, masses in zip(ids_group, masses_group):
-            poss = positions[ids]
-            if len(ids) == 1:
-                pos = poss[0]
-            else:
-                pos = _get_weighted_center(poss, masses)
-            com_group.append(pos)
-        return com_group
-
     n_frame = 0
     for i in range(args.begin, args.end, args.skip):
         n_frame += 1
         frame = trj.read_frame(i)
         sys.stdout.write('\r    frame %i' % i)
 
-        com_group1 = _get_com_group(frame.positions, ids_group1, masses_group1)
-        com_group2 = _get_com_group(frame.positions, ids_group2, masses_group2)
-
         vol = frame.cell.volume
+        box = frame.cell.get_size()
         density_pair = len(group1) * len(group2) / vol
-
         density_array = np.zeros(len(r_array), dtype=float)
-        for com1 in com_group1:
-            for com2 in com_group2:
-                distance = periodic_distance(com1, com2, frame.cell.size, args.maxr + dr / 2)
+        for atom1 in group1:
+            pos1 = frame.positions[atom1.id]
+            for atom2 in group2:
+                if args.type == 'inter' and atom1.molecule is atom2.molecule:
+                    continue
+                if args.type == 'intra' and atom1.molecule is not atom2.molecule:
+                    continue
+                pos2 = frame.positions[atom2.id]
+                distance = periodic_distance(pos1, pos2, box, args.maxr + dr / 2)
                 if distance is not None and distance < args.maxr + dr / 2:
                     idx_r = int((distance - edges[0]) / dr)
                     density_array[idx_r] += 1
@@ -125,8 +111,8 @@ def main():
 
     fig, ax = plt.subplots()
     ax.set(xlabel='r (nm)', ylabel='RDF')
-    ax.plot(r_array, rdf_array, label='RDF')
-    ax.legend()
+    ax.plot(r_array, rdf_array)
+    # ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}.png')
 
