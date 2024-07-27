@@ -263,7 +263,9 @@ class FFTerm:
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
             if func is float:
-                if val > 1000:
+                if val >= 1000000:
+                    string = ' %8i' % round(val)
+                elif val >= 1000:
                     string = ' %8.1f' % val
                 else:
                     string = ' %8.4f' % val
@@ -986,6 +988,56 @@ class MieTerm(VdwTerm):
 FFTermFactory.register(MieTerm)
 
 
+class MorseTerm(VdwTerm):
+    '''
+    vdW term with Morse function form.
+
+    The energy function is
+
+    >>> U = depth*((1-exp(-alpha*(r-r0)))^2-1)
+
+    This term is mainly used for Coarse-Grained force field.
+
+    During the initialization, the two atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    depth: float
+    alpha: float
+    r0: float
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    depth: float
+    alpha: float
+    r0: float
+    '''
+
+    _zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'depth': float,
+        'alpha': float,
+        'r0'   : float,
+    }
+
+    def __init__(self, type1, type2, depth, alpha, r0):
+        super().__init__(type1, type2)
+        self.depth = depth
+        self.alpha = alpha
+        self.r0 = r0
+
+    def evaluate_energy(self, r):
+        return self.depth * ((1 - math.exp(-self.alpha * (r - self.r0))) ** 2 - 1)
+
+
+FFTermFactory.register(MorseTerm)
+
+
 class HarmonicBondTerm(BondTerm):
     '''
     Bond term in harmonic function form
@@ -1030,6 +1082,61 @@ class HarmonicBondTerm(BondTerm):
 
 
 FFTermFactory.register(HarmonicBondTerm)
+
+
+class QuarticBondTerm(BondTerm):
+    '''
+    Bond term in quartic function form
+
+    The energy function is
+
+    >>> U = k2 * (b-b0)^2 + k3 * (b-b0)^3 + k4 * (b-b0)^4
+
+    During the initialization, the two atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    length : float
+    k2 : float
+    k3 : float
+    k4 : float
+    fixed : bool
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    length : float
+    k2 : float
+    k3 : float
+    k4 : float
+    fixed : bool
+    '''
+
+    _zfp_attrs = {
+        'type1' : str,
+        'type2' : str,
+        'length': float,
+        'k2'    : float,
+        'k3'    : float,
+        'k4'    : float,
+        'fixed' : lambda x: bool(strtobool(x))
+    }
+
+    def __init__(self, type1, type2, length, k2, k3, k4, fixed=False):
+        super().__init__(type1, type2, length, fixed=fixed)
+        self.k2 = k2
+        self.k3 = k3
+        self.k4 = k4
+
+    def evaluate_energy(self, val):
+        return self.k2 * (val - self.length) ** 2 + self.k3 * (val - self.length) ** 3 \
+               + self.k4 * (val - self.length) ** 4
+
+
+FFTermFactory.register(QuarticBondTerm)
 
 
 class MorseBondTerm(BondTerm):
@@ -1130,12 +1237,119 @@ class HarmonicAngleTerm(AngleTerm):
     def evaluate_energy(self, val):
         return self.k * (val - self.theta) ** 2
 
-    @property
-    def is_linear(self):
-        return self.theta > 175 * DEG2RAD
-
 
 FFTermFactory.register(HarmonicAngleTerm)
+
+
+class QuarticAngleTerm(AngleTerm):
+    '''
+    Angle term in quartic function form
+
+    The energy function is
+
+    >>> U = k2 * (theta-theta0)^2 + k3 * (theta-theta0)^3 + k4 * (theta-theta0)^4
+
+    The angle is in unit of radian, and the force constant is in unit of kJ/mol/rad^2.
+
+    During the initialization, the two side atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    theta : float
+    k2 : float
+    k3 : float
+    k4 : float
+    fixed : bool
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    theta : float
+    k2 : float
+    k3 : float
+    k4 : float
+    fixed : bool
+    '''
+
+    _zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k2'   : float,
+        'k3'   : float,
+        'k4'   : float,
+        'fixed': lambda x: bool(strtobool(x))
+    }
+
+    def __init__(self, type1, type2, type3, theta, k2, k3, k4, fixed=False):
+        super().__init__(type1, type2, type3, theta, fixed=fixed)
+        self.k2 = k2
+        self.k3 = k3
+        self.k4 = k4
+
+    def evaluate_energy(self, val):
+        return self.k2 * (val - self.theta) ** 2 + self.k3 * (val - self.theta) ** 3 \
+               + self.k4 * (val - self.theta) ** 4
+
+
+FFTermFactory.register(QuarticAngleTerm)
+
+
+class HarmonicCosineAngleTerm(AngleTerm):
+    '''
+    Angle term in harmonic cosine function form
+
+    The energy function is
+
+    >>> U = k / sin(theta0)^2 * (cos(theta) - cos(theta0))^2
+
+    The angle is in unit of radian, and the force constant is in unit of kJ/mol/rad^2.
+
+    During the initialization, the two side atom types will be sorted by their string.
+
+    Parameters
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    theta : float
+    k : float
+    fixed : bool
+
+    Attributes
+    ----------
+    type1 : str
+    type2 : str
+    type3 : str
+    theta : float
+    k : float
+    fixed : bool
+    '''
+
+    _zfp_attrs = {
+        'type1': str,
+        'type2': str,
+        'type3': str,
+        'theta': float,
+        'k'    : float,
+        'fixed': lambda x: bool(strtobool(x))
+    }
+
+    def __init__(self, type1, type2, type3, theta, k, fixed=False):
+        super().__init__(type1, type2, type3, theta, fixed=fixed)
+        self.k = k
+
+    def evaluate_energy(self, val):
+        return self.k / math.sin(self.theta) ** 2 * (math.cos(val) - math.cos(self.theta)) ** 2
+
+
+FFTermFactory.register(HarmonicCosineAngleTerm)
 
 
 class SDKAngleTerm(AngleTerm):
@@ -1185,10 +1399,6 @@ class SDKAngleTerm(AngleTerm):
     def __init__(self, type1, type2, type3, theta, k):
         super().__init__(type1, type2, type3, theta, fixed=False)
         self.k = k
-
-    @property
-    def is_linear(self):
-        return self.theta > 175 * DEG2RAD
 
 
 FFTermFactory.register(SDKAngleTerm)
@@ -1248,10 +1458,6 @@ class LinearAngleTerm(AngleTerm):
         a = b23 / (b12 + b23)
         k_linear = self.k * 2 * (b12 + b23) ** 2 / (b12 * b23) ** 2
         return a, k_linear
-
-    @property
-    def is_linear(self):
-        return True
 
 
 FFTermFactory.register(LinearAngleTerm)

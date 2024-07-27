@@ -6,7 +6,7 @@ from ..trajectory import *
 from .. import logger
 
 
-class GromacsExporter():
+class GromacsExporter:
     '''
     GromacsExporter export a :class:`System` to input files for Gromacs.
 
@@ -14,7 +14,9 @@ class GromacsExporter():
 
     * :class:`~mstk.forcefield.LJ126Term`
     * :class:`~mstk.forcefield.HarmonicBondTerm`
+    * :class:`~mstk.forcefield.MorseBondTerm`
     * :class:`~mstk.forcefield.HarmonicAngleTerm`
+    * :class:`~mstk.forcefield.HarmonicCosineAngleTerm`
     * :class:`~mstk.forcefield.LinearAngleTerm`
     * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
@@ -22,14 +24,17 @@ class GromacsExporter():
     * :class:`~mstk.forcefield.HarmonicImproperTerm`
     * :class:`~mstk.forcefield.DrudeTerm`
 
-    The :class:`~mstk.forcefield.MieTerm` can be exported, but it will be in the LJ-12-6 form.
-    If the dispersion of `MieTerm` is in 6-th power, then MieTerm can be correctly handled
-    by small modifications to topol and mdp files after exported.
-    Refer to the GROMACS documentation for details.
+    Note that the Drude polarization in GROMACS have never been thoroughly tested. Use it with care.
 
-    The :class:`~mstk.forcefield.SDKAngleTerm` can be exported, but it will be in the harmonic form.
-    Usually it is acceptable if the molecule is not going to form a coil structure.
-    Refer to the original SDK paper for details.
+    In order to use GROMACS for trajectory analysis, the following potential functions can also be exported.
+    But the exported files are only used to generate tpr file, which is required by most gmx analysis commands.
+    Do NOT use the exported files for production simulations.
+
+    * :class:`~mstk.forcefield.MieTerm` will be exported in the LJ-12-6 form
+    * :class:`~mstk.forcefield.MorseTerm` will be exported in the LJ-12-6 form
+    * :class:`~mstk.forcefield.QuarticBondTerm` will be exported in the harmonic form
+    * :class:`~mstk.forcefield.QuarticAngleTerm` will be exported in the harmonic form
+    * :class:`~mstk.forcefield.SDKAngleTerm` will be exported in the harmonic form
     '''
 
     def __init__(self):
@@ -52,9 +57,9 @@ class GromacsExporter():
         if not system.use_pbc:
             raise Exception('PBC required for exporting GROMACS')
 
-        supported_terms = {LJ126Term, MieTerm,
-                           HarmonicBondTerm, MorseBondTerm,
-                           HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
+        supported_terms = {LJ126Term, MieTerm, MorseTerm,
+                           HarmonicBondTerm, QuarticBondTerm, MorseBondTerm,
+                           HarmonicAngleTerm, QuarticAngleTerm, HarmonicCosineAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
@@ -64,6 +69,12 @@ class GromacsExporter():
 
         if MieTerm in system.ff_classes:
             logger.warning('MieTerm not supported by GROMACS. Exported in LJ-12-6 form')
+        if MorseTerm in system.ff_classes:
+            logger.warning('MorseTerm not supported by GROMACS. Exported in LJ-12-6 form')
+        if QuarticBondTerm in system.ff_classes:
+            logger.warning('QuarticBondTerm not supported by GROMACS. Exported in harmonic form')
+        if QuarticAngleTerm in system.ff_classes:
+            logger.warning('QuarticAngleTerm not supported by GROMACS. Exported in harmonic form')
         if SDKAngleTerm in system.ff_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Exported in harmonic form')
         if DrudeTerm in system.ff_classes:
@@ -113,6 +124,9 @@ class GromacsExporter():
             if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
                     atype.name, 0.0, 0.0, ptype, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
+            elif vdw.__class__ == MorseTerm:
+                string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
+                    atype.name, 0.0, 0.0, ptype, vdw.r0, vdw.depth, ' '.join(vdw.comments))
             else:
                 raise Exception('Unsupported vdW term')
 
@@ -126,6 +140,9 @@ class GromacsExporter():
             if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
                     at1.name, at2.name, 1, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
+            elif vdw.__class__ == MorseTerm:
+                string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
+                    at1.name, at2.name, 1, vdw.r0, vdw.depth, ' '.join(vdw.comments))
             else:
                 raise Exception('Unsupported vdW term')
 
@@ -242,6 +259,11 @@ class GromacsExporter():
                     string += '%6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1,
                         1, bterm.length, bterm.k * 2)
+                elif bterm.__class__ == QuarticBondTerm:
+                    a1, a2 = bond.atom1, bond.atom2
+                    string += '%6i %6i %6i %12.6f %12.4f\n' % (
+                        a1.id_in_mol + 1, a2.id_in_mol + 1,
+                        1, bterm.length, bterm.k2 * 2)
                 elif bterm.__class__ == MorseBondTerm:
                     a1, a2 = bond.atom1, bond.atom2
                     string += '%6i %6i %6i %12.6f %12.4f %12.4f\n' % (
@@ -309,6 +331,14 @@ class GromacsExporter():
                     string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
                         a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
                         1, aterm.theta * RAD2DEG, aterm.k * 2)
+                elif aterm.__class__ is QuarticAngleTerm:
+                    string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
+                        a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
+                        1, aterm.theta * RAD2DEG, aterm.k2 * 2)
+                elif aterm.__class__ is HarmonicCosineAngleTerm:
+                    string += '%6i %6i %6i %6i %12.6f %12.4f\n' % (
+                        a1.id_in_mol + 1, a2.id_in_mol + 1, a3.id_in_mol + 1,
+                        2, aterm.theta * RAD2DEG, aterm.k * 2 / math.sin(aterm.theta) ** 2)
                 elif aterm.__class__ is LinearAngleTerm:
                     bond12, bond23 = angle.bonds
                     bterm12 = system.bond_terms[bond12]
@@ -408,5 +438,5 @@ gen_temp        = 300
 constraints     = h-bonds
 constraint-algorithm = LINCS
 '''
-        with open(mdp_out, 'wb')  as f:
+        with open(mdp_out, 'wb') as f:
             f.write(string.encode())

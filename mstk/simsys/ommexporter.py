@@ -1,6 +1,5 @@
 import itertools
 from enum import IntEnum
-from mstk import *
 from mstk.simsys import System
 from mstk.forcefield import *
 from mstk.topology import *
@@ -51,16 +50,15 @@ class OpenMMExporter:
         if not OPENMM_FOUND:
             raise ImportError('Can not import OpenMM')
 
-        supported_terms = {LJ126Term, MieTerm,
-                           HarmonicBondTerm, MorseBondTerm,
-                           HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
+        supported_terms = {LJ126Term, MieTerm, MorseTerm,
+                           HarmonicBondTerm, QuarticBondTerm, MorseBondTerm,
+                           HarmonicAngleTerm, QuarticAngleTerm, HarmonicCosineAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudeTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
-            raise Exception('Unsupported FF terms: %s'
-                            % (', '.join(map(lambda x: x.__name__, unsupported))))
+            raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if system.vsite_types - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
@@ -103,6 +101,23 @@ class OpenMMExporter:
                     if type(bterm) != HarmonicBondTerm:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, bterm.length, bterm.k * 2)
+            elif bond_class == QuarticBondTerm:
+                logger.debug('Setting up quartic bonds...')
+                bforce = mm.CustomBondForce('k2*(r-b0)^2+k3*(r-b0)^3+k4*(r-b0)^4')
+                bforce.addPerBondParameter('b0')
+                bforce.addPerBondParameter('k2')
+                bforce.addPerBondParameter('k3')
+                bforce.addPerBondParameter('k4')
+                for bond in top.bonds:
+                    if bond.is_drude:
+                        # DrudeForce will handle the bond between Drude pair
+                        continue
+                    if bond in system.constrain_bonds:
+                        continue
+                    bterm = system.bond_terms[bond]
+                    if type(bterm) != QuarticBondTerm:
+                        continue
+                    bforce.addBond(bond.atom1.id, bond.atom2.id, [bterm.length, bterm.k2, bterm.k3, bterm.k4])
             elif bond_class == MorseBondTerm:
                 logger.debug('Setting up Morse bonds...')
                 bforce = mm.CustomBondForce('depth*(1-exp(-alpha*(r-b0)))^2;'
@@ -121,7 +136,7 @@ class OpenMMExporter:
                         continue
                     bforce.addBond(bond.atom1.id, bond.atom2.id, [bterm.length, bterm.k, bterm.depth])
             else:
-                raise Exception('Bond terms other that HarmonicBondTerm and MorseBondTerm '
+                raise Exception('Bond terms other that HarmonicBondTerm, QuarticBondTerm and MorseBondTerm '
                                 'haven\'t been implemented')
             bforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             bforce.setForceGroup(ForceGroup.BOND)
@@ -138,8 +153,31 @@ class OpenMMExporter:
                         continue
                     aterm = system.angle_terms[angle]
                     if type(aterm) == HarmonicAngleTerm:
-                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
-                                        aterm.theta, aterm.k * 2)
+                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id, aterm.theta, aterm.k * 2)
+            elif angle_class == QuarticAngleTerm:
+                logger.debug('Setting up quartic angles...')
+                aforce = mm.CustomAngleForce('k2*(theta-theta0)^2+k3*(theta-theta0)^3+k4*(theta-theta0)^4')
+                aforce.addPerAngleParameter('theta0')
+                aforce.addPerAngleParameter('k2')
+                aforce.addPerAngleParameter('k3')
+                aforce.addPerAngleParameter('k4')
+                for angle in top.angles:
+                    if angle in system.constrain_angles:
+                        continue
+                    aterm = system.angle_terms[angle]
+                    if type(aterm) == QuarticAngleTerm:
+                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id, [aterm.theta, aterm.k2, aterm.k3, aterm.k4])
+            elif angle_class == HarmonicCosineAngleTerm:
+                logger.debug('Setting up harmonic cosine angles...')
+                aforce = mm.CustomAngleForce('k/sin(theta0)^2*(cos(theta)-cos(theta0))^2')
+                aforce.addPerAngleParameter('theta0')
+                aforce.addPerAngleParameter('k')
+                for angle in top.angles:
+                    if angle in system.constrain_angles:
+                        continue
+                    aterm = system.angle_terms[angle]
+                    if type(aterm) == HarmonicCosineAngleTerm:
+                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id, [aterm.theta, aterm.k])
             elif angle_class == SDKAngleTerm:
                 logger.debug('Setting up SDK angles...')
                 aforce = mm.CustomCompoundBondForce(
@@ -188,8 +226,8 @@ class OpenMMExporter:
                     a, k_linear = aterm.calc_a_k_linear(bterm12.length, bterm23.length)
                     aforce.addBond([angle.atom1.id, angle.atom2.id, angle.atom3.id], [a, k_linear])
             else:
-                raise Exception('Angle terms other that HarmonicAngleTerm, SDKAngleTerm and LinearAngleTerm '
-                                'haven\'t been implemented')
+                raise Exception('Angle terms other that HarmonicAngleTerm, QuarticAngleTerm, HarmonicCosineAngleTerm, '
+                                'SDKAngleTerm and LinearAngleTerm haven\'t been implemented')
             aforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
             aforce.setForceGroup(ForceGroup.ANGLE)
             aforce.setName('Angle')
@@ -326,6 +364,41 @@ class OpenMMExporter:
                     id_type = type_names.index(atom.type)
                     cforce.addParticle([id_type])
 
+            elif vdw_class == MorseTerm:
+                logger.debug('Setting up Morse vdW interactions...')
+                if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
+                    cforce = mm.CustomNonbondedForce(
+                        f'DEPTH(type1,type2)*(1-exp(-ALPHA(type1,type2)*(r-R0(type1,type2))))^2-'
+                        f'DEPTH(type1,type2)*(1-exp(-ALPHA(type1,type2)*({cutoff}-R0(type1,type2))))^2'
+                    )
+                else:
+                    cforce = mm.CustomNonbondedForce(
+                        f'DEPTH(type1,type2)*((1-exp(-ALPHA(type1,type2)*(r-R0(type1,type2))))^2-1)'
+                    )
+                cforce.addPerParticleParameter('type')
+                DEPTH_list = [0.0] * n_type * n_type
+                ALPHA_list = [0.0] * n_type * n_type
+                R0_list = [0.0] * n_type * n_type
+                for i, atype1 in enumerate(atom_types):
+                    for j, atype2 in enumerate(atom_types):
+                        vdw = ff.get_vdw_term(atype1, atype2)
+                        if type(vdw) == MorseTerm:
+                            DEPTH = vdw.depth
+                            ALPHA = vdw.alpha
+                            R0 = vdw.r0
+                        else:
+                            DEPTH = ALPHA = R0 = 0
+                        DEPTH_list[i + n_type * j] = DEPTH
+                        ALPHA_list[i + n_type * j] = ALPHA
+                        R0_list[i + n_type * j] = R0
+                cforce.addTabulatedFunction('DEPTH', mm.Discrete2DFunction(n_type, n_type, DEPTH_list))
+                cforce.addTabulatedFunction('ALPHA', mm.Discrete2DFunction(n_type, n_type, ALPHA_list))
+                cforce.addTabulatedFunction('R0', mm.Discrete2DFunction(n_type, n_type, R0_list))
+
+                for atom in top.atoms:
+                    id_type = type_names.index(atom.type)
+                    cforce.addParticle([id_type])
+
             elif vdw_class == MieTerm:
                 logger.debug('Setting up Mie vdW interactions...')
                 if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
@@ -369,7 +442,7 @@ class OpenMMExporter:
                     cforce.addParticle([id_type])
 
             else:
-                raise Exception('vdW terms other than LJ126Term and MieTerm '
+                raise Exception('vdW terms other than LJ126Term, MieTerm and MorseTerm '
                                 'haven\'t been implemented')
             if system.use_pbc:
                 cforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
@@ -425,8 +498,22 @@ class OpenMMExporter:
                     elif type(vdw) == MieTerm:
                         cbforce.addBond(atom1.id, atom2.id,
                                         [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
+                elif type(vdw) is MorseTerm:
+                    cbforce = pair14_forces.get(MorseTerm)
+                    if cbforce is None:
+                        cbforce = mm.CustomBondForce('DEPTH*((1-exp(-ALPHA*(r-R0)))^2-1)')
+                        cbforce.addPerBondParameter('DEPTH')
+                        cbforce.addPerBondParameter('ALPHA')
+                        cbforce.addPerBondParameter('R0')
+                        cbforce.setUsesPeriodicBoundaryConditions(system.use_pbc)
+                        cbforce.setForceGroup(ForceGroup.VDW)
+                        cbforce.setName('vdW')
+                        omm_system.addForce(cbforce)
+                        pair14_forces[MorseTerm] = cbforce
+                    depth = vdw.depth * ff.scale_14_vdw
+                    cbforce.addBond(atom1.id, atom2.id, [depth, vdw.alpha, vdw.r0])
                 else:
-                    raise Exception('1-4 scaling for vdW terms other than LJ126Term and MieTerm '
+                    raise Exception('1-4 scaling for vdW terms other than LJ126Term, MieTerm and MorseTerm '
                                     'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
