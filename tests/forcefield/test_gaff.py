@@ -63,7 +63,7 @@ name_smiles_types = [
 @pytest.mark.parametrize('name_smiles_types', name_smiles_types)
 def test_gaff_typer(name_smiles_types):
     name, smiles, str_types = name_smiles_types
-    typer = GaffTyper('gaff.zft')
+    typer = GaffTyper()
     mol = Molecule.from_smiles(f'{smiles} {name}')
     typer.type(mol)
 
@@ -74,7 +74,7 @@ def test_gaff_typer(name_smiles_types):
 @pytest.mark.parametrize('name_smiles_types', name_smiles_types)
 def test_gaff(name_smiles_types):
     name, smiles, str_types = name_smiles_types
-    typer = GaffTyper('gaff.zft')
+    typer = GaffTyper()
     mol = Molecule.from_smiles(f'{smiles}')
     typer.type(mol)
 
@@ -94,7 +94,7 @@ def test_gaff(name_smiles_types):
     'O=C=Nc1ccc(N=C=O)cc1',
 ])
 def test_gaff_mod(smiles):
-    typer = GaffTyper('gaff.zft')
+    typer = GaffTyper()
     mol = Molecule.from_smiles(f'{smiles}')
     typer.type(mol)
 

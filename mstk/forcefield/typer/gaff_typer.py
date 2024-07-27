@@ -1,3 +1,5 @@
+import os
+from mstk import DIR_MSTK
 from mstk.topology import Bond
 from .zft import ZftTyper
 
@@ -5,7 +7,7 @@ from .zft import ZftTyper
 class GaffTyper(ZftTyper):
     '''
     `GaffTyper` is specifically designed for GAFF atom type assignment.
-    It should only be used with the type definition file `gaff.zft`
+    By default, it uses the type definition file `gaff.zft`
 
     Compared with `ZftTyper`, this class will handle conjugated atom types according to the GAFF convention,
     e.g. cc/cd, ce/cf etc...
@@ -28,6 +30,7 @@ class GaffTyper(ZftTyper):
     '''
 
     def __init__(self, file=None):
+        file = file or os.path.join(DIR_MSTK, 'data', 'forcefield', 'gaff.zft')
         super().__init__(file)
 
     def _type_molecule(self, molecule):

@@ -52,7 +52,7 @@ def main():
         logger.info(f'--{arg:10s} {val}')
 
     if args.typer == 'gaff':
-        typer = GaffTyper('gaff.zft')
+        typer = GaffTyper()
     elif args.typer:
         typer = ZftTyper(args.typer)
     else:
