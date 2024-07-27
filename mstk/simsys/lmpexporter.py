@@ -5,7 +5,7 @@ from ..topology import *
 from .. import logger
 
 
-class LammpsExporter():
+class LammpsExporter:
     '''
     LammpsExporter export a non-polarizable :class:`System` to input files for LAMMPS.
 
@@ -23,6 +23,9 @@ class LammpsExporter():
     * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.OplsImproperTerm`
+
+    The :class:~mstk.forcefield.LinearAngleTerm can be exported, but it will be in the harmonic form.
+    This is only valid when the force constant is large enough to keep the angle nearby 180 degree.
 
     In order to run simulation of SDK-CG model, the package CG-SDK should be included when compiling LAMMPS.
     '''
@@ -57,7 +60,7 @@ class LammpsExporter():
             raise Exception('Virtual sites not supported by LAMMPS')
 
         if LinearAngleTerm in system.ff_classes:
-            logger.warning('LinearAngleTerm not supported by LAMMPS. Exported in harmonic form at 178 degree')
+            logger.warning('LinearAngleTerm not supported by LAMMPS. Exported in harmonic form')
 
         top = system.topology
         ff = system.ff
@@ -118,7 +121,9 @@ class LammpsExporter():
             string += '\nBond Coeffs  # %s\n\n' % ('hybrid harmonic morse' if is_morse else 'harmonic')
 
         for i, bterm in enumerate(bond_types):
-            bond_style = '' if not is_morse else 'morse' if type(bterm) is MorseBondTerm else 'harmonic'
+            bond_style = ''
+            if is_morse:
+                bond_style = 'morse' if type(bterm) is MorseBondTerm else 'harmonic'
             if type(bterm) is HarmonicBondTerm:
                 string += '%4i %8s %12.6f %10.4f  # %s-%s\n' % (
                     i + 1, bond_style, bterm.k / 4.184 / 100, bterm.length * 10, bterm.type1, bterm.type2)
@@ -131,10 +136,11 @@ class LammpsExporter():
             string += '\nAngle Coeffs  # %s\n\n' % ('hybrid harmonic sdk' if is_sdk else 'harmonic')
 
         for i, aterm in enumerate(angle_types):
-            angle_style = '' if not is_sdk else 'sdk' if type(aterm) is SDKAngleTerm else 'harmonic'
+            angle_style = ''
+            if is_sdk:
+                angle_style = 'sdk' if type(aterm) is SDKAngleTerm else 'harmonic'
             string += '%4i %8s %12.6f %10.4f  # %s-%s-%s\n' % (
-                i + 1, angle_style, aterm.k / 4.184, min(aterm.theta * RAD2DEG, 178),
-                aterm.type1, aterm.type2, aterm.type3)
+                i + 1, angle_style, aterm.k / 4.184, aterm.theta * RAD2DEG, aterm.type1, aterm.type2, aterm.type3)
 
         if len(dihedral_types) > 0:
             string += '\nDihedral Coeffs  # opls\n\n'
@@ -204,7 +210,7 @@ class LammpsExporter():
                 i + 1, itype, a2.id + 1, a3.id + 1, a1.id + 1, a4.id + 1,
                 a2.name, a3.name, a1.name, a4.name)
 
-        with open(data_out, 'wb')  as f:
+        with open(data_out, 'wb') as f:
             f.write(string.encode())
 
         ### LAMMPS input script #################################################
