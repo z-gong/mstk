@@ -9,7 +9,7 @@ scripts = [os.path.join(dir_scripts, f) for f in os.listdir(dir_scripts)]
 
 setuptools.setup(
     name='mstk',
-    version='0.3.14',
+    version='0.3.15',
     author='Zheng Gong',
     author_email='z.gong@outlook.com',
     description='Molecular simulation toolkit',
