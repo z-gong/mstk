@@ -19,6 +19,7 @@ the job scheduler will not experience much pressure.
     :toctree: _generated/
 
     PbsJob
+    JobParameter
     Scheduler
     Slurm
     RemoteSlurm

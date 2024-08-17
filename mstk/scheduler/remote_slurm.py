@@ -13,66 +13,41 @@ class RemoteSlurm(Slurm):
 
     Parameters
     ----------
-    queue : str
-        The jobs will be submitted to this partition.
-    n_proc : int
-        The CPU cores a job can use.
-    n_gpu : int
-        The GPU card a job can use.
     host : str
         The IP address of the remote host that is running Slurm
+    port : int
+        The SSH port for logging in the remote host
     username : str
         The username for logging in the remote host
     remote_dir : str
         The default directory to use on the remote host for running calculation
-    port : int
-        The SSH port for logging in the remote host
-    n_node : int
-        The nodes a job can use. If 0, then will be decided by slurm.
-    exclude: str, Optional
-        The nodes to be excluded, in Slurm format
-    env_cmd : str, Optional
-        The commands for setting up the environment before running real calculations.
-        It will be inserted on the top of job scripts.
 
     Attributes
     ----------
-    queue : str
-        The jobs will be submitted on this queue.
-    n_proc : int
-        The CPU cores a job can use.
-    n_gpu : int
-        The GPU card a job can use.
-    n_node : int
-        The nodes a job can use. If 0, then will be decided by slurm.
-    exclude: str, Optional
-        The nodes to be excluded, in Slurm format
-    env_cmd : str
-        The commands for setting up the environment before running real calculations.
-    sh : str
-        The default name of the job script
     host : str
         The IP address of the remote host that is running Slurm
+    port : int
+        The SSH port for logging in the remote host
     username : str
         The username for logging in the remote host
     remote_dir : str
         The default directory to use on the remote host for running calculation
-    port : int
-        The SSH port for logging in the remote host
-    max_running_hour: int
-        The wall time limit for a job in hours.
-    cached_jobs_expire : int
-        The lifetime of cached jobs in seconds.
+    sh : str
+        The default name of the job script
+    job_parameter : JobParameter
+        The default parameters for submitting a job
     submit_cmd : str
         The command for submitting the job script.
         If is `sbatch` by default. But extra argument can be provided, e.g. `sbatch --qos=debug`.
+    cached_jobs_expire : int
+        The lifetime of cached jobs in seconds.
     '''
 
     #: Whether this is a remote job scheduler
     is_remote = True
 
-    def __init__(self, queue, n_proc, n_gpu, host, username, remote_dir, port=22, n_node=0, exclude=None, env_cmd=None):
-        super().__init__(queue=queue, n_proc=n_proc, n_gpu=n_gpu, n_node=n_node, exclude=exclude, env_cmd=env_cmd)
+    def __init__(self, host, username, remote_dir, port=22):
+        super().__init__()
 
         self.host = host
         self.port = port

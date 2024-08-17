@@ -1,6 +1,6 @@
-class PbsJob():
+class PbsJob:
     '''
-    A PbsJob object is a job managed by job scheduler.
+    A PbsJob object is a job managed by scheduler.
 
     Parameters
     ----------
@@ -9,8 +9,8 @@ class PbsJob():
     name : str
         Name of this job in job scheduler.
     state: [0, 1, 9]
-        Whether this job is pending (0), running (1) or finished (9).
-        Killed or failed is also considered as finished.
+        Whether this job is pending (0), running (1) or done (9).
+        Successfully finished, Killed and failed are all considered as done.
     workdir : str
         The working directory of this job.
     user : str
@@ -25,8 +25,8 @@ class PbsJob():
     name : str
         Name of this job in job scheduler.
     state: [0, 1, 9]
-        Whether this job is pending (0), running (1) or finished (9).
-        Killed or failed is also considered as finished.
+        Whether this job is pending (0), running (1) or done (9).
+        Successfully finished, Killed and failed are all considered as done.
     workdir : str
         The working directory of this job.
     user : str

@@ -1,9 +1,42 @@
 import datetime
 import os
 import time
+from dataclasses import dataclass
 from mstk import logger
 from mstk.misc import DocstringMeta
 from .pbsjob import PbsJob
+
+
+@dataclass
+class JobParameter:
+    '''
+    The parameters for submitting a job
+
+    Attributes
+    ----------
+    queue : str
+        The queue to submit the job
+    n_proc : int
+        The number of CPU cores a job can use
+    n_gpu : int
+        The number of GPU cards a job can use
+    n_node : int
+        The number of nodes a job can use
+    exclude : str
+        The nodes to be excluded
+    max_running_hour: int
+        The wall time limit for a job in hours
+    env_cmd : str
+        The commands for setting up the environment before running real calculations
+
+    '''
+    queue: str = 'default'
+    n_proc: int = 1
+    n_gpu: int = 0
+    n_node: int = 0
+    exclude: str = ''
+    max_running_hour: int = 24
+    env_cmd: str = ''
 
 
 class Scheduler(metaclass=DocstringMeta):
@@ -14,20 +47,12 @@ class Scheduler(metaclass=DocstringMeta):
 
     Attributes
     ----------
-    queue : str
-        The jobs will be submitted to this queue.
-    n_proc : int
-        The CPU cores a job can use.
-    n_gpu : int
-        The GPU card a job can use.
-    env_cmd : str, Optional
-        The commands for setting up the environment before running real calculations.
-    sh : str
-        The default name of the job script
-    max_running_hour: int
-        The wall time limit for a job in hours.
     username : str
         The current user
+    sh : str
+        The default name of the job script
+    job_parameter : JobParameter
+        The default parameters for submitting a job
     cached_jobs_expire : int
         The lifetime of cached jobs in seconds.
     '''
@@ -35,13 +60,7 @@ class Scheduler(metaclass=DocstringMeta):
     #: Whether this is a remote job scheduler
     is_remote = False
 
-    def __init__(self, queue=None, n_proc=1, n_gpu=0, env_cmd=None):
-        self.queue = queue
-        self.n_proc = n_proc
-        self.n_gpu = n_gpu
-        self.env_cmd = env_cmd or ''
-        self.remote_dir = None
-
+    def __init__(self):
         if os.name == 'nt':
             import win32api
             self.username = win32api.GetUserName()
@@ -49,8 +68,8 @@ class Scheduler(metaclass=DocstringMeta):
             import pwd
             self.username = pwd.getpwuid(os.getuid()).pw_name
 
-        self.max_running_hour = 24
         self.sh = '_job.sh'
+        self.job_parameter = JobParameter()
         self.cached_jobs_expire = 60  # seconds
         self._cached_jobs = []
         self._cache_last_update = None
@@ -65,7 +84,7 @@ class Scheduler(metaclass=DocstringMeta):
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
 
-    def generate_sh(self, commands, name, workdir=None, sh=None):
+    def generate_sh(self, commands, name, params, workdir=None, sh=None):
         '''
         Generate a shell script for commands to be executed by the job scheduler on compute nodes.
 
@@ -75,9 +94,11 @@ class Scheduler(metaclass=DocstringMeta):
             List of commands to be executed by the job scheduler on compute node step by step.
         name : str
             The name of the job to be submitted.
+        params : JobParameter
+            The parameters for the job.
         workdir : str, Optional
             The working directory.
-        sh : str
+        sh : str, Optional
             The name (path) of the shell script being written.
             If not set, will use the default :attr:`sh`.
         '''
@@ -242,21 +263,3 @@ class Scheduler(metaclass=DocstringMeta):
         jobs : list of PbsJob
         '''
         raise NotImplementedError('This method should be implemented by subclasses')
-
-    @property
-    def n_running_jobs(self) -> int:
-        '''
-        The number of jobs that is currently pending or running (not killed or finished or failed)
-
-        Only the jobs belongs to the specified :attr:`queue` will be considered.
-        This method does not use cached job list. Don't call it often.
-
-        Returns
-        -------
-        n : int
-        '''
-        n = 0
-        for job in self.get_jobs(use_cache=False):
-            if job.state != PbsJob.State.DONE and job.queue == self.queue:
-                n += 1
-        return n
