@@ -1,3 +1,4 @@
+import numpy as np
 from mstk.topology import Topology
 from mstk.trajectory import Frame
 from mstk.trajectory.handler import TrjHandler
@@ -107,6 +108,8 @@ class Gro(TrjHandler):
             atom = topology.atoms[id]
             residue = atom.residue
             pos = frame.positions[id]
+            if any(np.abs(pos) >= 1000):
+                raise Exception('Positions are too large to be written in GRO format')
             string += '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
                 (residue.id + 1) % 100000, residue.name[:5], atom.symbol[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2])

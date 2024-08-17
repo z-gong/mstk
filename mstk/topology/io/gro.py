@@ -1,3 +1,4 @@
+import numpy as np
 from mstk.chem.element import Element
 from mstk.topology.atom import Atom
 from mstk.topology.molecule import Molecule
@@ -105,6 +106,8 @@ class GroTopology:
 
         for atom in top.atoms:
             pos = atom.position
+            if any(np.abs(pos) >= 1000):
+                raise Exception('Positions are too large to be written in GRO format')
             string += "%5i%-5s%5s%5i%8.3f%8.3f%8.3f\n" % (
                 (atom.residue.id + 1) % 100000, atom.residue.name[:5], atom.name[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2]

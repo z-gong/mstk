@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 from openmm.app.gromacsgrofile import GromacsGroFile
 from openmm.unit import nanometer, picosecond, norm, is_quantity
 
@@ -102,6 +103,8 @@ class GroFile(GromacsGroFile):
             atom = atoms[i]
             residue = atom.residue
             coords = positions[i]
+            if any(np.abs(coords) >= 1000):
+                raise Exception('Coordinates are too large to be written in GRO format')
             # writing atom symbol instead of name makes visualization easier
             if atom.element is not None:
                 name = atom.element.symbol
