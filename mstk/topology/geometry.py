@@ -240,6 +240,8 @@ def find_clusters(elements, func):
     '''
     Group elements into clusters
 
+    This method is slow. Use :func:find_clusters_in_graph if the connectivity between elements is known.
+
     Parameters
     ----------
     elements : Iterable
@@ -286,7 +288,10 @@ def find_clusters(elements, func):
 
 def find_clusters_consecutive(elements, func):
     '''
-    Group elements into clusters. If element i and j are in the same group, all elements between i and j will also be put in the same group.
+    Group elements into clusters
+
+    This method differs from :func:find_clusters in that it groups consecutive elements into the same cluster.
+    If element i and j are in the same cluster, all elements between i and j will also be put in the same cluster.
 
     Parameters
     ----------
@@ -319,5 +324,40 @@ def find_clusters_consecutive(elements, func):
                 break
 
     clusters = [list(c) for c in clusters]
+
+    return clusters
+
+
+def find_clusters_in_graph(n_node, edges):
+    """
+    Find clusters in a graph
+
+    Parameters
+    ----------
+    n_node : int
+        Number of nodes in the graph
+    edges : list of set of int
+        The edges of the graph. edges[i] is the set of nodes that are connected to node i.
+
+    Returns
+    -------
+    clusters : list of list of int
+        The clusters formed by nodes. Each cluster is represented by a list of the index of nodes.
+    """
+    flag = [False] * n_node
+    clusters = []
+    for i in range(n_node):
+        if flag[i]:
+            continue
+        cluster = []
+        stack = {i}
+        while stack:
+            node = stack.pop()
+            if flag[node]:
+                continue
+            flag[node] = True
+            cluster.append(node)
+            stack.update(edges[node])
+        clusters.append(cluster)
 
     return clusters

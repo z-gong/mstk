@@ -19,11 +19,10 @@ class Psf:
     ----------
     file : str
     split_molecule : str
-        Can be 'residue', 'whole', 'bond' or 'auto'. Default is 'auto'.
-        If set to 'residue', each residue will be parsed as a molecule. It works only if there is no inter-residue bonds.
+        Can be 'residue', 'whole', 'atom'. Default is 'residue'.
+        If set to 'residue', the topology will be split into molecules based on the bonds between residues.
         If set to 'whole', all the atoms will be put into one molecule.
-        If set to 'bond', the atoms will be grouped into molecules based on connectivity.
-        if set to 'auto', it will try 'residue' first. If there's inter-residue connectivity, will use 'whole' instead.
+        If set to 'atom', the topology will be split into molecules based on the bonds between atoms.
 
     Attributes
     ----------
@@ -42,7 +41,7 @@ class Psf:
         self._molecule = Molecule()  # a single molecule holds all the atoms
         self._parse(file, **kwargs)
 
-    def _parse(self, file, split_molecule='auto'):
+    def _parse(self, file, split_molecule='residue'):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -86,18 +85,11 @@ class Psf:
                 self._parse_virtual_sites(lines[iline: iline_next])
 
         if split_molecule == 'residue':
-            self.topology.update_molecules(self._molecule.split_residues())
+            self.topology.update_molecules(self._molecule.split_residues(consecutive=True))
         elif split_molecule == 'whole':
             self.topology.update_molecules([self._molecule])
-        elif split_molecule == 'bond':
+        elif split_molecule == 'atom':
             self.topology.update_molecules(self._molecule.split(consecutive=True))
-        elif split_molecule == 'auto':
-            try:
-                pieces = self._molecule.split_residues()
-            except:
-                self.topology.update_molecules([self._molecule])
-            else:
-                self.topology.update_molecules(pieces)
         else:
             raise Exception(f'Invalid option for split_molecule: {split_molecule}')
 

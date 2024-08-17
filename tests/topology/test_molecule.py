@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 import os
-import math
 import pytest
 from mstk.chem.constant import *
-from mstk.topology import Topology, Molecule
+from mstk.topology import Topology, Molecule, Bond
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,3 +43,63 @@ def test_distance_matrix():
                                                                 [1, 2, 2, 0, 2, 0],
                                                                 [1, 2, 2, 2, 0, 0],
                                                                 [2, 1, 0, 0, 0, 0]]
+
+
+def test_merge_split():
+    def print_mol(mol):
+        print(mol)
+        for atom in mol.atoms:
+            print(atom.residue, atom)
+        for bond in mol.bonds:
+            print(bond)
+
+    ethanol = Molecule.from_smiles('CO ethanol')
+    water = Molecule.from_smiles('O water')
+    ethyne = Molecule.from_smiles('C#C ethyne')
+    mol = Molecule.merge([ethanol, water, ethyne])
+    assert mol.n_atom == 13
+
+    C1_ethyne = mol.atoms[-4]
+    C2_ethyne = mol.atoms[-3]
+    assert C2_ethyne.name == 'C2'
+    bond = C2_ethyne.bonds[0]
+    assert bond.equals(Bond(C1_ethyne, C2_ethyne))
+    mol.remove_connectivity(bond)
+    mol.generate_angle_dihedral_improper()
+
+    O_ethanol = mol.atoms[1]
+    assert O_ethanol.name == 'O2'
+    mol.add_bond(O_ethanol, C1_ethyne)
+
+    pieces = mol.split()
+    assert len(pieces) == 3
+    piece1, piece2, piece3 = pieces
+    assert piece1.n_atom == 8
+    assert piece1.n_residue == 2
+    assert piece1.n_bond == 7
+    assert piece1.n_angle == 7
+    print_mol(piece1)
+    assert piece2.n_atom == 3
+    assert piece2.n_residue == 1
+    assert piece2.n_bond == 2
+    assert piece2.n_angle == 1
+    print_mol(piece2)
+    assert piece3.n_atom == 2
+    assert piece3.n_residue == 1
+    assert piece3.n_bond == 1
+    assert piece3.n_angle == 0
+    print_mol(piece3)
+
+    pieces = mol.split_residues()
+    assert len(pieces) == 2
+    piece1, piece2 = pieces
+    assert piece1.n_atom == 10
+    assert piece1.n_residue == 2
+    assert piece1.n_bond == 8
+    assert piece1.n_angle == 7
+    print_mol(piece1)
+    assert piece2.n_atom == 3
+    assert piece2.n_residue == 1
+    assert piece2.n_bond == 2
+    assert piece2.n_angle == 1
+    print_mol(piece2)

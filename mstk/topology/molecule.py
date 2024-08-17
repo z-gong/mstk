@@ -10,7 +10,7 @@ from .virtualsite import *
 from .connectivity import *
 from .unitcell import UnitCell
 from .residue import Residue
-from .geometry import find_clusters, find_clusters_consecutive
+from .geometry import find_clusters_in_graph
 
 
 class Molecule():
@@ -629,7 +629,7 @@ class Molecule():
         For performance issue, this is not checked.
 
         Note that when a bond get removed, the relevant angles, dihedrals and impropers are still there.
-        You may call `generate_angle_dihedral_improper` to refresh connectivity.
+        Usually you have to call `generate_angle_dihedral_improper` to keep consistency of connectivities.
 
         # TODO This operation is slow. A batch version is required for better performance
 
@@ -693,9 +693,9 @@ class Molecule():
             matrix[a1][a2] = True
             matrix[a2][a1] = True
 
-        # no bond between virtual sites and parents
-        for vsite, parent in self.get_virtual_site_pairs():
-            a1, a2 = vsite.id_in_mol, parent.id_in_mol
+        # virtual site and parent atom are considered as adjacent even though there's no bond between them
+        for parent, vsite_atom in self.get_virtual_site_pairs():
+            a1, a2 = parent.id_in_mol, vsite_atom.id_in_mol
             matrix[a1][a2] = True
             matrix[a2][a1] = True
 
@@ -1333,9 +1333,9 @@ class Molecule():
         Extract a substructure from this molecule by indexes of atoms.
 
         The substructure will not contain any bond, angle, dihedral and improper between atoms in substructure and remaining parts.
-        Residue information will be reconstructed.
+        Because of this, this method is inefficient. Avoid using this method when integrity check for connectivities is not necessary.
 
-        TODO Fix performance issue
+        Residue information will be reconstructed.
 
         Parameters
         ----------
@@ -1356,30 +1356,40 @@ class Molecule():
         else:
             mol = self
 
-        # assign atom id so that we can access id_atoms for connectivities
+        # assign temporary atom id. Use it to determine which connectivity to keep
+        # cannot use id_in_mol because sub.add_atom will change id_in_mol
         for i, atom in enumerate(mol.atoms):
             atom.id = i
 
-        # store residue information
-        residues = list(dict.fromkeys(mol.atoms[i].residue for i in indexes))
-        residue_name_atoms = []
-        if len(residues) > 1:
-            for residue in residues:
-                atoms = [atom for atom in residue.atoms if atom.id in indexes]
-                residue_name_atoms.append((residue.name, atoms))
+        # copy atoms and reconstruct residues
+        res_atoms = {}  # {residue: [atom]}
+        for i in indexes:
+            atom = mol.atoms[i]
+            if atom.residue not in res_atoms:
+                res_atoms[atom.residue] = []
+            res_atoms[atom.residue].append(atom)
 
         sub = Molecule()
-        for i in indexes:
-            sub.add_atom(mol.atoms[i], update_topology=False)
+        for residue, atoms in res_atoms.items():
+            for atom in atoms:
+                sub.add_atom(atom, update_topology=False)
+            if len(res_atoms) > 1:
+                sub.add_residue(residue.name, atoms, refresh_residues=False)
+            else:
+                sub.name = residue.name
+        sub.refresh_residues()
 
+        # copy relevant connectivities
         ids_set = set(indexes)
-        for conn in mol.bonds:
-            if {a.id for a in conn.atoms} <= ids_set:
-                sub._bonds.append(conn)
+        bonds_kept = {}
         for atom in sub.atoms:
-            for i in reversed(range(len(atom.bonds))):
-                if not {a.id for a in atom.bonds[i].atoms} <= ids_set:
-                    atom._bonds.pop(i)
+            for bond in reversed(atom.bonds):
+                if {a.id for a in bond.atoms} <= ids_set:
+                    bonds_kept[bond] = None  # use dict name to store unique bonds in order
+                else:
+                    atom._bonds.pop()
+        sub._bonds.extend(bonds_kept)
+
         for conn in mol.angles:
             if {a.id for a in conn.atoms} <= ids_set:
                 sub._angles.append(conn)
@@ -1390,21 +1400,12 @@ class Molecule():
             if {a.id for a in conn.atoms} <= ids_set:
                 sub._impropers.append(conn)
 
-        # reconstruct residues
-        if len(residues) > 1:
-            for resname, atoms in residue_name_atoms:
-                sub.add_residue(resname, atoms, refresh_residues=False)
-            sub.refresh_residues()
-        else:
-            sub.name = residues[0].name
-
         return sub
 
     @staticmethod
     def merge(molecules, deepcopy=True):
         '''
         Merge several molecules into a single molecule.
-
 
         Parameters
         ----------
@@ -1427,12 +1428,14 @@ class Molecule():
             # should always call `add_atom()` instead of manipulating `_atoms` directly
             for atom in m_copy.atoms:
                 merged.add_atom(atom)
+            # `atom._bonds` is not empty. Before calling `merged.add_bond()`, I have to empty `atom._bonds`, otherwise `atom._bonds` will contain duplicate bonds.
+            # A more efficient way is to directly append the bonds to `merged._bonds`.
             merged._bonds.extend(m_copy._bonds)
             merged._angles.extend(m_copy._angles)
             merged._dihedrals.extend(m_copy._dihedrals)
             merged._impropers.extend(m_copy._impropers)
 
-            # all atoms goes to the default residue after `add_atom`, but the old residue still holds the atom list
+            # all atoms go to the default residue after `add_atom`, but the old residue still holds the atom list
             for residue in m_copy.residues:
                 merged.add_residue(residue.name, residue.atoms, refresh_residues=False)
 
@@ -1450,7 +1453,7 @@ class Molecule():
         To avoid this, set consecutive to True.
         In this case, it will make sure all atoms in front pieces will have atom id smaller than atoms in back pieces.
 
-        Residue information will be reconstructed for each piece
+        Residue information will be reconstructed for each piece.
 
         Parameters
         ----------
@@ -1460,54 +1463,134 @@ class Molecule():
         -------
         molecules : list of Molecule
         '''
-        adjacency = self.get_adjacency_matrix()
+        links = [set() for _ in range(self.n_atom)]
+        for bond in self.bonds:
+            id1, id2 = bond.atom1.id_in_mol, bond.atom2.id_in_mol
+            links[id1].add(id2)
+            links[id2].add(id1)
         if consecutive:
-            clusters = find_clusters_consecutive(self.atoms, lambda a1, a2: adjacency[a1.id_in_mol][a2.id_in_mol])
-        else:
-            clusters = find_clusters(self.atoms, lambda a1, a2: adjacency[a1.id_in_mol][a2.id_in_mol])
+            for i in range(self.n_atom):
+                min_neigh = min(links[i] | {i})
+                max_neigh = max(links[i] | {i})
+                links[i] = set(range(min_neigh, max_neigh + 1))
 
+        clusters = find_clusters_in_graph(self.n_atom, links)
         for cluster in clusters:
             cluster.sort()
         clusters.sort()
 
         mol = copy.deepcopy(self)
-        pieces = [mol.get_sub_molecule(ids, deepcopy=False) for ids in clusters]
+
+        # A convenient way is to call get_sub_molecule() for each cluster.
+        # But get_sub_molecule() is inefficient because it checks the integrity of connectivities.
+        # This check is unnecessary since the herein clusters are split based on bonds.
+        #
+        # pieces = [mol.get_sub_molecule(cluster, deepcopy=False) for cluster in clusters]
+        #
+        # return pieces
+
+        pieces = []
+        for cluster in clusters:
+            # copy atoms and reconstruct residues
+            res_atoms = {}  # {residue: [atom]}
+            for i in cluster:
+                atom = mol.atoms[i]
+                if atom.residue not in res_atoms:
+                    res_atoms[atom.residue] = []
+                res_atoms[atom.residue].append(atom)
+
+            piece = Molecule()
+            for residue, atoms in res_atoms.items():
+                for atom in atoms:
+                    piece.add_atom(atom, update_topology=False)
+                if len(res_atoms) > 1:
+                    piece.add_residue(residue.name, atoms, refresh_residues=False)
+                else:
+                    piece.name = residue.name
+            piece.refresh_residues()
+
+            pieces.append(piece)
+
+        # The atom._bonds already contains correct bonds, but the piece._bonds is empty.
+        # Cannot call piece.add_bond() because it will add the bond to atom._bonds again.
+        # So I have to add bonds to molecule._bonds manually.
+        # This is actually more efficient than piece.add_bond().
+        for conn in mol.bonds:
+            conn.atom1.molecule._bonds.append(conn)
+        for conn in mol.angles:
+            conn.atom1.molecule._angles.append(conn)
+        for conn in mol.dihedrals:
+            conn.atom1.molecule._dihedrals.append(conn)
+        for conn in mol.impropers:
+            conn.atom1.molecule._impropers.append(conn)
 
         return pieces
 
-    def split_residues(self):
+    def split_residues(self, consecutive=False):
         '''
-        Split the molecule into smaller pieces. Each piece will be made of one residue.
+        Split the molecule into smaller pieces based on bond network between residues.
 
-        Make sure that there is no inter-residue bonds/angles/dihedrals/impropers.
+        The atoms belonging to the same residue will always be in the same piece.
+
+        The residues in each piece will preserve the original order.
+        However, the residues at the end of original molecule may end up in a piece in the beginning,
+        causing the order of all residues in all the pieces different from original order.
+        To avoid this, set consecutive to True.
+        In this case, it will make sure all residues in front pieces will have atom id smaller than residues in back pieces.
+
+        Residue information will be reconstructed for each piece.
+
+        Parameters
+        ----------
+        consecutive : bool
 
         Returns
         -------
         molecules : list of Molecule
         '''
+        links = [set() for _ in range(self.n_residue)]
+        for bond in self.bonds:
+            resid1, resid2 = bond.atom1.residue.id_in_mol, bond.atom2.residue.id_in_mol
+            if resid1 != resid2:
+                links[resid1].add(resid2)
+                links[resid2].add(resid1)
+        if consecutive:
+            for i in range(self.n_residue):
+                min_neigh = min(links[i] | {i})
+                max_neigh = max(links[i] | {i})
+                links[i] = set(range(min_neigh, max_neigh + 1))
+
+        clusters = find_clusters_in_graph(self.n_residue, links)
+        for cluster in clusters:
+            cluster.sort()
+        clusters.sort()
+
         pieces = []
         mol = copy.deepcopy(self)
-        for residue in mol.residues:
-            sub = Molecule(residue.name)
-            for atom in residue.atoms:
-                sub.add_atom(atom)
-            pieces.append(sub)
+        for cluster in clusters:
+            piece = Molecule()
+            for rid in cluster:
+                residue = mol.residues[rid]
+                for atom in residue.atoms:
+                    piece.add_atom(atom)  # atom._bonds is not empty
+                if len(cluster) > 1:
+                    piece.add_residue(residue.name, residue.atoms, refresh_residues=False)
+                else:
+                    piece.name = residue.name
+            piece.refresh_residues()
+            pieces.append(piece)
 
+        # The atom._bonds already contains correct bonds, but the piece._bonds is empty.
+        # Cannot call piece.add_bond() because it will add the bond to atom._bonds again.
+        # So I have to add bonds to molecule._bonds manually.
+        # This is actually more efficient than piece.add_bond().
         for conn in mol.bonds:
-            if len({atom.molecule for atom in conn.atoms}) > 1:
-                raise Exception(f'Inter-residue bond {conn} in {self}')
             conn.atom1.molecule._bonds.append(conn)
         for conn in mol.angles:
-            if len({atom.molecule for atom in conn.atoms}) > 1:
-                raise Exception(f'Inter-residue angle {conn} in {self}')
             conn.atom1.molecule._angles.append(conn)
         for conn in mol.dihedrals:
-            if len({atom.molecule for atom in conn.atoms}) > 1:
-                raise Exception(f'Inter-residue dihedral {conn} in {self}')
             conn.atom1.molecule._dihedrals.append(conn)
         for conn in mol.impropers:
-            if len({atom.molecule for atom in conn.atoms}) > 1:
-                raise Exception(f'Inter-residue improper {conn} in {self}')
             conn.atom1.molecule._impropers.append(conn)
 
         return pieces

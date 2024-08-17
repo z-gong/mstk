@@ -46,8 +46,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # TODO need a better way to handle multi-residue molecule
-    top = Topology.open(args.top, split_molecule='bond')
+    top = Topology.open(args.top)
     if args.ignore:
         molecules = [mol for mol in top.molecules if mol.name not in args.ignore]
         top.update_molecules(molecules)
