@@ -20,11 +20,10 @@ class Pdb:
     ----------
     file : str
     split_molecule : str
-        Can be 'residue', 'whole', 'bond' or 'auto'. Default is 'auto'.
-        If set to 'residue', each residue will be parsed as a molecule. It works only if there is no inter-residue bonds.
+        Can be 'residue', 'atom', 'whole'. Default is 'residue'.
+        If set to 'residue', the topology will be split into molecules based on the bonds between residues.
         If set to 'whole', all the atoms will be put into one molecule.
-        If set to 'bond', the atoms will be grouped into molecules based on connectivity.
-        if set to 'auto', it will try 'residue' first. If there's inter-residue connectivity, will use 'whole' instead.
+        If set to 'atom', the topology will be split into molecules based on the bonds between atoms.
 
     Attributes
     ----------
@@ -43,7 +42,7 @@ class Pdb:
         self._molecule = Molecule()
         self._parse(file, **kwargs)
 
-    def _parse(self, file, split_molecule='auto'):
+    def _parse(self, file, split_molecule='residue'):
         with open(file) as f:
             lines = f.read().splitlines()
 
@@ -81,6 +80,12 @@ class Pdb:
                 atom.symbol = element.symbol
                 atom.mass = element.mass
                 mol.add_atom(atom)
+
+                # formal charge
+                if len(line) > 78:
+                    atom.formal_charge = int(line[78])
+                    if len(line) > 79 and line[79] == '-':
+                        atom.formal_charge *= -1
 
                 atom_ids[atom_id] = atom
                 if res_id not in res_names:
@@ -122,18 +127,11 @@ class Pdb:
             mol.add_bond(atom1, atom2)
 
         if split_molecule == 'residue':
-            self.topology.update_molecules(mol.split_residues())
+            self.topology.update_molecules(mol.split_residues(consecutive=True))
         elif split_molecule == 'whole':
             self.topology.update_molecules([mol])
-        elif split_molecule == 'bond':
+        elif split_molecule == 'atom':
             self.topology.update_molecules(mol.split(consecutive=True))
-        elif split_molecule == 'auto':
-            try:
-                pieces = self._molecule.split_residues()
-            except:
-                self.topology.update_molecules([mol])
-            else:
-                self.topology.update_molecules(pieces)
         else:
             raise Exception(f'Invalid option for split_molecule: {split_molecule}')
         self.topology.generate_angle_dihedral_improper()
@@ -171,10 +169,14 @@ class Pdb:
             pos = atom.position * 10  # convert from nm to A
             resname = atom.residue.name
             resid = atom.residue.id + 1
-            line = 'HETATM%5d %4s %-4s %4d    %8s%8s%8s                      %2s\n' % (
+            line = 'HETATM%5d %4s %-4s %4d    %8s%8s%8s                      %2s' % (
                 (atom.id + 1) % 100000, atom.name[:4], resname[:4], resid % 10000,
                 *[format_float(x, 8, 3) for x in pos], atom.symbol[:2])
-            string += line
+            if atom.formal_charge != 0:
+                line += str(abs(atom.formal_charge))
+                if atom.formal_charge < 0:
+                    line += '-'
+            string += line + '\n'
 
         for atom in top.atoms:
             partners = [a for a in atom.bond_partners if a.id > atom.id]
