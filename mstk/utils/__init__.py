@@ -197,3 +197,8 @@ def flatten(it):
             yield from flatten(x)
         else:
             yield x
+
+
+def chunked_iterable(iterable, chunk_size):
+    for i in range(0, len(iterable), chunk_size):
+        yield iterable[i:i + chunk_size]
