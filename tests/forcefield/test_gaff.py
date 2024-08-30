@@ -70,7 +70,7 @@ def test_gaff_typer(name_smiles_types):
     assert '-'.join(atom.type for atom in mol.atoms) == str_types
 
 
-@pytest.mark.skip(reason='too many failures as expected')
+@pytest.mark.skip(reason='many failures as expected, because of parameters missing in GAFF')
 @pytest.mark.parametrize('name_smiles_types', name_smiles_types)
 def test_gaff(name_smiles_types):
     name, smiles, str_types = name_smiles_types
@@ -98,7 +98,7 @@ def test_gaff_mod(smiles):
     mol = Molecule.from_smiles(f'{smiles}')
     typer.type(mol)
 
-    ff = ForceField.open('gaff_mod.zff')
+    ff = ForceField.open('gaff.zff')
     top = Topology([mol])
     system = System(top, ff)
     system.decompose_energy()

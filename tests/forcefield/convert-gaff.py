@@ -31,7 +31,8 @@ def main():
         str_k, str_length = line[5:].split()[:2]
         k = float(str_k) * 100 * 4.184
         length = float(str_length) / 10
-        bterm = HarmonicBondTerm(*atypes, length, k)
+        fixed = any(typ.startswith('h') for typ in atypes)
+        bterm = HarmonicBondTerm(*atypes, length, k, fixed=fixed)
         ff.add_term(bterm)
     for line in lines_angle:
         atypes = line[:2].strip(), line[3:5].strip(), line[6:8].strip()
@@ -64,6 +65,12 @@ def main():
         epsilon = float(str_epsilon) * 4.184
         ljterm = LJ126Term(atype, atype, epsilon, sigma)
         ff.add_term(ljterm)
+
+    for k, dterm in ff.dihedral_terms.items():
+        try:
+            ff.dihedral_terms[k] = dterm.to_opls_term()
+        except:
+            pass
 
     ff.write('gaff.zff')
 

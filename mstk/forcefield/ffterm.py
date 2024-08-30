@@ -1469,7 +1469,7 @@ class OplsDihedralTerm(DihedralTerm):
 
     The energy function is
 
-    >>> U = k_1*(1+cos(phi)) + k_2*(1-cos(2*phi)) + k_3*(1+cos(3*phi)) - k_4*(1-cos(4*phi))
+    >>> U = k_1*(1+cos(phi)) + k_2*(1-cos(2*phi)) + k_3*(1+cos(3*phi)) + k_4*(1-cos(4*phi))
 
     OPLS form is commonly used, therefore we don't generalize it with :class:`PeriodicDihedralTerm`.
 
@@ -1720,26 +1720,36 @@ class PeriodicDihedralTerm(DihedralTerm):
         -------
         term : OplsDihedralTerm
         '''
-        k1 = k2 = k3 = k4 = 0.0
-        for para in self.phases:
-            if para.n == 1:
-                if para.phi != 0:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_1 != 0')
-                k1 = para.k
-            elif para.n == 2:
-                if abs(para.phi - PI) > 0.01:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_2 != PI')
-                k2 = para.k
-            elif para.n == 3:
-                if para.phi != 0:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_3 != 0')
-                k3 = para.k
-            elif para.n == 4:
-                if abs(para.phi - PI) > 0.01:
-                    raise Exception(f'{str(self)} does not follow OPLS convention, phi_4 != PI')
-                k4 = para.k
-            else:
+        phases = [p for p in self.phases if p.k != 0]
+        for phase in phases:
+            if phase.n > 4:
                 raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
+        for phase in phases:
+            if phase.phi != 0 and abs(phase.phi - PI) > 0.01:
+                raise Exception(f'{str(self)} does not follow OPLS convention, phi != 0 or PI')
+
+        k1 = k2 = k3 = k4 = 0.0
+        for phase in phases:
+            if phase.n == 1:
+                if phase.phi == 0:
+                    k1 += phase.k
+                else:
+                    k1 -= phase.k
+            elif phase.n == 2:
+                if abs(phase.phi - PI) < 0.01:
+                    k2 += phase.k
+                else:
+                    k2 -= phase.k
+            elif phase.n == 3:
+                if phase.phi == 0:
+                    k3 += phase.k
+                else:
+                    k3 -= phase.k
+            elif phase.n == 4:
+                if abs(phase.phi - PI) < 0.01:
+                    k4 += phase.k
+                else:
+                    k4 -= phase.k
 
         return OplsDihedralTerm(self.type1, self.type2, self.type3, self.type4, k1, k2, k3, k4)
 
