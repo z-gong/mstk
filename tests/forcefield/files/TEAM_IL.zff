@@ -1,0 +1,432 @@
+Setting          vdw_cutoff       1.2
+Setting          vdw_long_range   correct
+Setting          lj_mixing_rule   lorentz-berthelot
+Setting          scale_14_vdw     0.5
+Setting          scale_14_coulomb 0.8333333333333334
+
+#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+AtomType         b_4-       10.8110   -1.0000  b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-
+AtomType         br0-       79.9040   -1.0000  br0-      br0-      br0-      br0-      br0-      br0-      br0       br0-      br0       br0-
+AtomType         c_2n       12.0110    0.0000  c_2n      c_2n      c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2n
+AtomType         c_2nb      12.0110    0.0000  c_2nb     c_2nb     c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2nb
+AtomType         c_2nc      12.0110    0.0000  c_2nc     c_2nc     c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2nc
+AtomType         c_2nn      12.0110    0.0000  c_2nn     c_2nn     c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2nn
+AtomType         c_2ns      12.0110    0.0000  c_2ns     c_2ns     c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2ns
+AtomType         c_3-       12.0110   -1.0000  c_3-      c_3-      c_3-      c_3-      c_3-      c_3-      c_3       c_3       c_3       c_3-
+AtomType         c_35an     12.0110    0.0000  c_35an    c_35an    c_35an    c_35an    c_35an    c_35an    c_35an    c_35an    c_35an    c_35an
+AtomType         c_35an2    12.0110    0.0000  c_35an2   c_35an2   c_35an2   c_35an2   c_35an2   c_35an2   c_35an2   c_35an2   c_35an2   c_35an2
+AtomType         c_3a       12.0110    0.0000  c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a
+AtomType         c_3ac      12.0110    0.0000  c_3a      c_3ac     c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3ac
+AtomType         c_3an      12.0110    0.0000  c_3an     c_3an     c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3a      c_3an
+AtomType         c_3o2      12.0110    0.0000  c_3o      c_3o2     c_3o      c_3o      c_3o      c_3o      c_3       c_3o      c_3       c_3o2
+AtomType         c_3o2h     12.0110    0.0000  c_3oh     c_3o2h    c_3o      c_3o      c_3o      c_3o      c_3       c_3o      c_3       c_3o2h
+AtomType         c_45h2     12.0110    0.0000  c_45      c_45h2    c_45      c_45      c_45      c_45      c_4       c_4       c_4       c_45h2
+AtomType         c_45n      12.0110    0.0000  c_45n     c_45n     c_45      c_45      c_45      c_45      c_4       c_4       c_4       c_45n
+AtomType         c_45np     12.0110    0.0000  c_45np    c_45np    c_45      c_45      c_45      c_45      c_4       c_4       c_4       c_45np
+AtomType         c_4f2      12.0110    0.0000  c_4       c_4f2     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4f2
+AtomType         c_4f3      12.0110    0.0000  c_4       c_4f3     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4f3
+AtomType         c_4h2      12.0110    0.0000  c_4       c_4h2     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h2
+AtomType         c_4h3      12.0110    0.0000  c_4       c_4h3     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4h3
+AtomType         c_4nh2     12.0110    0.0000  c_4       c_4nh2    c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4nh2
+AtomType         c_4nh3     12.0110    0.0000  c_4       c_4nh3    c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4nh3
+AtomType         c_4np      12.0110    0.0000  c_4np     c_4np     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4np
+AtomType         c_4nph3    12.0110    0.0000  c_4np     c_4nph3   c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4nph3
+AtomType         c_4oh2     12.0110    0.0000  c_4o      c_4oh2    c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4oh2
+AtomType         c_4oh3     12.0110    0.0000  c_4o      c_4oh3    c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4oh3
+AtomType         c_4pp      12.0110    0.0000  c_4pp     c_4pp     c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4pp
+AtomType         c_4pph3    12.0110    0.0000  c_4pp     c_4pph3   c_4       c_4       c_4       c_4       c_4       c_4       c_4       c_4pph3
+AtomType         cl0-       35.4527   -1.0000  cl0-      cl0-      cl0-      cl0-      cl0-      cl0-      cl0       cl0-      cl0       cl0-
+AtomType         cl4        35.4527    0.0000  cl4       cl4       cl4       cl4       cl4       cl4       cl4       cl4       cl4       cl4
+AtomType         f_1        18.9984    0.0000  f_1       f_1       f_1       f_1       f_1       f_1       f_1       f_1       f_1       f_1
+AtomType         f_1b       18.9984    0.0000  f_1       f_1b      f_1       f_1       f_1       f_1       f_1       f_1       f_1       f_1b
+AtomType         f_1p       18.9984    0.0000  f_1       f_1p      f_1       f_1       f_1       f_1       f_1       f_1       f_1       f_1p
+AtomType         h_1         1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1
+AtomType         h_1canp     1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1canp
+AtomType         h_1cnp      1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1cnp
+AtomType         h_1cpp      1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1cpp
+AtomType         h_1im2      1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1im2
+AtomType         h_1im45     1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1im45
+AtomType         h_1imalpha   1.0079    0.0000  h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1imalpha
+AtomType         h_1n        1.0079    0.0000  h_1n      h_1n      h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1n
+AtomType         h_1p        1.0079    0.0000  h_1p      h_1p      h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1p
+AtomType         i_0-      126.9045   -1.0000  i_0-      i_0-      i_0-      i_0-      i_0-      i_0-      i_0       i_0-      i_0       i_0-
+AtomType         n_1        14.0067    0.0000  n_1       n_1       n_1       n_1       n_1       n_1       n_1       n_1       n_1       n_1
+AtomType         n_2-       14.0067   -1.0000  n_2-      n_2-      n_2-      n_2-      n_2-      n_2-      n_2       n_2-      n_2       n_2-
+AtomType         n_3+a      14.0067    1.0000  n_3+a     n_3+a     n_3+a     n_3a      n_3a      n_3a      n_3a      n_3a      n_3a      n_3+a
+AtomType         n_35       14.0067    0.0000  n_35      n_35      n_35      n_35      n_35      n_35      n_35      n_35      n_35      n_35
+AtomType         n_35+da    14.0067    0.5000  n_35+da   n_35+da   n_35+da   n_35+da   n_35+da   n_35+da   n_35+da   n_35+da   n_35+da   n_35+da
+AtomType         n_3o       14.0067    0.0000  n_3o      n_3o      n_3o      n_3o      n_3o      n_3o      n_3       n_3o      n_3       n_3o
+AtomType         n_4+       14.0067    1.0000  n_4+      n_4+      n_4+      n_4+      n_4+      n_4+      n_4+      n_4+      n_4+      n_4+
+AtomType         n_45+      14.0067    1.0000  n_45+     n_45+     n_45+     n_45      n_45      n_45      n_45      n_45      n_45      n_45+
+AtomType         o_1        15.9994    0.0000  o_1       o_1       o_1       o_1       o_1       o_1       o_1       o_1       o_1       o_1
+AtomType         o_1-d      15.9994   -0.5000  o_1-d     o_1-d     o_1-d     o_1-d     o_1-      o_1-      o_1       o_1-      o_1       o_1-d
+AtomType         o_1-q      15.9994   -0.2500  o_1-q     o_1-q     o_1-q     o_1-q     o_1-q     o_1-q     o_1-q     o_1-q     o_1-q     o_1-q
+AtomType         o_1-t      15.9994   -0.3333  o_1-t     o_1-t     o_1-t     o_1-t     o_1-      o_1-      o_1       o_1-      o_1       o_1-t
+AtomType         o_2        15.9994    0.0000  o_2       o_2       o_2       o_2       o_2       o_2       o_2       o_2       o_2       o_2
+AtomType         p_4+       30.9738    1.0000  p_4+      p_4+      p_4+      p_4       p_4       p_4       p_4       p_4       p_4       p_4+
+AtomType         p_4o       30.9738    0.0000  p_4o      p_4o      p_4       p_4       p_4       p_4       p_4       p_4       p_4       p_4o
+AtomType         p_6-       30.9738   -1.0000  p_6-      p_6-      p_6-      p_6-      p_6-      p_6-      p_6-      p_6-      p_6-      p_6-
+AtomType         s_1-       32.0660   -1.0000  s_1-      s_1-      s_1-      s_1-      s_1-      s_1-      s_1       s_1-      s_1       s_1-
+AtomType         s_4o       32.0660    0.0000  s_4o      s_4o      s_4o      s_4o      s_4o      s_4o      s_4       s_4o      s_4       s_4o
+#ChargeIncrement type1     type2        value
+ChargeIncrement  b_4-      c_2n        0.2834
+ChargeIncrement  b_4-      c_2nb       0.2620
+ChargeIncrement  b_4-      f_1         0.4215
+ChargeIncrement  c_2n      c_3-       -0.0804
+ChargeIncrement  c_2n      n_1         0.5989
+ChargeIncrement  c_2n      n_2-       -0.1207
+ChargeIncrement  c_2n      s_1-       -0.2379
+ChargeIncrement  c_2nb     n_1         0.4922
+ChargeIncrement  c_2nc     c_3-       -0.0906
+ChargeIncrement  c_2nc     n_1         0.6400
+ChargeIncrement  c_2nn     n_1         0.7273
+ChargeIncrement  c_2nn     n_2-       -0.1635
+ChargeIncrement  c_2ns     n_1         0.6817
+ChargeIncrement  c_2ns     s_1-       -0.2793
+ChargeIncrement  c_35an    c_35an      0.0000
+ChargeIncrement  c_35an    h_1        -0.2100
+ChargeIncrement  c_35an    n_35+da     0.1600
+ChargeIncrement  c_35an2   c_4         0.0366
+ChargeIncrement  c_35an2   h_1        -0.2200
+ChargeIncrement  c_35an2   n_35+da     0.0800
+ChargeIncrement  c_3a      c_3a        0.0000
+ChargeIncrement  c_3a      c_3an       0.0516
+ChargeIncrement  c_3a      c_4         0.2981
+ChargeIncrement  c_3a      h_1        -0.1460
+ChargeIncrement  c_3a      s_4o       -0.1563
+ChargeIncrement  c_3an     h_1        -0.1585
+ChargeIncrement  c_3an     n_3+a       0.3266
+ChargeIncrement  c_3o      c_4         0.1110
+ChargeIncrement  c_3o      o_1-d       0.2711
+ChargeIncrement  c_3oh     h_1         0.2260
+ChargeIncrement  c_3oh     o_1-d       0.2368
+ChargeIncrement  c_4       c_4         0.0000
+ChargeIncrement  c_4       c_4np      -0.0337
+ChargeIncrement  c_4       c_4o       -0.1416
+ChargeIncrement  c_4       c_4pp      -0.0631
+ChargeIncrement  c_4       f_1         0.2400
+ChargeIncrement  c_4       h_1        -0.0600
+ChargeIncrement  c_4       n_3+a       0.2463
+ChargeIncrement  c_4       n_35+da     0.0527
+ChargeIncrement  c_4       n_4+        0.1304
+ChargeIncrement  c_4       n_45+       0.1265
+ChargeIncrement  c_4       p_4+        0.0269
+ChargeIncrement  c_4       s_4o       -0.2617
+ChargeIncrement  c_45      c_45        0.0000
+ChargeIncrement  c_45      c_45n       0.1083
+ChargeIncrement  c_45      c_45np      0.0550
+ChargeIncrement  c_45      h_1        -0.0600
+ChargeIncrement  c_45      n_45+       0.2366
+ChargeIncrement  c_45n     h_1         0.0456
+ChargeIncrement  c_45n     n_35        0.2175
+ChargeIncrement  c_45n     n_45+       0.1762
+ChargeIncrement  c_45np    h_1        -0.0743
+ChargeIncrement  c_45np    n_45+       0.2330
+ChargeIncrement  c_4np     h_1        -0.1206
+ChargeIncrement  c_4np     n_3+a       0.2419
+ChargeIncrement  c_4np     n_35+da     0.0850
+ChargeIncrement  c_4np     n_4+        0.1650
+ChargeIncrement  c_4np     n_45+       0.1738
+ChargeIncrement  c_4o      h_1         0.0247
+ChargeIncrement  c_4o      o_2         0.1935
+ChargeIncrement  c_4pp     h_1        -0.1000
+ChargeIncrement  c_4pp     p_4+        0.0885
+ChargeIncrement  cl4       o_1-q       0.2320
+ChargeIncrement  f_1       p_6-       -0.3108
+ChargeIncrement  f_1       s_4o       -0.2877
+ChargeIncrement  h_1       p_4+        0.1000
+ChargeIncrement  h_1n      n_35        0.3031
+ChargeIncrement  h_1n      n_35+da     0.3821
+ChargeIncrement  h_1n      n_4+        0.4054
+ChargeIncrement  h_1p      p_4+        0.1000
+ChargeIncrement  n_2-      s_4o        0.2052
+ChargeIncrement  n_3o      o_1-t       0.3043
+ChargeIncrement  o_1       s_4o       -0.4662
+ChargeIncrement  o_1-d     p_4o       -0.2119
+ChargeIncrement  o_1-t     s_4o       -0.2549
+ChargeIncrement  o_2       p_4o       -0.3031
+ChargeIncrement  o_2       s_4o       -0.2692
+#LJ126           type1     type2      epsilon     sigma
+LJ126            b_4-      b_4-        0.2092    0.3385
+LJ126            br0-      br0-        0.3766    0.3634
+LJ126            c_2n      c_2n        0.6276    0.3403
+LJ126            c_2nb     c_2nb       0.3431    0.3207
+LJ126            c_2nc     c_2nc       0.4602    0.3207
+LJ126            c_2nn     c_2nn       0.5858    0.3207
+LJ126            c_2ns     c_2ns       0.5858    0.3207
+LJ126            c_3-      c_3-        0.3180    0.3550
+LJ126            c_35an    c_35an      0.3347    0.3550
+LJ126            c_35an2   c_35an2     0.5021    0.3550
+LJ126            c_3a      c_3a        0.3293    0.3502
+LJ126            c_3ac     c_3ac       0.3264    0.3453
+LJ126            c_3an     c_3an       0.4184    0.3484
+LJ126            c_3o2     c_3o2       0.5021    0.3547
+LJ126            c_3o2h    c_3o2h      0.5197    0.3523
+LJ126            c_45h2    c_45h2      0.2510    0.3385
+LJ126            c_45n     c_45n       0.2092    0.3570
+LJ126            c_45np    c_45np      0.1883    0.3385
+LJ126            c_4f2     c_4f2       0.3389    0.3145
+LJ126            c_4f3     c_4f3       0.3556    0.3181
+LJ126            c_4h2     c_4h2       0.3138    0.3492
+LJ126            c_4h3     c_4h3       0.3284    0.3645
+LJ126            c_4nh2    c_4nh2      0.2540    0.3722
+LJ126            c_4nh3    c_4nh3      0.3598    0.3545
+LJ126            c_4np     c_4np       0.2510    0.3455
+LJ126            c_4nph3   c_4nph3     0.3347    0.3545
+LJ126            c_4oh2    c_4oh2      0.4887    0.3375
+LJ126            c_4oh3    c_4oh3      0.6050    0.3474
+LJ126            c_4pp     c_4pp       0.1674    0.3385
+LJ126            c_4pph3   c_4pph3     0.2510    0.3385
+LJ126            cl0-      cl0-        0.9205    0.3234
+LJ126            cl4       cl4         0.7950    0.3516
+LJ126            f_1       f_1         0.2678    0.2931
+LJ126            f_1b      f_1b        0.2678    0.2673
+LJ126            f_1p      f_1p        0.2678    0.2673
+LJ126            h_1       h_1         0.0891    0.2434
+LJ126            h_1n      h_1n      4.184e-04  8.909e-06
+LJ126            h_1p      h_1p      4.184e-04  8.909e-06
+LJ126            i_0-      i_0-        0.2929    0.4027
+LJ126            n_1       n_1         0.3975    0.3029
+LJ126            n_2-      n_2-        0.6276    0.3252
+LJ126            n_3+a     n_3+a       0.4602    0.3264
+LJ126            n_35      n_35        0.6067    0.3290
+LJ126            n_35+da   n_35+da     0.5021    0.3141
+LJ126            n_3o      n_3o        0.3766    0.3290
+LJ126            n_4+      n_4+        0.2510    0.3207
+LJ126            n_45+     n_45+       0.2510    0.3207
+LJ126            o_1       o_1         0.3766    0.2834
+LJ126            o_1-d     o_1-d       0.4184    0.2673
+LJ126            o_1-q     o_1-q       0.4184    0.2673
+LJ126            o_1-t     o_1-t       0.4184    0.2673
+LJ126            o_2       o_2         0.1703    0.2851
+LJ126            p_4+      p_4+        0.3347    0.3750
+LJ126            p_4o      p_4o        0.9205    0.3750
+LJ126            p_6-      p_6-        0.3347    0.3750
+LJ126            s_1-      s_1-        0.6276    0.3515
+LJ126            s_4o      s_4o        0.7950    0.3546
+#HarmonicBond    type1     type2       length         k  fixed
+HarmonicBond     b_4-      c_2n        0.1602   81582.4  False
+HarmonicBond     b_4-      f_1         0.1409  112945.3  False
+HarmonicBond     c_2n      c_3-        0.1432  180035.8  False
+HarmonicBond     c_2n      n_1         0.1161  600464.4  False
+HarmonicBond     c_2n      n_2-        0.1276  203911.4  False
+HarmonicBond     c_2n      s_1-        0.1610   94244.4  False
+HarmonicBond     c_35an    c_35an      0.1359  213217.9  False
+HarmonicBond     c_35an    h_1         0.1074  183861.5  True
+HarmonicBond     c_35an    n_35+da     0.1378  141232.5  False
+HarmonicBond     c_35an2   c_4         0.1468  100397.9  False
+HarmonicBond     c_35an2   h_1         0.1075  189768.2  True
+HarmonicBond     c_35an2   n_35+da     0.1333  191646.6  False
+HarmonicBond     c_3a      c_3a        0.1387  162779.1  False
+HarmonicBond     c_3a      c_4         0.1508  106352.4  False
+HarmonicBond     c_3a      h_1         0.1089  167655.8  True
+HarmonicBond     c_3a      n_3+a       0.1351  155678.4  False
+HarmonicBond     c_3a      s_4o        0.1787   76370.9  False
+HarmonicBond     c_3o      c_4         0.1515   91964.4  False
+HarmonicBond     c_3o      h_1         0.1119  133422.8  True
+HarmonicBond     c_3o      o_1-d       0.1254  266852.5  False
+HarmonicBond     c_4       c_4         0.1533   89309.6  False
+HarmonicBond     c_4       f_1         0.1353  131309.9  False
+HarmonicBond     c_4       h_1         0.1097  150741.0  True
+HarmonicBond     c_4       n_3+a       0.1542   73363.1  False
+HarmonicBond     c_4       n_35+da     0.1462  115052.0  False
+HarmonicBond     c_4       n_4+        0.1541   58832.2  False
+HarmonicBond     c_4       n_45+       0.1506   71931.3  False
+HarmonicBond     c_4       o_2         0.1444  102681.9  False
+HarmonicBond     c_4       p_4+        0.1818   76482.9  False
+HarmonicBond     c_4       s_4o        0.1813   77513.0  False
+HarmonicBond     c_45      c_45        0.1537   82209.7  False
+HarmonicBond     c_45      h_1         0.1096  151900.1  True
+HarmonicBond     c_45      n_35        0.1473  101478.0  False
+HarmonicBond     c_45      n_45+       0.1521   53772.6  False
+HarmonicBond     cl4       o_1-q       0.1499  181820.2  False
+HarmonicBond     f_1       p_6-        0.1649   92638.6  False
+HarmonicBond     f_1       s_4o        0.1642  106539.9  False
+HarmonicBond     h_1       n_35        0.1018  208770.9  True
+HarmonicBond     h_1       n_35+da     0.1010  227052.3  True
+HarmonicBond     h_1       n_4+        0.1027  194033.3  True
+HarmonicBond     h_1       p_4+        0.1409  114587.8  True
+HarmonicBond     n_2-      s_4o        0.1639  120540.6  False
+HarmonicBond     n_3o      o_1-t       0.1261  204910.1  False
+HarmonicBond     o_1       s_4o        0.1460  273844.5  False
+HarmonicBond     o_1-d     p_4         0.1497  259140.2  False
+HarmonicBond     o_1-t     s_4o        0.1486  223812.5  False
+HarmonicBond     o_2       p_4         0.1637  134581.5  False
+HarmonicBond     o_2       s_4o        0.1651   96659.2  False
+#HarmonicAngle   type1     type2     type3        theta         k  fixed
+HarmonicAngle    b_4-      c_2       n_1       180.0000  324.4822  False
+HarmonicAngle    c_2       b_4-      c_2       106.4800  212.3405  False
+HarmonicAngle    c_2       c_3-      c_2       120.0000  168.6566  False
+HarmonicAngle    c_2       n_2-      c_2       113.4900   95.8492  False
+HarmonicAngle    c_3-      c_2       n_1       180.0000  324.4822  False
+HarmonicAngle    c_35an    c_35an    h_1       130.6600   96.2931  False
+HarmonicAngle    c_35an    c_35an    n_35+da   107.0300  320.0609  False
+HarmonicAngle    c_35an    n_35+da   c_35an2   109.2800  410.9659  False
+HarmonicAngle    c_35an    n_35+da   c_4       127.2100  278.2184  False
+HarmonicAngle    c_35an    n_35+da   h_1       125.0600  179.7810  False
+HarmonicAngle    c_35an2   c_4       h_1       108.2500  235.3341  False
+HarmonicAngle    c_35an2   n_35+da   c_4       125.9600  232.4141  False
+HarmonicAngle    c_35an2   n_35+da   h_1       124.0500  175.1510  False
+HarmonicAngle    c_3a      c_3a      c_3a      120.0000  193.9635  False
+HarmonicAngle    c_3a      c_3a      c_4       122.1600  299.0142  False
+HarmonicAngle    c_3a      c_3a      h_1       118.9200  183.5809  False
+HarmonicAngle    c_3a      c_3a      n_3a      120.9000  261.9385  False
+HarmonicAngle    c_3a      c_3a      s_4o      115.6400  319.9086  False
+HarmonicAngle    c_3a      c_4       h_1       110.6000  150.2336  False
+HarmonicAngle    c_3a      n_3a      c_3a      120.8000  328.6624  False
+HarmonicAngle    c_3a      n_3a      c_4       119.9000  467.3984  False
+HarmonicAngle    c_3a      s_4o      o_1-      104.1600  380.5582  False
+HarmonicAngle    c_3o      c_4       c_4       112.4300  251.8785  False
+HarmonicAngle    c_3o      c_4       f_1       108.6200  223.7825  False
+HarmonicAngle    c_3o      c_4       h_1       107.5600  166.4621  False
+HarmonicAngle    c_4       c_35an2   n_35+da   128.3800  140.3163  False
+HarmonicAngle    c_4       c_3o      o_1-      114.8300   63.8483  False
+HarmonicAngle    c_4       c_4       c_4       114.1800  260.5306  False
+HarmonicAngle    c_4       c_4       f_1       108.0800  287.1287  False
+HarmonicAngle    c_4       c_4       h_1       110.1300  190.5402  False
+HarmonicAngle    c_4       c_4       n_35+da   108.1100  347.1758  False
+HarmonicAngle    c_4       c_4       n_3a      113.0000  287.9709  False
+HarmonicAngle    c_4       c_4       n_4+      109.9000  460.4768  False
+HarmonicAngle    c_4       c_4       n_45      110.7000  344.0114  False
+HarmonicAngle    c_4       c_4       o_2       113.5500  265.9882  False
+HarmonicAngle    c_4       c_4       p_4       113.2400  363.7461  False
+HarmonicAngle    c_4       c_4       s_4o      109.3900  297.7569  False
+HarmonicAngle    c_4       n_4+      c_4       111.4600  322.5195  False
+HarmonicAngle    c_4       n_4+      h_1       112.3100  205.4629  False
+HarmonicAngle    c_4       n_45      c_4       110.2900  420.8953  False
+HarmonicAngle    c_4       n_45      c_45      110.2000  377.4729  False
+HarmonicAngle    c_4       o_2       p_4       118.9600  265.4468  False
+HarmonicAngle    c_4       o_2       s_4o      115.3500  440.7798  False
+HarmonicAngle    c_4       p_4       c_4       109.6100  364.2741  False
+HarmonicAngle    c_4       p_4       h_1       107.9200  226.5849  False
+HarmonicAngle    c_4       s_4o      n_2-       97.4600   78.0345  False
+HarmonicAngle    c_4       s_4o      o_1       110.3600  413.7913  False
+HarmonicAngle    c_4       s_4o      o_1-      106.1700  381.3214  False
+HarmonicAngle    c_45      c_45      c_45      104.6300  282.7660  False
+HarmonicAngle    c_45      c_45      h_1       111.4700  189.3716  False
+HarmonicAngle    c_45      c_45      n_35      105.8300  277.3904  False
+HarmonicAngle    c_45      c_45      n_45      103.4700  369.0719  False
+HarmonicAngle    c_45      n_35      c_45      106.6400  408.7408  False
+HarmonicAngle    c_45      n_35      h_1       111.0500  245.5238  False
+HarmonicAngle    c_45      n_45      c_45      105.1400  315.3866  False
+HarmonicAngle    f_1       b_4-      f_1       109.1500  247.1840  False
+HarmonicAngle    f_1       c_4       f_1       108.6900  420.1703  False
+HarmonicAngle    f_1       c_4       s_4o      106.1500  218.4496  False
+HarmonicAngle    f_1       p_6-      f_1        90.0000  343.6976  False
+HarmonicAngle    f_1       s_4o      n_2-      101.7900  286.7057  False
+HarmonicAngle    f_1       s_4o      o_1       108.1000  471.9962  False
+HarmonicAngle    h_1       c_35an    n_35+da   122.3500  142.1401  False
+HarmonicAngle    h_1       c_35an2   n_35+da   124.4000  124.9920  False
+HarmonicAngle    h_1       c_3a      n_3a      115.9800  245.2715  False
+HarmonicAngle    h_1       c_3o      o_1-      113.4500   86.6343  False
+HarmonicAngle    h_1       c_4       h_1       106.6800  149.1466  False
+HarmonicAngle    h_1       c_4       n_35+da   104.3900  189.9691  False
+HarmonicAngle    h_1       c_4       n_3a      108.6100  202.7433  False
+HarmonicAngle    h_1       c_4       n_4+      104.1500  243.3774  False
+HarmonicAngle    h_1       c_4       n_45      105.1300  200.6387  False
+HarmonicAngle    h_1       c_4       o_2       110.2800  246.2966  False
+HarmonicAngle    h_1       c_4       p_4       106.4700  155.8628  False
+HarmonicAngle    h_1       c_4       s_4o      104.2400  159.6660  False
+HarmonicAngle    h_1       c_45      h_1       107.1200  175.8288  False
+HarmonicAngle    h_1       c_45      n_35      112.5600  190.6197  False
+HarmonicAngle    h_1       c_45      n_45      104.9500  229.9618  False
+HarmonicAngle    h_1       n_4+      h_1       107.8500  166.0245  False
+HarmonicAngle    h_1       p_4       h_1       103.9200  185.1617  False
+HarmonicAngle    n_1       c_2       n_2-      168.8700  113.2366  False
+HarmonicAngle    n_1       c_2       s_1-      180.0000  324.4822  False
+HarmonicAngle    n_2-      s_4o      o_1       121.2400  298.8209  False
+HarmonicAngle    n_35+da   c_35an2   n_35+da   108.3500  274.9507  False
+HarmonicAngle    o_1       s_4o      o_1       121.3600  354.7107  False
+HarmonicAngle    o_1-      c_3o      o_1-      133.3900  347.7314  False
+HarmonicAngle    o_1-      n_3o      o_1-      120.0000  168.6566  False
+HarmonicAngle    o_1-      p_4       o_1-      131.6400  183.3897  False
+HarmonicAngle    o_1-      p_4       o_2       111.1400  270.5994  False
+HarmonicAngle    o_1-      s_4o      o_1-      116.4400  346.3164  False
+HarmonicAngle    o_1-      s_4o      o_2        97.6400  306.6801  False
+HarmonicAngle    o_1-q     cl4       o_1-q     120.4200  440.4066  False
+HarmonicAngle    o_2       p_4       o_2       103.6100  243.0184  False
+HarmonicAngle    s_4o      n_2-      s_4o      112.2600   41.8400  False
+#PeriodicDihedral type1     type2     type3     type4
+PeriodicDihedral *         c_35an    c_35an    *             180.0   16.7360  2
+PeriodicDihedral *         c_35an    n_35+da   *             180.0   16.7360  2
+PeriodicDihedral *         c_35an2   n_35+da   *             180.0   16.7360  2
+PeriodicDihedral *         c_3a      c_3a      *             180.0   16.8791  2
+PeriodicDihedral *         c_3a      n_3a      *             180.0   16.7360  2
+PeriodicDihedral *         c_4       c_4       *               0.0    2.5999  1     180.0    0.2121  2       0.0    0.2879  3
+PeriodicDihedral *         c_4       n_4+      *               0.0    0.6581  3
+PeriodicDihedral *         c_4       p_4       *               0.0    0.3983  3
+PeriodicDihedral *         c_4       s_4o      *               0.0    0.9339  3
+PeriodicDihedral *         c_45      c_45      *               0.0    1.0000  3
+PeriodicDihedral c_2       b_4-      c_2       n_1      
+PeriodicDihedral c_2       c_3-      c_2       n_1      
+PeriodicDihedral c_2       n_2-      c_2       n_1      
+PeriodicDihedral c_3       c_4       c_4       h_1             0.0    5.3785  1     180.0    1.6405  2       0.0   -0.5774  3
+PeriodicDihedral c_35an    n_35+da   c_4       c_4             0.0   -6.9643  1     180.0    2.9288  2       0.0   -0.0159  3
+PeriodicDihedral c_35an    n_35+da   c_4       h_1             0.0    0.8083  3
+PeriodicDihedral c_35an2   n_35+da   c_4       c_4             0.0   -8.0283  1     180.0    0.2084  2       0.0   -0.7527  3
+PeriodicDihedral c_35an2   n_35+da   c_4       h_1             0.0    0.3787  3
+PeriodicDihedral c_3a      c_3a      c_3a      c_3a          180.0   14.6411  2
+PeriodicDihedral c_3a      c_3a      c_3a      c_4           180.0   19.2389  2
+PeriodicDihedral c_3a      c_3a      c_3a      h_1           180.0   16.7339  2
+PeriodicDihedral c_3a      c_3a      c_4       h_1             0.0   -7.5500  1     180.0    1.2129  2       0.0    0.3276  3
+PeriodicDihedral c_3a      c_3a      s_4o      o_1             0.0   -4.9476  1     180.0    1.4267  2       0.0   -1.4569  3
+PeriodicDihedral c_3a      n_3a      c_4       c_4             0.0  -25.5739  1     180.0    0.2849  2       0.0    2.3200  3
+PeriodicDihedral c_3a      n_3a      c_4       h_1             0.0   10.6454  1     180.0   -1.6041  2       0.0    0.3523  3
+PeriodicDihedral c_4       c_3a      c_3a      h_1           180.0    5.8509  2
+PeriodicDihedral c_4       c_4       c_3o      o_1             0.0    6.2116  1     180.0    6.1162  2       0.0   -2.6464  3
+PeriodicDihedral c_4       c_4       c_4       c_4             0.0   -1.6891  1     180.0   -0.0075  2       0.0    0.2657  3
+PeriodicDihedral c_4       c_4       c_4       f_1             0.0    0.9945  1     180.0    0.1364  2       0.0   -0.5690  3
+PeriodicDihedral c_4       c_4       c_4       h_1             0.0   -1.0544  1     180.0    0.7448  2       0.0    0.7870  3
+PeriodicDihedral c_4       c_4       c_4       o_2             0.0   -7.7421  1     180.0   -0.5084  2       0.0    2.2238  3
+PeriodicDihedral c_4       c_4       c_4       s_4             0.0    0.5602  3
+PeriodicDihedral c_4       c_4       n_4+      c_4             0.0   -3.0129  1     180.0    5.3773  2       0.0    0.8837  3
+PeriodicDihedral c_4       c_4       n_4+      h_1             0.0    0.7506  3
+PeriodicDihedral c_4       c_4       n_45      c_4             0.0   12.9783  1     180.0  -10.4822  2       0.0   -3.6535  3
+PeriodicDihedral c_4       c_4       o_2       p_4             0.0   -3.1058  1     180.0    4.5589  2       0.0    0.0732  3
+PeriodicDihedral c_4       c_4       o_2       s_4             0.0   -8.3408  3
+PeriodicDihedral c_4       c_4       p_4       c_4             0.0    0.6301  1     180.0    2.6640  2       0.0    0.7473  3
+PeriodicDihedral c_4       c_4       s_4o      o_1             0.0   -0.5665  1     180.0    3.6945  2       0.0    0.4372  3
+PeriodicDihedral c_4       c_45      c_45      c_4             0.0   -2.2397  3
+PeriodicDihedral c_4       c_45      c_45      h_1             0.0    3.8430  1     180.0   -0.1180  2       0.0   -1.1883  3
+PeriodicDihedral c_4       c_45      n_35      c_4             0.0   -5.1112  3
+PeriodicDihedral c_4       c_45      n_35      h_1             0.0    3.5313  3
+PeriodicDihedral c_4       c_45      n_45      c_4             0.0   -1.7468  3
+PeriodicDihedral c_4       n_35      c_45      h_1             0.0    2.3539  3
+PeriodicDihedral c_4       n_45      c_4       h_1             0.0    1.8008  3
+PeriodicDihedral c_4       n_45      c_45      h_1             0.0    0.7502  3
+PeriodicDihedral c_4       o_2       p_4       o_1             0.0    0.9188  3
+PeriodicDihedral c_4       o_2       p_4       o_2             0.0   -0.0870  3
+PeriodicDihedral c_4       o_2       s_4o      o_1             0.0    4.8279  1     180.0    3.9443  2       0.0   -0.1908  3
+PeriodicDihedral c_4       s_4o      n_2-      s_4             0.0    2.0535  1     180.0    8.1868  2       0.0   -3.1694  3
+PeriodicDihedral f_1       c_4       c_3o      o_1             0.0    5.7375  3
+PeriodicDihedral f_1       c_4       c_4       f_1             0.0    2.4970  1     180.0    2.9999  2       0.0    0.2950  3
+PeriodicDihedral f_1       c_4       s_4o      n_2             0.0    0.7481  3
+PeriodicDihedral f_1       c_4       s_4o      o_1             0.0    0.7648  3
+PeriodicDihedral f_1       s_4o      n_2-      s_4             0.0    0.3494  1     180.0    5.9961  2       0.0   -2.4941  3
+PeriodicDihedral h_1       c_3a      c_3a      h_1           180.0    8.2697  2
+PeriodicDihedral h_1       c_4       c_35an2   n_35+da         0.0    8.7115  1     180.0   -0.3280  2       0.0   -0.8079  3
+PeriodicDihedral h_1       c_4       c_3o      o_1             0.0    4.6911  1     180.0    6.1421  2       0.0    0.3686  3
+PeriodicDihedral h_1       c_4       c_4       h_1             0.0    0.6485  1     180.0    1.0678  2       0.0    0.6226  3
+PeriodicDihedral h_1       c_4       c_4       n_4+            0.0   -1.6916  1     180.0   -4.3660  2       0.0    0.9079  3
+PeriodicDihedral h_1       c_4       c_4       o_2             0.0   -3.7493  1     180.0   -0.7142  2       0.0    0.9092  3
+PeriodicDihedral h_1       c_4       c_4       p_4             0.0    3.3146  3
+PeriodicDihedral h_1       c_4       n_4+      h_1             0.0    0.5657  3
+PeriodicDihedral h_1       c_4       o_2       p_4             0.0    9.0948  1     180.0   -0.6920  2       0.0    0.2527  3
+PeriodicDihedral h_1       c_4       o_2       s_4             0.0    1.5820  3
+PeriodicDihedral h_1       c_4       s_4o      o_1             0.0    5.4183  1     180.0    2.9732  2       0.0    0.9109  3
+PeriodicDihedral h_1       c_45      c_45      h_1             0.0   12.1043  1     180.0   -1.7811  2       0.0    1.9129  3
+PeriodicDihedral h_1       c_45      n_35      h_1             0.0   -1.4029  3
+PeriodicDihedral o_1       s_4o      n_2-      s_4             0.0   12.9809  1     180.0    7.9709  2       0.0    1.6389  3
+#OplsImproper    type1     type2     type3     type4            k
+OplsImproper     c_3       *         *         *          16.7360
+OplsImproper     c_35an    *         *         *          19.5887
+OplsImproper     c_35an2   *         *         *          19.5887
+OplsImproper     c_3a      *         *         *          19.5887
+OplsImproper     c_3o      o_1       *         *          75.3120
+OplsImproper     n_3       *         *         *           0.0000
+OplsImproper     n_35      *         *         *           0.0000
+OplsImproper     n_35+da   *         *         *          19.5887
+OplsImproper     n_3a      *         *         *          19.5887
+OplsImproper     n_3o      o_1       *         *          75.3120
+OplsImproper     c_3a      c_3a      c_3a      c_4        19.5887
+OplsImproper     c_3a      c_3a      c_3a      h_1         7.1270

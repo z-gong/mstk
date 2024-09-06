@@ -7,10 +7,10 @@ ff = ForceField()
 ff.vdw_cutoff = 1.5
 ff.vdw_long_range = ForceField.VDW_LONGRANGE_SHIFT
 ff.lj_mixing_rule = ForceField.LJ_MIXING_NONE
-ff.scale_14_vdw = 1
-ff.scale_14_coulomb = 1
+ff.scale_14_vdw = 1.0
+ff.scale_14_coulomb = 1.0
 
-with open('files/spica_top.json') as f:
+with open('spica_top.json') as f:
     j = json.load(f)
 for k, v in j['topo'].items():
     for i, typ in enumerate(v['type']):
@@ -32,7 +32,7 @@ aterm.mass = 96.062
 ff.add_term(aterm)
 #################
 
-with open('files/spica_par.json') as f:
+with open('spica_par.json') as f:
     j = json.load(f)
 for par in j['params']:
     if par['param'] == 'bond':
@@ -76,4 +76,6 @@ for par in j['params']:
             raise Exception('Unknown potential form: %s' % par['potential'])
         ff.add_term(vdw)
 
-Zfp.save_to(ff, 'files/SPICA_v1.zfp')
+ff.comments.append('Converted from spica_top.json and spica_prm.json in spica_v1.0.tar.gz')
+ff.comments.append('Downloaded from https://www.spica-ff.org/download.html')
+ff.write('SPICA_v1.0.zff')

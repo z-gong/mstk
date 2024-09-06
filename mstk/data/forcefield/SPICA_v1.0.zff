@@ -1,0 +1,733 @@
+* Converted from spica_top.json and spica_prm.json in spica_v1.0.tar.gz
+* Downloaded from https://www.spica-ff.org/download.html
+
+Setting          vdw_cutoff       1.5
+Setting          vdw_long_range   shift
+Setting          lj_mixing_rule   none
+Setting          scale_14_vdw     1.0
+Setting          scale_14_coulomb 1.0
+
+#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+AtomType         OA         31.0340    0.0000  OA        OA        OA        OA        OA        OA        OA        OA        OA        OA
+AtomType         CT         43.0880    0.0000  CT        CT        CT        CT        CT        CT        CT        CT        CT        CT
+AtomType         CM         42.0800    0.0000  CM        CM        CM        CM        CM        CM        CM        CM        CM        CM
+AtomType         CT2        29.0620    0.0000  CT2       CT2       CT2       CT2       CT2       CT2       CT2       CT2       CT2       CT2
+AtomType         SER        31.0344    0.0000  SER       SER       SER       SER       SER       SER       SER       SER       SER       SER
+AtomType         N          28.0340    0.0000  N         N         N         N         N         N         N         N         N         N
+AtomType         CMD2       26.0380    0.0000  CMD2      CMD2      CMD2      CMD2      CMD2      CMD2      CMD2      CMD2      CMD2      CMD2
+AtomType         CM2        28.0540    0.0000  CM2       CM2       CM2       CM2       CM2       CM2       CM2       CM2       CM2       CM2
+AtomType         O          28.0100    0.0000  O         O         O         O         O         O         O         O         O         O
+AtomType         EST1       58.0368    0.0000  EST1      EST1      EST1      EST1      EST1      EST1      EST1      EST1      EST1      EST1
+AtomType         CMD3       40.0650    0.0000  CMD3      CMD3      CMD3      CMD3      CMD3      CMD3      CMD3      CMD3      CMD3      CMD3
+AtomType         OAB        30.0260    0.0000  OAB       OAB       OAB       OAB       OAB       OAB       OAB       OAB       OAB       OAB
+AtomType         CM2R       28.0540    0.0000  CM2R      CM2R      CM2R      CM2R      CM2R      CM2R      CM2R      CM2R      CM2R      CM2R
+AtomType         CMDB       39.0570    0.0000  CMDB      CMDB      CMDB      CMDB      CMDB      CMDB      CMDB      CMDB      CMDB      CMDB
+AtomType         CTBA       27.0460    0.0000  CTBA      CTBA      CTBA      CTBA      CTBA      CTBA      CTBA      CTBA      CTBA      CTBA
+AtomType         CMB        40.0650    0.0000  CMB       CMB       CMB       CMB       CMB       CMB       CMB       CMB       CMB       CMB
+AtomType         CMR        41.0730    0.0000  CMR       CMR       CMR       CMR       CMR       CMR       CMR       CMR       CMR       CMR
+AtomType         CMR5       41.0730    0.0000  CMR5      CMR5      CMR5      CMR5      CMR5      CMR5      CMR5      CMR5      CMR5      CMR5
+AtomType         CTBB       27.0460    0.0000  CTBB      CTBB      CTBB      CTBB      CTBB      CTBB      CTBB      CTBB      CTBB      CTBB
+AtomType         CTB        42.0810    0.0000  CTB       CTB       CTB       CTB       CTB       CTB       CTB       CTB       CTB       CTB
+AtomType         C2T        43.0890    0.0000  C2T       C2T       C2T       C2T       C2T       C2T       C2T       C2T       C2T       C2T
+AtomType         NC         87.1647    1.0000  NC        NC        NC        NC        NC        NC        NC        NC        NC        NC
+AtomType         PH         94.9716   -1.0000  PH        PH        PH        PH        PH        PH        PH        PH        PH        PH
+AtomType         GL         41.0725    0.0000  GL        GL        GL        GL        GL        GL        GL        GL        GL        GL
+AtomType         EST2       58.0358    0.0000  EST2      EST2      EST2      EST2      EST2      EST2      EST2      EST2      EST2      EST2
+AtomType         NH         45.0843    1.0000  NH        NH        NH        NH        NH        NH        NH        NH        NH        NH
+AtomType         PHE        94.9716   -1.0000  PHE       PHE       PHE       PHE       PHE       PHE       PHE       PHE       PHE       PHE
+AtomType         CMD        42.0804    0.0000  CMD       CMD       CMD       CMD       CMD       CMD       CMD       CMD       CMD       CMD
+AtomType         COO        44.0095   -1.0000  COO       COO       COO       COO       COO       COO       COO       COO       COO       COO
+AtomType         COOH       45.0174    0.0000  COOH      COOH      COOH      COOH      COOH      COOH      COOH      COOH      COOH      COOH
+AtomType         CM4        56.1080    0.0000  CM4       CM4       CM4       CM4       CM4       CM4       CM4       CM4       CM4       CM4
+AtomType         CLA        35.4530   -1.0000  CLA       CLA       CLA       CLA       CLA       CLA       CLA       CLA       CLA       CLA
+AtomType         SOD        77.0342    1.0000  SOD       SOD       SOD       SOD       SOD       SOD       SOD       SOD       SOD       SOD
+AtomType         T1         29.0184    0.0000  T1        T1        T1        T1        T1        T1        T1        T1        T1        T1
+AtomType         T2         30.0500    0.0000  T2        T2        T2        T2        T2        T2        T2        T2        T2        T2
+AtomType         EO         44.0534    0.0000  EO        EO        EO        EO        EO        EO        EO        EO        EO        EO
+AtomType         OB         44.0526    0.0000  OB        OB        OB        OB        OB        OB        OB        OB        OB        OB
+AtomType         PHS        94.9714   -1.0000  PHS       PHS       PHS       PHS       PHS       PHS       PHS       PHS       PHS       PHS
+AtomType         GL2        27.0452    0.0000  GL2       GL2       GL2       GL2       GL2       GL2       GL2       GL2       GL2       GL2
+AtomType         OAD        30.0260    0.0000  OAD       OAD       OAD       OAD       OAD       OAD       OAD       OAD       OAD       OAD
+AtomType         CMO        40.0639    0.0000  CMO       CMO       CMO       CMO       CMO       CMO       CMO       CMO       CMO       CMO
+AtomType         PEP        43.0247    0.0000  PEP       PEP       PEP       PEP       PEP       PEP       PEP       PEP       PEP       PEP
+AtomType         ABB        71.0790    0.0000  ABB       ABB       ABB       ABB       ABB       ABB       ABB       ABB       ABB       ABB
+AtomType         GB1        54.0280    0.0000  GB1       GB1       GB1       GB1       GB1       GB1       GB1       GB1       GB1       GB1
+AtomType         AR1        42.0810    0.0000  AR1       AR1       AR1       AR1       AR1       AR1       AR1       AR1       AR1       AR1
+AtomType         AR2        59.0720    1.0000  AR2       AR2       AR2       AR2       AR2       AR2       AR2       AR2       AR2       AR2
+AtomType         ASN        58.0600    0.0000  ASN       ASN       ASN       ASN       ASN       ASN       ASN       ASN       ASN       ASN
+AtomType         ASP        58.0360   -1.0000  ASP       ASP       ASP       ASP       ASP       ASP       ASP       ASP       ASP       ASP
+AtomType         GB3        54.0280    0.0000  GB3       GB3       GB3       GB3       GB3       GB3       GB3       GB3       GB3       GB3
+AtomType         CYS        47.0950    0.0000  CYS       CYS       CYS       CYS       CYS       CYS       CYS       CYS       CYS       CYS
+AtomType         GLN        72.0870    0.0000  GLN       GLN       GLN       GLN       GLN       GLN       GLN       GLN       GLN       GLN
+AtomType         GLU        72.0630   -1.0000  GLU       GLU       GLU       GLU       GLU       GLU       GLU       GLU       GLU       GLU
+AtomType         GBB        54.0280    0.0000  GBB       GBB       GBB       GBB       GBB       GBB       GBB       GBB       GBB       GBB
+AtomType         HI1        26.0380    0.0000  HI1       HI1       HI1       HI1       HI1       HI1       HI1       HI1       HI1       HI1
+AtomType         HI2        28.0000    0.0000  HI2       HI2       HI2       HI2       HI2       HI2       HI2       HI2       HI2       HI2
+AtomType         HI3        28.0000    0.0000  HI3       HI3       HI3       HI3       HI3       HI3       HI3       HI3       HI3       HI3
+AtomType         ILE        57.1160    0.0000  ILE       ILE       ILE       ILE       ILE       ILE       ILE       ILE       ILE       ILE
+AtomType         LEU        57.1160    0.0000  LEU       LEU       LEU       LEU       LEU       LEU       LEU       LEU       LEU       LEU
+AtomType         LY1        42.0810    0.0000  LY1       LY1       LY1       LY1       LY1       LY1       LY1       LY1       LY1       LY1
+AtomType         LY2        31.0580    1.0000  LY2       LY2       LY2       LY2       LY2       LY2       LY2       LY2       LY2       LY2
+AtomType         GB2        54.0280    0.0000  GB2       GB2       GB2       GB2       GB2       GB2       GB2       GB2       GB2       GB2
+AtomType         MET        75.1490    0.0000  MET       MET       MET       MET       MET       MET       MET       MET       MET       MET
+AtomType         GB4        54.0280    0.0000  GB4       GB4       GB4       GB4       GB4       GB4       GB4       GB4       GB4       GB4
+AtomType         XYR        23.0350    0.0000  XYR       XYR       XYR       XYR       XYR       XYR       XYR       XYR       XYR       XYR
+AtomType         BER        23.0350    0.0000  BER       BER       BER       BER       BER       BER       BER       BER       BER       BER
+AtomType         PRO        42.0810    0.0000  PRO       PRO       PRO       PRO       PRO       PRO       PRO       PRO       PRO       PRO
+AtomType         THR        45.0610    0.0000  THR       THR       THR       THR       THR       THR       THR       THR       THR       THR
+AtomType         TR1        39.0570    0.0000  TR1       TR1       TR1       TR1       TR1       TR1       TR1       TR1       TR1       TR1
+AtomType         TR2        92.1210    0.0000  TR2       TR2       TR2       TR2       TR2       TR2       TR2       TR2       TR2       TR2
+AtomType         TR3        75.0900    0.0000  TR3       TR3       TR3       TR3       TR3       TR3       TR3       TR3       TR3       TR3
+AtomType         PHR        39.0650    0.0000  PHR       PHR       PHR       PHR       PHR       PHR       PHR       PHR       PHR       PHR
+AtomType         VAL        43.0890    0.0000  VAL       VAL       VAL       VAL       VAL       VAL       VAL       VAL       VAL       VAL
+AtomType         W          54.0460    0.0000  W         W         W         W         W         W         W         W         W         W
+AtomType         SO4        96.0620   -1.0000  SO4       SO4       SO4       SO4       SO4       SO4       SO4       SO4       SO4       SO4
+#Mie             type1     type2      epsilon     sigma  repulsion  attraction
+Mie              C2T       C2T         1.6749    0.4811    9.0000    6.0000
+Mie              CM2       CM2         1.1247    0.4416    9.0000    6.0000
+Mie              CM2R      CM2R        0.7531    0.3974    9.0000    6.0000
+Mie              CM4       CM4         2.3372    0.4641    9.0000    6.0000
+Mie              CMB       CMB         1.0368    0.4506    9.0000    6.0000
+Mie              CM        CM          1.7573    0.4506    9.0000    6.0000
+Mie              CMD2      CMD2        0.9707    0.4005    9.0000    6.0000
+Mie              CMDB      CMDB        1.1096    0.5016    9.0000    6.0000
+Mie              CMR5      CMR5        0.8962    0.4731    9.0000    6.0000
+Mie              CMR       CMR         0.8962    0.4731    9.0000    6.0000
+Mie              CT2       CT2         1.3054    0.4221    9.0000    6.0000
+Mie              CTBA      CTBA        1.5431    0.4416    9.0000    6.0000
+Mie              CTBB      CTBB        1.5431    0.4416    9.0000    6.0000
+Mie              CTB       CTB         1.1247    0.4416    9.0000    6.0000
+Mie              CT        CT          1.9623    0.4585    9.0000    6.0000
+Mie              EO        EO          1.6945    0.4250    9.0000    6.0000
+Mie              EOT       EOT         1.8284    0.4250    9.0000    6.0000
+Mie              EST1      EST1        2.0711    0.4300    9.0000    6.0000
+Mie              EST2      EST2        2.0711    0.4300    9.0000    6.0000
+Mie              GL        GL          1.7573    0.4506    9.0000    6.0000
+Mie              NC        NC          2.9288    0.5750    9.0000    6.0000
+Mie              NH        NH          4.6024    0.4600    9.0000    6.0000
+Mie              OAB       OAB         4.3932    0.3713    9.0000    6.0000
+Mie              OA        OA          1.8790    0.3713    9.0000    6.0000
+Mie              PHE       PHE         5.8576    0.4600    9.0000    6.0000
+Mie              PH        PH          5.8576    0.5400    9.0000    6.0000
+Mie              W         W           3.7447    0.4371   12.0000    4.0000
+Mie              PHS       PHS         2.3430    0.5400    9.0000    6.0000
+Mie              CMO       CMO         1.4058    0.4281    9.0000    6.0000
+Mie              OAD       OAD         3.0066    0.4084    9.0000    6.0000
+Mie              GL2       GL2         1.5816    0.3605    9.0000    6.0000
+Mie              PEP       PEP         5.8576    0.4150    9.0000    6.0000
+Mie              CMD       CMD         1.0192    0.4165    9.0000    6.0000
+Mie              SOD       SOD         1.4644    0.4371   12.0000    4.0000
+Mie              CLA       CLA         1.4644    0.4371   12.0000    4.0000
+Mie              NC4       NC4         2.0920    0.5950    9.0000    6.0000
+Mie              SO4       SO4         2.9288    0.4321    9.0000    6.0000
+Mie              C2T       CT          1.7113    0.4860    9.0000    6.0000
+Mie              C2T       CT2         1.2426    0.4527    9.0000    6.0000
+Mie              C2T       CTB         1.5979    0.4614    9.0000    6.0000
+Mie              C2T       CTBA        1.1460    0.4614    9.0000    6.0000
+Mie              C2T       CTBB        1.2263    0.4614    9.0000    6.0000
+Mie              C2T       OA          1.8292    0.4033    9.0000    6.0000
+Mie              C2T       OAB         1.2159    0.4446    9.0000    6.0000
+Mie              C2T       CM2         1.5757    0.4614    9.0000    6.0000
+Mie              CM        CM2         1.4058    0.4462    9.0000    6.0000
+Mie              CM2       CM2R        1.0523    0.4195    9.0000    6.0000
+Mie              CM2       CMB         1.1891    0.4461    9.0000    6.0000
+Mie              CM2       CMR         1.1920    0.4574    9.0000    6.0000
+Mie              CM2       CMR5        1.1418    0.4574    9.0000    6.0000
+Mie              CM2       CT          1.2594    0.4455    9.0000    6.0000
+Mie              CM2       CT2         0.9540    0.4320    9.0000    6.0000
+Mie              CM2       CTB         1.3468    0.4416    9.0000    6.0000
+Mie              CM2       CTBA        1.0175    0.4416    9.0000    6.0000
+Mie              CM2       CTBB        0.9439    0.4416    9.0000    6.0000
+Mie              CM2       OA          1.3426    0.3937    9.0000    6.0000
+Mie              C2T       CM2R        1.3163    0.4393    9.0000    6.0000
+Mie              CM        CM2R        1.8857    0.4240    9.0000    6.0000
+Mie              CM2R      CMB         1.2008    0.4434    9.0000    6.0000
+Mie              CM2R      CMR         0.8326    0.4567    9.0000    6.0000
+Mie              CM2R      CMR5        1.3556    0.4463    9.0000    6.0000
+Mie              CM2R      OA          1.5581    0.3913    9.0000    6.0000
+Mie              CM2       W           1.1665    0.4172   12.0000    4.0000
+Mie              CM2       CM4         1.7359    0.4522    9.0000    6.0000
+Mie              CM2R      CM4         2.0146    0.4494    9.0000    6.0000
+Mie              CM4       CT2         2.0146    0.4494    9.0000    6.0000
+Mie              CM4       CTBA        2.0146    0.4494    9.0000    6.0000
+Mie              CM4       CTBB        2.0146    0.4494    9.0000    6.0000
+Mie              CM4       W           1.7497    0.4660   12.0000    4.0000
+Mie              C2T       CMB         1.5573    0.4659    9.0000    6.0000
+Mie              CMB       OA          1.5272    0.3987    9.0000    6.0000
+Mie              C2T       CM          1.6359    0.4545    9.0000    6.0000
+Mie              CM        CMB         2.0841    0.4506    9.0000    6.0000
+Mie              CM        CMR         2.0497    0.4619    9.0000    6.0000
+Mie              CM        CMR5        2.0694    0.4619    9.0000    6.0000
+Mie              C2T       CMD2        1.3749    0.4408    9.0000    6.0000
+Mie              CM        CMD2        1.3054    0.4255    9.0000    6.0000
+Mie              CM2       CMD2        1.0632    0.4210    9.0000    6.0000
+Mie              CM2R      CMD2        0.8586    0.3990    9.0000    6.0000
+Mie              CMB       CMD2        1.0615    0.4255    9.0000    6.0000
+Mie              CMD2      CMDB        1.1088    0.4510    9.0000    6.0000
+Mie              CMD2      CMR         1.0025    0.4368    9.0000    6.0000
+Mie              CMD2      CMR5        0.9502    0.4368    9.0000    6.0000
+Mie              CMD2      CT          1.3807    0.4295    9.0000    6.0000
+Mie              CMD2      CT2         1.1255    0.4113    9.0000    6.0000
+Mie              CMD2      CTB         1.0941    0.4210    9.0000    6.0000
+Mie              CMD2      CTBA        1.2979    0.4210    9.0000    6.0000
+Mie              CMD2      CTBB        1.3012    0.4210    9.0000    6.0000
+Mie              CMD2      EST1        1.8410    0.4005    9.0000    6.0000
+Mie              CMD2      EST2        1.8410    0.4005    9.0000    6.0000
+Mie              CMD2      GL          1.3054    0.4255    9.0000    6.0000
+Mie              CMD2      W           1.1297    0.4188   12.0000    4.0000
+Mie              C2T       CMDB        1.5912    0.4914    9.0000    6.0000
+Mie              CM        CMDB        2.1522    0.4761    9.0000    6.0000
+Mie              CM2       CMDB        1.3305    0.4716    9.0000    6.0000
+Mie              CM2R      CMDB        1.9945    0.4495    9.0000    6.0000
+Mie              CMB       CMDB        1.9769    0.4761    9.0000    6.0000
+Mie              CMDB      CMR         1.3514    0.4524    9.0000    6.0000
+Mie              CMDB      CMR5        1.7690    0.4874    9.0000    6.0000
+Mie              CMDB      CT          1.3376    0.4800    9.0000    6.0000
+Mie              CMDB      CT2         1.1632    0.4194    9.0000    6.0000
+Mie              CMDB      CTB         1.3280    0.4716    9.0000    6.0000
+Mie              CMDB      CTBA        1.8518    0.4716    9.0000    6.0000
+Mie              CMDB      CTBB        1.8749    0.4716    9.0000    6.0000
+Mie              CMDB      EST1        1.7418    0.4658    9.0000    6.0000
+Mie              CMDB      EST2        1.7418    0.4658    9.0000    6.0000
+Mie              CMDB      GL          1.5615    0.4761    9.0000    6.0000
+Mie              CMDB      W           1.2678    0.4311   12.0000    4.0000
+Mie              CM        OA          1.5272    0.3987    9.0000    6.0000
+Mie              C2T       CMR5        1.4569    0.4771    9.0000    6.0000
+Mie              CMB       CMR5        1.9686    0.4619    9.0000    6.0000
+Mie              CMR       CMR5        1.7703    0.4731    9.0000    6.0000
+Mie              CMR5      OA          1.5272    0.3987    9.0000    6.0000
+Mie              C2T       CMR         1.3585    0.4771    9.0000    6.0000
+Mie              CMB       CMR         1.8803    0.4619    9.0000    6.0000
+Mie              CMR       CT2         1.5146    0.4553    9.0000    6.0000
+Mie              CMR       CTBA        1.7376    0.4574    9.0000    6.0000
+Mie              CMR       CTBB        1.7548    0.4574    9.0000    6.0000
+Mie              CMR       OA          1.5272    0.3987    9.0000    6.0000
+Mie              CM        CT2         1.5146    0.4364    9.0000    6.0000
+Mie              CM2R      CT2         0.9736    0.4098    9.0000    6.0000
+Mie              CMB       CT2         1.1042    0.4364    9.0000    6.0000
+Mie              CMR5      CT2         1.0418    0.4476    9.0000    6.0000
+Mie              CT        CT2         1.6025    0.4403    9.0000    6.0000
+Mie              CT2       CTB         1.5205    0.4319    9.0000    6.0000
+Mie              CT2       CTBA        1.4117    0.4319    9.0000    6.0000
+Mie              CT2       CTBB        1.3866    0.4319    9.0000    6.0000
+Mie              CT2       OA          1.5899    0.3840    9.0000    6.0000
+Mie              CM        CTBA        1.8146    0.4461    9.0000    6.0000
+Mie              CM2R      CTBA        1.8188    0.4195    9.0000    6.0000
+Mie              CMB       CTBA        1.8644    0.4461    9.0000    6.0000
+Mie              CMR5      CTBA        1.6682    0.4574    9.0000    6.0000
+Mie              CT        CTBA        1.6234    0.4500    9.0000    6.0000
+Mie              CTB       CTBA        1.0192    0.4416    9.0000    6.0000
+Mie              CTBA      OA          1.5899    0.3840    9.0000    6.0000
+Mie              CM        CTBB        1.9397    0.4461    9.0000    6.0000
+Mie              CM2R      CTBB        1.7937    0.4195    9.0000    6.0000
+Mie              CMB       CTBB        1.8062    0.4461    9.0000    6.0000
+Mie              CMR5      CTBB        1.6790    0.4574    9.0000    6.0000
+Mie              CT        CTBB        1.5945    0.4500    9.0000    6.0000
+Mie              CTB       CTBB        0.9598    0.4416    9.0000    6.0000
+Mie              CTBA      CTBB        1.9305    0.4416    9.0000    6.0000
+Mie              CTBB      OA          1.5899    0.3840    9.0000    6.0000
+Mie              CM        CTB         1.6619    0.4461    9.0000    6.0000
+Mie              CM2R      CTB         1.8451    0.4692    9.0000    6.0000
+Mie              CMB       CTB         1.1991    0.4461    9.0000    6.0000
+Mie              CMR       CTB         1.1506    0.4574    9.0000    6.0000
+Mie              CMR5      CTB         1.4058    0.4708    9.0000    6.0000
+Mie              CTB       OA          1.8292    0.4033    9.0000    6.0000
+Mie              CTB       OAB         1.4652    0.4248    9.0000    6.0000
+Mie              CM        CT          1.8577    0.4545    9.0000    6.0000
+Mie              CM2R      CT          1.1196    0.4280    9.0000    6.0000
+Mie              CMB       CT          1.2698    0.4545    9.0000    6.0000
+Mie              CMR       CT          1.7418    0.4658    9.0000    6.0000
+Mie              CMR5      CT          1.1979    0.4658    9.0000    6.0000
+Mie              CT        CTB         1.7485    0.4500    9.0000    6.0000
+Mie              CT        OA          1.8292    0.4033    9.0000    6.0000
+Mie              CT        OAB         1.6200    0.4149    9.0000    6.0000
+Mie              C2T       EO          1.7154    0.4340    9.0000    6.0000
+Mie              CM        EO          1.5774    0.4274    9.0000    6.0000
+Mie              CM2       EO          1.3464    0.4233    9.0000    6.0000
+Mie              CM2R      EO          1.5627    0.4207    9.0000    6.0000
+Mie              CMB       EO          1.5774    0.4274    9.0000    6.0000
+Mie              CMDB      EO          1.5774    0.4274    9.0000    6.0000
+Mie              CMR       EO          1.5774    0.4274    9.0000    6.0000
+Mie              CMR5      EO          1.5774    0.4274    9.0000    6.0000
+Mie              CT        EO          1.7154    0.4340    9.0000    6.0000
+Mie              CT2       EO          1.5481    0.4140    9.0000    6.0000
+Mie              CTB       EO          1.7154    0.4340    9.0000    6.0000
+Mie              CTBA      EO          1.5481    0.4140    9.0000    6.0000
+Mie              CTBB      EO          1.5481    0.4140    9.0000    6.0000
+Mie              EO        EOT         1.7573    0.4250    9.0000    6.0000
+Mie              EO        OA          1.8410    0.3890    9.0000    6.0000
+Mie              EO        OAB         1.8410    0.3890    9.0000    6.0000
+Mie              C2T       EST1        1.1632    0.4556    9.0000    6.0000
+Mie              CM        EST1        1.9665    0.4403    9.0000    6.0000
+Mie              CM2       EST1        1.2439    0.4358    9.0000    6.0000
+Mie              CM2R      EST1        1.3740    0.4137    9.0000    6.0000
+Mie              CMB       EST1        1.8874    0.4403    9.0000    6.0000
+Mie              CMR       EST1        1.6564    0.4516    9.0000    6.0000
+Mie              CMR5      EST1        1.6899    0.4516    9.0000    6.0000
+Mie              CT        EST1        1.9665    0.4442    9.0000    6.0000
+Mie              CT2       EST1        1.6318    0.4261    9.0000    6.0000
+Mie              CTB       EST1        1.4878    0.4358    9.0000    6.0000
+Mie              CTBA      EST1        1.8686    0.4358    9.0000    6.0000
+Mie              CTBB      EST1        1.8200    0.4358    9.0000    6.0000
+Mie              EST1      EST2        2.0711    0.4300    9.0000    6.0000
+Mie              EST1      NC          3.1380    0.4475    9.0000    6.0000
+Mie              EST1      PH          2.0920    0.4550    9.0000    6.0000
+Mie              EST1      W           3.4309    0.4290   12.0000    4.0000
+Mie              C2T       EST2        1.1632    0.4556    9.0000    6.0000
+Mie              CM        EST2        1.9665    0.4403    9.0000    6.0000
+Mie              CM2       EST2        1.2439    0.4358    9.0000    6.0000
+Mie              CM2R      EST2        1.3740    0.4137    9.0000    6.0000
+Mie              CMB       EST2        1.8874    0.4403    9.0000    6.0000
+Mie              CMR       EST2        1.6564    0.4516    9.0000    6.0000
+Mie              CMR5      EST2        1.6899    0.4516    9.0000    6.0000
+Mie              CT        EST2        1.9665    0.4442    9.0000    6.0000
+Mie              CT2       EST2        1.6318    0.4261    9.0000    6.0000
+Mie              CTB       EST2        1.4878    0.4358    9.0000    6.0000
+Mie              CTBA      EST2        1.8686    0.4358    9.0000    6.0000
+Mie              CTBB      EST2        1.8200    0.4358    9.0000    6.0000
+Mie              EST2      NC          3.1380    0.4475    9.0000    6.0000
+Mie              EST2      PH          2.0920    0.4550    9.0000    6.0000
+Mie              EST2      W           3.4309    0.4290   12.0000    4.0000
+Mie              C2T       GL          1.3506    0.4659    9.0000    6.0000
+Mie              CM        GL          1.7573    0.4506    9.0000    6.0000
+Mie              CM2       GL          1.3828    0.4461    9.0000    6.0000
+Mie              CM2R      GL          1.3673    0.4240    9.0000    6.0000
+Mie              CMB       GL          1.9941    0.4506    9.0000    6.0000
+Mie              CMR       GL          1.8778    0.4619    9.0000    6.0000
+Mie              CMR5      GL          1.8656    0.4619    9.0000    6.0000
+Mie              CT        GL          1.8577    0.4545    9.0000    6.0000
+Mie              CT2       GL          1.5146    0.4364    9.0000    6.0000
+Mie              CTB       GL          1.3226    0.4461    9.0000    6.0000
+Mie              CTBA      GL          1.5631    0.4461    9.0000    6.0000
+Mie              CTBB      GL          1.5548    0.4461    9.0000    6.0000
+Mie              EST1      GL          1.9665    0.4403    9.0000    6.0000
+Mie              EST2      GL          1.9665    0.4403    9.0000    6.0000
+Mie              GL        NC          2.7196    0.4620    9.0000    6.0000
+Mie              GL        PH          1.2552    0.4750    9.0000    6.0000
+Mie              GL        W           2.6778    0.4439   12.0000    4.0000
+Mie              C2T       NC          1.2272    0.4753    9.0000    6.0000
+Mie              CM        NC          1.6736    0.5128    9.0000    6.0000
+Mie              CM2       NC          1.3565    0.4575    9.0000    6.0000
+Mie              CM2R      NC          1.1113    0.4376    9.0000    6.0000
+Mie              CMB       NC          1.3410    0.4615    9.0000    6.0000
+Mie              CMD2      NC          1.4644    0.4878    9.0000    6.0000
+Mie              CMDB      NC          1.3498    0.4845    9.0000    6.0000
+Mie              CMR       NC          1.2899    0.4717    9.0000    6.0000
+Mie              CMR5      NC          1.1945    0.4717    9.0000    6.0000
+Mie              CT        NC          1.7573    0.5168    9.0000    6.0000
+Mie              CT2       NC          1.3389    0.4985    9.0000    6.0000
+Mie              CTB       NC          1.3673    0.4575    9.0000    6.0000
+Mie              CTBA      NC          1.5845    0.4575    9.0000    6.0000
+Mie              CTBB      NC          1.6301    0.4575    9.0000    6.0000
+Mie              NC        NH          3.6819    0.5175    9.0000    6.0000
+Mie              NC        PH          4.8116    0.4200    9.0000    6.0000
+Mie              NC        PHE         4.8116    0.4200    9.0000    6.0000
+Mie              NC        W           3.7656    0.4610   12.0000    4.0000
+Mie              NH        OAB         3.5614    0.4157    9.0000    6.0000
+Mie              C2T       NH          1.2238    0.4706    9.0000    6.0000
+Mie              CM        NH          1.3807    0.4553    9.0000    6.0000
+Mie              CM2       NH          1.3238    0.4508    9.0000    6.0000
+Mie              CM2R      NH          1.0841    0.4287    9.0000    6.0000
+Mie              CMB       NH          1.3401    0.4553    9.0000    6.0000
+Mie              CMD2      NH          1.2552    0.4303    9.0000    6.0000
+Mie              CMDB      NH          1.3623    0.4808    9.0000    6.0000
+Mie              CMR       NH          1.2577    0.4666    9.0000    6.0000
+Mie              CMR5      NH          1.1996    0.4666    9.0000    6.0000
+Mie              CT        NH          1.4226    0.4593    9.0000    6.0000
+Mie              CT2       NH          1.3389    0.4410    9.0000    6.0000
+Mie              CTB       NH          1.3585    0.4508    9.0000    6.0000
+Mie              CTBA      NH          1.5736    0.4508    9.0000    6.0000
+Mie              CTBB      NH          1.6736    0.4508    9.0000    6.0000
+Mie              EST1      NH          3.5564    0.4110    9.0000    6.0000
+Mie              EST2      NH          3.5564    0.4110    9.0000    6.0000
+Mie              GL        NH          3.1380    0.4190    9.0000    6.0000
+Mie              NH        PH          5.0208    0.3800    9.0000    6.0000
+Mie              NH        PHE         5.0208    0.3800    9.0000    6.0000
+Mie              NH        W           3.3472    0.3950   12.0000    4.0000
+Mie              CM        OAB         1.6217    0.4293    9.0000    6.0000
+Mie              CM2       OAB         1.5121    0.4248    9.0000    6.0000
+Mie              CM2R      OAB         1.6041    0.4027    9.0000    6.0000
+Mie              CMB       OAB         1.7062    0.4293    9.0000    6.0000
+Mie              CMD2      OAB         1.1740    0.4043    9.0000    6.0000
+Mie              CMDB      OAB         1.6744    0.4548    9.0000    6.0000
+Mie              CMR       OAB         1.5987    0.4406    9.0000    6.0000
+Mie              CMR5      OAB         1.5000    0.4406    9.0000    6.0000
+Mie              CT2       OAB         1.3502    0.4151    9.0000    6.0000
+Mie              CTBA      OAB         1.7866    0.4248    9.0000    6.0000
+Mie              CTBB      OAB         1.7903    0.4248    9.0000    6.0000
+Mie              EST1      OAB         2.6439    0.4190    9.0000    6.0000
+Mie              EST2      OAB         2.6439    0.4190    9.0000    6.0000
+Mie              GL        OAB         1.3619    0.4293    9.0000    6.0000
+Mie              NC        OAB         3.5614    0.4423    9.0000    6.0000
+Mie              OAB       PH          3.0359    0.4266    9.0000    6.0000
+Mie              OAB       W           5.0208    0.3950   12.0000    4.0000
+Mie              CMD2      OA          1.5272    0.3859    9.0000    6.0000
+Mie              CMDB      OA          1.5272    0.3987    9.0000    6.0000
+Mie              OA        OAB         1.8790    0.3713    9.0000    6.0000
+Mie              C2T       PH          1.6723    0.4595    9.0000    6.0000
+Mie              CM        PH          1.2552    0.4953    9.0000    6.0000
+Mie              CM2       PH          1.7472    0.4417    9.0000    6.0000
+Mie              CM2R      PH          1.4477    0.4218    9.0000    6.0000
+Mie              CMB       PH          1.6242    0.4458    9.0000    6.0000
+Mie              CMD2      PH          1.2552    0.4702    9.0000    6.0000
+Mie              CMDB      PH          1.6598    0.4687    9.0000    6.0000
+Mie              CMR       PH          1.6380    0.4559    9.0000    6.0000
+Mie              CMR5      PH          1.6096    0.4559    9.0000    6.0000
+Mie              CT        PH          1.3389    0.4992    9.0000    6.0000
+Mie              CT2       PH          1.1715    0.4811    9.0000    6.0000
+Mie              CTB       PH          1.6983    0.4417    9.0000    6.0000
+Mie              CTBA      PH          1.8514    0.4417    9.0000    6.0000
+Mie              CTBB      PH          1.8125    0.4417    9.0000    6.0000
+Mie              OAB       PHE         3.0359    0.4266    9.0000    6.0000
+Mie              C2T       PHE         1.7054    0.4595    9.0000    6.0000
+Mie              CM        PHE         1.2552    0.4953    9.0000    6.0000
+Mie              CM2       PHE         1.6928    0.4417    9.0000    6.0000
+Mie              CM2R      PHE         1.4849    0.4218    9.0000    6.0000
+Mie              CMB       PHE         1.5924    0.4458    9.0000    6.0000
+Mie              CMD2      PHE         1.2552    0.4702    9.0000    6.0000
+Mie              CMDB      PHE         1.6234    0.4687    9.0000    6.0000
+Mie              CMR       PHE         1.6669    0.4559    9.0000    6.0000
+Mie              CMR5      PHE         1.5845    0.4559    9.0000    6.0000
+Mie              CT        PHE         1.3389    0.4992    9.0000    6.0000
+Mie              CT2       PHE         1.1715    0.4811    9.0000    6.0000
+Mie              CTB       PHE         1.7322    0.4417    9.0000    6.0000
+Mie              CTBA      PHE         1.8669    0.4417    9.0000    6.0000
+Mie              CTBB      PHE         1.7313    0.4417    9.0000    6.0000
+Mie              EST1      PHE         2.0920    0.4550    9.0000    6.0000
+Mie              EST2      PHE         2.0920    0.4550    9.0000    6.0000
+Mie              GL        PHE         1.2552    0.4750    9.0000    6.0000
+Mie              PHE       W           4.1840    0.4030   12.0000    4.0000
+Mie              PH        PHE         5.8576    0.5000    9.0000    6.0000
+Mie              PH        W           4.1840    0.4030   12.0000    4.0000
+Mie              C2T       W           1.5062    0.4478   12.0000    4.0000
+Mie              CM        W           1.4226    0.4439   12.0000    4.0000
+Mie              CM2R      W           1.3138    0.4367   12.0000    4.0000
+Mie              CMB       W           1.4226    0.4439   12.0000    4.0000
+Mie              CMR       W           1.4226    0.4439   12.0000    4.0000
+Mie              CMR5      W           1.4226    0.4439   12.0000    4.0000
+Mie              CT        W           1.5062    0.4478   12.0000    4.0000
+Mie              CT2       W           1.2134    0.4296   12.0000    4.0000
+Mie              CTB       W           1.5062    0.4478   12.0000    4.0000
+Mie              CTBA      W           1.2134    0.4296   12.0000    4.0000
+Mie              CTBB      W           1.2134    0.4296   12.0000    4.0000
+Mie              EO        W           2.3849    0.4310   12.0000    4.0000
+Mie              OA        W           2.9288    0.3950   12.0000    4.0000
+Mie              NC        PHS         2.4058    0.4410    9.0000    6.0000
+Mie              NC        OAD         1.1728    0.3785    9.0000    6.0000
+Mie              NC        PEP         2.2845    0.4207    9.0000    6.0000
+Mie              GL2       NC          3.2635    0.4620    9.0000    6.0000
+Mie              CMO       NC          1.3389    0.4615    9.0000    6.0000
+Mie              OAD       PHS         1.3272    0.4329    9.0000    6.0000
+Mie              PEP       PHS         2.2594    0.4298    9.0000    6.0000
+Mie              GL2       PHS         1.2552    0.4275    9.0000    6.0000
+Mie              CMO       PHS         1.1297    0.4458    9.0000    6.0000
+Mie              CT        PHS         1.3389    0.4992    9.0000    6.0000
+Mie              CT2       PHS         1.1715    0.4811    9.0000    6.0000
+Mie              CM        PHS         1.2552    0.4953    9.0000    6.0000
+Mie              CM        CMO         1.7573    0.4506    9.0000    6.0000
+Mie              CMO       CT          1.6719    0.4318    9.0000    6.0000
+Mie              CMO       CT2         1.3631    0.4145    9.0000    6.0000
+Mie              CMO       GL2         1.4058    0.4281    9.0000    6.0000
+Mie              CM        GL2         1.5816    0.4055    9.0000    6.0000
+Mie              CT        GL2         1.6719    0.4091    9.0000    6.0000
+Mie              CT2       GL2         1.5146    0.3927    9.0000    6.0000
+Mie              CT        OAD         1.8292    0.4033    9.0000    6.0000
+Mie              CT        PEP         1.6380    0.4367    9.0000    6.0000
+Mie              CT2       OAD         1.5899    0.3840    9.0000    6.0000
+Mie              CM        OAD         1.5272    0.3987    9.0000    6.0000
+Mie              CM        PEP         1.5062    0.4328    9.0000    6.0000
+Mie              CMO       OAD         1.5272    0.3987    9.0000    6.0000
+Mie              CMO       PEP         1.8410    0.3895    9.0000    6.0000
+Mie              CT2       PEP         1.1146    0.4185    9.0000    6.0000
+Mie              GL2       OAD         2.9288    0.4202    9.0000    6.0000
+Mie              GL2       PEP         1.7322    0.4328    9.0000    6.0000
+Mie              OAD       PEP         2.1054    0.3931    9.0000    6.0000
+Mie              PH        PHS         4.6861    0.5400    9.0000    6.0000
+Mie              OAD       PH          1.1945    0.4329    9.0000    6.0000
+Mie              PEP       PH          1.8075    0.4298    9.0000    6.0000
+Mie              GL2       PH          1.2552    0.4275    9.0000    6.0000
+Mie              CMO       PH          1.0042    0.4953    9.0000    6.0000
+Mie              EST1      PHS         1.2552    0.4550    9.0000    6.0000
+Mie              EST2      PHS         1.2552    0.4550    9.0000    6.0000
+Mie              CMD2      PHS         1.1297    0.4702    9.0000    6.0000
+Mie              GL        PHS         1.1297    0.4750    9.0000    6.0000
+Mie              CMO       EST1        1.7698    0.4403    9.0000    6.0000
+Mie              CMO       EST2        1.7698    0.4403    9.0000    6.0000
+Mie              CMD2      CMO         1.1749    0.4255    9.0000    6.0000
+Mie              CMO       GL          1.5816    0.4506    9.0000    6.0000
+Mie              EST1      GL2         1.8100    0.3952    9.0000    6.0000
+Mie              EST2      GL2         1.8100    0.3952    9.0000    6.0000
+Mie              CMD2      GL2         0.9912    0.3805    9.0000    6.0000
+Mie              GL        GL2         1.6669    0.4055    9.0000    6.0000
+Mie              EST1      OAD         1.9962    0.4192    9.0000    6.0000
+Mie              EST2      OAD         1.9962    0.4192    9.0000    6.0000
+Mie              CMD2      OAD         1.3665    0.4045    9.0000    6.0000
+Mie              GL        OAD         1.8389    0.4295    9.0000    6.0000
+Mie              EST1      PEP         2.1707    0.4225    9.0000    6.0000
+Mie              EST2      PEP         2.1707    0.4225    9.0000    6.0000
+Mie              CMD2      PEP         1.1887    0.4077    9.0000    6.0000
+Mie              GL        PEP         1.9995    0.4328    9.0000    6.0000
+Mie              GL2       W           1.2016    0.4350   12.0000    4.0000
+Mie              OAD       W           1.5899    0.4148   12.0000    4.0000
+Mie              CMO       W           2.0083    0.4439   12.0000    4.0000
+Mie              PEP       W           2.5104    0.4261   12.0000    4.0000
+Mie              PHS       W           4.1840    0.4030   12.0000    4.0000
+Mie              CM2       OAD         1.1104    0.4250    9.0000    6.0000
+Mie              CM2       PEP         1.2322    0.4283    9.0000    6.0000
+Mie              CM2       GL2         1.2535    0.4010    9.0000    6.0000
+Mie              CM2       CMO         0.9841    0.4462    9.0000    6.0000
+Mie              CM2       PHS         1.7472    0.4417    9.0000    6.0000
+Mie              C2T       GL2         1.3058    0.4208    9.0000    6.0000
+Mie              CM2R      GL2         1.1590    0.3790    9.0000    6.0000
+Mie              CMB       GL2         1.3862    0.4055    9.0000    6.0000
+Mie              CMDB      GL2         1.4439    0.4310    9.0000    6.0000
+Mie              CMR       GL2         1.3075    0.4168    9.0000    6.0000
+Mie              CMR5      GL2         1.0983    0.4168    9.0000    6.0000
+Mie              CTB       GL2         1.1908    0.4010    9.0000    6.0000
+Mie              CTBA      GL2         1.6439    0.4010    9.0000    6.0000
+Mie              CTBB      GL2         1.6610    0.4010    9.0000    6.0000
+Mie              GL2       OAB         1.2397    0.3659    9.0000    6.0000
+Mie              C2T       OAD         1.1510    0.4448    9.0000    6.0000
+Mie              CM2R      OAD         1.3711    0.4029    9.0000    6.0000
+Mie              CMB       OAD         1.5217    0.4295    9.0000    6.0000
+Mie              CMDB      OAD         1.5054    0.4550    9.0000    6.0000
+Mie              CMR       OAD         1.4200    0.4408    9.0000    6.0000
+Mie              CMR5      OAD         1.6246    0.4408    9.0000    6.0000
+Mie              CTB       OAD         1.1205    0.4250    9.0000    6.0000
+Mie              CTBA      OAD         1.8305    0.4250    9.0000    6.0000
+Mie              CTBB      OAD         1.5263    0.4250    9.0000    6.0000
+Mie              OAB       OAD         2.7305    0.3899    9.0000    6.0000
+Mie              C2T       CMO         1.1452    0.4545    9.0000    6.0000
+Mie              CM2R      CMO         1.3201    0.4240    9.0000    6.0000
+Mie              CMB       CMO         1.4590    0.4506    9.0000    6.0000
+Mie              CMDB      CMO         1.5067    0.4761    9.0000    6.0000
+Mie              CMO       CMR         1.4347    0.4619    9.0000    6.0000
+Mie              CMO       CMR5        1.4485    0.4619    9.0000    6.0000
+Mie              CMO       CTB         1.1632    0.4461    9.0000    6.0000
+Mie              CMO       CTBA        1.2703    0.4461    9.0000    6.0000
+Mie              CMO       CTBB        1.3577    0.4461    9.0000    6.0000
+Mie              CMO       OAB         1.4594    0.4293    9.0000    6.0000
+Mie              C2T       PHS         1.6723    0.4595    9.0000    6.0000
+Mie              CM2R      PHS         1.4477    0.4218    9.0000    6.0000
+Mie              CMB       PHS         1.6242    0.4458    9.0000    6.0000
+Mie              CMDB      PHS         1.6598    0.4687    9.0000    6.0000
+Mie              CMR       PHS         1.6380    0.4559    9.0000    6.0000
+Mie              CMR5      PHS         1.6096    0.4559    9.0000    6.0000
+Mie              CTB       PHS         1.6983    0.4417    9.0000    6.0000
+Mie              CTBA      PHS         1.8514    0.4417    9.0000    6.0000
+Mie              CTBB      PHS         1.8125    0.4417    9.0000    6.0000
+Mie              OAB       PHS         3.0359    0.4266    9.0000    6.0000
+Mie              C2T       PEP         1.0088    0.4481    9.0000    6.0000
+Mie              CM2R      PEP         1.5142    0.4062    9.0000    6.0000
+Mie              CMB       PEP         1.8230    0.4328    9.0000    6.0000
+Mie              CMDB      PEP         1.6552    0.4583    9.0000    6.0000
+Mie              CMR       PEP         1.6761    0.4441    9.0000    6.0000
+Mie              CMR5      PEP         1.1719    0.4441    9.0000    6.0000
+Mie              CTB       PEP         1.2619    0.4283    9.0000    6.0000
+Mie              CTBA      PEP         1.8523    0.4283    9.0000    6.0000
+Mie              CTBB      PEP         2.0682    0.4283    9.0000    6.0000
+Mie              OAB       PEP         3.9991    0.3931    9.0000    6.0000
+Mie              CM        CMD         1.3707    0.4426    9.0000    6.0000
+Mie              CMD       CMD2        1.0000    0.4165    9.0000    6.0000
+Mie              CMD       CT2         1.1820    0.4277    9.0000    6.0000
+Mie              CMD       EST1        1.9330    0.4165    9.0000    6.0000
+Mie              CMD       EST2        1.9330    0.4165    9.0000    6.0000
+Mie              CMD       GL          1.3707    0.4426    9.0000    6.0000
+Mie              CMD       NC          1.5376    0.4975    9.0000    6.0000
+Mie              CMD       PH          1.3180    0.4797    9.0000    6.0000
+Mie              CMD       OAB         1.5648    0.4293    9.0000    6.0000
+Mie              CM2R      CMD         1.1175    0.4240    9.0000    6.0000
+Mie              CMD       CMDB        1.4657    0.4761    9.0000    6.0000
+Mie              CMD       CTBA        1.7079    0.4461    9.0000    6.0000
+Mie              CMD       CTBB        1.7309    0.4461    9.0000    6.0000
+Mie              CMB       CMD         1.3912    0.4506    9.0000    6.0000
+Mie              CMD       CMR         1.3401    0.4619    9.0000    6.0000
+Mie              CMD       CMR5        1.2406    0.4619    9.0000    6.0000
+Mie              CMD       CTB         1.4535    0.4461    9.0000    6.0000
+Mie              CM2       CMD         1.4000    0.4462    9.0000    6.0000
+Mie              C2T       CMD         1.8284    0.4545    9.0000    6.0000
+Mie              CMD       W           1.2234    0.4268   12.0000    4.0000
+Mie              CLA       SOD         3.7447    0.4371   12.0000    4.0000
+Mie              SOD       W           3.7447    0.4371   12.0000    4.0000
+Mie              CLA       W           3.7447    0.4371   12.0000    4.0000
+Mie              CLA       CM          1.4226    0.4439   12.0000    4.0000
+Mie              CLA       CT2         1.2134    0.4296   12.0000    4.0000
+Mie              CM        NC4         1.7573    0.4760    9.0000    6.0000
+Mie              CT2       NC4         1.5899    0.4660    9.0000    6.0000
+Mie              NC4       W           3.9748    0.4430   12.0000    4.0000
+Mie              CLA       NC4         3.9748    0.4430   12.0000    4.0000
+Mie              SO4       W           4.6024    0.4100   12.0000    4.0000
+Mie              SO4       SOD         4.6024    0.4100   12.0000    4.0000
+Mie              CM        SOD         1.4226    0.4439   12.0000    4.0000
+Mie              CT        SOD         1.5062    0.4478   12.0000    4.0000
+Mie              CM        SO4         1.6025    0.4414    9.0000    6.0000
+Mie              CT        SO4         1.6945    0.4453    9.0000    6.0000
+Mie              NC4       SO4         2.8786    0.3870    9.0000    6.0000
+Mie              NC4       SOD         3.9748    0.4430   12.0000    4.0000
+Mie              CLA       SO4         4.6024    0.4100   12.0000    4.0000
+Mie              CT        NC4         1.8410    0.4800    9.0000    6.0000
+Mie              CT2       SO4         1.3389    0.4338    9.0000    6.0000
+Mie              CLA       CT          1.5062    0.4478   12.0000    4.0000
+#HarmonicBond    type1     type2       length         k  fixed
+HarmonicBond     C2T       CM          0.3100    7949.6  False
+HarmonicBond     C2T       CM2         0.2540   46024.0  False
+HarmonicBond     C2T       CT          0.3200    7531.2  False
+HarmonicBond     C2T       CT2         0.2600   23430.4  False
+HarmonicBond     CM2       CM2         0.2500    7531.2  False
+HarmonicBond     CM2       CT          0.3070    3765.6  False
+HarmonicBond     CM2       CT2         0.2538    7280.2  False
+HarmonicBond     CM2       CTB         0.2930   35564.0  False
+HarmonicBond     CM2R      CM2R        0.2320   74893.6  False
+HarmonicBond     CM2R      CMR         0.2300   95395.2  False
+HarmonicBond     CM2R      CTBA        0.2410   37656.0  False
+HarmonicBond     CM2R      OAB         0.2580   41840.0  False
+HarmonicBond     CMB       CMDB        0.3450   62760.0  False
+HarmonicBond     CMB       CMR5        0.3000   41840.0  False
+HarmonicBond     CMB       CTBA        0.3440   29288.0  False
+HarmonicBond     CMB       CTBB        0.3000   41840.0  False
+HarmonicBond     CM        CM          0.3640    2577.3  False
+HarmonicBond     CM        CM2         0.3061    4142.2  False
+HarmonicBond     CM        CT          0.3650    2577.3  False
+HarmonicBond     CM        CMD2        0.3030    3347.2  False
+HarmonicBond     CMDB      CMDB        0.2100  115060.0  False
+HarmonicBond     CMDB      CMR         0.2100   75730.4  False
+HarmonicBond     CMDB      CT2         0.3100   15899.2  False
+HarmonicBond     CMDB      CTBA        0.2500   33472.0  False
+HarmonicBond     CMDB      OAB         0.3070   46024.0  False
+HarmonicBond     CM        EO          0.3560    2970.6  False
+HarmonicBond     CM        OA          0.3010    3138.0  False
+HarmonicBond     CMR5      CTB         0.3140   32635.2  False
+HarmonicBond     CMR5      CTBB        0.2250   50208.0  False
+HarmonicBond     CMR       CTBA        0.2990   41840.0  False
+HarmonicBond     CMR       CTBB        0.2520   46024.0  False
+HarmonicBond     CM        CT2         0.3130    3765.6  False
+HarmonicBond     CT2       EO          0.3070    4184.0  False
+HarmonicBond     CT2       OA          0.2530    5857.6  False
+HarmonicBond     CTB       CTBB        0.3440   20920.0  False
+HarmonicBond     CMD2      CT          0.3090    3347.2  False
+HarmonicBond     CT        CT          0.3710    2910.0  False
+HarmonicBond     CT        EO          0.3610    2970.6  False
+HarmonicBond     CT        OA          0.3050    2910.0  False
+HarmonicBond     EO        EO          0.3280    2050.2  False
+HarmonicBond     EO        OA          0.2790    6276.0  False
+HarmonicBond     EO        EOT         0.3340    2259.4  False
+HarmonicBond     EOT       EOT         0.3330    2301.2  False
+HarmonicBond     CM        EST1        0.3550    1966.5  False
+HarmonicBond     CM        EST2        0.3610    2133.8  False
+HarmonicBond     EST1      GL          0.2880   12552.0  False
+HarmonicBond     EST2      GL          0.3480    3514.6  False
+HarmonicBond     NC        PH          0.4250    2008.3  False
+HarmonicBond     NH        PHE         0.3600    3933.0  False
+HarmonicBond     OA        OA          0.2160   26359.2  False
+HarmonicBond     CM        PH          0.3690    5020.8  False
+HarmonicBond     GL        PHE         0.3520    3723.8  False
+HarmonicBond     GL        PH          0.3520    3723.8  False
+HarmonicBond     NC        PHS         0.4050    3765.6  False
+HarmonicBond     GL2       OAD         0.2295   29288.0  False
+HarmonicBond     GL2       PEP         0.2295   37237.6  False
+HarmonicBond     GL2       PHS         0.3165   25104.0  False
+HarmonicBond     CMO       OAD         0.3055   11506.0  False
+HarmonicBond     CM        PEP         0.2855    5857.6  False
+HarmonicBond     CM        CMO         0.3540    2577.3  False
+HarmonicBond     CM        CMD         0.3330    2928.8  False
+HarmonicBond     CMD       CMD2        0.3030    6276.0  False
+HarmonicBond     CT        EST1        0.3550    1966.5  False
+HarmonicBond     CT        EST2        0.3610    2133.8  False
+HarmonicBond     CT2       EST1        0.3130    2719.6  False
+HarmonicBond     CT2       EST2        0.3130    2719.6  False
+HarmonicBond     CM        NC4         0.3800    5439.2  False
+HarmonicBond     CM        SO4         0.3630    4602.4  False
+#SDKAngle        type1     type2     type3        theta         k
+SDKAngle         C2T       CM2       CTB       155.0000   75.3120
+SDKAngle         CM2       CM        CM2       175.0000    5.1212
+SDKAngle         CM2       CM2       CT2       170.1000    4.6024
+SDKAngle         CM2       CM        EST1      178.0000    3.7656
+SDKAngle         CM2       CM        EST2      178.0000    3.7656
+#HarmonicAngle   type1     type2     type3        theta         k  fixed
+HarmonicAngle    CM2       CTB       CMR5      117.4000   51.8816  False
+SDKAngle         CM2       CTB       CTBB      126.0000   41.8400
+SDKAngle         CM2R      CM2R      CM2R       60.0000    4.1840
+HarmonicAngle    CM2R      CTBA      CMB       112.5000  334.7200  False
+HarmonicAngle    CM2R      CTBA      CMDB       75.9000  188.2800  False
+HarmonicAngle    CM2R      CTBA      CMR        98.7000  292.8800  False
+HarmonicAngle    CM2R      OAB       CMDB       63.9000  334.7200  False
+HarmonicAngle    CMB       CMDB      CTBA       68.6000  376.5600  False
+HarmonicAngle    CMB       CMDB      OAB       146.6000  543.9200  False
+HarmonicAngle    CMB       CMR5      CTBB       67.8000  292.8800  False
+HarmonicAngle    CMB       CMR5      CTB       131.7000  736.3840  False
+HarmonicAngle    CMB       CTBA      CMDB       68.9000  209.2000  False
+HarmonicAngle    CMB       CTBA      CMR        47.8000  627.6000  False
+HarmonicAngle    CMB       CTBB      CMR5       68.2000  209.2000  False
+HarmonicAngle    CMB       CTBB      CMR        56.3000  418.4000  False
+SDKAngle         CMB       CTBB      CTB       120.7000  292.8800
+SDKAngle         CM        CM        CM        173.0000    4.9790
+SDKAngle         CM        CM        CT        175.0000    4.9790
+SDKAngle         CM        CM        EO        172.0000    6.2760
+SDKAngle         CM        CM2       CM        173.0000    5.0208
+SDKAngle         CM        CM2       CT2       179.0000    4.2677
+SDKAngle         CM        CM        CM2       178.0000    5.8576
+SDKAngle         CT        CM2       CT        147.0000   12.5520
+SDKAngle         CM        CMD2      CM        110.0000   25.1040
+SDKAngle         CM        CM        CMD2      161.0000    7.9496
+HarmonicAngle    CMDB      CMB       CMR5      175.6000    1255.2  False
+HarmonicAngle    CMDB      CMB       CTBA       42.5000  523.0000  False
+HarmonicAngle    CMDB      CMB       CTBB      134.2000  209.2000  False
+HarmonicAngle    CMDB      CTBA      CMR       108.6000  418.4000  False
+SDKAngle         CM        EO        CM        171.0000    7.5312
+SDKAngle         CM        EO        EO        146.0000   13.3888
+HarmonicAngle    CMR5      CMB       CTBA      135.8000  125.5200  False
+HarmonicAngle    CMR5      CMB       CTBB       44.0000  376.5600  False
+HarmonicAngle    CMR5      CTB       CTBB       39.7000    1255.2  False
+SDKAngle         CMR5      CTBB      CTB        62.7000  418.4000
+HarmonicAngle    CMR       CTBB      CMR5      107.0000  627.6000  False
+SDKAngle         CMR       CTBB      CTB       110.1000  313.8000
+SDKAngle         CM        CM        CT2       172.0000    6.6944
+SDKAngle         CT2       CM        CT2       173.0000    7.1128
+SDKAngle         CT2       CM        EO        178.0000    5.4392
+SDKAngle         CT2       CM        OA        166.0000    7.5312
+SDKAngle         CT        CM2       CT2       180.0000    4.3932
+SDKAngle         CT2       CMD2      CT2       110.0000   50.2080
+SDKAngle         CT2       EO        CT2       165.0000   10.8784
+HarmonicAngle    CTBA      CM2R      OAB       107.4000  209.2000  False
+HarmonicAngle    CTBA      CMB       CTBB       92.2000  167.3600  False
+HarmonicAngle    CTBA      CMDB      OAB        91.8000  167.3600  False
+HarmonicAngle    CTBA      CMR       CTBB      115.0000  125.5200  False
+HarmonicAngle    CTB       CMR5      CTBB       77.4000  800.3992  False
+SDKAngle         CT        CM        CT        175.5000    4.5731
+SDKAngle         CT        CMD2      CT        116.0000   32.2168
+SDKAngle         CT        EO        EO        145.0000    9.2048
+SDKAngle         EO        EO        EO        132.0000   14.2256
+SDKAngle         EO        EO        EOT       135.0000   14.6440
+SDKAngle         EO        EO        OA        131.0000   12.5520
+SDKAngle         EOT       EO        EOT       134.0000   14.6440
+SDKAngle         CM        CM        EST1      178.0000    4.1840
+SDKAngle         EST1      GL        EST2       95.0000    4.1840
+SDKAngle         CM        CM        EST2      178.0000    4.1840
+SDKAngle         CM        EST1      GL        168.0000    3.3472
+SDKAngle         CM        EST2      GL        172.0000    3.3472
+SDKAngle         CM        PH        NC        112.0000   13.8072
+SDKAngle         GL        PH        NC        112.0000   12.9704
+SDKAngle         GL        PHE       NH        102.0000   16.7360
+SDKAngle         CT2       EO        OA        146.0000   16.7360
+SDKAngle         OA        EO        OA        131.0000   27.6144
+SDKAngle         CM        CM        PH        178.0000    4.6024
+SDKAngle         EST1      GL        PHE       124.0000    5.8576
+SDKAngle         EST2      GL        PHE       138.0000    8.3680
+SDKAngle         EST1      GL        PH        124.0000    5.8576
+SDKAngle         EST2      GL        PH        138.0000    8.3680
+SDKAngle         CM        CM        CMO       157.5000   12.9704
+SDKAngle         CM        CMO       OAD       155.5000   14.6440
+SDKAngle         CM        CM        PEP       147.5000    8.3680
+SDKAngle         CM        PEP       GL2       166.0000   29.2880
+SDKAngle         CMO       OAD       GL2       107.5000  148.5320
+HarmonicAngle    GL2       PHS       NC        113.5000   20.9200  False
+SDKAngle         OAD       GL2       PEP       124.1000  292.8800
+HarmonicAngle    OAD       GL2       PHS        95.5000  107.1104  False
+HarmonicAngle    PEP       GL2       PHS       145.5000   14.6440  False
+SDKAngle         CM        CMD       CMD2      141.0000    6.2760
+SDKAngle         CM        CMD2      CMD       116.0000   11.2968
+SDKAngle         CMD       CM        CT2       161.0000    7.9496
+SDKAngle         CM        CM        NC4       174.0000    4.1840
+SDKAngle         CM        CM        SO4       178.0000    4.6024
+#PeriodicDihedral type1     type2     type3     type4
+PeriodicDihedral CM2       CTB       CMR5      CTBB          105.0    8.3680  2

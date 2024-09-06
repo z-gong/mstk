@@ -36,15 +36,13 @@ def test_read():
     assert pytest.approx(angle.theta, abs=1e-6) == 110.7 * DEG2RAD
     assert angle.k == 313.8 / 2
 
-    dihedral = ff.dihedral_terms['CT,CT,CT,HC']
-    term = dihedral.to_opls_term()
+    term = ff.dihedral_terms['CT,CT,CT,HC']
     assert term.k1 == 0
     assert term.k2 == 0
     assert term.k3 == 1.2552 / 2
     assert term.k4 == 0
 
-    dihedral = ff.dihedral_terms['CT,CT,CT,CT']
-    term = dihedral.to_opls_term()
+    term = ff.dihedral_terms['CT,CT,CT,CT']
     assert term.k1 == 5.4392 / 2
     assert term.k2 == -0.2092 / 2
     assert term.k3 == 0.8368 / 2

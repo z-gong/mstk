@@ -1,0 +1,22 @@
+Setting          vdw_cutoff       1.2
+Setting          vdw_long_range   correct
+Setting          lj_mixing_rule   lorentz-berthelot
+Setting          scale_14_vdw     0.5
+Setting          scale_14_coulomb 0.8333333333333334
+
+#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+AtomType         h_1o        1.0079    0.0000  h_1o      h_1o      h_1       h_1       h_1       h_1       h_1       h_1       h_1       h_1o
+AtomType         o_2w       15.9994    0.0000  o_2w      o_2w      o_2w      o_2w      o_2w      o_2w      o_2       o_2w      o_2       o_2w
+#ChargeIncrement type1     type2        value
+ChargeIncrement  h_1o      o_2w        0.4238
+#LJ126           type1     type2      epsilon     sigma
+LJ126            h_1o      h_1o      4.184e-04  8.909e-06
+LJ126            o_2w      o_2w        0.6498    0.3166
+LJ126            s_2       s_2         1.8744    0.3368
+LJ126            s_2h      s_2h        1.7991    0.3541
+LJ126            c_4h3     o_2w        0.4827    0.3301
+LJ126            o_2       o_2w        0.9596    0.3071
+#HarmonicBond    type1     type2       length         k  fixed
+HarmonicBond     h_1       o_2w        0.1000  188280.0  True
+#HarmonicAngle   type1     type2     type3        theta         k  fixed
+HarmonicAngle    h_1       o_2w      h_1       109.4700  230.1200  True

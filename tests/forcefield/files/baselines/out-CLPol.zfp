@@ -342,104 +342,104 @@
     <HarmonicAngleTerm type1="CA" type2="SO" type3="OS" theta="104.2" k="435.0" fixed="False"/>
   </AngleTerms>
   <DihedralTerms>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="HC" phi_3="0.0" k_3="0.6276"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="HC" phi_3="0.0" k_3="0.6276"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="CT" phi_1="0.0" k_1="2.7196" phi_2="180.0" k_2="-0.1046" phi_3="0.0" k_3="0.4184"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CA" type4="CA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CA" type4="HA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="HA" type2="CA" type3="CA" type4="HA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CA" type4="CT" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CT" type2="CA" type3="CA" type4="HA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CA" type4="NA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="HA" type2="CA" type3="CA" type4="NA" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="NA" type4="CA" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CA" type2="NA" type3="CA" type4="HA" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="NA" type4="CT" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CT" type2="NA" type3="CA" type4="HA" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CA" type2="NA" type3="CT" type4="HC"/>
-    <PeriodicDihedralTerm type1="CA" type2="NA" type3="CT" type4="CT" phi_2="180.0" k_2="0.5460" phi_4="180.0" k_4="0.3965"/>
-    <PeriodicDihedralTerm type1="CW" type2="NA" type3="CR" type4="NA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CW" type2="NA" type3="CR" type4="HA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CT" type2="NA" type3="CR" type4="NA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CT" type2="NA" type3="CR" type4="HA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CR" type2="NA" type3="CW" type4="CW" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CR" type2="NA" type3="CW" type4="HA" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CT" type2="NA" type3="CW" type4="CW" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="CT" type2="NA" type3="CW" type4="HA" phi_2="180.0" k_2="6.2760"/>
-    <PeriodicDihedralTerm type1="NA" type2="CW" type3="CW" type4="NA" phi_2="180.0" k_2="22.4900"/>
-    <PeriodicDihedralTerm type1="HA" type2="CW" type3="CW" type4="NA" phi_2="180.0" k_2="22.4900"/>
-    <PeriodicDihedralTerm type1="HA" type2="CW" type3="CW" type4="HA" phi_2="180.0" k_2="22.4900"/>
-    <PeriodicDihedralTerm type1="CW" type2="NA" type3="CT" type4="HC" phi_3="0.0" k_3="0.2595"/>
-    <PeriodicDihedralTerm type1="CR" type2="NA" type3="CT" type4="HC"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="NA" type4="CW" phi_1="0.0" k_1="-3.5768" phi_2="180.0" k_2="3.0532" phi_3="0.0" k_3="0.3970"/>
-    <PeriodicDihedralTerm type1="CR" type2="NA" type3="CT" type4="CT" phi_1="0.0" k_1="-2.6345"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="NA" phi_1="0.0" k_1="-3.7399" phi_2="180.0" k_2="1.5821" phi_3="0.0" k_3="-0.6013"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="NA" phi_3="0.0" k_3="0.1835"/>
-    <PeriodicDihedralTerm type1="HA" type2="NA" type3="CR" type4="NA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="HA" type2="CR" type3="NA" type4="HA" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CW" type2="CW" type3="NA" type4="HA" phi_2="180.0" k_2="6.2750"/>
-    <PeriodicDihedralTerm type1="HA" type2="CW" type3="NA" type4="HA" phi_2="180.0" k_2="6.2750"/>
-    <PeriodicDihedralTerm type1="CT" type2="CR" type3="NA" type4="CW" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="CT" type2="CR" type3="NA" type4="CT" phi_2="180.0" k_2="9.7300"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CR" type4="NA"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CT" type4="NA"/>
-    <PeriodicDihedralTerm type1="CA" type2="CT" type3="NA" type4="CR"/>
-    <PeriodicDihedralTerm type1="CA" type2="CT" type3="NA" type4="CW"/>
-    <PeriodicDihedralTerm type1="F" type2="CF" type3="CT" type4="HC" phi_3="0.0" k_3="0.6067"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CF" type4="F" phi_3="0.0" k_3="0.9686"/>
-    <PeriodicDihedralTerm type1="CT" type2="CF" type3="CF" type4="F" phi_3="0.0" k_3="1.3828"/>
-    <PeriodicDihedralTerm type1="CF" type2="CT" type3="CT" type4="HC" phi_3="0.0" k_3="0.2782"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CT" type4="HC" phi_3="0.0" k_3="0.3786"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CF" type4="CT" phi_1="0.0" k_1="7.3375" phi_2="180.0" k_2="-0.4590" phi_3="0.0" k_3="-1.4490" phi_4="180.0" k_4="-1.0087"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CT" type4="CT" phi_1="0.0" k_1="-0.2940" phi_2="180.0" k_2="-0.3821" phi_3="0.0" k_3="-0.1585" phi_4="180.0" k_4="-0.1590"/>
-    <PeriodicDihedralTerm type1="CF" type2="CT" type3="CT" type4="NA"/>
-    <PeriodicDihedralTerm type1="F" type2="CF" type3="CF" type4="F" phi_1="0.0" k_1="-5.2300" phi_3="0.0" k_3="0.5230"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CF" type4="F" phi_1="0.0" k_1="0.6276" phi_3="0.0" k_3="0.8368"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CF" type4="CF" phi_1="0.0" k_1="13.8532" phi_2="180.0" k_2="1.9832" phi_3="0.0" k_3="-2.9037" phi_4="180.0" k_4="-4.4309"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="NT" phi_1="0.0" k_1="-2.1192" phi_2="180.0" k_2="-1.4832" phi_3="0.0" k_3="0.9895"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="NT" phi_1="0.0" k_1="5.0041" phi_2="180.0" k_2="-1.4100" phi_3="0.0" k_3="1.1506"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="NT" type4="CT" phi_1="0.0" k_1="0.8702" phi_2="180.0" k_2="-0.2678" phi_3="0.0" k_3="1.4540"/>
-    <PeriodicDihedralTerm type1="CT" type2="NT" type3="CT" type4="HC" phi_3="0.0" k_3="1.1715"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="NT" type4="HN" phi_3="0.0" k_3="0.8368"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="NT" type4="HN" phi_1="0.0" k_1="-0.3975" phi_2="180.0" k_2="-0.8723" phi_3="0.0" k_3="0.8744"/>
-    <PeriodicDihedralTerm type1="NT" type2="CT" type3="CT" type4="OH" phi_1="0.0" k_1="-22.0257" phi_2="180.0" k_2="-2.7174"/>
-    <PeriodicDihedralTerm type1="HG" type2="NG" type3="CG" type4="NG" phi_2="180.0" k_2="8.1642"/>
-    <PeriodicDihedralTerm type1="CT" type2="PT" type3="CT" type4="HC" phi_3="0.0" k_3="0.4635"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="PT" type4="CT" phi_3="0.0" k_3="0.5665"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="PT" phi_3="0.0" k_3="0.2325"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="PT" phi_1="0.0" k_1="-1.6240" phi_2="180.0" k_2="0.4940" phi_3="0.0" k_3="-0.3575"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="OH" type4="HO" phi_3="0.0" k_3="0.9414"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="OH" type4="HO" phi_1="0.0" k_1="-0.7448" phi_2="180.0" k_2="-0.3640" phi_3="0.0" k_3="1.0292"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="OH" phi_3="0.0" k_3="0.9790"/>
-    <PeriodicDihedralTerm type1="OH" type2="CT" type3="CT" type4="OH" phi_2="180.0" k_2="-4.9162" phi_3="0.0" k_3="0.6025"/>
-    <PeriodicDihedralTerm type1="FB" type2="CF" type3="SB" type4="OB" phi_3="0.0" k_3="0.7255"/>
-    <PeriodicDihedralTerm type1="FB" type2="CF" type3="SB" type4="NB" phi_3="0.0" k_3="0.6610"/>
-    <PeriodicDihedralTerm type1="OB" type2="SB" type3="NB" type4="SB" phi_3="0.0" k_3="-0.0075"/>
-    <PeriodicDihedralTerm type1="CF" type2="SB" type3="NB" type4="SB" phi_1="0.0" k_1="16.3865" phi_2="180.0" k_2="-5.2100" phi_3="0.0" k_3="-1.5975"/>
-    <PeriodicDihedralTerm type1="F" type2="CF" type3="CF" type4="FB" phi_1="0.0" k_1="-5.2300" phi_3="0.0" k_3="0.5230"/>
-    <PeriodicDihedralTerm type1="FB" type2="CF" type3="CF" type4="SB" phi_3="0.0" k_3="0.7265"/>
-    <PeriodicDihedralTerm type1="F" type2="CF" type3="CF" type4="SB" phi_3="0.0" k_3="0.7265"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="SB" type4="OB" phi_3="0.0" k_3="-0.3700"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="SB" type4="NB" phi_1="0.0" k_1="-1.5470"/>
-    <PeriodicDihedralTerm type1="CF" type2="CF" type3="CF" type4="SB" phi_1="0.0" k_1="25.0450" phi_3="0.0" k_3="-2.3130" phi_4="180.0" k_4="-2.0040"/>
-    <PeriodicDihedralTerm type1="FB" type2="SB" type3="NB" type4="SB" phi_1="0.0" k_1="5.7225" phi_2="180.0" k_2="-7.5930" phi_3="0.0" k_3="-1.6060"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CO" type4="O2"/>
-    <PeriodicDihedralTerm type1="F" type2="CF" type3="CO" type4="O2"/>
-    <PeriodicDihedralTerm type1="CT" type2="OC" type3="SO" type4="OS" phi_3="0.0" k_3="1.2408"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="OC" type4="SO" phi_3="0.0" k_3="0.8429"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="OC" type4="SO" phi_1="0.0" k_1="-3.0071" phi_2="180.0" k_2="-1.5567" phi_3="0.0" k_3="0.7470"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="OC" phi_3="0.0" k_3="1.0349"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="OC" phi_1="0.0" k_1="2.1947" phi_2="180.0" k_2="-0.9136" phi_3="0.0" k_3="1.4852"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="SO" type4="OS" phi_3="0.0" k_3="0.8125"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="SO" type4="OS" phi_3="0.0" k_3="0.6969"/>
-    <PeriodicDihedralTerm type1="HC" type2="CT" type3="CT" type4="SO" phi_3="0.0" k_3="0.6898"/>
-    <PeriodicDihedralTerm type1="CT" type2="CT" type3="CT" type4="SO" phi_1="0.0" k_1="-8.0500" phi_2="180.0" k_2="-1.0023" phi_3="0.0" k_3="0.3837"/>
-    <PeriodicDihedralTerm type1="CZ" type2="N3" type3="CZ" type4="NZ"/>
-    <PeriodicDihedralTerm type1="CN" type2="C3A" type3="CN" type4="NC"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="SO" type4="OS"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CA" type4="SO" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="HA" type2="CA" type3="CA" type4="SO" phi_2="180.0" k_2="15.1670"/>
-    <PeriodicDihedralTerm type1="CA" type2="CA" type3="CT" type4="HC"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.6276" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.6276" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="CT" k1="2.7196" k2="-0.1046" k3="0.4184" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CA" type4="CA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CA" type4="HA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CA" type3="CA" type4="HA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CA" type4="CT" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CA" type3="CA" type4="HA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CA" type4="NA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CA" type3="CA" type4="NA" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="NA" type4="CA" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="NA" type3="CA" type4="HA" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="NA" type4="CT" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NA" type3="CA" type4="HA" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="NA" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="NA" type3="CT" type4="CT" k1="0.0" k2="0.546" k3="0.0" k4="0.3965"/>
+    <OplsDihedralTerm type1="CW" type2="NA" type3="CR" type4="NA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CW" type2="NA" type3="CR" type4="HA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NA" type3="CR" type4="NA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NA" type3="CR" type4="HA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CR" type2="NA" type3="CW" type4="CW" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CR" type2="NA" type3="CW" type4="HA" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NA" type3="CW" type4="CW" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NA" type3="CW" type4="HA" k1="0.0" k2="6.276" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="NA" type2="CW" type3="CW" type4="NA" k1="0.0" k2="22.49" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CW" type3="CW" type4="NA" k1="0.0" k2="22.49" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CW" type3="CW" type4="HA" k1="0.0" k2="22.49" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CW" type2="NA" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.2595" k4="0.0"/>
+    <OplsDihedralTerm type1="CR" type2="NA" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="NA" type4="CW" k1="-3.57675" k2="3.0532" k3="0.39695" k4="0.0"/>
+    <OplsDihedralTerm type1="CR" type2="NA" type3="CT" type4="CT" k1="-2.63455" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="NA" k1="-3.73985" k2="1.5821" k3="-0.6013" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="NA" k1="0.0" k2="0.0" k3="0.1835" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="NA" type3="CR" type4="NA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CR" type3="NA" type4="HA" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CW" type2="CW" type3="NA" type4="HA" k1="0.0" k2="6.275" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CW" type3="NA" type4="HA" k1="0.0" k2="6.275" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CR" type3="NA" type4="CW" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CR" type3="NA" type4="CT" k1="0.0" k2="9.73" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CR" type4="NA" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CT" type4="NA" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CT" type3="NA" type4="CR" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CT" type3="NA" type4="CW" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="F" type2="CF" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.6067" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CF" type4="F" k1="0.0" k2="0.0" k3="0.9686" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CF" type3="CF" type4="F" k1="0.0" k2="0.0" k3="1.3828" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CT" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.27825" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.37865" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CF" type4="CT" k1="7.3375" k2="-0.45895" k3="-1.449" k4="-1.0087"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CT" type4="CT" k1="-0.29405" k2="-0.3821" k3="-0.1585" k4="-0.15895"/>
+    <OplsDihedralTerm type1="CF" type2="CT" type3="CT" type4="NA" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="F" type2="CF" type3="CF" type4="F" k1="-5.23" k2="0.0" k3="0.523" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CF" type4="F" k1="0.6276" k2="0.0" k3="0.8368" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CF" type4="CF" k1="13.8532" k2="1.9832" k3="-2.9037" k4="-4.43085"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="NT" k1="-2.1192" k2="-1.48325" k3="0.9895" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="NT" k1="5.00405" k2="-1.41" k3="1.1506" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="NT" type4="CT" k1="0.87025" k2="-0.2678" k3="1.45395" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="NT" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="1.1715" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="NT" type4="HN" k1="0.0" k2="0.0" k3="0.8368" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="NT" type4="HN" k1="-0.3975" k2="-0.87235" k3="0.87445" k4="0.0"/>
+    <OplsDihedralTerm type1="NT" type2="CT" type3="CT" type4="OH" k1="-22.02575" k2="-2.71745" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HG" type2="NG" type3="CG" type4="NG" k1="0.0" k2="8.16425" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="PT" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.4635" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="PT" type4="CT" k1="0.0" k2="0.0" k3="0.5665" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="PT" k1="0.0" k2="0.0" k3="0.2325" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="PT" k1="-1.624" k2="0.494" k3="-0.3575" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="OH" type4="HO" k1="0.0" k2="0.0" k3="0.9414" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="OH" type4="HO" k1="-0.74475" k2="-0.364" k3="1.02925" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="OH" k1="0.0" k2="0.0" k3="0.97905" k4="0.0"/>
+    <OplsDihedralTerm type1="OH" type2="CT" type3="CT" type4="OH" k1="0.0" k2="-4.9162" k3="0.6025" k4="0.0"/>
+    <OplsDihedralTerm type1="FB" type2="CF" type3="SB" type4="OB" k1="0.0" k2="0.0" k3="0.7255" k4="0.0"/>
+    <OplsDihedralTerm type1="FB" type2="CF" type3="SB" type4="NB" k1="0.0" k2="0.0" k3="0.661" k4="0.0"/>
+    <OplsDihedralTerm type1="OB" type2="SB" type3="NB" type4="SB" k1="0.0" k2="0.0" k3="-0.0075" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="SB" type3="NB" type4="SB" k1="16.3865" k2="-5.21" k3="-1.5975" k4="0.0"/>
+    <OplsDihedralTerm type1="F" type2="CF" type3="CF" type4="FB" k1="-5.23" k2="0.0" k3="0.523" k4="0.0"/>
+    <OplsDihedralTerm type1="FB" type2="CF" type3="CF" type4="SB" k1="0.0" k2="0.0" k3="0.7265" k4="0.0"/>
+    <OplsDihedralTerm type1="F" type2="CF" type3="CF" type4="SB" k1="0.0" k2="0.0" k3="0.7265" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="SB" type4="OB" k1="0.0" k2="0.0" k3="-0.37" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="SB" type4="NB" k1="-1.547" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CF" type2="CF" type3="CF" type4="SB" k1="25.045" k2="0.0" k3="-2.313" k4="-2.004"/>
+    <OplsDihedralTerm type1="FB" type2="SB" type3="NB" type4="SB" k1="5.7225" k2="-7.593" k3="-1.606" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CO" type4="O2" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="F" type2="CF" type3="CO" type4="O2" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="OC" type3="SO" type4="OS" k1="0.0" k2="0.0" k3="1.24075" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="OC" type4="SO" k1="0.0" k2="0.0" k3="0.8429" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="OC" type4="SO" k1="-3.0071" k2="-1.55665" k3="0.74705" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="OC" k1="0.0" k2="0.0" k3="1.0349" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="OC" k1="2.19465" k2="-0.91365" k3="1.48525" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="SO" type4="OS" k1="0.0" k2="0.0" k3="0.8125" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="SO" type4="OS" k1="0.0" k2="0.0" k3="0.6969" k4="0.0"/>
+    <OplsDihedralTerm type1="HC" type2="CT" type3="CT" type4="SO" k1="0.0" k2="0.0" k3="0.68985" k4="0.0"/>
+    <OplsDihedralTerm type1="CT" type2="CT" type3="CT" type4="SO" k1="-8.05" k2="-1.0023" k3="0.3837" k4="0.0"/>
+    <OplsDihedralTerm type1="CZ" type2="N3" type3="CZ" type4="NZ" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CN" type2="C3A" type3="CN" type4="NC" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="SO" type4="OS" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CA" type4="SO" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="HA" type2="CA" type3="CA" type4="SO" k1="0.0" k2="15.167" k3="0.0" k4="0.0"/>
+    <OplsDihedralTerm type1="CA" type2="CA" type3="CT" type4="HC" k1="0.0" k2="0.0" k3="0.0" k4="0.0"/>
   </DihedralTerms>
   <ImproperTerms>
     <OplsImproperTerm type1="CA" type2="CA" type3="CA" type4="HA" k="4.6024"/>

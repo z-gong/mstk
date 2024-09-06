@@ -134,7 +134,7 @@ def test_tip4p():
 
 
 def test_sdk():
-    ff = ForceField.open('SPICA_v1.zfp')
+    ff = ForceField.open('SPICA_v1.0.zff')
     top = Topology.open(cwd + '/files/10-SDS-20-W.lmp')
     for atom in top.atoms:
         atom.charge /= 80 ** 0.5

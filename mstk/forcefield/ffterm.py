@@ -263,10 +263,12 @@ class FFTerm:
             if attr in self._zfp_convert:
                 val = self._zfp_convert[attr][1](val)
             if func is float:
-                if val >= 1000000:
+                if abs(val) >= 1000000:
                     string = ' %8i' % round(val)
-                elif val >= 1000:
+                elif abs(val) >= 1000:
                     string = ' %8.1f' % val
+                elif 0 < abs(val) < 0.01:
+                    string = ' %8.3e' % val
                 else:
                     string = ' %8.4f' % val
                 string += '?' if attr in self.adjustables else ' '
@@ -1670,8 +1672,6 @@ class PeriodicDihedralTerm(DihedralTerm):
                 k = float(d['k_%i' % n])
                 if k != 0:
                     self.add_phase(phi, k, n)
-        if not self.phases:
-            self.add_phase(0.0, 0.0, 1)
 
     def to_zff(self):
         line = '%-16s %-9s %-9s %-9s %-9s' % (self.__class__.get_alias(),
@@ -1692,8 +1692,6 @@ class PeriodicDihedralTerm(DihedralTerm):
             n = int(str_vals[i * 3 + 2])
             if k != 0:
                 self.add_phase(phi, k, n)
-        if not self.phases:
-            self.add_phase(0.0, 0.0, 1)
 
     def evaluate_energy(self, val):
         energy = 0

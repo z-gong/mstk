@@ -14,7 +14,7 @@ def test_tip4p():
     top = Topology.open(os.path.join(cwd, 'files/TIP3P.zmat'))
     mol = top.molecules[0]
 
-    ff = ForceField.open(os.path.join(cwd, '../forcefield/files/TIP4P.zfp'))
+    ff = ForceField.open(os.path.join(cwd, '../forcefield/files/TIP4P.zff'))
     mol.generate_virtual_sites(ff)
     ff.assign_charge(mol)
 

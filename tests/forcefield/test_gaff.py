@@ -4,7 +4,7 @@ import filecmp
 import pytest
 
 from mstk.topology import Molecule, Topology
-from mstk.forcefield import ForceField, Zfp, ZftTyper, GaffTyper
+from mstk.forcefield import ForceField, GaffTyper
 from mstk.simsys import System
 
 cwd = os.path.dirname(os.path.abspath(__file__))
