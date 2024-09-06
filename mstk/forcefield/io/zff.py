@@ -9,7 +9,6 @@ class Zff:
     Parse ForceField from ZFF file.
 
     ZFF is the default plain text force field format in `mstk`.
-    Comparing to ZFP, ZFF is more human-friendly but less program-friendly.
 
     In ZFF file, there is no leading 1/2 for harmonic energy terms.
     The length is in unit of nm, and angle is in unit of degree.
@@ -107,7 +106,7 @@ class Zff:
         _header_printed = set()
         for term in itertools.chain(ff.atom_types.values(),
                                     ff.virtual_site_terms.values(),
-                                    ff.qinc_terms.values(),
+                                    ff.bci_terms.values(),
                                     ff.vdw_terms.values(),
                                     ff.pairwise_vdw_terms.values(),
                                     ff.bond_terms.values(),

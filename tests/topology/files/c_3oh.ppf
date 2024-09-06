@@ -19,7 +19,7 @@ ATC: c_3oh:    0.00000*: V 1.0, S MGI, C D, R R1
 ATC: h_1:    0.00000*: V 1.0, S MGI, C D, R R1
 ATC: o_1:    0.00000*: V 1.0, S MGI, C D, R R1
 BINC: c_3, c_3:    0.00000*: V 1.0, S MGI, C D, R R1
-BINC: c_3, c_3ohxx:   1.0*: !Faked parameter for testing transfer_qinc_terms()
+BINC: c_3, c_3ohxx:   1.0*: !Faked parameter for testing transfer_bci_terms()
 BINC: c_3, c_3o:   -0.03540*:
 BINC: c_3, h_1:   -0.16000*: V 1.0, S MGI, C D, R R1
 BINC: c_3oh, h_1:    0.02910*: V 1.0, S MGI, C D, R R1

@@ -138,7 +138,7 @@ class Ppf:
                 continue
             atype = AtomType(line.key)
             # _eqt_charge_ is a temporary variable for matching charge
-            (atype.eqt_vdw, atype._eqt_charge_, atype.eqt_q_inc, atype.eqt_bond,
+            (atype.eqt_vdw, atype._eqt_charge_, atype.eqt_bci, atype.eqt_bond,
              atype.eqt_ang_c, atype.eqt_ang_s, atype.eqt_dih_c, atype.eqt_dih_s,
              atype.eqt_imp_c, atype.eqt_imp_s) = line.value.split()
             atype.version = line.version
@@ -162,7 +162,7 @@ class Ppf:
                     logger.warning('Invalid BINC line ignored: %s' % line.key)
                 else:
                     term.version = line.version
-                    ff.qinc_terms[term.name] = term
+                    ff.bci_terms[term.name] = term
             elif line.term == 'N12_6':
                 at = line.get_names()[0]
                 r_min, epsilon = line.get_float_values()

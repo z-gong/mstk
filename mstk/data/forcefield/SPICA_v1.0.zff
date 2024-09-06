@@ -7,7 +7,7 @@ Setting          lj_mixing_rule   none
 Setting          scale_14_vdw     1.0
 Setting          scale_14_coulomb 1.0
 
-#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+#AtomType        name          mass    charge  eqt_bci   eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
 AtomType         OA         31.0340    0.0000  OA        OA        OA        OA        OA        OA        OA        OA        OA        OA
 AtomType         CT         43.0880    0.0000  CT        CT        CT        CT        CT        CT        CT        CT        CT        CT
 AtomType         CM         42.0800    0.0000  CM        CM        CM        CM        CM        CM        CM        CM        CM        CM

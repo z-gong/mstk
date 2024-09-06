@@ -19,7 +19,7 @@ def test_read():
     c_4pp = ff.atom_types.get('c_4pp')
     assert c_4pp.charge == 0
     assert c_4pp.eqt_vdw == c_4pp.name
-    assert c_4pp.eqt_q_inc == c_4pp.name
+    assert c_4pp.eqt_bci == c_4pp.name
     assert c_4pp.eqt_bond == 'c_4'
     assert c_4pp.eqt_ang_c == 'c_4'
     assert c_4pp.eqt_ang_s == 'c_4'
@@ -36,7 +36,7 @@ def test_read():
     o_1_t = ff.atom_types.get('o_1-t')
     assert o_1_t.charge == -0.3333
 
-    binc = ff.qinc_terms.get('c_35an2,h_1')
+    binc = ff.bci_terms.get('c_35an2,h_1')
     assert binc.type1 == 'c_35an2'
     assert binc.type2 == 'h_1'
     assert binc.version == '0.16'

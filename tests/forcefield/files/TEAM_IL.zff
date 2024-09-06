@@ -4,7 +4,7 @@ Setting          lj_mixing_rule   lorentz-berthelot
 Setting          scale_14_vdw     0.5
 Setting          scale_14_coulomb 0.8333333333333334
 
-#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+#AtomType        name          mass    charge  eqt_bci   eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
 AtomType         b_4-       10.8110   -1.0000  b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-      b_4-
 AtomType         br0-       79.9040   -1.0000  br0-      br0-      br0-      br0-      br0-      br0-      br0       br0-      br0       br0-
 AtomType         c_2n       12.0110    0.0000  c_2n      c_2n      c_2n      c_2       c_2       c_2       c_2       c_2       c_2       c_2n

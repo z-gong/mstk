@@ -28,7 +28,7 @@ def dff_fuzzy_match(term, ff):
         AngleTerm          : ff.angle_terms,
         DihedralTerm       : ff.dihedral_terms,
         ImproperTerm       : ff.improper_terms,
-        ChargeIncrementTerm: ff.qinc_terms,
+        ChargeIncrementTerm: ff.bci_terms,
     }
     for term_type, candidates in term_candidates.items():
         if type(term) is term_type:

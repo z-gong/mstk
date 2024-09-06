@@ -15,7 +15,7 @@ class ForceField:
         All the atom types in this force field.
         For each key value pair, the value is a AtomType object,
         the key is the :attr:`~AtomType.name` of the object.
-    qinc_terms : dict, [str, ChargeIncrementTerm]
+    bci_terms : dict, [str, ChargeIncrementTerm]
         All the charge increment terms.
         For each key value pair, the value is a ChargeIncrementTerm object,
         the key is the :attr:`~ChargeIncrementTerm.name` of the object.
@@ -105,7 +105,7 @@ class ForceField:
 
     def __init__(self):
         self.atom_types: {str: AtomType} = {}
-        self.qinc_terms: {str: ChargeIncrementTerm} = {}
+        self.bci_terms: {str: ChargeIncrementTerm} = {}
         self.bond_terms: {str: BondTerm} = {}
         self.angle_terms: {str: AngleTerm} = {}
         self.dihedral_terms: {str: DihedralTerm} = {}
@@ -159,10 +159,10 @@ class ForceField:
         Parameters
         ----------
         files : str
-            The files to be read. The extension can be `zfp`, `zff', `ppf` or `ff`.
+            The files to be read. The extension can be `zff`, `zfp', `ppf` or `ff`.
 
-            * `zfp` file is the native XML format of mstk, and will be parsed by :class:`Zfp`.
-            * `zff` file is the plain text format of mstk, and will be parsed by :class:`Zff`.
+            * `zff` file is the default plain text format of mstk, and will be parsed by :class:`Zff`.
+            * `zfp` file is the deprecated XML format of mstk, and will be parsed by :class:`Zfp`.
             * `ppf` file will be parsed as DFF format by :class:`Ppf`.
             * `ff` file will be parsed as fftool format by :class:`Padua`.
 
@@ -293,8 +293,8 @@ class ForceField:
             else:
                 _duplicated = True
         elif isinstance(term, ChargeIncrementTerm):
-            if term.name not in self.qinc_terms or replace:
-                self.qinc_terms[term.name] = term
+            if term.name not in self.bci_terms or replace:
+                self.bci_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, BondTerm):
@@ -668,7 +668,7 @@ class ForceField:
 
         return iterm
 
-    def get_eqt_for_qinc(self, bond):
+    def get_eqt_for_bci(self, bond):
         '''
         Get the equivalent atom types for charge increment parameters of the two atoms in a bond.
 
@@ -684,14 +684,14 @@ class ForceField:
             The equivalent atom type for charge increment parameters of the second atom in this bond.
         '''
         try:
-            at1 = self.atom_types.get(bond.atom1.type).eqt_q_inc
-            at2 = self.atom_types.get(bond.atom2.type).eqt_q_inc
+            at1 = self.atom_types.get(bond.atom1.type).eqt_bci
+            at2 = self.atom_types.get(bond.atom2.type).eqt_bci
         except:
             raise FFTermNotFoundError(
                 f'Atom type {bond.atom1.type} or {bond.atom2.type} not found in FF')
         return at1, at2
 
-    def get_qinc_term(self, type1, type2):
+    def get_bci_term(self, type1, type2):
         '''
         Get the charge increment term for the bond formed by two atom types.
         A direction will also be returned, which equal to 1 if type1 in the charge increment term matches type1 in arguments, -1 otherwise.
@@ -712,12 +712,12 @@ class ForceField:
         term : subclass of BondTerm
         direction : [1, -1]
         '''
-        at1: str = type1.eqt_q_inc if type(type1) is AtomType else type1
-        at2: str = type2.eqt_q_inc if type(type2) is AtomType else type2
+        at1: str = type1.eqt_bci if type(type1) is AtomType else type1
+        at2: str = type2.eqt_bci if type(type2) is AtomType else type2
         qterm = ChargeIncrementTerm(at1, at2, 0)
         direction = 1 if qterm.type1 == at1 else -1
         try:
-            qterm = self.qinc_terms[qterm.name]
+            qterm = self.bci_terms[qterm.name]
         except:
             raise FFTermNotFoundError(f'{str(qterm)} not found in FF')
 
@@ -733,7 +733,7 @@ class ForceField:
         '''
         terms = []
         for d in (self.atom_types,
-                  self.qinc_terms,
+                  self.bci_terms,
                   self.vdw_terms,
                   self.pairwise_vdw_terms,
                   self.bond_terms,
@@ -797,7 +797,7 @@ class ForceField:
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge(self, top_or_mol, transfer_qinc_terms=False):
+    def assign_charge(self, top_or_mol, transfer_bci_terms=False):
         '''
         Assign charges for all atoms in a topology or molecule from the force field.
 
@@ -812,12 +812,12 @@ class ForceField:
         `mstk` can try to transfer parameters from more general terms in the force field.
         e.g. if charge increment term between 'c_4o2' and 'n_3' is not found, the term between 'c_4' and 'n_3' will be used.
         This mechanism is initially designed for TEAM force field.
-        It is disabled by default, and can be enabled by setting argument `transfer_qinc_terms` to True.
+        It is disabled by default, and can be enabled by setting argument `transfer_bci_terms` to True.
 
         Parameters
         ----------
         top_or_mol : Topology or Molecule
-        transfer_qinc_terms : bool, optional
+        transfer_bci_terms : bool, optional
         '''
         from .dff_utils import dff_fuzzy_match
 
@@ -834,27 +834,27 @@ class ForceField:
             if charge == 0:
                 _q_zero.append(atom)
 
-        if len(self.qinc_terms) == 0 and len(_q_zero) > 0:
+        if len(self.bci_terms) == 0 and len(_q_zero) > 0:
             msg = '%i atoms in %s have zero charge. But charge increment terms not found in FF: %s' % (
                 len(_q_zero), top, ' '.join([a.name for a in _q_zero[:10]]))
             if len(_q_zero) > 10:
                 msg += ' and more ...'
             logger.warning(msg)
 
-        if len(self.qinc_terms) > 0:
+        if len(self.bci_terms) > 0:
             _qterm_not_found = set()
             _qterm_transferred = set()
             for bond in filter(lambda x: not x.is_drude, top.bonds):
                 _found = False
-                ats = self.get_eqt_for_qinc(bond)
+                ats = self.get_eqt_for_bci(bond)
                 if ats[0] == ats[1]:
                     continue
                 _term = ChargeIncrementTerm(*ats, 0)
                 try:
-                    qterm, direction = self.get_qinc_term(*ats)
+                    qterm, direction = self.get_bci_term(*ats)
                     _found = True
                 except FFTermNotFoundError:
-                    if transfer_qinc_terms:
+                    if transfer_bci_terms:
                         qterm, score = dff_fuzzy_match(_term, self)
                         if qterm is not None:
                             direction = 1 if _term.type1 == ats[0] else -1

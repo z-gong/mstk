@@ -4,7 +4,7 @@ Setting          lj_mixing_rule   geometric
 Setting          scale_14_vdw     0.5
 Setting          scale_14_coulomb 0.5
 
-#AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
+#AtomType        name          mass    charge  eqt_bci   eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
 AtomType         C1         12.0110   -0.1700  C1        C1        CT        CT        CT        CT        CT        CT        CT        C1
 AtomType         C1A        12.0110   -0.1700  C1A       C1A       CT        CT        CT        CT        CT        CT        CT        C1A
 AtomType         C2         12.0110    0.0100  C2        C2        CT        CT        CT        CT        CT        CT        CT        C2

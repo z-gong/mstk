@@ -348,7 +348,7 @@ class AtomType(FFTerm):
         The mass of this atom type.
     charge : float , optional
         The charge of this atom type.
-    eqt_q_inc : str , optional
+    eqt_bci : str , optional
         The equivalent type for bond charge increment parameters
     eqt_vdw : str , optional
         The equivalent type for vdW parameters
@@ -379,7 +379,7 @@ class AtomType(FFTerm):
         The charge of this atom type.
         Similar to mass, the charges we are finally going to use are from the :class:`~mstk.topology.Topology`.
         But charges in force field can be used to assign the charges in topology.
-    eqt_q_inc : str
+    eqt_bci : str
         The equivalent type for bond charge increment parameters
     eqt_vdw : str
         The equivalent type for vdW parameters
@@ -404,7 +404,7 @@ class AtomType(FFTerm):
         'name'     : str,
         'mass'     : float,
         'charge'   : float,
-        'eqt_q_inc': str,
+        'eqt_bci': str,
         'eqt_vdw'  : str,
         'eqt_bond' : str,
         'eqt_ang_c': str,
@@ -417,7 +417,7 @@ class AtomType(FFTerm):
     }
 
     def __init__(self, name, mass=-1, charge=0,
-                 eqt_q_inc=None, eqt_vdw=None, eqt_bond=None,
+                 eqt_bci=None, eqt_vdw=None, eqt_bond=None,
                  eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
                  eqt_imp_c=None, eqt_imp_s=None, eqt_polar=None):
         super().__init__()
@@ -426,7 +426,7 @@ class AtomType(FFTerm):
         # mass = -1 means unknown
         self.mass = mass
         self.charge = charge
-        self.eqt_q_inc = eqt_q_inc or name
+        self.eqt_bci = eqt_bci or name
         self.eqt_vdw = eqt_vdw or name
         self.eqt_bond = eqt_bond or name
         self.eqt_ang_c = eqt_ang_c or name
@@ -457,7 +457,7 @@ class AtomType(FFTerm):
 
     @property
     def eqt_types(self):
-        return [self.eqt_q_inc,
+        return [self.eqt_bci,
                 self.eqt_vdw,
                 self.eqt_bond,
                 self.eqt_ang_c,
