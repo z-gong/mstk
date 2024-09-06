@@ -112,7 +112,6 @@ Force field parser
 .. autosummary::
     :toctree: _generated/
 
-    Zfp
     Zff
     Ppf
     Padua

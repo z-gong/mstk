@@ -49,7 +49,7 @@ def test_gmx_drude():
 def test_gmx_tip4p():
     tmpdir = tempfile.mkdtemp()
     mol = Topology.open(cwd + '/../topology/files/TIP3P.zmat').molecules[0]
-    ff = ForceField.open(cwd + '/../forcefield/files/TIP4P.zfp')
+    ff = ForceField.open(cwd + '/../forcefield/files/TIP4P.zff')
     mol.generate_virtual_sites(ff)
     ff.assign_charge(mol)
 

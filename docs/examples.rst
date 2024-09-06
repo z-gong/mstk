@@ -39,8 +39,8 @@ Note: this example requires that Packmol is installed.
 In order to generate input files for simulation engines, a force filed file is required.
 Currently, four formats are supported for storing force field:
 
-1. `.zfp` - XML format used by `mstk`. Refer to :class:`~mstk.forcefield.Zfp` for details.
-2. `.zff` - user-friendly text format used by `mstk`. Refer to :class:`~mstk.forcefield.Zff` for details.
+1. `.zff` - format used by `mstk`. Refer to :class:`~mstk.forcefield.Zff` for details.
+2. `.zfp` - deprecated XML format used by `mstk`. Refer to :class:`~mstk.forcefield.Zfp` for details.
 3. `.ppf` - format used by DFF program. Refer to :class:`~mstk.forcefield.Ppf` for details.
 4. `.ff` - format used by Agilio Padua's `fftool`. Refer to :class:`~mstk.forcefield.Padua` for details.
 
@@ -49,10 +49,6 @@ The parameters are taken from `TEAM_MGI` force field.
 Let's copy its content and save it to file `alkane.zff`.
 
 .. literalinclude:: examples/alkane.zff
-
-The equivalent force field in `ZFP` format is
-
-.. literalinclude:: examples/alkane.zfp
 
 The workflow is as follows:
 

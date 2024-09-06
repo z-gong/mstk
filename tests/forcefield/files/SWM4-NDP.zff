@@ -6,15 +6,17 @@ Setting          scale_14_coulomb 0.8333333333333334
 
 #AtomType        name          mass    charge  eqt_q_inc eqt_vdw   eqt_bond  eqt_ang_c eqt_ang_s eqt_dih_c eqt_dih_s eqt_imp_c eqt_imp_s eqt_polar
 AtomType         OW         15.9994    0.0000  OW        OW        OW        OW        OW        OW        OW        OW        OW        OW
-AtomType         HW          1.0079    0.5200  HW        HW        HW        HW        HW        HW        HW        HW        HW        HW
-AtomType         MW         15.9994   -1.0400  MW        MW        MW        MW        MW        MW        MW        MW        MW        MW
+AtomType         HW          1.0079    0.55733  HW        HW        HW        HW        HW        HW        HW        HW        HW        HW
+AtomType         VS_OW      15.9994   -1.11466  VS_OW     VS_OW     VS_OW     VS_OW     VS_OW     VS_OW     VS_OW     VS_OW     VS_OW     VS_OW
 #TIP4PSite       type      type_O    type_H           d
-TIP4PSite        MW        OW        HW          0.0150
+TIP4PSite        VS_OW     OW        HW          0.024034
 #LJ126           type1     type2      epsilon     sigma
-LJ126            OW        OW          0.648520    0.315365
+LJ126            OW        OW          0.882573    0.318395
 LJ126            HW        HW          0.0000    0.0000
-LJ126            MW        MW          0.0000    0.0000
+LJ126            VS_OW     VS_OW       0.0000    0.0000
 #HarmonicBond    type1     type2       length         k  fixed
 HarmonicBond     HW        OW          0.09572  251208.0  True
 #HarmonicAngle   type1     type2     type3        theta         k  fixed
 HarmonicAngle    HW        OW        HW        104.5200  314.0100  True
+#Drude           type         alpha     thole         k      mass  merge_alpha_H
+Drude            OW        9.782e-04    2.6000  209200.0    0.4000    0.0000

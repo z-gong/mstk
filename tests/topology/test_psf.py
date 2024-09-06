@@ -99,7 +99,7 @@ def test_write():
 
 def test_write_swm4():
     tmpdir = tempfile.mkdtemp()
-    ff = ForceField.open(cwd + '/../forcefield/files/SWM4-NDP.zfp')
+    ff = ForceField.open(cwd + '/../forcefield/files/SWM4-NDP.zff')
     mol = Topology.open(cwd + '/files/TIP3P.zmat').molecules[0]
     mol.generate_virtual_sites(ff)
     mol.generate_drude_particles(ff)
