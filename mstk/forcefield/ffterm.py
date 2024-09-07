@@ -9,7 +9,7 @@ class FFTermFactory:
     '''
     Factory class for force field terms.
 
-    Mainly used for loading a FFTerm from xml element stored in ZFP file.
+    Mainly used for loading a FFTerm from a line in ZFF file.
     '''
 
     _class_map = {}
@@ -17,7 +17,7 @@ class FFTermFactory:
     @staticmethod
     def register(klass, extra_names=None):
         '''
-        Register a force field term so that it can be read from or write into a ZFP or ZFF file.
+        Register a force field term so that it can be read from or write into a ZFF file.
 
         Parameters
         ----------
@@ -36,7 +36,7 @@ class FFTermFactory:
         Reconstruct a FFTerm using a dict of attributes read from ZFP xml file.
 
         Essentially it finds the class for the term, and calls the constructor of the class.
-        Every class to be reconstructed should have a class attribute `_zfp_attrs`.
+        Every class to be reconstructed should have a class attribute `_term_attrs`.
         This dict records which attributes should be saved into ZFP xml file,
         and it is also used as the arguments for initializing a FFTerm.
         It also tells the data type of these attributes.
@@ -65,15 +65,15 @@ class FFTermFactory:
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
         adjustables = []
-        for attr, func in cls._zfp_attrs.items():
+        for attr, func in cls._term_attrs.items():
             str_val = d[attr]
             if str_val.endswith('?'):
                 str_val = str_val[:-1]
                 if func is float:
                     adjustables.append(attr)
             val = func(str_val)
-            if attr in cls._zfp_convert:
-                val = cls._zfp_convert[attr][0](val)
+            if attr in cls._attr_convert:
+                val = cls._attr_convert[attr][0](val)
             kwargs[attr] = val
         try:
             term = cls(**kwargs)
@@ -89,10 +89,10 @@ class FFTermFactory:
         Reconstruct a FFTerm using a line read from ZFF text file.
 
         Essentially it finds the class for the term, and calls the constructor of the class.
-        Every class to be reconstructed should have a class attribute `_zfp_attrs`.
-        This dict records which attributes should be saved into ZFP xml file,
+        Every class to be reconstructed should have a class attribute `_term_attrs`.
+        This dict records which attributes should be saved into ZFF file,
         and it is also used as the arguments for initializing a FFTerm.
-        It also tell the data type of these attributes.
+        It also tells the data type of these attributes.
 
         Some force field terms can not be fully built from the constructor.
         Then :func:`FFTerm._from_zff_extra` should be implemented for those terms,
@@ -118,14 +118,14 @@ class FFTermFactory:
             raise Exception('Invalid force field term: %s' % name)
         kwargs = {}
         adjustables = []
-        for (attr, func), str_val in zip(cls._zfp_attrs.items(), words[1:]):
+        for (attr, func), str_val in zip(cls._term_attrs.items(), words[1:]):
             if str_val.endswith('?'):
                 str_val = str_val[:-1]
                 if func is float:
                     adjustables.append(attr)
             val = func(str_val)
-            if attr in cls._zfp_convert:
-                val = cls._zfp_convert[attr][0](val)
+            if attr in cls._attr_convert:
+                val = cls._attr_convert[attr][0](val)
             kwargs[attr] = val
         try:
             term = cls(**kwargs)
@@ -149,22 +149,22 @@ class FFTerm:
         Comments is useful for debugging when generating input files for simulation engines.
     '''
 
-    _zfp_attrs = {}
+    _term_attrs = {}
     '''
-    The attributes that will be saved into or loaded from ZFP or ZFF file.
+    The attributes that will be saved into or loaded from ZFF file.
     The key is the attribute name. The value is a function to parse the string to object.
-    This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFP or ZFF file.
+    This dict must be overridden by every subclasses that can be saved into or reconstructed from ZFF file.
     '''
 
-    _zfp_convert = {}
+    _attr_convert = {}
     '''
-    The parameters that will be converted when read/write parameters from/to ZFP or ZFF file.
+    The parameters that will be converted when read/write parameters from/to ZFF file.
     The key is the attribute name. The value is a tuple of two functions.
     The first one convert data from external to internal. The second one do the opposite.
-    For example, the angle is in unit of radian internally. But it is in unit of degree in ZFP or ZFF file.
-    Therefore, for AngleTerm, _zfp_convert have two functions for attribute 'theta'.
+    For example, the angle is in unit of radian internally. But it is in unit of degree in ZFF file.
+    Therefore, for AngleTerm, _attr_convert have two functions for attribute 'theta'.
     The first one convert degree to radian, and the second one convert radian to degree.
-    This dict must be overridden by subclasses that have different value internally and in ZFP or ZFF file.
+    This dict must be overridden by subclasses that have different value internally and in ZFF file.
     '''
 
     @classmethod
@@ -195,42 +195,6 @@ class FFTerm:
         '''
         raise NotImplementedError('This property should be implemented by subclasses')
 
-    def to_zfp(self):
-        '''
-        Pack the attributes of a term into a dict so that can be saved into ZFP xml file.
-
-        Every class to be packed should have a class property `zfp_attrs`.
-        This dict records which attributes should be saved into ZFP xml file,
-        and it is also used as the arguments for initializing a FFTerm.
-        It also tell the data type of these attributes.
-
-        Returns
-        -------
-        d : dict, [str, str]
-        '''
-        d = {}
-        for attr, func in self._zfp_attrs.items():
-            val = getattr(self, attr)
-            if attr in self._zfp_convert:
-                val = self._zfp_convert[attr][1](val)
-            d[attr] = str(val)
-            if func is float and attr in self.adjustables:
-                d[attr] += '?'
-        d.update(self._to_zfp_extra())
-        return d
-
-    def _to_zfp_extra(self):
-        '''
-        Pack extra information for some special terms.
-
-        e.g. PeriodicDihedralTerm can contain arbitrary numbers of dihedral parameters.
-
-        Returns
-        -------
-        d : dict, [str, str]
-        '''
-        return {}
-
     def _from_zfp_extra(self, d):
         '''
         Some force field terms can not be fully built from the constructor.
@@ -248,8 +212,8 @@ class FFTerm:
         '''
         Pack the attributes of a term into a string so that can be saved into a line in ZFF file.
 
-        Every class to be packed should have a class property `zfp_attrs`.
-        This dict records which attributes should be saved into ZFP xml file,
+        Every class to be packed should have a class property `_term_attrs`.
+        This dict records which attributes should be saved into ZFF file,
         and it is also used as the arguments for initializing a FFTerm.
         It also tells the data type of these attributes.
 
@@ -258,10 +222,10 @@ class FFTerm:
         line : string
         '''
         line = '%-16s' % self.__class__.get_alias()
-        for attr, func in self._zfp_attrs.items():
+        for attr, func in self._term_attrs.items():
             val = getattr(self, attr)
-            if attr in self._zfp_convert:
-                val = self._zfp_convert[attr][1](val)
+            if attr in self._attr_convert:
+                val = self._attr_convert[attr][1](val)
             if func is float:
                 if abs(val) >= 1000000:
                     string = ' %8i' % round(val)
@@ -289,7 +253,7 @@ class FFTerm:
         header : str
         '''
         line = '#%-15s' % self.__class__.get_alias()
-        for attr, func in self._zfp_attrs.items():
+        for attr, func in self._term_attrs.items():
             if func is float:
                 string = ' %8s ' % attr
             elif func is int:
@@ -400,11 +364,11 @@ class AtomType(FFTerm):
     eqt_polar : str
         The equivalent type for polarization parameters
     '''
-    _zfp_attrs = {
+    _term_attrs = {
         'name'     : str,
         'mass'     : float,
         'charge'   : float,
-        'eqt_bci': str,
+        'eqt_bci'  : str,
         'eqt_vdw'  : str,
         'eqt_bond' : str,
         'eqt_ang_c': str,
@@ -421,9 +385,11 @@ class AtomType(FFTerm):
                  eqt_ang_c=None, eqt_ang_s=None, eqt_dih_c=None, eqt_dih_s=None,
                  eqt_imp_c=None, eqt_imp_s=None, eqt_polar=None):
         super().__init__()
+        # cannot set name directly because name is a property for each FFTerm subclass
+        # to allow create_from_zff() work correctly for AtomType, the name must be set with @name.setter
         self._name = name
         # mass is only used for assign mass of topology in case mass not exist in topology
-        # mass = -1 means unknown
+        # -1 means mass unknown
         self.mass = mass
         self.charge = charge
         self.eqt_bci = eqt_bci or name
@@ -452,7 +418,6 @@ class AtomType(FFTerm):
 
     @name.setter
     def name(self, value):
-        # this is a trick allowing from_zfp() to work correctly
         self._name = value
 
     @property
@@ -512,7 +477,7 @@ class ChargeIncrementTerm(FFTerm):
     value : float
         The offset from type2 to type1
     '''
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'value': float,
@@ -649,7 +614,7 @@ class AngleTerm(FFTerm):
     '''
 
     # the angle in ZFP or ZFF file is in unit of degree. one digit is enough
-    _zfp_convert = {
+    _attr_convert = {
         'theta': (lambda x: x * DEG2RAD, lambda x: round(x * RAD2DEG, 2))
     }
 
@@ -873,7 +838,7 @@ class LJ126Term(VdwTerm):
 
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1'  : str,
         'type2'  : str,
         'epsilon': float,
@@ -925,7 +890,7 @@ class MieTerm(VdwTerm):
     attraction : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1'     : str,
         'type2'     : str,
         'epsilon'   : float,
@@ -1019,7 +984,7 @@ class MorseTerm(VdwTerm):
     r0: float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'depth': float,
@@ -1067,7 +1032,7 @@ class HarmonicBondTerm(BondTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1' : str,
         'type2' : str,
         'length': float,
@@ -1117,7 +1082,7 @@ class QuarticBondTerm(BondTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1' : str,
         'type2' : str,
         'length': float,
@@ -1171,7 +1136,7 @@ class MorseBondTerm(BondTerm):
     depth : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1' : str,
         'type2' : str,
         'length': float,
@@ -1223,7 +1188,7 @@ class HarmonicAngleTerm(AngleTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1278,7 +1243,7 @@ class QuarticAngleTerm(AngleTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1334,7 +1299,7 @@ class HarmonicCosineAngleTerm(AngleTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1390,7 +1355,7 @@ class SDKAngleTerm(AngleTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1445,7 +1410,7 @@ class LinearAngleTerm(AngleTerm):
     fixed : bool
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1506,7 +1471,7 @@ class OplsDihedralTerm(DihedralTerm):
     k4 : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1612,7 +1577,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         Each element is a namedtuple :attr:`Phase` describing the parameters for each phase.
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1655,20 +1620,11 @@ class PeriodicDihedralTerm(DihedralTerm):
         self.phases.append(PeriodicDihedralTerm.Phase(phi=phi, k=k, n=n))
         self.phases.sort(key=lambda x: x.n)
 
-    def _to_zfp_extra(self) -> {str: str}:
-        d = {}
-        for phase in self.phases:
-            d.update({
-                'phi_%i' % phase.n: '%.1f' % (phase.phi * RAD2DEG),  # the angle in ZFP or ZFF file is in unit of degree
-                'k_%i' % phase.n  : '%.4f' % phase.k,
-            })
-        return d
-
     def _from_zfp_extra(self, d: {str: str}):
         for key in d.keys():
             if key.startswith('phi_'):
                 n = int(key.split('_')[-1])
-                phi = float(d['phi_%i' % n]) * DEG2RAD  # the angle in ZFP or ZFF file is in unit of degree
+                phi = float(d['phi_%i' % n]) * DEG2RAD  # the angle in ZFP file is in unit of degree
                 k = float(d['k_%i' % n])
                 if k != 0:
                     self.add_phase(phi, k, n)
@@ -1687,7 +1643,7 @@ class PeriodicDihedralTerm(DihedralTerm):
         if len(str_vals) % 3 != 0:
             raise Exception(f'Invalid parameters for {self.__class__.__name__}')
         for i in range(len(str_vals) // 3):
-            phi = float(str_vals[i * 3]) * DEG2RAD  # the angle in ZFP or ZFF file is in unit of degree
+            phi = float(str_vals[i * 3]) * DEG2RAD  # the angle in ZFF file is in unit of degree
             k = float(str_vals[i * 3 + 1])
             n = int(str_vals[i * 3 + 2])
             if k != 0:
@@ -1790,7 +1746,7 @@ class OplsImproperTerm(ImproperTerm):
     k : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1848,7 +1804,7 @@ class HarmonicImproperTerm(ImproperTerm):
     k : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type1': str,
         'type2': str,
         'type3': str,
@@ -1858,7 +1814,7 @@ class HarmonicImproperTerm(ImproperTerm):
     }
 
     # the angle in ZFP or ZFF file is in unit of degree. one digit is enough
-    _zfp_convert = {
+    _attr_convert = {
         'phi': (lambda x: x * DEG2RAD, lambda x: round(x * RAD2DEG, 2))
     }
 
@@ -1912,7 +1868,7 @@ class DrudeTerm(PolarizableTerm):
     merge_alpha_H : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type'         : str,
         'alpha'        : float,
         'thole'        : float,
@@ -2004,7 +1960,7 @@ class TIP4PSiteTerm(VirtualSiteTerm):
     d : float
     '''
 
-    _zfp_attrs = {
+    _term_attrs = {
         'type'  : str,
         'type_O': str,
         'type_H': str,

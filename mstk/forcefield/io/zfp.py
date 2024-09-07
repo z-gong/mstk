@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 from mstk.forcefield.forcefield import ForceField
 from mstk.forcefield.ffterm import *
 from mstk import logger
@@ -9,7 +8,6 @@ class Zfp:
     '''
     Load ForceField from ZFP file.
 
-    ZFP is the default format for storing ForceField in mstk.
     XML language is used by ZFP file to serialize the setting and all the FFTerms in a ForceField object.
 
     In ZFP file, there is no leading 1/2 for harmonic energy terms.
@@ -23,9 +21,8 @@ class Zfp:
     LJ126Term('c_4', 'h_1') and MieTerm('c_4', 'h_1') are also duplicated,
     because both of them are describing the vdW interactions between atom types 'c_4' and 'h_1'.
 
-    TODO Because ZFP is designed mainly for FF parameters exchange, several features are not currently supported by ZFP format
+    ZFP format is deprecated. New features are not supported by ZFP format
     1. Comments for force field and ffterm
-    2. Adjustable parameters
 
     Parameters
     ----------
@@ -35,6 +32,7 @@ class Zfp:
     ----------
     forcefield : ForceField
     '''
+    logger.warning('ZFP format is deprecated. Consider converting it to a ZFF file with ffconv.py')
 
     def __init__(self, file):
         self.forcefield = ForceField()
@@ -104,37 +102,7 @@ class Zfp:
         ff : ForceField
         file : str
         '''
-        root = ET.Element('ForceFieldTerms')
-
-        attrib = {
-            'vdw_cutoff'      : str(ff.vdw_cutoff),
-            'vdw_long_range'  : ff.vdw_long_range,
-            'lj_mixing_rule'  : ff.lj_mixing_rule,
-            'scale_14_vdw'    : str(ff.scale_14_vdw),
-            'scale_14_coulomb': str(ff.scale_14_coulomb),
-        }
-        node = ET.SubElement(root, 'Setting', attrib=attrib)
-
-        tags = {
-            'AtomTypes'           : ff.atom_types,
-            'VirtualSiteTerms'    : ff.virtual_site_terms,
-            'ChargeIncrementTerms': ff.bci_terms,
-            'VdwTerms'            : ff.vdw_terms,
-            'PairwiseVdwTerms'    : ff.pairwise_vdw_terms,
-            'BondTerms'           : ff.bond_terms,
-            'AngleTerms'          : ff.angle_terms,
-            'DihedralTerms'       : ff.dihedral_terms,
-            'ImproperTerms'       : ff.improper_terms,
-            'PolarizableTerms'    : ff.polarizable_terms,
-        }
-        for tag, d in tags.items():
-            node = ET.SubElement(root, tag)
-            for term in d.values():
-                ET.SubElement(node, term.__class__.__name__, attrib=term.to_zfp())
-
-        str_xml = minidom.parseString(ET.tostring(root)).toprettyxml(indent='  ')
-        with open(file, 'wb') as f:
-            f.write(str_xml.encode())
+        raise NotImplementedError('Writing to ZFP file has been deprecated')
 
 
 ForceField.registor_format('.zfp', Zfp)

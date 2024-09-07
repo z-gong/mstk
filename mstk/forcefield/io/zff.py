@@ -1,5 +1,4 @@
 import itertools
-from mstk import logger
 from mstk.forcefield.forcefield import ForceField
 from mstk.forcefield.ffterm import *
 
