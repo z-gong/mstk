@@ -50,12 +50,12 @@ class OpenMMExporter:
         if not OPENMM_FOUND:
             raise ImportError('Can not import OpenMM')
 
-        supported_terms = {LJ126Term, MieTerm, MorseTerm,
+        supported_terms = {LJ126Term, MieTerm, MorseVdwTerm,
                            HarmonicBondTerm, QuarticBondTerm, MorseBondTerm,
                            HarmonicAngleTerm, QuarticAngleTerm, HarmonicCosineAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
-                           DrudeTerm}
+                           DrudePolarTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
@@ -364,7 +364,7 @@ class OpenMMExporter:
                     id_type = type_names.index(atom.type)
                     cforce.addParticle([id_type])
 
-            elif vdw_class == MorseTerm:
+            elif vdw_class == MorseVdwTerm:
                 logger.debug('Setting up Morse vdW interactions...')
                 if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
                     cforce = mm.CustomNonbondedForce(
@@ -382,7 +382,7 @@ class OpenMMExporter:
                 for i, atype1 in enumerate(atom_types):
                     for j, atype2 in enumerate(atom_types):
                         vdw = ff.get_vdw_term(atype1, atype2)
-                        if type(vdw) == MorseTerm:
+                        if type(vdw) == MorseVdwTerm:
                             DEPTH = vdw.depth
                             ALPHA = vdw.alpha
                             R0 = vdw.r0
@@ -442,7 +442,7 @@ class OpenMMExporter:
                     cforce.addParticle([id_type])
 
             else:
-                raise Exception('vdW terms other than LJ126Term, MieTerm and MorseTerm '
+                raise Exception('vdW terms other than LJ126Term, MieTerm and MorseVdwTerm '
                                 'haven\'t been implemented')
             if system.use_pbc:
                 cforce.setNonbondedMethod(mm.CustomNonbondedForce.CutoffPeriodic)
@@ -498,8 +498,8 @@ class OpenMMExporter:
                     elif type(vdw) == MieTerm:
                         cbforce.addBond(atom1.id, atom2.id,
                                         [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
-                elif type(vdw) is MorseTerm:
-                    cbforce = pair14_forces.get(MorseTerm)
+                elif type(vdw) is MorseVdwTerm:
+                    cbforce = pair14_forces.get(MorseVdwTerm)
                     if cbforce is None:
                         cbforce = mm.CustomBondForce('DEPTH*((1-exp(-ALPHA*(r-R0)))^2-1)')
                         cbforce.addPerBondParameter('DEPTH')
@@ -509,16 +509,16 @@ class OpenMMExporter:
                         cbforce.setForceGroup(ForceGroup.VDW)
                         cbforce.setName('vdW')
                         omm_system.addForce(cbforce)
-                        pair14_forces[MorseTerm] = cbforce
+                        pair14_forces[MorseVdwTerm] = cbforce
                     depth = vdw.depth * ff.scale_14_vdw
                     cbforce.addBond(atom1.id, atom2.id, [depth, vdw.alpha, vdw.r0])
                 else:
-                    raise Exception('1-4 scaling for vdW terms other than LJ126Term, MieTerm and MorseTerm '
+                    raise Exception('1-4 scaling for vdW terms other than LJ126Term, MieTerm and MorseVdwTerm '
                                     'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
-        for polar_class in system.polarizable_classes:
-            if polar_class == DrudeTerm:
+        for polar_class in system.polar_classes:
+            if polar_class == DrudePolarTerm:
                 logger.debug('Setting up Drude polarizations...')
                 pforce = mm.DrudeForce()
                 pforce.setForceGroup(ForceGroup.DRUDE)
@@ -526,7 +526,7 @@ class OpenMMExporter:
                 omm_system.addForce(pforce)
                 parent_idx_thole = {}  # {parent: (index in DrudeForce, thole)} for addScreenPair
                 for parent, drude in system.drude_pairs.items():
-                    pterm = system.polarizable_terms[parent]
+                    pterm = system.polar_terms[parent]
                     n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
                     alpha = pterm.alpha + n_H * pterm.merge_alpha_H
                     idx = pforce.addParticle(drude.id, parent.id, -1, -1, -1,
@@ -573,7 +573,7 @@ class OpenMMExporter:
                     for f in custom_nb_forces:
                         f.addExclusion(a1.id, a2.id)
             else:
-                raise Exception('Polarizable terms other that DrudeTerm haven\'t been implemented')
+                raise Exception('Polar terms other that DrudePolarTerm haven\'t been implemented')
 
         ### Set up virtual sites ################################################################
         if top.has_virtual_site:
@@ -642,8 +642,8 @@ class OpenMMExporter:
 
     @staticmethod
     def _setup_nonbonded_as_bonded(system, omm_system):
-        if system.polarizable_classes != set():
-            raise Exception('Polarizable terms not supported')
+        if system.polar_classes != set():
+            raise Exception('Polar terms not supported')
 
         if system.vsite_types != set():
             raise Exception('Virtual sites not supported')

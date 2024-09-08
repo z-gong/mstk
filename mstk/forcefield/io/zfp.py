@@ -67,7 +67,7 @@ class Zfp:
             'AngleTerms'          : ff.angle_terms,
             'DihedralTerms'       : ff.dihedral_terms,
             'ImproperTerms'       : ff.improper_terms,
-            'PolarizableTerms'    : ff.polarizable_terms,
+            'PolarTerms'          : ff.polar_terms,
         }
         _duplicated = []
         for tag, d in tags.items():

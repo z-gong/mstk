@@ -112,7 +112,7 @@ class Zff:
                                     ff.angle_terms.values(),
                                     ff.dihedral_terms.values(),
                                     ff.improper_terms.values(),
-                                    ff.polarizable_terms.values()):
+                                    ff.polar_terms.values()):
             alias = type(term).get_alias()
             if alias not in _header_printed:
                 line += term.to_zff_header() + '\n'

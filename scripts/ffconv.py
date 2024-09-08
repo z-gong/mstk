@@ -25,10 +25,10 @@ if __name__ == '__main__':
           '%6i angle terms\n'
           '%6i dihedral terms\n'
           '%6i improper terms\n'
-          '%6i polarizable terms' % (
+          '%6i polar terms' % (
               len(ff.atom_types), len(ff.virtual_site_terms), len(ff.vdw_terms), len(ff.pairwise_vdw_terms),
               len(ff.bci_terms), len(ff.bond_terms), len(ff.angle_terms),
-              len(ff.dihedral_terms), len(ff.improper_terms), len(ff.polarizable_terms)
+              len(ff.dihedral_terms), len(ff.improper_terms), len(ff.polar_terms)
           ))
 
     ff.write(args.output)

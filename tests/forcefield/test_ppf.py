@@ -94,4 +94,4 @@ def test_read():
     assert pytest.approx(improper.k / 4.184, abs=1E-6) == 18
     assert improper.version == '0.21'
 
-    assert len(ff.polarizable_terms) == 0
+    assert len(ff.polar_terms) == 0

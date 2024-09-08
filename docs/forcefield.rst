@@ -51,8 +51,8 @@ Polarization terms
 .. autosummary::
     :toctree: _generated/
 
-    PolarizableTerm
-    DrudeTerm
+    PolarTerm
+    DrudePolarTerm
 
 Virtual site terms
 ~~~~~~~~~~~~~~~~~~

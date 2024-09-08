@@ -18,5 +18,5 @@ LJ126            VS_OW     VS_OW       0.0000    0.0000
 HarmonicBond     HW        OW          0.09572  251208.0  True
 #HarmonicAngle   type1     type2     type3        theta         k  fixed
 HarmonicAngle    HW        OW        HW        104.5200  314.0100  True
-#Drude           type         alpha     thole         k      mass  merge_alpha_H
-Drude            OW        9.782e-04    2.6000  209200.0    0.4000    0.0000
+#DrudePolar      type         alpha     thole         k      mass  merge_alpha_H
+DrudePolar       OW        9.782e-04    2.6000  209200.0    0.4000    0.0000

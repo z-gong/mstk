@@ -51,7 +51,7 @@ def test_read():
     improper = ff.improper_terms['NA,CR,CT,CW']
     assert improper.k == 8.368 / 2
 
-    drude = ff.polarizable_terms['CT']
+    drude = ff.polar_terms['CT']
     assert drude.mass == 0.4
     assert pytest.approx(drude.k / 100, abs=1E-6) == 4184 / 2
     assert pytest.approx(drude.alpha * 1000, abs=1E-6) == 1.016

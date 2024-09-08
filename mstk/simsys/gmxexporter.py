@@ -22,7 +22,7 @@ class GromacsExporter:
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.OplsImproperTerm`
     * :class:`~mstk.forcefield.HarmonicImproperTerm`
-    * :class:`~mstk.forcefield.DrudeTerm`
+    * :class:`~mstk.forcefield.DrudePolarTerm`
 
     Note that the Drude polarization in GROMACS have never been thoroughly tested. Use it with care.
 
@@ -31,7 +31,7 @@ class GromacsExporter:
     Do NOT use the exported files for production simulations.
 
     * :class:`~mstk.forcefield.MieTerm` will be exported in the LJ-12-6 form
-    * :class:`~mstk.forcefield.MorseTerm` will be exported in the LJ-12-6 form
+    * :class:`~mstk.forcefield.MorseVdwTerm` will be exported in the LJ-12-6 form
     * :class:`~mstk.forcefield.QuarticBondTerm` will be exported in the harmonic form
     * :class:`~mstk.forcefield.QuarticAngleTerm` will be exported in the harmonic form
     * :class:`~mstk.forcefield.SDKAngleTerm` will be exported in the harmonic form
@@ -57,28 +57,28 @@ class GromacsExporter:
         if not system.use_pbc:
             raise Exception('PBC required for exporting GROMACS')
 
-        supported_terms = {LJ126Term, MieTerm, MorseTerm,
+        supported_terms = {LJ126Term, MieTerm, MorseVdwTerm,
                            HarmonicBondTerm, QuarticBondTerm, MorseBondTerm,
                            HarmonicAngleTerm, QuarticAngleTerm, HarmonicCosineAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
-                           DrudeTerm}
+                           DrudePolarTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if MieTerm in system.ff_classes:
             logger.warning('MieTerm not supported by GROMACS. Exported in LJ-12-6 form')
-        if MorseTerm in system.ff_classes:
-            logger.warning('MorseTerm not supported by GROMACS. Exported in LJ-12-6 form')
+        if MorseVdwTerm in system.ff_classes:
+            logger.warning('MorseVdwTerm not supported by GROMACS. Exported in LJ-12-6 form')
         if QuarticBondTerm in system.ff_classes:
             logger.warning('QuarticBondTerm not supported by GROMACS. Exported in harmonic form')
         if QuarticAngleTerm in system.ff_classes:
             logger.warning('QuarticAngleTerm not supported by GROMACS. Exported in harmonic form')
         if SDKAngleTerm in system.ff_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Exported in harmonic form')
-        if DrudeTerm in system.ff_classes:
-            logger.warning('DrudeTerm not well tested in GROMACS. Use it with caution')
+        if DrudePolarTerm in system.ff_classes:
+            logger.warning('DrudePolarTerm not well tested in GROMACS. Use it with caution')
 
         if system.vsite_types - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
@@ -114,7 +114,7 @@ class GromacsExporter:
         string += '\n[ atomtypes ]\n'
         string += ';     name       mass     charge      ptype      sigma      epsilon\n'
         drude_types = set()
-        if DrudeTerm in system.ff_classes:
+        if DrudePolarTerm in system.ff_classes:
             for atom in system.topology.atoms:
                 if atom.is_drude:
                     drude_types.add(atom.type)
@@ -124,7 +124,7 @@ class GromacsExporter:
             if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
                     atype.name, 0.0, 0.0, ptype, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
-            elif vdw.__class__ == MorseTerm:
+            elif vdw.__class__ == MorseVdwTerm:
                 string += '%10s %10.4f %12.6f %6s %12.6f %12.6f  ; %s\n' % (
                     atype.name, 0.0, 0.0, ptype, vdw.r0, vdw.depth, ' '.join(vdw.comments))
             else:
@@ -140,7 +140,7 @@ class GromacsExporter:
             if vdw.__class__ in (LJ126Term, MieTerm):
                 string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
                     at1.name, at2.name, 1, vdw.sigma, vdw.epsilon, ' '.join(vdw.comments))
-            elif vdw.__class__ == MorseTerm:
+            elif vdw.__class__ == MorseVdwTerm:
                 string += '%10s %10s %6i %12.6f %12.6f  ; %s\n' % (
                     at1.name, at2.name, 1, vdw.r0, vdw.depth, ' '.join(vdw.comments))
             else:
@@ -216,7 +216,7 @@ class GromacsExporter:
                 string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
 
             ### Drude polarization #############################################
-            if DrudeTerm in system.ff_classes:
+            if DrudePolarTerm in system.ff_classes:
                 string += '\n[ polarization ]\n'
                 string += ';  ai    aj   func    alpha     delta     khyp\n'
                 for parent, drude in drude_pairs.items():
@@ -400,7 +400,7 @@ class GromacsExporter:
     @staticmethod
     def _export_mdp(system: System, mdp_out='grompp.mdp'):
         r_cut = system.ff.vdw_cutoff
-        tau_t = 0.2 if DrudeTerm in system.ff_classes else 1.0
+        tau_t = 0.2 if DrudePolarTerm in system.ff_classes else 1.0
         string = f'''; Created by mstk
 integrator      = sd
 dt              = 0.002 ; ps

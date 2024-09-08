@@ -17,7 +17,7 @@ class Padua:
     * :class:`~mstk.forcefield.HarmonicAngleTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.OplsImproperTerm`
-    * :class:`~mstk.forcefield.DrudeTerm`
+    * :class:`~mstk.forcefield.DrudePolarTerm`
 
     The energy terms are in k/2 form for bond, angle, dihedral and improper.
     The length is in unit of Angstrom, and angle is in unit of degree.
@@ -103,12 +103,12 @@ class Padua:
                 ff.add_term(dtype)
                 ff.add_term(vdw)
 
-        # If H* is defined in polarizable term, alpha of H will be merged into attached heavy atoms and the term will be removed
-        if 'H*' in ff.polarizable_terms:
-            hterm = ff.polarizable_terms.pop('H*')
-            for pterm in ff.polarizable_terms.values():
+        # If H* is defined in polar term, alpha of H will be merged into attached heavy atoms and the term will be removed
+        if 'H*' in ff.polar_terms:
+            hterm = ff.polar_terms.pop('H*')
+            for pterm in ff.polar_terms.values():
                 pterm.merge_alpha_H = hterm.alpha
-            logger.info(f'H* found in polarizable term. '
+            logger.info(f'H* found in polar term. '
                         f'Polarizability of H will be merged into attached heavy atoms')
 
     def _parse_atom(self, ff, words):
@@ -175,12 +175,12 @@ class Padua:
 
     def _parse_polarization(slef, ff, words):
         name, mass, charge, k, alpha, thole = words
-        term = DrudeTerm(name, float(alpha) / 1000, float(thole))
+        term = DrudePolarTerm(name, float(alpha) / 1000, float(thole))
         term.mass = float(mass)
         term.k = float(k) / 2 * 100  # convert from kJ/mol/A^2 to kJ/mol/nm^2
-        if term.name in ff.polarizable_terms.keys():
+        if term.name in ff.polar_terms.keys():
             raise Exception('Duplicated drude term: %s' % str(term))
-        ff.polarizable_terms[term.name] = term
+        ff.polar_terms[term.name] = term
 
 
 class Monomer:

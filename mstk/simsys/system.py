@@ -29,7 +29,7 @@ class System:
 
     The provided force field must be able to fully describe the energy of the topology.
     If any atom type from topology is not found in the FF, an Exception will be raised.
-    If any vdw/bond/angle/dihedral/improper/polarizable term required by topology is not found in the FF,
+    If any vdw/bond/angle/dihedral/improper/polar term required by topology is not found in the FF,
     an Exception will be raised unless `allow_missing_terms` set to True.
     It won't check charge increment terms and virtual site terms, because they are already represented by the topology itself.
 
@@ -72,13 +72,13 @@ class System:
     angle_terms : dict, [Angle, subclass of AngleTerm]
     dihedral_terms : dict, [Dihedral, subclass of DihedralTerm]
     improper_terms : dict, [Improper, subclass of ImproperTerm]
-    polarizable_terms :  dict, [Atom, subclass of PolarizableTerm]
+    polar_terms :  dict, [Atom, subclass of PolarTerm]
     vdw_classes : set of subclass of VdwTerm
     bond_classes : set of subclass of BondTerm
     angle_classes : set of subclass of AngleTerm
     dihedral_classes : set of subclass of DihedralTerm
     improper_classes : set of subclass of ImproperTerm
-    polarizable_classes : set of subclass of PolarizableTerm
+    polar_classes : set of subclass of PolarTerm
     ff_classes : set of subclass of FFTerm
     vsite_types : set of subclass of VirtualSite
     missing_terms : list of FFTerm
@@ -129,7 +129,7 @@ class System:
         self.angle_terms: {Angle: AngleTerm} = {}
         self.dihedral_terms: {Dihedral: DihedralTerm} = {}
         self.improper_terms: {Improper: ImproperTerm} = {}
-        self.polarizable_terms: {Atom: PolarizableTerm} = {}  # key is parent Atom
+        self.polar_terms: {Atom: PolarTerm} = {}  # key is parent Atom
         self.constrain_bonds: {Bond: float} = {}  # value is distance
         self.constrain_angles: {Angle: float} = {}  # value is 1-3 distance
 
@@ -142,7 +142,7 @@ class System:
         self.angle_classes = set()
         self.dihedral_classes = set()
         self.improper_classes = set()
-        self.polarizable_classes = set()
+        self.polar_classes = set()
         self.ff_classes = set()
 
         self._extract_terms(ff, ignore_missing_improper, transfer_bonded_terms, allow_missing_terms)
@@ -338,14 +338,14 @@ class System:
 
         _pterm_not_found = {}
         for parent in self.drude_pairs.keys():
-            _term = PolarizableTerm(ff.atom_types[parent.type].eqt_polar)
+            _term = PolarTerm(ff.atom_types[parent.type].eqt_polar)
             try:
-                pterm = ff.polarizable_terms[_term.name]
+                pterm = ff.polar_terms[_term.name]
             except:
                 _pterm_not_found[_term.name] = _term
             else:
                 self._ff.add_term(pterm, replace=True)
-                self.polarizable_terms[parent] = pterm
+                self.polar_terms[parent] = pterm
 
         ### print all transferred terms
         _n_transferred = 0
@@ -379,13 +379,13 @@ class System:
         self.angle_classes = {term.__class__ for term in self.angle_terms.values()}
         self.dihedral_classes = {term.__class__ for term in self.dihedral_terms.values()}
         self.improper_classes = {term.__class__ for term in self.improper_terms.values()}
-        self.polarizable_classes = {term.__class__ for term in self.polarizable_terms.values()}
+        self.polar_classes = {term.__class__ for term in self.polar_terms.values()}
         self.ff_classes = (self.vdw_classes
                            .union(self.bond_classes)
                            .union(self.angle_classes)
                            .union(self.dihedral_classes)
                            .union(self.improper_classes)
-                           .union(self.polarizable_classes))
+                           .union(self.polar_classes))
 
     def export_lammps(self, data_out='data.lmp', in_out='in.lmp', **kwargs):
         '''

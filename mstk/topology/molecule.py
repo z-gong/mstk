@@ -1167,13 +1167,13 @@ class Molecule():
 
     def generate_drude_particles(self, ff, type_drude='DP_', seed=1, update_topology=True):
         '''
-        Generate Drude particles from DrudeTerms in force field.
+        Generate Drude particles from DrudePolarTerms in force field.
 
         The atom types should have been defined already.
-        Drude particle will not be generated if DrudeTerm for its atom type can not be found in the FF.
+        Drude particle will not be generated if DrudePolarTerm for its atom type can not be found in the FF.
         Note that The existing Drude particles will be removed before generating.
-        The mass defined in the DrudeTerm will be transferred from parent atom to the Drude particle.
-        The Drude charge will be calculated from the DrudeTerm and transferred from parent atom to the Drude particle.
+        The mass defined in the DrudePolarTerm will be transferred from parent atom to the Drude particle.
+        The Drude charge will be calculated from the DrudePolarTerm and transferred from parent atom to the Drude particle.
         Bonds between parent-Drude will be generated and added to the topology.
         If AtomType and VdwTerm for generated Drude particles are not found in FF, these terms will be created and added to the FF.
 
@@ -1184,8 +1184,8 @@ class Molecule():
         seed : int
         update_topology : bool
         '''
-        if len(ff.polarizable_terms) == 0:
-            raise Exception('Polarizable terms not found in force field')
+        if len(ff.polar_terms) == 0:
+            raise Exception('Polar terms not found in force field')
 
         np.random.seed(seed)
 
@@ -1199,11 +1199,11 @@ class Molecule():
                 _atype_not_found.add(parent.type)
                 continue
 
-            pterm = ff.polarizable_terms.get(atype.eqt_polar)
+            pterm = ff.polar_terms.get(atype.eqt_polar)
             if pterm is None:
                 continue
-            if type(pterm) is not DrudeTerm:
-                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
+            if type(pterm) is not DrudePolarTerm:
+                raise Exception('Polar terms other than DrudePolarTerm haven\'t been implemented')
             drude = Atom()
             drude.is_drude = True
             drude.type = type_drude

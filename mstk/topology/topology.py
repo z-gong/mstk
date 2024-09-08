@@ -681,7 +681,7 @@ class Topology():
 
     def generate_drude_particles(self, ff, **kwargs):
         '''
-        Generate Drude particles from DrudeTerms in a polarizable force field
+        Generate Drude particles from DrudePolarTerms in a polarizable force field
 
         Parameters
         ----------

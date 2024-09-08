@@ -17,7 +17,7 @@ class NamdExporter():
     * :class:`~mstk.forcefield.OplsDihedralTerm`
     * :class:`~mstk.forcefield.PeriodicDihedralTerm`
     * :class:`~mstk.forcefield.HarmonicImproperTerm`
-    * :class:`~mstk.forcefield.DrudeTerm`
+    * :class:`~mstk.forcefield.DrudePolarTerm`
 
     The :class:`~mtools.forcefield.OplsImproperTerm` can be exported, but it will be in the harmonic form.
     Usually it is acceptable if the improper to be described is planer and quite rigid.
@@ -63,7 +63,7 @@ class NamdExporter():
                            HarmonicAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
-                           DrudeTerm}
+                           DrudePolarTerm}
         unsupported = system.ff_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
@@ -85,7 +85,7 @@ class NamdExporter():
             if name not in unique_bonds and tuple(reversed(name)) not in unique_bonds:
                 if bond.is_drude:
                     parent = bond.atom2 if bond.atom1.is_drude else bond.atom1
-                    pterm = system.polarizable_terms[parent]
+                    pterm = system.polar_terms[parent]
                     bterm = HarmonicBondTerm(name[0], name[1], 0.0, pterm.k)
                 else:
                     bterm = system.bond_terms[bond]

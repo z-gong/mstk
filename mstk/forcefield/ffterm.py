@@ -779,12 +779,12 @@ class ImproperTerm(FFTerm):
                > [other.type1, other.type2, other.type3, other.type4]
 
 
-class PolarizableTerm(FFTerm):
+class PolarTerm(FFTerm):
     '''
     Base class for all polarization terms.
 
     Subclasses should be implemented for each functional form,
-    e.g. :class:`DrudeTerm`.
+    e.g. :class:`DrudePolarTerm`.
 
     Parameters
     ----------
@@ -955,7 +955,7 @@ class MieTerm(VdwTerm):
 FFTermFactory.register(MieTerm)
 
 
-class MorseTerm(VdwTerm):
+class MorseVdwTerm(VdwTerm):
     '''
     vdW term with Morse function form.
 
@@ -963,7 +963,8 @@ class MorseTerm(VdwTerm):
 
     >>> U = depth*((1-exp(-alpha*(r-r0)))^2-1)
 
-    This term is mainly used for Coarse-Grained force field.
+    Note its difference to the MorseBondTerm. MorseVdwTerm has zero energy when two atoms are far away,
+    while MorseBondTerm has zero energy at equilibrium distance.
 
     During the initialization, the two atom types will be sorted by their string.
 
@@ -1002,7 +1003,7 @@ class MorseTerm(VdwTerm):
         return self.depth * ((1 - math.exp(-self.alpha * (r - self.r0))) ** 2 - 1)
 
 
-FFTermFactory.register(MorseTerm)
+FFTermFactory.register(MorseVdwTerm)
 
 
 class HarmonicBondTerm(BondTerm):
@@ -1116,6 +1117,9 @@ class MorseBondTerm(BondTerm):
     >>> alpha = (k / depth) ** 0.5
 
     The `k` corresponds to the force constant `k` in HarmonicBondTerm.
+
+    Note its difference to the MorseVdwTerm. MorseVdwTerm has zero energy when two atoms are far away,
+    while MorseBondTerm has zero energy at equilibrium distance.
 
     During the initialization, the two atom types will be sorted by their string.
 
@@ -1830,7 +1834,7 @@ class HarmonicImproperTerm(ImproperTerm):
 FFTermFactory.register(HarmonicImproperTerm)
 
 
-class DrudeTerm(PolarizableTerm):
+class DrudePolarTerm(PolarTerm):
     '''
     Polarization term described by Drude induced dipole.
 
@@ -1845,7 +1849,7 @@ class DrudeTerm(PolarizableTerm):
 
     If this atom is bonded with hydrogen atoms, the argument `merge_alpha_H` determines the polarizability of neighbour H atoms.
     The alpha of these H atoms will be merged into the this atom.
-    Therefore, DrudeTerm for H atom types should not be provided explicitly. Otherwise, there will be double count.
+    Therefore, DrudePolarTerm for H atom types should not be provided explicitly. Otherwise, there will be double count.
     The H atoms are identified by check the :attr:`~mstk.topology.Atom.symbol` attribute.
     An atom is considered to be hydrogen if symbol equals 'H'.
 
@@ -1907,7 +1911,7 @@ class DrudeTerm(PolarizableTerm):
         return math.sqrt(4 * PI * VACUUM_PERMITTIVITY * (2 * self.k) * alpha) * factor
 
 
-FFTermFactory.register(DrudeTerm)
+FFTermFactory.register(DrudePolarTerm)
 
 
 class VirtualSiteTerm(FFTerm):
@@ -1915,7 +1919,7 @@ class VirtualSiteTerm(FFTerm):
     Base class for all virtual site terms.
 
     Subclasses should be implemented for each functional form,
-    e.g. :class:`TIP4PTerm`.
+    e.g. :class:`TIP4PSiteTerm`.
 
     Parameters
     ----------

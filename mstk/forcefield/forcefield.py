@@ -35,10 +35,10 @@ class ForceField:
         the key is the :attr:`~VdwTerm.name` of the object.
         If a pair of unlike atom types is not included in this dict,
         then the vdW interactions between this pair will be generated from mixing rule.
-    polarizable_terms : dict, [str, subclass of PolarizableTerm]
+    polar_terms : dict, [str, subclass of PolarTerm]
         Polarization terms for polarizable atom types.
-        For each key value pair, the value is a object of subclass of PolarizableTerm.
-        the key is the :attr:`~PolarizableTerm.name` of the object.
+        For each key value pair, the value is a object of subclass of PolarTerm.
+        the key is the :attr:`~PolarTerm.name` of the object.
         Currently, isotropic Drude model is implemented.
     virtual_site_terms: dict, [str, subclass of VirtualSiteTerm]
         Virtual site terms for delocalized interaction center.
@@ -112,7 +112,7 @@ class ForceField:
         self.improper_terms: {str: ImproperTerm} = {}
         self.vdw_terms: {str: VdwTerm} = {}
         self.pairwise_vdw_terms: {str: VdwTerm} = {}
-        self.polarizable_terms: {str: PolarizableTerm} = {}
+        self.polar_terms: {str: PolarTerm} = {}
         self.virtual_site_terms: {str: VirtualSiteTerm} = {}
 
         self.vdw_cutoff = 1.0  # nm
@@ -223,13 +223,13 @@ class ForceField:
         '''
         Whether or not this is a polarizable force field.
 
-        Return True as long as the :attr:`polarizable_terms` is not empty.
+        Return True as long as the :attr:`polar_terms` is not empty.
 
         Returns
         -------
         is : bool
         '''
-        return len(self.polarizable_terms) != 0
+        return len(self.polar_terms) != 0
 
     @property
     def has_virtual_site(self):
@@ -328,9 +328,9 @@ class ForceField:
                     self.pairwise_vdw_terms[term.name] = term
                 else:
                     _duplicated = True
-        elif isinstance(term, PolarizableTerm):
-            if term.name not in self.polarizable_terms or replace:
-                self.polarizable_terms[term.name] = term
+        elif isinstance(term, PolarTerm):
+            if term.name not in self.polar_terms or replace:
+                self.polar_terms[term.name] = term
             else:
                 _duplicated = True
         elif isinstance(term, VirtualSiteTerm):
@@ -740,7 +740,7 @@ class ForceField:
                   self.angle_terms,
                   self.dihedral_terms,
                   self.improper_terms,
-                  self.polarizable_terms,
+                  self.polar_terms,
                   self.virtual_site_terms):
             terms.extend(d.values())
         return terms
@@ -750,7 +750,7 @@ class ForceField:
         Assign masses for all atoms in a topology or molecule from the force field.
 
         The atom types should have been defined, and the AtomType in FF should carry mass information.
-        The masses of Drude particles will be determined ONLY from the DrudeTerm,
+        The masses of Drude particles will be determined ONLY from the DrudePolarTerm,
         and the the same amount of mass will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the mass attribute of this AtomType will be simply ignored.
 
@@ -789,11 +789,11 @@ class ForceField:
 
         for parent, drude in top.get_drude_pairs():
             atype = self.atom_types[parent.type]
-            pterm = self.polarizable_terms.get(atype.eqt_polar)
+            pterm = self.polar_terms.get(atype.eqt_polar)
             if pterm is None:
-                raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudeTerm:
-                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
+                raise Exception(f'PolarTerm for {atype} not found in FF')
+            if type(pterm) != DrudePolarTerm:
+                raise Exception('Polar terms other than DrudePolarTerm haven\'t been implemented')
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
@@ -804,7 +804,7 @@ class ForceField:
         The atom types should have been defined.
         The charge of corresponding AtomType in FF will be assigned to the atoms first.
         Then if there are ChargeIncrementTerm, the charge will be transferred between bonded atoms.
-        The charge of Drude particles will be determined ONLY from the DrudePolarizableTerm,
+        The charge of Drude particles will be determined ONLY from the DrudePolarTerm,
         and the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
 
@@ -879,11 +879,11 @@ class ForceField:
 
         for parent, drude in top.get_drude_pairs():
             atype = self.atom_types[parent.type]
-            pterm = self.polarizable_terms.get(atype.eqt_polar)
+            pterm = self.polar_terms.get(atype.eqt_polar)
             if pterm is None:
-                raise Exception(f'Polarizable term for {atype} not found in FF')
-            if type(pterm) != DrudeTerm:
-                raise Exception('Polarizable terms other than DrudeTerm haven\'t been implemented')
+                raise Exception(f'PolarTerm for {atype} not found in FF')
+            if type(pterm) != DrudePolarTerm:
+                raise Exception('Polar terms other than DrudePolarTerm haven\'t been implemented')
             n_H = len([atom for atom in parent.bond_partners if atom.symbol == 'H'])
             alpha = pterm.alpha + n_H * pterm.merge_alpha_H
             drude.charge = -pterm.get_charge(alpha)
