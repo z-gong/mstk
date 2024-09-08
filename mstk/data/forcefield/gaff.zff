@@ -7110,21 +7110,21 @@ OplsImproper     c         hc        o         oh          4.6024
 OplsImproper     c         hc        o         os          4.6024
 OplsImproper     ca        c2        n2        n2          4.6024
 OplsImproper     ca        n2        n2        na          4.6024
-OplsImproper     c         *         *         *          43.9320  # Not from gaff.dat
-OplsImproper     ca        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     c2        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     s4        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     n3        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     nb        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     nh        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     no        *         *         *          43.9320  # Not from gaff.dat
-OplsImproper     p3        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     p4        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     ce        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     cf        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     cp        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     cq        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     sx        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     px        *         *         *           0.0000  # Not from gaff.dat
-OplsImproper     cu        *         *         *           4.6024  # Not from gaff.dat
-OplsImproper     cv        *         *         *           4.6024  # Not from gaff.dat
+OplsImproper     c         *         *         *          43.9320  # added generic improper term, not from gaff.dat
+OplsImproper     ca        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     c2        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     s4        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     n3        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     nb        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     nh        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     no        *         *         *          43.9320  # added generic improper term, not from gaff.dat
+OplsImproper     p3        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     p4        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     ce        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     cf        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     cp        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     cq        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     sx        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     px        *         *         *           0.0000  # added generic improper term, not from gaff.dat
+OplsImproper     cu        *         *         *           4.6024  # added generic improper term, not from gaff.dat
+OplsImproper     cv        *         *         *           4.6024  # added generic improper term, not from gaff.dat
