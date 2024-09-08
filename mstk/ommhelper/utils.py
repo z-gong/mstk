@@ -27,10 +27,13 @@ def print_omm_info(logger=None):
 
 def minimize(sim, tolerance, gro_out=None, logger=None):
     '''
-    Run energy minimization on a Simulation until the force on each atom is smaller than tolerance.
+    Run energy minimization on a Simulation until the force on every atom is smaller than tolerance.
 
     Note that the tolerance here differs from that in OpenMM LocalEnergyMinimizer.
     In OpenMM, the tolerance is set for the root-mean-square of N*3 force components in the whole system.
+
+    For system with constraints, the max force may never reach the tolerance.
+    This is because OpenMM uses harmonic restraints instead of rigorous constrints during energy minimization.
 
     Parameters
     ----------
@@ -52,9 +55,9 @@ def minimize(sim, tolerance, gro_out=None, logger=None):
         fmax = fsq[imax] ** 0.5
         if logger:
             logger.info(f'Iter {i1_iter} Max force F_{imax} = {fmax} kJ/mol/nm')
-        if fmax < tolerance or i1_iter >= 10:
+        if fmax < tolerance or i1_iter >= 5:
             break
-        tol_iter /= 2
+        tol_iter /= 4
 
     state = sim.context.getState(getPositions=True, getEnergy=True)
     if logger:

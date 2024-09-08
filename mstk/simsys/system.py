@@ -432,6 +432,7 @@ class System:
         Parameters
         ----------
         disable_inter_mol : bool
+            Disable inter-molecular interactions. This is useful for optimizing a batch of molecules
 
         Returns
         -------

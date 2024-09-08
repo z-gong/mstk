@@ -42,6 +42,7 @@ class OpenMMExporter:
         ----------
         system : System
         disable_inter_mol : bool
+            Disable inter-molecular interactions. This is useful for optimizing a batch of molecules
 
         Returns
         -------
@@ -166,7 +167,8 @@ class OpenMMExporter:
                         continue
                     aterm = system.angle_terms[angle]
                     if type(aterm) == QuarticAngleTerm:
-                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id, [aterm.theta, aterm.k2, aterm.k3, aterm.k4])
+                        aforce.addAngle(angle.atom1.id, angle.atom2.id, angle.atom3.id,
+                                        [aterm.theta, aterm.k2, aterm.k3, aterm.k4])
             elif angle_class == HarmonicCosineAngleTerm:
                 logger.debug('Setting up harmonic cosine angles...')
                 aforce = mm.CustomAngleForce('k/sin(theta0)^2*(cos(theta)-cos(theta0))^2')
@@ -676,6 +678,7 @@ class OpenMMExporter:
 
         for mol in top.molecules:
             pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
+            # each pair tuple (Atom, Atom) in each pairs list are sorted by the Atom.id attributes of two atoms
             pairs1n = list(set(itertools.combinations(mol.atoms, 2)) - set(pairs12).union(pairs13).union(pairs14))
             for i, (atom1, atom2) in enumerate(pairs14 + pairs1n):
                 vdw = ff.get_vdw_term(ff.atom_types[atom1.type], ff.atom_types[atom2.type])
@@ -688,4 +691,6 @@ class OpenMMExporter:
                     ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
                 elif type(vdw) == MieTerm:
                     ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
+                else:
+                    raise Exception(f'Cannot setup {vdw} as a bonded term')
                 qqforce.addBond(atom1.id, atom2.id, [qq])
