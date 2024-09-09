@@ -1,8 +1,8 @@
-from mstk.forcefield.typer import ZftTyper
+from mstk.forcefield.typer import SmartsTyper
 from mstk.topology import Molecule
 
 # Construct a typing engine from type definition file
-typer = ZftTyper('alkane.zft')
+typer = SmartsTyper('alkane.smt')
 
 # Create a molecule from SMILES string
 butane = Molecule.from_smiles('CCCC')

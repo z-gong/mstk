@@ -1,18 +1,18 @@
 import os
 from mstk import DIR_MSTK
 from mstk.topology import Bond
-from .zft import ZftTyper
+from .smarts_typer import SmartsTyper
 
 
-class GaffTyper(ZftTyper):
+class GaffTyper(SmartsTyper):
     '''
     `GaffTyper` is specifically designed for GAFF atom type assignment.
-    By default, it uses the type definition file `gaff.zft`
+    By default, it uses the type definition file `gaff.smt`
 
-    Compared with `ZftTyper`, this class will handle conjugated atom types according to the GAFF convention,
+    Compared with `SmartsTyper`, this class will handle conjugated atom types according to the GAFF convention,
     e.g. cc/cd, ce/cf etc...
 
-    The official tool for GAFF - antechamber has plenty of issues:
+    The official tool for GAFF - antechamber has several issues:
     - Mysterious aromatic assignment
     - A lost of parameters missing. `parmchk2` gives unreasonable guess for torsion parameters, e.g. biphenyl
 
@@ -30,7 +30,7 @@ class GaffTyper(ZftTyper):
     '''
 
     def __init__(self, file=None):
-        file = file or os.path.join(DIR_MSTK, 'data', 'forcefield', 'gaff.zft')
+        file = file or os.path.join(DIR_MSTK, 'data', 'forcefield', 'gaff.smt')
         super().__init__(file)
 
     def _type_molecule(self, molecule):
@@ -39,7 +39,7 @@ class GaffTyper(ZftTyper):
 
         The :attr:`~mstk.topology.Atom.type` attribute of all atoms in the molecule will be updated.
 
-        ZftTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
+        GaffTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
         Usually it means the molecule be initialized from SMILES.
         with :func:`~mstk.topology.Molecule.from_smiles` or :func:`~mstk.topology.Molecule.from_pybel`
 

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-from mstk.forcefield.typer import ZftTyper
+from mstk.forcefield.typer import SmartsTyper
 from mstk.topology import Topology, Molecule, Atom, Bond
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-typer_primitive = ZftTyper('primitive.zft')
+typer_primitive = SmartsTyper('primitive.smt')
 
-def test_typing():
+def test_smarts_typer():
     im61 = Molecule.from_smiles('C[n+]1cn(cc1)CCCCCC')
     im2eben = Molecule.from_smiles('C[n+]1cn(cc1)CCc1ccccc1')
     im2bben = Molecule.from_smiles('C[n+]1cn(cc1)CCCc1ccccc1')
@@ -17,7 +17,7 @@ def test_typing():
     tfsi = Molecule.from_smiles('FC(F)(F)S(=O)(=O)[N-]S(=O)(=O)C(F)(F)(F)')
     top = Topology([im61, im2eben, im2bben, dca, fsi, tfsi])
 
-    typer = ZftTyper(cwd + '/files/CLP-define.zft')
+    typer = SmartsTyper(cwd + '/files/CLP-define.smt')
     typer.type(top)
 
     assert [atom.type for atom in im61.atoms] == (

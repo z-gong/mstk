@@ -1,4 +1,4 @@
-* This is an example force field to work with atom types defined by primitive.zft
+* This is an example force field to work with atom types defined by primitive.smt
 * It is not supposed to be used for production
 
 Setting          vdw_cutoff       1.0

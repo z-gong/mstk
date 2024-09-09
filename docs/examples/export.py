@@ -1,9 +1,9 @@
 from mstk.topology import Molecule, Topology
-from mstk.forcefield import ForceField, ZftTyper
+from mstk.forcefield import ForceField, SmartsTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
-typer = ZftTyper('alkane.zft')
+typer = SmartsTyper('alkane.smt')
 
 butane = Molecule.from_smiles('CCCC    butane')
 typer.type(butane)

@@ -11,7 +11,7 @@ Typing engine
     :toctree: _generated/
 
     Typer
-    ZftTyper
+    SmartsTyper
     GaffTyper
 
 Force field definition

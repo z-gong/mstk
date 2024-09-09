@@ -32,9 +32,9 @@ class Zfp:
     ----------
     forcefield : ForceField
     '''
-    logger.warning('ZFP format is deprecated. Consider converting it to a ZFF file with ffconv.py')
 
     def __init__(self, file):
+        logger.warning('ZFP format is deprecated. Consider converting it to a ZFF file with ffconv.py')
         self.forcefield = ForceField()
         self._parse(file)
 

@@ -1,3 +1,3 @@
 from .typer import Typer
-from .zft import ZftTyper
+from .smarts_typer import SmartsTyper
 from .gaff_typer import GaffTyper

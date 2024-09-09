@@ -10,7 +10,7 @@ The assignment of atom types is usually the most cumbersome task in a simulation
 For bio simulations, template matching is commonly used, because almost all bio-polymers are made of several kinds of repeating units.
 However, the template matching won't work well for other molecules because there is no common repeating units.
 
-`mstk` provide a typing engine :class:`~mstk.forcefield.typer.ZftTyper` for assigning atom types.
+`mstk` provide a typing engine :class:`~mstk.forcefield.typer.SmartsTyper` for assigning atom types.
 It is based on local chemical environment defined by SMARTS pattern and a hierarchical rule described in a type definition file.
 
 In order to write the type definition file correctly, knowledge about
@@ -18,12 +18,12 @@ In order to write the type definition file correctly, knowledge about
 The idea of the hierarchical rule is described in
 `this article <https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.24244>`_.
 
-Herein, an example of using :class:`~mstk.forcefield.typer.ZftTyper` to assign atom types is provided.
+Herein, an example of using :class:`~mstk.forcefield.typer.SmartsTyper` to assign atom types is provided.
 A type definition file should be fed to this typing engine.
 The text below shows the type definition for linear alkane in `TEAM` force field.
-Let's copy its content and save it to file `alkane.zft`.
+Let's copy its content and save it to file `alkane.smt`.
 
-.. literalinclude:: examples/alkane.zft
+.. literalinclude:: examples/alkane.smt
 
 The script below will assign atom types for butane using this type definition.
 

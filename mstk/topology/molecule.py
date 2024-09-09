@@ -217,7 +217,7 @@ class Molecule():
         '''
         The `rdkit.Chem.Mol` object associated with this molecule.
 
-        It is required by ZftTyper typing engine, which performs SMARTS matching on the molecule.
+        It is required by SmartsTyper typing engine, which performs SMARTS matching on the molecule.
         The `rdmol` attribute will be assigned if the molecule is initialized from SMILES or RDKit Molecule.
         If it is not available, a RDKit molecule will be constructed from atoms and bonds.
         The positions will not be preserved.

@@ -1,7 +1,7 @@
 import io
 import os
 from .typer import Typer
-from mstk import DIR_MSTK, MSTK_FORCEFIELD_PATH
+from mstk import MSTK_FORCEFIELD_PATH
 from mstk.forcefield.errors import *
 from mstk.topology import Bond
 
@@ -13,7 +13,7 @@ else:
     RDKIT_IMPORTER = True
 
 
-class TypeDefine():
+class TypeDefine:
     def __init__(self, name, smarts, formal_charge=None):
         self.name = name
         self.smarts = smarts
@@ -38,9 +38,9 @@ class TypeDefine():
             define.parent = self
 
 
-class ZftTyper(Typer):
+class SmartsTyper(Typer):
     '''
-    ZftTyper assign atom types with local environment defined by SMARTS and a hierarchical rule.
+    SmartsTyper assign atom types with local environment defined by SMARTS and a hierarchical rule.
 
     A type definition file is required.
 
@@ -68,7 +68,7 @@ class ZftTyper(Typer):
     This is a sample type definition file for hydrocarbons with OPLS force field.
     Two sections are required: `TypeDefinition` and `HierarchicalTree`.
     `TypeDefinition` determines which type the atom can be by matching SMARTS.
-    A atom can match several different atom types defined in `TypeDefinition` section.
+    An atom can match several atom types defined in `TypeDefinition` section.
     e.g. Hydrogen atoms with one neighbour will match type `H_1`, and carbon atoms with four neighbour will match type `C_4`.
     Hydrogen atoms bonded with four neighboured carbon will also match type `HC`.
     If a four neighboured carbon is bonded to a benzene ring, then hydrogen atoms bonded to this carbon will also match type `HT`.
@@ -83,8 +83,8 @@ class ZftTyper(Typer):
     If a atom matches both `C_4`, `CT` and `CS` (which is impossible in this example), it will be typed as `CT`.
 
     For molecule propane, based on the `TypeDefinition`, all the hydrogen atoms will match atom type `H_1` and `HC`.
-    All of the carbon atoms will match atom type `C_4`, but the side carbon atoms will also match `CT` and the center carbon atom will also match `CS`.
-    Then based on the `HierarchicalTree`, all of the hydrogen atoms will be typed as `HC`.
+    All the carbon atoms will match atom type `C_4`, but the side carbon atoms will also match `CT` and the center carbon atom will also match `CS`.
+    Then based on the `HierarchicalTree`, all the hydrogen atoms will be typed as `HC`.
     Side carbon atoms will be typed as `CT`, and center carbon atom will be typed as `CS`.
 
     The hierarchical strategy make the atom type definition extendable.
@@ -104,7 +104,7 @@ class ZftTyper(Typer):
 
     def __init__(self, file=None):
         if not RDKIT_IMPORTER:
-            raise Exception('RDKit is required for ZftTyper')
+            raise Exception('RDKit is required for SmartsTyper')
 
         self.defines: {str: TypeDefine} = {}
         self.define_root = TypeDefine('UNDEFINED', None)
@@ -183,7 +183,7 @@ class ZftTyper(Typer):
 
         The :attr:`~mstk.topology.Atom.type` attribute of all atoms in the molecule will be updated.
 
-        ZftTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
+        SmartsTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
         Usually it means the molecule be initialized from SMILES.
         with :func:`~mstk.topology.Molecule.from_smiles` or :func:`~mstk.topology.Molecule.from_pybel`
 

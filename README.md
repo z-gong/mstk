@@ -27,7 +27,7 @@ Build a liquid mixture of 100 benzene and 1000 water molecules, ready for simula
 
 ```python
 from mstk.topology import Molecule, Topology
-from mstk.forcefield import ForceField, ZftTyper
+from mstk.forcefield import ForceField, SmartsTyper
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
@@ -36,8 +36,8 @@ benzene = Molecule.from_smiles('c1ccccc1')
 water = Molecule.from_smiles('O')
 top = Topology([benzene, water])
 
-# Assign atom types as defined in `data/forcefield/primitive.zft`
-typer = ZftTyper('primitive.zft')
+# Assign atom types as defined in `data/forcefield/primitive.smt`
+typer = SmartsTyper('primitive.smt')
 typer.type(top)
 
 # Build a bulk liquid simulation box with Packmol
@@ -63,7 +63,7 @@ omm_top = top.to_omm_topology()
 __Important Note__:
 *The __primitive__ atom typing and force field used above are for demonstration purpose only and are __not__ well
 optimized for production use.*
-*For reliable simulation, please prepare you own `zft` and `zff` files or get them from a validated source.*
+*For reliable simulation, please prepare you own `smt` and `zff` files or get them from a validated source.*
 
 ## Documentation
 
