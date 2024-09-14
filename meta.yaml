@@ -1,0 +1,43 @@
+{% set name = "mstk" %}
+{% set version = "0.3.18" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/z-gong/{{ name }}.git
+  git_rev: {{ version }}
+
+build:
+  number: {{ build }}
+  script: python -m pip install . --no-deps  # This is recommended for pip-based builds
+  noarch: python  # If your package works for all architectures
+
+requirements:
+  build:
+    - python >=3.6
+    - pip  # Since you are using a `setup.py`, pip is needed to install
+
+  run:
+    - python >=3.6
+    - numpy
+    - pandas
+    - rdkit
+    - openmm >=8.1.2
+    - chemfiles >=0.10.4
+    - packmol
+    - scipy
+    - scikit-learn
+    - matplotlib-base
+    - pymbar-core
+
+about:
+  home: https://github.com/z-gong/mstk
+  license: LGPL-2.0-or-later
+  license_file: LICENSE
+  summary: Molecular simulation toolkit
+  description: |
+    A Python-based molecular simulation toolkit designed to streamline the
+    development and execution of molecular dynamics simulations.
