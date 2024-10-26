@@ -1,6 +1,6 @@
 class Formula:
     '''
-    Parse elements and numbers from a non-standardized chemical formula.
+    Parse elements, numbers and charge from a non-standardized chemical formula.
 
     e.g. H4C3(COH2)2 will be parsed as five carbon, eight hydrogen and two oxygen.
 
@@ -12,13 +12,16 @@ class Formula:
     ----------
     atoms : dict, [str, int]
         Dict of the symbol and number of each chemical element.
+    charge : int
+        Net charge of the molecule.
     '''
 
     def __init__(self, mol_str):
         chars = Formula._extract_chars(mol_str)
         chars = Formula._expand_chars(chars)
-        atoms = Formula._count_atoms(chars)
+        atoms, charge = Formula._count_atoms(chars)
         self.atoms = Formula._hill_order(atoms)
+        self.charge = charge
 
     @staticmethod
     def _extract_chars(formula):
@@ -26,7 +29,7 @@ class Formula:
         i = 0
         while i < len(formula):
             c = formula[i]
-            if c.isupper():
+            if c.isupper() or c == '+' or c == '-':
                 chars.append(c)
                 i += 1
                 while i < len(formula):
@@ -96,6 +99,7 @@ class Formula:
     @staticmethod
     def _count_atoms(chars):
         counts = {}
+        charge = 0
         for i in range(len(chars)):
             c = chars[i]
             if c.isdigit():
@@ -105,7 +109,17 @@ class Formula:
                     counts[c] = 1
                 else:
                     counts[c] += 1
-        return counts
+
+        for k in list(counts):
+            if k.startswith('+') or k.startswith('-'):
+                if len(k) > 1:
+                    raise Exception('Invalid formula')
+                if k == '+':
+                    charge += counts.pop(k)
+                elif k == '-':
+                    charge -= counts.pop(k)
+
+        return counts, charge
 
     @staticmethod
     def _hill_order(atoms):
@@ -130,14 +144,19 @@ class Formula:
         -------
         formula_str : str
         '''
+        string = ''
+        for symbol, num in self.atoms.items():
+            string += symbol
+            if num != 1:
+                string += str(num)
+        if self.charge > 0:
+            string += '+'
+        if self.charge < 0:
+            string += '-'
+        if abs(self.charge) > 1:
+            string += str(abs(self.charge))
 
-        def num2str(num):
-            if num == 1:
-                return ''
-            else:
-                return str(num)
-
-        return ''.join([symbol + num2str(num) for symbol, num in self.atoms.items()])
+        return string
 
     @property
     def n_heavy(self):
