@@ -172,10 +172,11 @@ class Pdb:
             line = 'HETATM%5d %4s %-4s %4d    %8s%8s%8s                      %2s' % (
                 (atom.id + 1) % 100000, atom.name[:4], resname[:4], resid % 10000,
                 *[format_float(x, 8, 3) for x in pos], atom.symbol[:2])
-            if atom.formal_charge != 0:
-                line += str(abs(atom.formal_charge))
-                if atom.formal_charge < 0:
-                    line += '-'
+            if atom.formal_charge > 0:
+                line += str(abs(atom.formal_charge)) + '+'
+            elif atom.formal_charge < 0:
+                line += str(abs(atom.formal_charge)) + '-'
+
             string += line + '\n'
 
         for atom in top.atoms:

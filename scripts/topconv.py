@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import numpy as np
 from mstk.topology import Topology
 from mstk.trajectory import Trajectory
 from mstk.forcefield import ForceField
@@ -84,4 +85,7 @@ if __name__ == '__main__':
         for atom in top.atoms:
             atom.position += args.shift
 
-    top.write(args.output, atom_type=True)
+    if not top.has_position:
+        top.set_positions(np.zeros((top.n_atom, 3), dtype=float))
+
+    top.write(args.output)
