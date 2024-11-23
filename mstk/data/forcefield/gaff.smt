@@ -1,10 +1,16 @@
-## This is an unofficial definition for GAFF, it should only be used with GaffTyper
-## It covers the 35 basic atom types and 23 special atom types
+## This is an unofficial implementation of GAFF atom types based on Table 1 in the following article:
+## * Wang, J.; Wolf, R. M.; Caldwell, J. W.; Kollman, P. A.; Case, D. A. Development and Testing of a General Amber Force Field. Journal of Computational Chemistry 2004, 25 (9), 1157–1174. https://doi.org/10.1002/jcc.20035.
+## It covers the 35 basic atom types and 23 special atom types.
+## Because of the special treatment for conjugated atoms, it should only be used with GaffTyper.
+
+## For some molecules, especially small hetero rings, this definition cannot give exact results as AmberTools.
+## Therefore, this is mainly used for optimizing a force field by taking GAFF as an initial guess.
+
 ## Hybridization assignment is nasty. E.g. N in N-c1ccccc1 is SP2 hybridized, whereas P in P-c1ccccc1 is SP3 hybridized.
 ## N in N-C=C is considered as SP2 hybridized by RDKit, but it is not a strong planer structure.
 ## Therefore, hybridization is avoided if the type can be correctly assigned with other information.
-## GAFF does not consider 5-member rings as aromatic.
-## The RDKit convention is used here for determining aromaticity, which is not consistent with GAFF.
+## RDKit is used here for determining aromaticity, which is not consistent with GAFF.
+## E.g. GAFF does not consider 5-member rings as aromatic.
 
 TypeDefinition
 

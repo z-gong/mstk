@@ -249,7 +249,7 @@ class Psf:
 
         string += '%8i !NATOM\n' % top.n_atom
         for i, atom in enumerate(top.atoms):
-            string += '%8i %-4s %-4i %-4s %-4s %-4s %10.6f %13.4f %11i %8.4f %8.4f\n' % (
+            string += '%8i %-4s %-4i %-7s %-4s %-4s %10.6f %13.4f %11i %8.4f %8.4f\n' % (
                 atom.id + 1, 'S', atom.residue.id + 1, atom.residue.name, atom.name, atom.type,
                 atom.charge, atom.mass, 0, -atom.alpha * 1000, atom.thole / 2
             )

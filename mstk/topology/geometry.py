@@ -71,12 +71,22 @@ def relocate_hydrogen(hydrogen):
     ----------
     hydrogen : Atom
     '''
-    vector = np.array([0., 0., 0.])
     parent = hydrogen.bond_partners[0]
-    for atom in parent.bond_partners:
-        if atom is not hydrogen:
-            vector += atom.position - parent.position
-    hydrogen.position = parent.position - vector / np.sqrt(np.dot(vector, vector)) * 0.1  # bXH = 0.1 nm
+    if len(parent.bonds) == 1:
+        vector = np.random.random(3) - 0.5
+        vector = vector / np.sqrt(np.dot(vector, vector))
+        hydrogen.position = parent.position + vector * 0.1  # bXH = 0.1 nm
+    elif len(parent.bonds) == 2:
+        far = next(p for p in parent.bond_partners if p is not hydrogen)
+        hydrogen.position = grow_particle(far.position, parent.position, 0.1,
+                                          math.pi * 2 / 3)  # bXH = 0.1 nm, aYXH = 120 degree
+    else:
+        vector = np.array([0., 0., 0.])
+        for atom in parent.bond_partners:
+            if atom is not hydrogen:
+                vector += atom.position - parent.position
+        hydrogen.position = parent.position - vector / np.sqrt(np.dot(vector, vector)) * 0.1  # bXH = 0.1 nm
+        hydrogen.position = hydrogen.position + (np.random.random(3) - 0.5) * 0.02  # add random noise up to 0.02 nm
 
 
 def periodic_distance(pos1, pos2, box, distance_max=None):
