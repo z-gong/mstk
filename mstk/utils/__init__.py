@@ -141,12 +141,16 @@ def print_data_to_file(name_column_dict, file):
 
     with open(file, 'w') as f:
         f.write('#')
-        for name in name_column_dict.keys():
-            f.write(f'"{name}"\t')
+        for i_col, name in enumerate(name_column_dict):
+            if i_col != 0:
+                f.write('\t')
+            f.write(f'"{name}"')
         f.write('\n')
         for i in range(len(list(name_column_dict.values())[0])):
-            for column in name_column_dict.values():
-                f.write(f'{column[i]}\t')
+            for i_col, column in enumerate(name_column_dict.values()):
+                if i_col != 0:
+                    f.write('\t')
+                f.write(f'{column[i]}')
             f.write('\n')
 
 

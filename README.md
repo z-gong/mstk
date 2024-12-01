@@ -27,7 +27,7 @@ Build a liquid mixture of 100 benzene and 1000 water molecules, ready for simula
 
 ```python
 from mstk.topology import Molecule, Topology
-from mstk.forcefield import ForceField, SmartsTyper
+from mstk.forcefield import ForceField, Typer
 from mstk.simsys import System
 from mstk.wrapper import Packmol
 
@@ -37,7 +37,7 @@ water = Molecule.from_smiles('O')
 top = Topology([benzene, water])
 
 # Assign atom types as defined in `data/forcefield/primitive.smt`
-typer = SmartsTyper('primitive.smt')
+typer = Typer.open('primitive.smt')
 typer.type(top)
 
 # Build a bulk liquid simulation box with Packmol
@@ -71,7 +71,6 @@ https://mstk.readthedocs.io/en/latest/index.html
 
 ## TODO
 
-- [ ] Take bond order into consideration for force field assignment
 - [ ] Refactor algorithms across `topology` and `analyzer` modules
 - [ ] Separate `ommhelper` module into its own package
 - [ ] Remove `analyzer` module
