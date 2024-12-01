@@ -1,6 +1,8 @@
 ## This is an example for defining atom types
 ## It is not supposed to be used for production
 
+TypingEngine SmartsTyper
+
 TypeDefinition
 
 H       [#1]

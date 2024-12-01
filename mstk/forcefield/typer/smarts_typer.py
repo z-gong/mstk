@@ -1,7 +1,6 @@
 import io
 import os
 from .typer import Typer
-from mstk import MSTK_FORCEFIELD_PATH
 from mstk.forcefield.errors import *
 from mstk.topology import Bond
 
@@ -93,7 +92,6 @@ class SmartsTyper(Typer):
     ----------
     file : str or file-like object, optional
         Type definition file.
-        If the file does not exist, will search it under directories defined by `MSTK_FORCEFIELD_PATH`.
 
     Notes
     -----
@@ -111,12 +109,9 @@ class SmartsTyper(Typer):
 
         content = None
         if type(file) is str:
-            for dir in ['.'] + MSTK_FORCEFIELD_PATH:
-                p = os.path.join(dir, file)
-                if os.path.exists(p):
-                    with open(p) as f:
-                        content = f.read()
-                    break
+            if os.path.exists(file):
+                with open(file) as f:
+                    content = f.read()
             else:
                 raise Exception(f'Typing file not found: {file}')
         elif isinstance(file, io.IOBase):

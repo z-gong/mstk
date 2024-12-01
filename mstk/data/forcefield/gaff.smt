@@ -12,6 +12,8 @@
 ## RDKit is used here for determining aromaticity, which is not consistent with GAFF.
 ## E.g. GAFF does not consider 5-member rings as aromatic.
 
+TypingEngine GaffTyper
+
 TypeDefinition
 
 c      [C;X3]=[O,S;X1]

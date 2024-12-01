@@ -56,20 +56,26 @@ def test_read():
 
 def test_write():
     tmpdir = tempfile.mkdtemp()
-
-    clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     tmp = os.path.join(tmpdir, 'out-CLPol.zff')
+    clp = ForceField.open(cwd + '/files/CLP.ff', cwd + '/files/CLPol-alpha.ff')
     Zff.save_to(clp, tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/out-CLPol.zff')
+    shutil.rmtree(tmpdir)
 
-    il = ForceField.open(cwd + '/files/TEAM_IL.ppf')
+
+def test_write2():
+    tmpdir = tempfile.mkdtemp()
     tmp = os.path.join(tmpdir, 'out-TEAM_IL.zff')
+    il = ForceField.open(cwd + '/files/TEAM_IL.ppf')
     Zff.save_to(il, tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/out-TEAM_IL.zff')
+    shutil.rmtree(tmpdir)
 
-    spce = ForceField.open(cwd + '/files/SPCE.ppf')
+
+def test_write3():
+    tmpdir = tempfile.mkdtemp()
     tmp = os.path.join(tmpdir, 'out-SPCE.zff')
+    spce = ForceField.open(cwd + '/files/SPCE.ppf')
     spce.write(tmp)
     assert filecmp.cmp(tmp, cwd + '/files/baselines/out-SPCE.zff')
-
     shutil.rmtree(tmpdir)

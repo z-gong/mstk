@@ -3,7 +3,7 @@
 import os
 from mstk.topology import Topology, Molecule, Atom, Bond
 from mstk.forcefield import ForceField
-from mstk.forcefield.typer import SmartsTyper
+from mstk.forcefield.typer import Typer
 from mstk.simsys import System
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +11,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 def test_primitive_ff():
     mol = Molecule.from_smiles('C=CCC#CCOC(=O)NC(O)C(=O)OC')
-    typer = SmartsTyper('primitive.smt')
+    typer = Typer.open('primitive.smt')
     typer.type(mol)
     assert [atom.type for atom in mol.atoms] == [
         'C3', 'C3', 'C4', 'C2', 'C2', 'C4', 'O2', 'C3=O', 'O1', 'N3CO', 'C4', 'O2', 'C3=O', 'O1', 'O2', 'C4',

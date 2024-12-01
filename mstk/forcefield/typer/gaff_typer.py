@@ -20,7 +20,6 @@ class GaffTyper(SmartsTyper):
     ----------
     file : str or file-like object, optional
         Type definition file.
-        If the file does not exist, will search it under directories defined by `MSTK_FORCEFIELD_PATH`.
 
     Notes
     -----
@@ -41,7 +40,7 @@ class GaffTyper(SmartsTyper):
 
         GaffTyper use RDKit to do SMARTS matching, therefore the orders must be set for all the bonds in the molecule.
         Usually it means the molecule be initialized from SMILES.
-        with :func:`~mstk.topology.Molecule.from_smiles` or :func:`~mstk.topology.Molecule.from_pybel`
+        with :func:`~mstk.topology.Molecule.from_smiles` or :func:`~mstk.topology.Molecule.from_rdmol`
 
         If an atom can not match any type by the predefined SMARTS patterns, an Exception will be raised.
 

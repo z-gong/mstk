@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-from mstk.forcefield.typer import SmartsTyper
+from mstk.forcefield.typer import Typer, SmartsTyper
 from mstk.topology import Topology, Molecule, Atom, Bond
 import os
 
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-typer_primitive = SmartsTyper('primitive.smt')
+typer_primitive = Typer.open('primitive.smt')
 
 def test_smarts_typer():
     im61 = Molecule.from_smiles('C[n+]1cn(cc1)CCCCCC')
