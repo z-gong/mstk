@@ -1,16 +1,16 @@
 ## This is an unofficial implementation of GAFF atom types based on Table 1 in the following article:
 ## * Wang, J.; Wolf, R. M.; Caldwell, J. W.; Kollman, P. A.; Case, D. A. Development and Testing of a General Amber Force Field. Journal of Computational Chemistry 2004, 25 (9), 1157–1174. https://doi.org/10.1002/jcc.20035.
 ## It covers the 35 basic atom types and 23 special atom types.
-## Because of the special treatment for conjugated atoms, it should only be used with GaffTyper.
+## Because of the special treatment for conjugated atoms, it requires GaffTyper typing engine.
 
-## For some molecules, especially small hetero rings, this definition cannot give exact results as AmberTools.
-## Therefore, this is mainly used for optimizing a force field by taking GAFF as an initial guess.
+## RDKit is used here for determining aromaticity, which is not consistent with GAFF.
+## Especially, GAFF does not consider 5-member rings as aromatic.
+## For some molecules, this definition does not give the same results as the official implementation in AmberTools.
+## Therefore, this definition is mainly used for optimizing a force field by taking GAFF as an initial guess.
 
 ## Hybridization assignment is nasty. E.g. N in N-c1ccccc1 is SP2 hybridized, whereas P in P-c1ccccc1 is SP3 hybridized.
 ## N in N-C=C is considered as SP2 hybridized by RDKit, but it is not a strong planer structure.
 ## Therefore, hybridization is avoided if the type can be correctly assigned with other information.
-## RDKit is used here for determining aromaticity, which is not consistent with GAFF.
-## E.g. GAFF does not consider 5-member rings as aromatic.
 
 TypingEngine GaffTyper
 
@@ -21,14 +21,14 @@ c1     [C;X2]
 c2     [C;X3]
 c3     [C;X4]
 ca     [c]
-n      [N;X3][C,S,P]=[O,S]      ## cannot use hybridization. RDKit treat N in NC=O as SP2, but in NS=O as SP3
-n1     [N^1;X1]
-n2     [N^2;X2]
-n3     [N^3;X3]
-n4     [N^3;X4]
-na     [N^2;X3]
-nh     [N;X3](*)(*)[a]          ## N in N-c1ccccc1 is SP2 hybridized
-no     [N;X3](=O)(~O)
+n      [N;X3][C,S,P]=[O,S]      ## amide. Cannot use hybridization. RDKit treat N in NC=O as SP2, but in NS=O as SP3
+n1     [N^1;X1]                 ## SP1 nitrogen. E.g. nitrile
+n2     [N^2;X2]                 ## SP2 nitrogen with 2 coordinates and a double bond. E.g. imine
+n3     [N^3;X3]                 ## SP3 nitrogen with 3 coordinates. E.g. amine
+n4     [N^3;X4]                 ## SP3 nitrogen with 4 coordinates. E.g. ammonium
+na     [N;X3](*=*)(*=*)         ## SP2 nitrogen with 3 coordinates. E.g. amine connected two alkene groups. Cannot use N^2, because RDKit considers N in NC=C as SP2
+nh     [N;X3](*)(*)[a]          ## amine connected to aromatic
+no     [N;X3](=O)(~O)           ## nitro group
 o      [O;X1]                   ## O in carbonyl or nitro group
 oh     [O;X2;H]
 os     [#8;X2;H0]               ## there is no aromatic O in GAFF
@@ -98,9 +98,9 @@ n2
         nc|nd
 n3
 n4
+no
+nh
 na
-    nh
-    no
 o
 oh
 os
