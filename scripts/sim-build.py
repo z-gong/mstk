@@ -7,7 +7,7 @@ import numpy as np
 from mstk.topology import Topology, Molecule
 from mstk.trajectory import Trajectory, Frame
 from mstk.forcefield import ForceField
-from mstk.forcefield.typer import SmartsTyper, GaffTyper
+from mstk.forcefield.typer import Typer, GaffTyper
 from mstk.forcefield.errors import *
 from mstk.chem import constant
 from mstk import logger
@@ -54,7 +54,7 @@ def main():
     if args.typer == 'gaff':
         typer = GaffTyper()
     elif args.typer:
-        typer = SmartsTyper(args.typer)
+        typer = Typer.open(args.typer)
     else:
         typer = None
 
