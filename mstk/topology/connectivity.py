@@ -289,6 +289,9 @@ class Dihedral():
     atom2 : Atom
     atom3 : Atom
     atom4 : Atom
+    override_atom_types: list of str
+        When matching dihedral terms from FF, the type attributes of the four atoms will be overridden with these specified types.
+        Each element can be a string or None. If None, the type attribute of the corresponding atom will be used, and not get overridden.
     '''
 
     def __init__(self, atom1, atom2, atom3, atom4):
@@ -296,6 +299,7 @@ class Dihedral():
         self.atom2 = atom2
         self.atom3 = atom3
         self.atom4 = atom4
+        self.override_atom_types = [None, None, None, None]
 
     def __repr__(self):
         return '<Dihedral: %s>' % self.name

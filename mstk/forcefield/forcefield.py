@@ -547,11 +547,12 @@ class ForceField:
             Each element of the list is a tuple of four str (type1, type2, type3, type4),
             which are the equivalent atom types for dihedral parameters of the four atom in this dihedral.
         '''
+        at1, at2, at3, at4 = dihedral.override_atom_types
         try:
-            at1 = self.atom_types.get(dihedral.atom1.type).eqt_dih_s
-            at2 = self.atom_types.get(dihedral.atom2.type).eqt_dih_c
-            at3 = self.atom_types.get(dihedral.atom3.type).eqt_dih_c
-            at4 = self.atom_types.get(dihedral.atom4.type).eqt_dih_s
+            at1 = at1 or self.atom_types.get(dihedral.atom1.type).eqt_dih_s
+            at2 = at2 or self.atom_types.get(dihedral.atom2.type).eqt_dih_c
+            at3 = at3 or self.atom_types.get(dihedral.atom3.type).eqt_dih_c
+            at4 = at4 or self.atom_types.get(dihedral.atom4.type).eqt_dih_s
         except:
             raise FFTermNotFoundError(f'Atom type {dihedral.atom1.type} or {dihedral.atom2.type} '
                                       f'or {dihedral.atom3.type} or {dihedral.atom4.type} not found in FF')
