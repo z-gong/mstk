@@ -63,24 +63,24 @@ class GromacsExporter:
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudePolarTerm}
-        unsupported = system.ff_classes - supported_terms
+        unsupported = system.ff.energy_term_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
-        if MieTerm in system.ff_classes:
+        if MieTerm in system.ff.vdw_term_classes:
             logger.warning('MieTerm not supported by GROMACS. Exported in LJ-12-6 form')
-        if MorseVdwTerm in system.ff_classes:
+        if MorseVdwTerm in system.ff.vdw_term_classes:
             logger.warning('MorseVdwTerm not supported by GROMACS. Exported in LJ-12-6 form')
-        if QuarticBondTerm in system.ff_classes:
+        if QuarticBondTerm in system.ff.bond_term_classes:
             logger.warning('QuarticBondTerm not supported by GROMACS. Exported in harmonic form')
-        if QuarticAngleTerm in system.ff_classes:
+        if QuarticAngleTerm in system.ff.angle_term_classes:
             logger.warning('QuarticAngleTerm not supported by GROMACS. Exported in harmonic form')
-        if SDKAngleTerm in system.ff_classes:
+        if SDKAngleTerm in system.ff.angle_term_classes:
             logger.warning('SDKAngleTerm not supported by GROMACS. Exported in harmonic form')
-        if DrudePolarTerm in system.ff_classes:
+        if DrudePolarTerm in system.ff.polar_term_classes:
             logger.warning('DrudePolarTerm not well tested in GROMACS. Use it with caution')
 
-        if system.vsite_types - {TIP4PSite} != set():
+        if system.topology.virtual_site_classes - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
 
         if gro_out is not None:
@@ -114,7 +114,7 @@ class GromacsExporter:
         string += '\n[ atomtypes ]\n'
         string += ';     name       mass     charge      ptype      sigma      epsilon\n'
         drude_types = set()
-        if DrudePolarTerm in system.ff_classes:
+        if DrudePolarTerm in system.ff.polar_term_classes:
             for atom in system.topology.atoms:
                 if atom.is_drude:
                     drude_types.add(atom.type)
@@ -164,7 +164,7 @@ class GromacsExporter:
                     j + 1, atom.type, atom.residue.id_in_mol + 1, atom.residue.name,
                     atom.symbol, j + 1, atom.charge, mass)
 
-            if TIP4PSite in system.vsite_types:
+            if TIP4PSite in system.topology.virtual_site_classes:
                 string += '\n[ virtual_sites3 ]\n'
                 string += ';%5s %6s %6s %6s %6s %12s %12s\n' % ('Vsite', 'from1', 'from2', 'from3', 'funct', 'a', 'b')
                 for atom in mol.atoms:
@@ -216,7 +216,7 @@ class GromacsExporter:
                 string += '%6i %6i %6i\n' % (a1.id_in_mol + 1, a2.id_in_mol + 1, 1)
 
             ### Drude polarization #############################################
-            if DrudePolarTerm in system.ff_classes:
+            if DrudePolarTerm in system.ff.polar_term_classes:
                 string += '\n[ polarization ]\n'
                 string += ';  ai    aj   func    alpha     delta     khyp\n'
                 for parent, drude in drude_pairs.items():
@@ -400,7 +400,7 @@ class GromacsExporter:
     @staticmethod
     def _export_mdp(system: System, mdp_out='grompp.mdp'):
         r_cut = system.ff.vdw_cutoff
-        tau_t = 0.2 if DrudePolarTerm in system.ff_classes else 1.0
+        tau_t = 0.2 if DrudePolarTerm in system.ff.polar_term_classes else 1.0
         string = f'''; Created by mstk
 integrator      = sd
 dt              = 0.002 ; ps

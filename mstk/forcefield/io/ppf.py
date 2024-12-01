@@ -224,4 +224,4 @@ class Ppf:
                 atype.mass = atype_eq.mass
 
 
-ForceField.registor_format('.ppf', Ppf)
+ForceField.register_format('.ppf', Ppf)

@@ -126,4 +126,4 @@ class Zff:
             f.write(line.encode())
 
 
-ForceField.registor_format('.zff', Zff)
+ForceField.register_format('.zff', Zff)

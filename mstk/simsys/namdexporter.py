@@ -64,11 +64,11 @@ class NamdExporter():
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudePolarTerm}
-        unsupported = system.ff_classes - supported_terms
+        unsupported = system.ff.energy_term_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
-        if OplsImproperTerm in system.ff_classes:
+        if OplsImproperTerm in system.ff.improper_term_classes:
             logger.warning('OplsImproperTerm not supported by NAMD. Exported in harmonic form')
 
         string = '* Created by mstk\n'

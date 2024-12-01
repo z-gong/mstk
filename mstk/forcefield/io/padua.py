@@ -423,4 +423,4 @@ class PaduaLJScaler:
         return dimer.scale_factor
 
 
-ForceField.registor_format('.ff', Padua)
+ForceField.register_format('.ff', Padua)

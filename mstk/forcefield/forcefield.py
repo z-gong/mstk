@@ -100,7 +100,7 @@ class ForceField:
     _class_map = {}
 
     @staticmethod
-    def registor_format(extension, cls):
+    def register_format(extension, cls):
         ForceField._class_map[extension] = cls
 
     def __init__(self):
@@ -122,6 +122,93 @@ class ForceField:
         self.scale_14_coulomb = 0.5
 
         self.comments: [str] = []
+
+    @property
+    def vdw_term_classes(self):
+        '''
+        The unique self and pairwise vdW term classes
+
+        Returns
+        -------
+        classes : set of subclass of VdwTerm
+        '''
+        return ({term.__class__ for term in self.vdw_terms.values()} |
+                {term.__class__ for term in self.pairwise_vdw_terms.values()})
+
+    @property
+    def bond_term_classes(self):
+        '''
+        The unique bond term classes
+
+        Returns
+        -------
+        classes : set of subclass of BondTerm
+        '''
+        return {term.__class__ for term in self.bond_terms.values()}
+
+    @property
+    def angle_term_classes(self):
+        '''
+        The unique angle term classes
+
+        Returns
+        -------
+        classes : set of subclass of AngleTerm
+        '''
+        return {term.__class__ for term in self.angle_terms.values()}
+
+    @property
+    def dihedral_term_classes(self):
+        '''
+        The unique dihedral term classes
+
+        Returns
+        -------
+        classes : set of subclass of DihedralTerm
+        '''
+        return {term.__class__ for term in self.dihedral_terms.values()}
+
+    @property
+    def improper_term_classes(self):
+        '''
+        The unique improper term classes
+
+        Returns
+        -------
+        classes : set of subclass of ImproperTerm
+        '''
+        return {term.__class__ for term in self.improper_terms.values()}
+
+    @property
+    def polar_term_classes(self):
+        '''
+        The unique polar classes
+
+        Returns
+        -------
+        classes : set of subclass of PolarTerm
+        '''
+        return {term.__class__ for term in self.polar_terms.values()}
+
+    @property
+    def energy_term_classes(self):
+        '''
+        The unique vdw, bond, angle, dihedral, improper and polar classes.
+
+        This property is mainly used for exporting input files for various MD engines.
+        These FF terms determines whether the force field contains any potential function unsupported by the MD engine.
+        AtomType, ChargeIncrementTerm and VirtualSiteTerm are not included because they are integrated into the topology before exporting to MD engines.
+
+        Returns
+        -------
+        classes : set of subclass of FFTerm
+        '''
+        return (self.vdw_term_classes
+                .union(self.bond_term_classes)
+                .union(self.angle_term_classes)
+                .union(self.dihedral_term_classes)
+                .union(self.improper_term_classes)
+                .union(self.polar_term_classes))
 
     @property
     def vdw_long_range(self):
@@ -467,9 +554,14 @@ class ForceField:
 
         return bterm
 
-    def get_eqt_for_angle(self, angle):
+    def get_eqt_list_for_angle(self, angle):
         '''
-        Get the equivalent atom types for angle parameters of the three atoms in a angle.
+        Get the list of possible equivalent atom types for angle parameters of the three atoms in an angle.
+
+        Because the wildcard (*) is allowed for the side atoms of an angle term,
+        a list of possible equivalent atom types is returned.
+        The first element of the returned list is the equivalent atom types of the three atoms.
+        The following elements are the generalized atom types by replacing side atoms with wildcard.
 
         Parameters
         ----------
@@ -477,12 +569,9 @@ class ForceField:
 
         Returns
         -------
-        type1 : str
-            The equivalent atom type for angle parameters of the first atom in this angle.
-        type2 : str
-            The equivalent atom type for angle parameters of the second atom in this angle.
-        type3 : str
-            The equivalent atom type for angle parameters of the third atom in this angle.
+        types : list of tuple of str
+            Each element of the list is a tuple of three str (type1, type2, type3),
+            which are the equivalent atom types for angle parameters of the three atoms in this angle.
         '''
         try:
             at1 = self.atom_types.get(angle.atom1.type).eqt_ang_s
@@ -530,12 +619,14 @@ class ForceField:
 
         return aterm
 
-    def get_eqt_for_dihedral(self, dihedral):
+    def get_eqt_list_for_dihedral(self, dihedral):
         '''
         Get the list of possible equivalent atom types for dihedral parameters of the four atoms in a dihedral.
 
         Because the wildcard (*) is allowed for the side atoms of a dihedral term,
         a list of possible equivalent atom types is returned.
+        The first element of the returned list is the equivalent atom types of the four atoms.
+        The following elements are the generalized atom types by replacing side atoms with wildcard.
 
         Parameters
         ----------
@@ -545,7 +636,7 @@ class ForceField:
         -------
         types : list of tuple of str
             Each element of the list is a tuple of four str (type1, type2, type3, type4),
-            which are the equivalent atom types for dihedral parameters of the four atom in this dihedral.
+            which are the equivalent atom types for dihedral parameters of the four atoms in this dihedral.
         '''
         at1, at2, at3, at4 = dihedral.override_atom_types
         try:
@@ -598,12 +689,14 @@ class ForceField:
 
         return dterm
 
-    def get_eqt_for_improper(self, improper):
+    def get_eqt_list_for_improper(self, improper):
         '''
-        Get the list of possible equivalent atom types for improper parameters of the four atoms in a improper.
+        Get the list of possible equivalent atom types for improper parameters of the four atoms in an improper.
 
-        Because the wildcard (*) is allowed for the side atoms of a improper term,
+        Because the wildcard (*) is allowed for the side atoms of an improper term,
         a list of possible equivalent atom types is returned.
+        The first element of the returned list is the equivalent atom types of the four atoms.
+        The following elements are the generalized atom types by replacing side atoms with wildcard.
 
         Parameters
         ----------
@@ -613,7 +706,7 @@ class ForceField:
         -------
         types : list of tuple of str
             Each element of the list is a tuple of four str (type1, type2, type3, type4),
-            which are the equivalent atom types for improper parameters of the four atom in this improper.
+            which are the equivalent atom types for improper parameters of the four atoms in this improper.
         '''
         try:
             at1 = self.atom_types.get(improper.atom1.type).eqt_imp_c
@@ -798,7 +891,7 @@ class ForceField:
             drude.mass = pterm.mass
             parent.mass -= pterm.mass
 
-    def assign_charge(self, top_or_mol, transfer_bci_terms=False):
+    def assign_charge(self, top_or_mol):
         '''
         Assign charges for all atoms in a topology or molecule from the force field.
 
@@ -809,19 +902,10 @@ class ForceField:
         and the same amount of charge will be subtracted from the parent atoms.
         That is, if there is an AtomType for Drude particles, the charge attribute of this AtomType will be simply ignored.
 
-        If charge increment parameters required by the topology are not found in the force field,
-        `mstk` can try to transfer parameters from more general terms in the force field.
-        e.g. if charge increment term between 'c_4o2' and 'n_3' is not found, the term between 'c_4' and 'n_3' will be used.
-        This mechanism is initially designed for TEAM force field.
-        It is disabled by default, and can be enabled by setting argument `transfer_bci_terms` to True.
-
         Parameters
         ----------
         top_or_mol : Topology or Molecule
-        transfer_bci_terms : bool, optional
         '''
-        from .dff_utils import dff_fuzzy_match
-
         _q_zero = []
         top = top_or_mol
         for atom in top.atoms:
@@ -844,35 +928,20 @@ class ForceField:
 
         if len(self.bci_terms) > 0:
             _qterm_not_found = set()
-            _qterm_transferred = set()
             for bond in filter(lambda x: not x.is_drude, top.bonds):
-                _found = False
                 ats = self.get_eqt_for_bci(bond)
                 if ats[0] == ats[1]:
                     continue
                 _term = ChargeIncrementTerm(*ats, 0)
                 try:
                     qterm, direction = self.get_bci_term(*ats)
-                    _found = True
                 except FFTermNotFoundError:
-                    if transfer_bci_terms:
-                        qterm, score = dff_fuzzy_match(_term, self)
-                        if qterm is not None:
-                            direction = 1 if _term.type1 == ats[0] else -1
-                            _found = True
-                            _qterm_transferred.add((_term.name, qterm.name, score))
-
-                if _found:
+                    _qterm_not_found.add(_term.name)
+                else:
                     increment = qterm.value * direction
                     bond.atom1.charge += increment
                     bond.atom2.charge -= increment
-                else:
-                    _qterm_not_found.add(_term.name)
 
-            if len(_qterm_transferred) > 0:
-                logger.warning('%i charge increment terms not found in FF. Transferred from similar terms with score\n'
-                               '        %s' % (len(_qterm_transferred),
-                                               '\n        '.join(['%-16s %-16s %i' % x for x in _qterm_transferred])))
             if len(_qterm_not_found) > 0:
                 logger.warning('%i charge increment terms not found in FF. Make sure FF is correct\n'
                                '        %s' % (len(_qterm_not_found),

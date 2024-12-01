@@ -468,6 +468,17 @@ class Topology():
         '''
         return any(atom.virtual_site is not None for atom in self._atoms)
 
+    @property
+    def virtual_site_classes(self):
+        '''
+        A set of all the VirtualSite classes in the topology
+
+        Returns
+        -------
+        classes : set of subclass of VirtualSite
+        '''
+        return set(type(atom.virtual_site) for atom in self._atoms if atom.virtual_site is not None)
+
     @staticmethod
     def open(file, **kwargs):
         '''

@@ -52,24 +52,24 @@ class LammpsExporter:
                            HarmonicAngleTerm, SDKAngleTerm, LinearAngleTerm,
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm}
-        unsupported = system.ff_classes - supported_terms
+        unsupported = system.ff.energy_term_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
         if system.topology.has_virtual_site:
             raise Exception('Virtual sites not supported by LAMMPS')
 
-        if LinearAngleTerm in system.ff_classes:
+        if LinearAngleTerm in system.ff.angle_term_classes:
             logger.warning('LinearAngleTerm not supported by LAMMPS. Exported in harmonic form')
 
         top = system.topology
         ff = system.ff
 
         # Morse bond requires hybrid bond styles
-        is_morse = MorseBondTerm in system.ff_classes
+        is_morse = MorseBondTerm in system.ff.bond_term_classes
 
         # SDK CGFF requires all pairwise parameters and hybrid angle styles
-        is_sdk = MieTerm in system.ff_classes or SDKAngleTerm in system.ff_classes
+        is_sdk = MieTerm in system.ff.vdw_term_classes or SDKAngleTerm in system.ff.angle_term_classes
 
         ### Assign LAMMPS types ####################################
         bond_types = list(ff.bond_terms.values())

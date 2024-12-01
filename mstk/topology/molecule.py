@@ -1121,7 +1121,7 @@ class Molecule():
 
         for dihedral in self._dihedrals[:]:
             # consider wildcards in force field
-            ats_list = ff.get_eqt_for_dihedral(dihedral)
+            ats_list = ff.get_eqt_list_for_dihedral(dihedral)
             for ats in ats_list:
                 dterm = DihedralTerm(*ats)
                 if dterm.name in ff.dihedral_terms.keys():
@@ -1132,7 +1132,7 @@ class Molecule():
 
         for improper in self._impropers[:]:
             # consider wildcards in force field
-            ats_list = ff.get_eqt_for_improper(improper)
+            ats_list = ff.get_eqt_list_for_improper(improper)
             for ats in ats_list:
                 iterm = ImproperTerm(*ats)
                 if iterm.name in ff.improper_terms.keys():

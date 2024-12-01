@@ -1,4 +1,3 @@
-import copy
 import itertools
 from ..topology import *
 from ..forcefield import *
@@ -37,21 +36,10 @@ class System:
     If positions are not included in the topology, an Exception will be raised.
     Unit cell is optional. If unit cell is not provided, cutoff will not be used for non-bonded interactions.
 
-    If some bonded (bond, angle, dihedral, improper) parameters required by the topology are not found in the force field,
-    `mstk` can try to transfer parameters from more general terms in the force field.
-    e.g. if bond term between 'c_4o2' and 'n_3' is not found, the bond term between 'c_4' and 'n_3' will be used.
-    This mechanism is initially designed for TEAM force field.
-    It is disabled by default, and can be enabled by setting argument `transfer_bonded_terms` to True.
-
     Parameters
     ----------
     topology : Topology
     ff : ForceField
-    positions : array_like, optional
-    cell : UnitCell, optional
-    ignore_missing_improper: bool
-        If set to True, a zero-energy OplsImproperTerm will be created for missing improper terms in the FF
-    transfer_bonded_terms: bool
     suppress_pbc_warning: bool
         Set to True if you intend to build a vacuum system and don't want to hear warning about it.
     allow_missing_terms: bool
@@ -68,27 +56,16 @@ class System:
     vsite_pairs : dict, [Atom, Atom]
     constrain_bonds : dict, [Bond, float]
     constrain_angles : dict, [Angle, float]
+    atom_vdw_terms : dict, [Atom, subclass of VdwTerm]
     bond_terms : dict, [Bond, subclass of BondTerm]
     angle_terms : dict, [Angle, subclass of AngleTerm]
     dihedral_terms : dict, [Dihedral, subclass of DihedralTerm]
     improper_terms : dict, [Improper, subclass of ImproperTerm]
     polar_terms :  dict, [Atom, subclass of PolarTerm]
-    vdw_classes : set of subclass of VdwTerm
-    bond_classes : set of subclass of BondTerm
-    angle_classes : set of subclass of AngleTerm
-    dihedral_classes : set of subclass of DihedralTerm
-    improper_classes : set of subclass of ImproperTerm
-    polar_classes : set of subclass of PolarTerm
-    ff_classes : set of subclass of FFTerm
-    vsite_types : set of subclass of VirtualSite
     missing_terms : list of FFTerm
     '''
 
-    def __init__(self, topology, ff,
-                 ignore_missing_improper=False,
-                 transfer_bonded_terms=False,
-                 suppress_pbc_warning=False,
-                 allow_missing_terms=False):
+    def __init__(self, topology, ff, suppress_pbc_warning=False, allow_missing_terms=False):
         self._topology = topology
         self._ff = ForceField()
 
@@ -121,10 +98,9 @@ class System:
         # prebuild topology information
         self.drude_pairs: {Atom: Atom} = dict(self._topology.get_drude_pairs())  # {parent: atom_drude}
         self.vsite_pairs: {Atom: Atom} = dict(self._topology.get_virtual_site_pairs())  # {parent: atom_vsite}
-        # records the types of VirtualSite in topology. It is NOT the VirtualSiteTerm in force field
-        self.vsite_types = set([type(atom.virtual_site) for atom in self.vsite_pairs.values()])
 
         # map topological elements to FF terms
+        self.atom_vdw_terms: {Atom: VdwTerm} = {}  # only same-type vdw terms are stored
         self.bond_terms: {Bond: BondTerm} = {}  # Drude bonds are not included
         self.angle_terms: {Angle: AngleTerm} = {}
         self.dihedral_terms: {Dihedral: DihedralTerm} = {}
@@ -136,16 +112,7 @@ class System:
         # missing FF terms
         self.missing_terms = []
 
-        # unique FF term classes
-        self.vdw_classes = set()
-        self.bond_classes = set()
-        self.angle_classes = set()
-        self.dihedral_classes = set()
-        self.improper_classes = set()
-        self.polar_classes = set()
-        self.ff_classes = set()
-
-        self._extract_terms(ff, ignore_missing_improper, transfer_bonded_terms, allow_missing_terms)
+        self._extract_terms(ff, allow_missing_terms)
 
     @property
     def topology(self):
@@ -169,19 +136,15 @@ class System:
         '''
         return self._ff
 
-    def _extract_terms(self, ff, ignore_missing_improper=False, transfer_bonded_terms=False, allow_missing_terms=False):
+    def _extract_terms(self, ff, allow_missing_terms=False):
         '''
         Extract only the required terms from a force field, and record the missing terms.
 
         Parameters
         ----------
         ff : ForceField
-        ignore_missing_improper : bool
-        transfer_bonded_terms : bool
         allow_missing_terms : bool
         '''
-        from mstk.forcefield.dff_utils import dff_fuzzy_match
-
         self._ff.restore_settings(ff.get_settings())
 
         _atype_not_found = set()
@@ -217,25 +180,26 @@ class System:
             else:
                 self._ff.add_term(vdw, replace=True)
 
+        # map atom to self vdW term
+        for atom in self._topology.atoms:
+            atype = self._ff.atom_types[atom.type]
+            try:
+                vdw = self._ff.get_vdw_term(atype, atype)
+            except FFTermNotFoundError:
+                pass
+            else:
+                self.atom_vdw_terms[atom] = vdw
+
         _bterm_not_found = {}
-        _bterm_transferred = set()
         for bond in self._topology.bonds:
             if bond.is_drude:
                 # the Drude-parent bonds will be handled by DrudeForce below
                 continue
-            _found = False
             ats = ff.get_eqt_for_bond(bond)
             _term = BondTerm(*ats, 0)
             try:
                 bterm = ff.get_bond_term(*ats)
-                _found = True
-            except:
-                if transfer_bonded_terms:
-                    bterm, score = dff_fuzzy_match(_term, ff)
-                    if bterm is not None:
-                        _found = True
-                        _bterm_transferred.add((_term.name, bterm.name, score))
-            if not _found:
+            except FFTermNotFoundError:
                 _bterm_not_found[_term.name] = _term
             else:
                 self._ff.add_term(bterm, replace=True)
@@ -244,10 +208,9 @@ class System:
                     self.constrain_bonds[bond] = bterm.length
 
         _aterm_not_found = {}
-        _aterm_transferred = set()
         for angle in self._topology.angles:
             _found = False
-            ats_list = ff.get_eqt_for_angle(angle)
+            ats_list = ff.get_eqt_list_for_angle(angle)
             _term = AngleTerm(*ats_list[0], 0)
             for ats in ats_list:
                 try:
@@ -257,12 +220,6 @@ class System:
                 else:
                     _found = True
                     break
-            else:
-                if transfer_bonded_terms:
-                    aterm, score = dff_fuzzy_match(_term, ff)
-                    if aterm is not None:
-                        _found = True
-                        _aterm_transferred.add((_term.name, aterm.name, score))
             if not _found:
                 _aterm_not_found[_term.name] = _term
             else:
@@ -280,11 +237,10 @@ class System:
                     self.constrain_angles[angle] = math.sqrt(d1 * d1 + d2 * d2 - 2 * d1 * d2 * math.cos(aterm.theta))
 
         _dterm_not_found = {}
-        _dterm_transferred = set()
         for mol in self._topology.molecules:
             for dihedral in mol.dihedrals:
                 _found = False
-                ats_list = ff.get_eqt_for_dihedral(dihedral)
+                ats_list = ff.get_eqt_list_for_dihedral(dihedral)
                 _term = DihedralTerm(*ats_list[0])
                 for ats in ats_list:
                     try:
@@ -294,12 +250,6 @@ class System:
                     else:
                         _found = True
                         break
-                else:
-                    if transfer_bonded_terms:
-                        dterm, score = dff_fuzzy_match(_term, ff)
-                        if dterm is not None:
-                            _found = True
-                            _dterm_transferred.add((_term.name, dterm.name, score))
                 if not _found:
                     _dterm_not_found[_term.name] = _term
                 else:
@@ -307,10 +257,9 @@ class System:
                     self.dihedral_terms[dihedral] = dterm
 
         _iterm_not_found = {}
-        _iterm_transferred = set()
         for improper in self._topology.impropers:
             _found = False
-            ats_list = ff.get_eqt_for_improper(improper)
+            ats_list = ff.get_eqt_list_for_improper(improper)
             _term = ImproperTerm(*ats_list[0])
             for ats in ats_list:
                 try:
@@ -320,19 +269,9 @@ class System:
                 else:
                     _found = True
                     break
-            else:
-                if transfer_bonded_terms:
-                    iterm, score = dff_fuzzy_match(_term, ff)
-                    if iterm is not None:
-                        _found = True
-                        _iterm_transferred.add((_term.name, iterm.name, score))
             if not _found:
-                if ignore_missing_improper:
-                    iterm = OplsImproperTerm(*ats_list[0], 0.0)
-                    _found = True
-                else:
-                    _iterm_not_found[_term.name] = _term
-            if _found:
+                _iterm_not_found[_term.name] = _term
+            else:
                 self._ff.add_term(iterm, replace=True)
                 self.improper_terms[improper] = iterm
 
@@ -347,20 +286,6 @@ class System:
                 self._ff.add_term(pterm, replace=True)
                 self.polar_terms[parent] = pterm
 
-        ### print all transferred terms
-        _n_transferred = 0
-        msg = ''
-        for k, v in {'Bond'    : _bterm_transferred,
-                     'Angle'   : _aterm_transferred,
-                     'Dihedral': _dterm_transferred,
-                     'Improper': _iterm_transferred}.items():
-            for i in v:
-                _n_transferred += 1
-                msg += '        %-10s %-20s %-20s %i\n' % (k, *i)
-        if _n_transferred > 0:
-            logger.warning(
-                '%i bonded terms not found in FF. Transferred from similar terms with score\n' % _n_transferred + msg)
-
         ### print all the missing terms
         for d in _vdw_not_found, _bterm_not_found, _aterm_not_found, _dterm_not_found, _iterm_not_found, _pterm_not_found:
             self.missing_terms.extend(d.values())
@@ -369,23 +294,11 @@ class System:
             msg = f'{len(self.missing_terms)} terms not found in FF'
             for term in self.missing_terms:
                 msg += f'\n        {term}'
-            logger.error(msg)
-            if not allow_missing_terms:
+            if allow_missing_terms:
+                logger.warning(msg)
+            else:
+                logger.error(msg)
                 raise Exception('Incomplete force field')
-
-        self.vdw_classes = {term.__class__ for term in self._ff.vdw_terms.values()}
-        self.vdw_classes.update({term.__class__ for term in self._ff.pairwise_vdw_terms.values()})
-        self.bond_classes = {term.__class__ for term in self.bond_terms.values()}
-        self.angle_classes = {term.__class__ for term in self.angle_terms.values()}
-        self.dihedral_classes = {term.__class__ for term in self.dihedral_terms.values()}
-        self.improper_classes = {term.__class__ for term in self.improper_terms.values()}
-        self.polar_classes = {term.__class__ for term in self.polar_terms.values()}
-        self.ff_classes = (self.vdw_classes
-                           .union(self.bond_classes)
-                           .union(self.angle_classes)
-                           .union(self.dihedral_classes)
-                           .union(self.improper_classes)
-                           .union(self.polar_classes))
 
     def export_lammps(self, data_out='data.lmp', in_out='in.lmp', **kwargs):
         '''

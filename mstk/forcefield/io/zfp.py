@@ -105,4 +105,4 @@ class Zfp:
         raise NotImplementedError('Writing to ZFP file has been deprecated')
 
 
-ForceField.registor_format('.zfp', Zfp)
+ForceField.register_format('.zfp', Zfp)

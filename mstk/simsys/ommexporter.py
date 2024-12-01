@@ -57,11 +57,11 @@ class OpenMMExporter:
                            OplsDihedralTerm, PeriodicDihedralTerm,
                            OplsImproperTerm, HarmonicImproperTerm,
                            DrudePolarTerm}
-        unsupported = system.ff_classes - supported_terms
+        unsupported = system.ff.energy_term_classes - supported_terms
         if unsupported != set():
             raise Exception('Unsupported FF terms: %s' % (', '.join(map(lambda x: x.__name__, unsupported))))
 
-        if system.vsite_types - {TIP4PSite} != set():
+        if system.topology.virtual_site_classes - {TIP4PSite} != set():
             raise Exception('Virtual sites other than TIP4PSite haven\'t been implemented')
 
         omm_system = mm.System()
@@ -88,7 +88,7 @@ class OpenMMExporter:
         ff = system.ff
 
         ### Set up bonds #######################################################################
-        for bond_class in system.bond_classes:
+        for bond_class in system.ff.bond_term_classes:
             if bond_class == HarmonicBondTerm:
                 logger.debug('Setting up harmonic bonds...')
                 bforce = mm.HarmonicBondForce()
@@ -145,7 +145,7 @@ class OpenMMExporter:
             omm_system.addForce(bforce)
 
         ### Set up angles #######################################################################
-        for angle_class in system.angle_classes:
+        for angle_class in system.ff.angle_term_classes:
             if angle_class == HarmonicAngleTerm:
                 logger.debug('Setting up harmonic angles...')
                 aforce = mm.HarmonicAngleForce()
@@ -248,7 +248,7 @@ class OpenMMExporter:
                                          system.constrain_angles[angle])
 
         ### Set up dihedrals ###################################################################
-        for dihedral_class in system.dihedral_classes:
+        for dihedral_class in system.ff.dihedral_term_classes:
             if dihedral_class in (OplsDihedralTerm, PeriodicDihedralTerm):
                 logger.debug('Setting up periodic dihedrals...')
                 dforce = mm.PeriodicTorsionForce()
@@ -270,7 +270,7 @@ class OpenMMExporter:
             omm_system.addForce(dforce)
 
         ### Set up impropers ####################################################################
-        for improper_class in system.improper_classes:
+        for improper_class in system.ff.improper_term_classes:
             if improper_class == OplsImproperTerm:
                 logger.debug('Setting up periodic impropers...')
                 iforce = mm.CustomTorsionForce('k*(1-cos(2*theta))')
@@ -333,7 +333,7 @@ class OpenMMExporter:
         atom_types = list(ff.atom_types.values())
         type_names = list(ff.atom_types.keys())
         n_type = len(atom_types)
-        for vdw_class in system.vdw_classes:
+        for vdw_class in system.ff.vdw_term_classes:
             if vdw_class == LJ126Term:
                 logger.debug('Setting up LJ-12-6 vdW interactions...')
                 if system.use_pbc and ff.vdw_long_range == ForceField.VDW_LONGRANGE_SHIFT:
@@ -519,7 +519,7 @@ class OpenMMExporter:
                                     'haven\'t been implemented')
 
         ### Set up Drude particles ##############################################################
-        for polar_class in system.polar_classes:
+        for polar_class in system.ff.polar_term_classes:
             if polar_class == DrudePolarTerm:
                 logger.debug('Setting up Drude polarizations...')
                 pforce = mm.DrudeForce()
@@ -644,10 +644,10 @@ class OpenMMExporter:
 
     @staticmethod
     def _setup_nonbonded_as_bonded(system, omm_system):
-        if system.polar_classes != set():
+        if system.ff.polar_term_classes:
             raise Exception('Polar terms not supported')
 
-        if system.vsite_types != set():
+        if system.topology.virtual_site_classes:
             raise Exception('Virtual sites not supported')
 
         if system.use_pbc:
