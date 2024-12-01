@@ -10,7 +10,7 @@ AtomType         o_2w       15.9994    0.0000  o_2w      o_2w      o_2w      o_2
 #ChargeIncrement type1     type2        value
 ChargeIncrement  h_1o      o_2w        0.4238
 #LJ126           type1     type2      epsilon     sigma
-LJ126            h_1o      h_1o      4.184e-04  8.909e-06
+LJ126            h_1o      h_1o       4.2e-04   8.9e-06
 LJ126            o_2w      o_2w        0.6498    0.3166
 LJ126            s_2       s_2         1.8744    0.3368
 LJ126            s_2h      s_2h        1.7991    0.3541

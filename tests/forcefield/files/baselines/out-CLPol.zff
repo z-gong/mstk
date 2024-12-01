@@ -410,7 +410,7 @@ OplsDihedral     HC        CT        CT        OH          0.0000    0.0000    0
 OplsDihedral     OH        CT        CT        OH          0.0000   -4.9162    0.6025    0.0000
 OplsDihedral     FB        CF        SB        OB          0.0000    0.0000    0.7255    0.0000
 OplsDihedral     FB        CF        SB        NB          0.0000    0.0000    0.6610    0.0000
-OplsDihedral     OB        SB        NB        SB          0.0000    0.0000  -7.500e-03    0.0000
+OplsDihedral     OB        SB        NB        SB          0.0000    0.0000   -0.0075    0.0000
 OplsDihedral     CF        SB        NB        SB         16.3865   -5.2100   -1.5975    0.0000
 OplsDihedral     F         CF        CF        FB         -5.2300    0.0000    0.5230    0.0000
 OplsDihedral     FB        CF        CF        SB          0.0000    0.0000    0.7265    0.0000

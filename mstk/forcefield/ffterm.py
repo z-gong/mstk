@@ -227,12 +227,12 @@ class FFTerm:
             if attr in self._attr_convert:
                 val = self._attr_convert[attr][1](val)
             if func is float:
-                if abs(val) >= 1000000:
+                if abs(val) >= 1E6:
                     string = ' %8i' % round(val)
-                elif abs(val) >= 1000:
+                elif abs(val) >= 1E3:
                     string = ' %8.1f' % val
-                elif 0 < abs(val) < 0.01:
-                    string = ' %8.3e' % val
+                elif 0 < abs(val) < 1E-3:
+                    string = ' %8.1e' % val
                 else:
                     string = ' %8.4f' % val
                 string += '?' if attr in self.adjustables else ' '
@@ -1888,6 +1888,12 @@ class DrudePolarTerm(PolarTerm):
         self.k = k  # kJ/mol/nm^2
         self.mass = mass
         self.merge_alpha_H = merge_alpha_H
+
+    def to_zff(self):
+        line = '%-16s %-9s %8.3e  %8.4f  %8.1f  %8.4f  %8.3e' % (self.__class__.get_alias(),
+                                                                 self.type, self.alpha, self.thole, self.k, self.mass,
+                                                                 self.merge_alpha_H)
+        return line
 
     def get_charge(self, alpha=None):
         '''
