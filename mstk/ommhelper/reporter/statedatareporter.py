@@ -56,7 +56,7 @@ import numpy as np
 from mstk.topology.geometry import find_clusters
 
 
-class StateDataReporter(object):
+class StateDataReporter:
     '''
     StateDataReporter outputs information about a simulation, such as energy and temperature, to a file.
 
@@ -263,7 +263,7 @@ class StateDataReporter(object):
             values.append('%.2f' % (2 * state.getKineticEnergy() / (
                     self._dof * unit.MOLAR_GAS_CONSTANT_R)).value_in_unit(unit.kelvin))
         if self._pressure:
-            values.append(self._compute_pressure(simulation.context, state))
+            values.append('%.2f' % self._compute_pressure(simulation.context, state))
         if self._potentialEnergy:
             values.append(
                 '%.4f' % state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole))
@@ -318,7 +318,8 @@ class StateDataReporter(object):
 
         bool_press = [self._pxx, self._pyy, self._pzz]
         if any(bool_press):
-            values.extend(self._compute_anisotropic_pressure(simulation.context, state, *bool_press))
+            values.extend(
+                ['%.2f' % p for p in self._compute_anisotropic_pressure(simulation.context, state, *bool_press)])
 
         for group in self._forceGroups:
             values.append(simulation.context.getState(getEnergy=True, groups={group}).getPotentialEnergy().

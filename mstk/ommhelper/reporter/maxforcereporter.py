@@ -1,12 +1,9 @@
-from openmm import app, unit
-from ..unit import *
+import numpy as np
 
 
-class ViscosityReporter:
+class MaxForceReporter:
     '''
-    ViscosityReporter report the velocity amplitude and reciprocal of viscosity using cosine periodic perturbation method.
-    An integrator supporting this method is required.
-    E.g. the VVIntegrator from https://github.com/z-gong/openmm-velocityVerlet.
+    MaxForceReporter outputs the atom experiencing the largest force
 
     Parameters
     ----------
@@ -15,7 +12,7 @@ class ViscosityReporter:
     reportInterval : int
         The interval (in time steps) at which to write frames
     append : bool
-        Whether or not append to the existing file.
+        If set to True, will append to file
     '''
 
     def __init__(self, file, reportInterval, append=False):
@@ -47,15 +44,11 @@ class ViscosityReporter:
             energies respectively.  The final element specifies whether
             positions should be wrapped to lie in a single periodic box.
         """
-        try:
-            simulation.integrator.getCosAcceleration()
-        except AttributeError:
-            raise Exception('This integrator does not calculate viscosity')
-
         steps = self._reportInterval - simulation.currentStep % self._reportInterval
-        return (steps, False, False, False, False)
 
-    def report(self, simulation: app.Simulation, state):
+        return (steps, False, False, True, False, False)
+
+    def report(self, simulation, state):
         """Generate a report.
 
         Parameters
@@ -67,14 +60,13 @@ class ViscosityReporter:
         """
         if not self._hasInitialized:
             self._hasInitialized = True
-            print('#"Step"\t"Acceleration (nm/ps^2)"\t"VelocityAmplitude (nm/ps)"\t"1/Viscosity (1/Pa.s)"',
-                  file=self._out)
+            print('#"Step"\t"Atom id"\t"Force (kJ/mol/nm)"', file=self._out)
 
-        acceleration = simulation.integrator.getCosAcceleration().value_in_unit(nm / ps ** 2)
-        vMax, invVis = simulation.integrator.getViscosity()
-        vMax = vMax.value_in_unit(nm / ps)
-        invVis = invVis.value_in_unit((unit.pascal * unit.second) ** -1)
-        print(simulation.currentStep, acceleration, vMax, invVis, sep='\t', file=self._out)
+        forces = state.getForces(asNumpy=True)._value
+        fsq = np.sum(forces * forces, axis=1)
+        imax = np.argmax(fsq)
+        fmax = fsq[imax] ** 0.5
+        self._out.write(f'{simulation.currentStep}\t{imax}\t{fmax:.3f}\n')
 
         if hasattr(self._out, 'flush') and callable(self._out.flush):
             self._out.flush()

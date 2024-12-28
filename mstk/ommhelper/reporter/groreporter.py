@@ -1,7 +1,8 @@
 import math
 from .. import GroFile
 
-class GroReporter(object):
+
+class GroReporter:
     '''
     GroReporter outputs a series of frames from a Simulation to a GRO file.
 
@@ -15,12 +16,12 @@ class GroReporter(object):
         If set to True, then write trajectory at logarithm interval.
         reportInterval will be the minimum step for reporting.
         e.g. when reportInterval set to 30, then report at [30, 40, 50, ..., 90, 100, 200, ..., 900, 1000, 2000, ...] steps.
-    enforcePeriodicBox: bool
+    enforcePeriodicBox: bool, Optional
         Specifies whether particle positions should be translated
         so the center of every molecule lies in the same periodic box.
         If None (the default), it will automatically decide whether to translate molecules
         based on whether the system being simulated uses periodic boundary conditions.
-    subset : list(int)=None
+    subset : list of int, Optional
         If not None, only the selected atoms will be written
     reportVelocity: bool
         If set to True, velocities will be reported
@@ -28,7 +29,8 @@ class GroReporter(object):
         If set to True, will append to file
     '''
 
-    def __init__(self, file, reportInterval, logarithm=False, enforcePeriodicBox=False, subset=None, reportVelocity=False, append=False):
+    def __init__(self, file, reportInterval, logarithm=False, enforcePeriodicBox=None, subset=None,
+                 reportVelocity=False, append=False):
         self._reportInterval = reportInterval
         self._logarithm = logarithm
         self._enforcePeriodicBox = enforcePeriodicBox

@@ -1,9 +1,9 @@
 import numpy as np
-import openmm.openmm as mm
+from openmm import openmm as mm, unit
 from openmm.app import Simulation
 from ..unit import *
 
-class DrudeTemperatureReporter(object):
+class DrudeTemperatureReporter:
     '''
     DrudeTemperatureReporter reports the temperatures of different DOFs in a Drude simulation system.
 
@@ -13,8 +13,8 @@ class DrudeTemperatureReporter(object):
 
     Parameters
     ----------
-    file : string
-        The file to write to
+    file : string or file
+        The file to write to, specified as a file name or file object
     reportInterval : int
         The interval (in time steps) at which to write frames
     append : bool
@@ -23,10 +23,14 @@ class DrudeTemperatureReporter(object):
 
     def __init__(self, file, reportInterval, append=False):
         self._reportInterval = reportInterval
-        if append:
-            self._out = open(file, 'a')
+        self._openedFile = isinstance(file, str)
+        if self._openedFile:
+            if append:
+                self._out = open(file, 'a')
+            else:
+                self._out = open(file, 'w')
         else:
-            self._out = open(file, 'w')
+            self._out = file
         self._hasInitialized = False
 
     def describeNextReport(self, simulation):
@@ -46,7 +50,7 @@ class DrudeTemperatureReporter(object):
             energies respectively.  The final element specifies whether
             positions should be wrapped to lie in a single periodic box.
         """
-        steps = self._reportInterval - simulation.currentStep%self._reportInterval
+        steps = self._reportInterval - simulation.currentStep % self._reportInterval
         return (steps, False, True, False, False)
 
     def report(self, simulation, state):
@@ -137,4 +141,5 @@ class DrudeTemperatureReporter(object):
             self._out.flush()
 
     def __del__(self):
-        self._out.close()
+        if self._openedFile:
+            self._out.close()
