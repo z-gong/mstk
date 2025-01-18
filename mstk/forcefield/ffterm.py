@@ -939,7 +939,7 @@ class MieTerm(VdwTerm):
     @property
     def is_sdk(self):
         '''
-        SDK CGFF use LJ-9-6 and LJ-12-4
+        SDK CGFF use LJ-9-6, LJ-12-4 and LJ-12-6 vdW terms
 
         Returns
         -------
@@ -948,6 +948,8 @@ class MieTerm(VdwTerm):
         if self.repulsion == 9 and self.attraction == 6:
             return True
         if self.repulsion == 12 and self.attraction == 4:
+            return True
+        if self.repulsion == 12 and self.attraction == 6:
             return True
         return False
 

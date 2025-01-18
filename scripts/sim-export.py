@@ -75,12 +75,11 @@ def main():
             top.n_atom - len(top.get_drude_pairs()) - len(top.get_virtual_site_pairs())))
         sys.exit(1)
 
-    box = [0.0, 0.0, 0.0]
+    box = None
     if args.density is not None:
         mass = sum(atom.mass for atom in top.atoms)  # g/mol
         vol = mass / args.density / constant.AVOGADRO  # cm^3
         box = [vol ** (1 / 3) * constant.CENTI / constant.NANO] * 3  # nm
-
     if args.box is not None:
         if len(args.box) == 3:
             box = args.box
@@ -88,9 +87,9 @@ def main():
             box = args.box * 3
         else:
             raise Exception('box should be one or three floats')
-
-    logger.info(f'box = {box}')
-    top.cell.set_box(box)
+    if box:
+        logger.info(f'box = {box}')
+        top.cell.set_box(box)
 
     system = System(top, ff)
 

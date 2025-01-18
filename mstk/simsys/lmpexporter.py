@@ -283,10 +283,10 @@ variable T equal 300
 variable P equal 1
 variable elec equal ecoul+elong
 
-# thermo_style custom step press pe ebond eangle edihed eimp evdwl v_elec
-# thermo 10
-# minimize 1.0e-4 1.0e-6 200 1000
-# reset_timestep 0
+thermo_style custom step press pe ebond eangle edihed eimp evdwl v_elec
+thermo 10
+minimize 1.0e-4 1.0e-6 200 1000
+reset_timestep 0
 
 {cmd_shake}
 fix ICECUBE all momentum 100 linear 1 1 1
