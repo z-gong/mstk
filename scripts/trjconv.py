@@ -28,8 +28,12 @@ def parse_args():
                         help='shift the positions of all atoms so that all residues in the first frame are in the main cell')
     parser.add_argument('--box', nargs=3, default=[-1, -1, -1], type=float,
                         help='overwrite the box dimensions')
+    parser.add_argument('--boxscale', nargs=3, default=[1, 1, 1], type=float,
+                        help='scale the the box dimensions')
     parser.add_argument('--shift', nargs=3, default=[0, 0, 0], type=float,
                         help='shift the positions of all atoms')
+    parser.add_argument('--center', action='store_true',
+                        help='translate the postitions of all atoms so that the center of the system is at the center of box')
     return parser.parse_args()
 
 
@@ -82,10 +86,14 @@ if __name__ == '__main__':
         for k in range(3):
             if args.box[k] != -1:
                 box[k] = args.box[k]
+            box[k] *= args.boxscale[k]
         frame.cell.set_box(box)
         if args.wrapfirst:
             frame.positions -= cell_offset * box
         if pos_shift is not None:
             frame.positions += pos_shift
+        if args.center:
+            center = np.sum(frame.positions, axis=0) / top.n_atom
+            frame.positions += box / 2 - center
         trj_out.write_frame(frame, top, subset=subset)
     trj_out.close()
