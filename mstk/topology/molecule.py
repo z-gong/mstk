@@ -998,43 +998,40 @@ class Molecule():
                     if atom1 != atom3 and atom2 != atom4 and atom1 != atom4:
                         self.add_dihedral(atom1, atom2, atom3, atom4)
 
-    def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None,
-                                   pbc='', cell=None):
+    def guess_bonds_from_ff(self, ff, max_bond_length=None, tolerance=0.025, pbc=None, cell=None):
         '''
-        Guess bonds, angles, dihedrals and impropers from force field.
+        Guess bonds from force field.
 
         It requires that atoms types are defined and positions are available.
         The distance between nearby atoms will be calculated.
-        If it's smaller than bond_length_limit, then it will be compared with the equilibrium length in FF.
-        The bond will be added if a BondTerm is found in FF and the deviation is smaller than bond_tolerance.
-        Then angles will be constructed from bonds. If angle_tolerance is None, all angles will be added.
-        If angle_tolerance is set (as degree), then AngleTerm must be provided for these angles.
-        The angle will be added only if the deviation between angle and equilibrium value in FF is smaller than angle_tolerance.
-        Dihedrals and impropers will be constructed form bonds and be added if relevant terms are presented in FF.
+        If it's smaller than max_bond_length, then it will be compared with the equilibrium length in FF.
+        The bond will be added if a BondTerm is found in FF and the deviation is smaller than tolerance.
+
+        The bond list will be cleared and re-created.
 
         PBC is supported for determining bonds across the periodic cell
-        This is useful for simulating infinite structures
-        pbc can be '', 'x', 'y', 'xy', 'xz', 'xyz', which means check bonds cross specific boundaries
-        cell should also be provided if pbc is not ''
+        This is useful for simulating crystals and crosslinked polymers
+        pbc can be 'x', 'y', 'z', 'xy', 'xz', 'yz', 'xyz', which means check bonds cross specific boundaries
+        cell must be provided if pbc is not None
 
         TODO Add support for triclinic cell
 
         Parameters
         ----------
         ff : ForceField
-        bond_limit : float
-        bond_tolerance : float
-        angle_tolerance : float
-        pbc : str
+        max_bond_length : float, optional
+            If None, will use the maximum bond length in FF plus tolerance
+        tolerance : float
+        pbc : str, optional
         cell : UnitCell
         '''
         if not self.has_position:
-            raise Exception('Positions are required for guessing connectivity')
+            raise Exception('Positions are required for guessing bonds')
 
         if any(atom.is_drude for atom in self._atoms):
-            raise Exception('Drude particles should be removed before guess connectivity')
+            raise Exception('Drude particles should be removed before guess bonds')
 
-        if pbc != '':
+        if pbc:
             if cell is None or cell.volume == 0:
                 raise Exception('PBC required but valid cell not provided')
             elif not cell.is_rectangular:
@@ -1042,10 +1039,11 @@ class Molecule():
             else:
                 box = cell.get_size()
 
-        self._bonds = []
-        self._angles = []
-        self._dihedrals = []
-        self._impropers = []
+        max_bond_length = max_bond_length or max(term.length for term in ff.bond_terms.values()) + tolerance
+
+        self._bonds.clear()
+        for atom in self._atoms:
+            atom._bonds.clear()
 
         for i in range(self.n_atom):
             atom1 = self.atoms[i]
@@ -1062,8 +1060,8 @@ class Molecule():
                     raise Exception(f'AtomType {atom2.type} not found in FF')
 
                 delta = atom2.position - atom1.position
-                if pbc != '':
-                    if any((np.abs(delta) > bond_limit) & (np.abs(delta) < box - bond_limit)):
+                if pbc:
+                    if any((np.abs(delta) > max_bond_length) & (np.abs(delta) < box - max_bond_length)):
                         continue
                     if 'x' in pbc:
                         delta[0] -= math.ceil(delta[0] / box[0] - 0.5) * box[0]
@@ -1071,99 +1069,19 @@ class Molecule():
                         delta[1] -= math.ceil(delta[1] / box[1] - 0.5) * box[1]
                     if 'z' in pbc:
                         delta[2] -= math.ceil(delta[2] / box[2] - 0.5) * box[2]
-                if any(np.abs(delta) > bond_limit):
+                if any(np.abs(delta) > max_bond_length):
                     continue
 
                 bterm = BondTerm(at1, at2, 0)
                 if bterm.name not in ff.bond_terms.keys():
                     continue
 
-                bterm: BondTerm = ff.bond_terms[bterm.name]
-                if any(delta - bterm.length > bond_tolerance):
+                bterm = ff.bond_terms[bterm.name]
+                if any(delta - bterm.length > tolerance):
                     continue
 
-                if abs(np.sqrt(delta.dot(delta)) - bterm.length) <= bond_tolerance:
+                if abs(np.sqrt(delta.dot(delta)) - bterm.length) <= tolerance:
                     self.add_bond(atom1, atom2)
-
-        # generate angles etc..., and then remove them if requirements are not satisfied
-        self.generate_angle_dihedral_improper()
-
-        angles_removed = []
-        dihedrals_removed = []
-        impropers_removed = []
-        if angle_tolerance is not None:
-            for angle in self._angles[:]:
-                at1 = ff.atom_types[angle.atom1.type].eqt_ang_s
-                at2 = ff.atom_types[angle.atom2.type].eqt_ang_c
-                at3 = ff.atom_types[angle.atom3.type].eqt_ang_s
-                aterm = AngleTerm(at1, at2, at3, 0)
-                if aterm.name not in ff.angle_terms.keys():
-                    raise Exception(
-                        f'{str(angle)} constructed but {str(aterm)} not found in FF')
-
-                aterm: AngleTerm = ff.angle_terms[aterm.name]
-                delta21 = angle.atom1.position - angle.atom2.position
-                delta23 = angle.atom3.position - angle.atom2.position
-                if 'x' in pbc:
-                    delta21[0] -= math.ceil(delta21[0] / box[0] - 0.5) * box[0]
-                    delta23[0] -= math.ceil(delta23[0] / box[0] - 0.5) * box[0]
-                if 'y' in pbc:
-                    delta21[1] -= math.ceil(delta21[1] / box[1] - 0.5) * box[1]
-                    delta23[1] -= math.ceil(delta23[1] / box[1] - 0.5) * box[1]
-                if 'z' in pbc:
-                    delta21[2] -= math.ceil(delta21[2] / box[2] - 0.5) * box[2]
-                    delta23[2] -= math.ceil(delta23[2] / box[2] - 0.5) * box[2]
-                cos = delta21.dot(delta23) / math.sqrt(delta21.dot(delta21) * delta23.dot(delta23))
-                theta = np.arccos(np.clip(cos, -1, 1))
-                if abs(theta - aterm.theta) > angle_tolerance * DEG2RAD:
-                    self.remove_connectivity(angle)
-                    angles_removed.append(angle)
-
-        for dihedral in self._dihedrals[:]:
-            # consider wildcards in force field
-            ats_list = ff.get_eqt_list_for_dihedral(dihedral)
-            for ats in ats_list:
-                dterm = DihedralTerm(*ats)
-                if dterm.name in ff.dihedral_terms.keys():
-                    break
-            else:
-                self.remove_connectivity(dihedral)
-                dihedrals_removed.append(dihedral)
-
-        for improper in self._impropers[:]:
-            # consider wildcards in force field
-            ats_list = ff.get_eqt_list_for_improper(improper)
-            for ats in ats_list:
-                iterm = ImproperTerm(*ats)
-                if iterm.name in ff.improper_terms.keys():
-                    break
-            else:
-                self.remove_connectivity(improper)
-                impropers_removed.append(improper)
-
-        if angles_removed != []:
-            msg = '%i angles not added because value far from equilibrium: ' \
-                  % len(angles_removed) \
-                  + ' '.join([i.name for i in angles_removed[:10]])
-            if len(angles_removed) > 10:
-                msg += ' and more ...'
-            logger.warning(msg)
-
-        if dihedrals_removed != []:
-            msg = '%i dihedrals not added because parameters not found in FF: ' \
-                  % len(dihedrals_removed) \
-                  + ' '.join([i.name for i in dihedrals_removed[:10]])
-            if len(dihedrals_removed) > 10:
-                msg += ' and more ...'
-            logger.warning(msg)
-
-        if impropers_removed != []:
-            msg = '%i impropers not added because parameters not found in FF: ' \
-                  % len(impropers_removed) \
-                  + ' '.join([i.name for i in impropers_removed[:10]])
-            if len(impropers_removed) > 10:
-                msg += ' and more ...'
-            logger.warning(msg)
 
     def generate_drude_particles(self, ff, type_drude='DP_', seed=1, update_topology=True):
         '''

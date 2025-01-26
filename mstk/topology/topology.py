@@ -669,26 +669,24 @@ class Topology():
         for mol in self._molecules:
             mol.generate_angle_dihedral_improper(dihedral=dihedral, improper=improper)
 
-    def guess_connectivity_from_ff(self, ff, bond_limit=0.25, bond_tolerance=0.025, angle_tolerance=None, pbc=''):
+    def guess_bonds_from_ff(self, ff, bond_length_limit=None, tolerance=0.025, pbc=None):
         '''
         Guess the connectivity between atoms from force field parameters.
 
         Parameters
         ----------
         ff : ForceField
-        bond_limit : float
-        bond_tolerance : float
-        angle_tolerance : float
-        pbc : str
+        bond_length_limit : float, optional
+        tolerance : float
+        pbc : str, optional
 
         See Also
         --------
-        Molecule.guess_connectivity_from_ff
+        Molecule.guess_bonds_from_ff
         '''
         mol: Molecule
         for mol in self._molecules:
-            mol.guess_connectivity_from_ff(ff, bond_limit, bond_tolerance,
-                                           angle_tolerance, pbc, self.cell)
+            mol.guess_bonds_from_ff(ff, bond_length_limit, tolerance, pbc, self.cell)
 
     def generate_drude_particles(self, ff, **kwargs):
         '''

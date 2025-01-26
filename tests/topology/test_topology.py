@@ -61,12 +61,9 @@ def test_packmol():
     shutil.rmtree(tmpdir)
 
 
-def test_guess_connectivity():
+def test_guess_bonds():
     top = Topology.open(cwd + '/files/MoS2-13x8-layer1.xyz')
     top.cell.set_box([4.109, 4.380, 1.230])
     ff = ForceField.open(cwd + '/files/MoS2.ff')
-    top.guess_connectivity_from_ff(ff, angle_tolerance=15, pbc='xy')
+    top.guess_bonds_from_ff(ff, pbc='xy')
     assert top.n_bond == 1248
-    assert top.n_angle == 3120
-    assert top.n_dihedral == 0
-    assert top.n_improper == 0
