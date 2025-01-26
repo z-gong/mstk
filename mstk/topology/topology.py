@@ -544,7 +544,7 @@ class Topology():
         omm_topology : mm.app.Topology
         '''
         try:
-            from openmm import app as omm_app
+            from openmm import app as omm_app, Vec3
             from openmm.app.element import Element as omm_Element
         except ImportError:
             raise Exception('cannot import openmm')
@@ -564,7 +564,8 @@ class Topology():
             omm_top.addAtom(atom.name, omm_element, d_omm_residues[atom])
 
         if self.cell.volume != 0:
-            omm_top.setPeriodicBoxVectors(self.cell.vectors)
+            omm_box = tuple(Vec3(*v) for v in self.cell.vectors)
+            omm_top.setPeriodicBoxVectors(omm_box)
         omm_atoms = list(omm_top.atoms())
         for bond in self.bonds:
             omm_top.addBond(omm_atoms[bond.atom1.id], omm_atoms[bond.atom2.id])
