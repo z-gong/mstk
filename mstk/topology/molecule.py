@@ -687,6 +687,17 @@ class Molecule():
         return True
 
     def get_adjacency_matrix(self):
+        '''
+        Get the adjacency matrix of this molecule.
+
+        The matrix is a symmetric matrix with shape (n_atom, n_atom).
+        The element (i, j) is True if there is a bond between atom i and atom j. Otherwise, it's False.
+        The diagonal elements are always False.
+
+        Returns
+        -------
+        matrix : np.ndarray, shape=(n_atom, n_atom), dtype=bool
+        '''
         matrix = np.zeros([self.n_atom, self.n_atom], dtype=bool)
         for bond in self.bonds:
             a1, a2 = bond.atom1.id_in_mol, bond.atom2.id_in_mol
@@ -702,6 +713,23 @@ class Molecule():
         return matrix
 
     def get_distance_matrix(self, max_bond=None):
+        '''
+        Get the distance matrix of this molecule.
+
+        The matrix is a symmetric matrix with shape (n_atom, n_atom).
+        The element (i, j) is the shortest path length between atom i and atom j.
+        If `max_bond` is set and the shortest path length is larger than `max_bond`, then the element is set to 0.
+        If there is no path between atom i and atom j, then the element is set to 0.
+        The diagonal elements are always 0.
+
+        Parameters
+        ----------
+        max_bond : int, optional
+
+        Returns
+        -------
+        matrix : np.ndarray, shape=(n_atom, n_atom), dtype=int
+        '''
         connections = [set() for _ in range(self.n_atom)]
         for bond in self._bonds:
             a1, a2 = bond.atom1.id_in_mol, bond.atom2.id_in_mol

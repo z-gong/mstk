@@ -677,20 +677,28 @@ class OpenMMExporter:
         omm_system.addForce(ljforce)
 
         for mol in top.molecules:
-            pairs12, pairs13, pairs14 = mol.get_12_13_14_pairs()
-            # each pair tuple (Atom, Atom) in each pairs list are sorted by the Atom.id attributes of two atoms
-            pairs1n = list(set(itertools.combinations(mol.atoms, 2)) - set(pairs12).union(pairs13).union(pairs14))
-            for i, (atom1, atom2) in enumerate(pairs14 + pairs1n):
-                vdw = ff.get_vdw_term(ff.atom_types[atom1.type], ff.atom_types[atom2.type])
-                epsilon = vdw.epsilon
-                qq = atom1.charge * atom2.charge
-                if i < len(pairs14):
-                    epsilon *= ff.scale_14_vdw
-                    qq *= ff.scale_14_coulomb
-                if type(vdw) == LJ126Term:
-                    ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
-                elif type(vdw) == MieTerm:
-                    ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
-                else:
-                    raise Exception(f'Cannot setup {vdw} as a bonded term')
-                qqforce.addBond(atom1.id, atom2.id, [qq])
+            matrix = mol.get_distance_matrix(max_bond=3)
+            vdw_cache = {}  # ff.get_vdw_term() is slow if there are lots of 1-n pairs
+            for i, atom1 in enumerate(mol.atoms):
+                for j in range(i + 1, mol.n_atom):
+                    if matrix[i, j] == 1 or matrix[i, j] == 2:  # 1-2 or 1-3 pairs
+                        continue
+                    atom2 = mol.atoms[j]
+                    if atom1.type not in vdw_cache:
+                        vdw_cache[atom1.type] = {}
+                    if atom2.type not in vdw_cache[atom1.type]:
+                        vdw_cache[atom1.type][atom2.type] = ff.get_vdw_term(ff.atom_types[atom1.type],
+                                                                            ff.atom_types[atom2.type])
+                    vdw = vdw_cache[atom1.type][atom2.type]
+                    epsilon = vdw.epsilon
+                    qq = atom1.charge * atom2.charge
+                    if matrix[i, j] == 3:  # 1-4 pairs
+                        epsilon *= ff.scale_14_vdw
+                        qq *= ff.scale_14_coulomb
+                    if type(vdw) == LJ126Term:
+                        ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, 12, 6])
+                    elif type(vdw) == MieTerm:
+                        ljforce.addBond(atom1.id, atom2.id, [epsilon, vdw.sigma, vdw.repulsion, vdw.attraction])
+                    else:
+                        raise Exception(f'Cannot setup {vdw} as a bonded term')
+                    qqforce.addBond(atom1.id, atom2.id, [qq])
