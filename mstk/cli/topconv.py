@@ -8,8 +8,9 @@ from mstk.forcefield import ForceField
 from mstk import logger
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('topconv', help='Convert topology files',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--top', nargs='+', type=str, required=True, help='topology files')
     parser.add_argument('-n', '--number', nargs='+', type=int, help='number of molecules')
     parser.add_argument('-c', '--conf', type=str,
@@ -29,12 +30,10 @@ def parse_args():
                         help='remove hydrogen atoms bonded to C/Si. '
                              'Also remove the relevant bonds/angles/dihedrals/impropers')
 
-    return parser.parse_args()
+    parser.set_defaults(func=main)
 
 
-if __name__ == '__main__':
-    args = parse_args()
-
+def main(args):
     top_list = [Topology.open(inp) for inp in args.top]
     if args.number is None:
         args.number = [1] * len(top_list)

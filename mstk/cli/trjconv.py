@@ -9,8 +9,9 @@ from mstk.trajectory import Trajectory
 from mstk import logger
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('trjconv', help='Convert trajectory files',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--top', type=str, required=True, help='topology file')
     parser.add_argument('-c', '--conf', nargs='+', type=str, required=True, help='trajectory files')
     parser.add_argument('-o', '--output', required=True, type=str, help='output trajectory file')
@@ -34,12 +35,11 @@ def parse_args():
                         help='shift the positions of all atoms')
     parser.add_argument('--center', action='store_true',
                         help='translate the postitions of all atoms so that the center of the system is at the center of box')
-    return parser.parse_args()
+
+    parser.set_defaults(func=main)
 
 
-if __name__ == '__main__':
-    args = parse_args()
-
+def main(args):
     top = Topology.open(args.top)
     logger.info(top)
 

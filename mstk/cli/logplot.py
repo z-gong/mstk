@@ -9,8 +9,9 @@ from mstk.analyzer.fitting import polyfit, polyval
 from mstk.utils import print_data_to_file
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('logplot', help='Plot MD data',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--input', type=str, required=True,
                         help='XVG file or log file of OpenMM or LAMMPS')
     parser.add_argument('-b', '--begin', default=-1, type=float, help='begin from this data')
@@ -23,7 +24,20 @@ def parse_args():
     parser.add_argument('--fit', action='store_true', help='perform linear fitting')
     parser.add_argument('--dist', action='store_true', help='plot distribution')
 
-    return parser.parse_args()
+    parser.set_defaults(func=main)
+
+
+def main(args):
+    analyzer = Analyzer(args.input, args.type, args.begin, args.end, args.skip)
+    if args.converge:
+        analyzer.detect_converge()
+    if args.fit:
+        analyzer.fit()
+    analyzer.print_summary()
+    if args.plot:
+        analyzer.plot_data(plot_distribution=args.dist)
+    if args.output:
+        print_data_to_file(dict(zip(analyzer.labels, analyzer.data_list)), file=args.output)
 
 
 class Analyzer:
@@ -171,7 +185,7 @@ class Analyzer:
     def print_summary(self):
         string = 'File: %s, Steps: %i-%i, Samples: %i\n' % (
             self.log_file, self.data_list[0][0], self.data_list[0][-1], len(self.data_list[0]))
-        string += ' %2s %12s %11s %8s %8s %8s %9s %9s\n' % (
+        string += ' %2s %15s %11s %8s %8s %8s %9s %9s\n' % (
             'ID', 'LABEL', 'MEAN', 'STDERR', 'STDEV', 'WHEN', 'INTERCEPT', 'SLOPE')
         for i in range(1, len(self.labels)):
             when = self.when_list[i]
@@ -181,7 +195,7 @@ class Analyzer:
             else:
                 intercept, slope = 0, 0
             (ave, err_ave), (std, err_std) = block_average(data)
-            string += ' %2i %12s %11.5g %8.2g %8.2g %8.4g %9.3g %9.3g\n' % (
+            string += ' %2i %15s %11.5g %8.2g %8.2g %8.4g %9.3g %9.3g\n' % (
                 i, self.labels[i], ave, err_ave, std, self.data_list[0][when], intercept, slope)
 
         print(string, end='')
@@ -213,18 +227,3 @@ class Analyzer:
             fig.tight_layout()
             plt.savefig(self.labels[idx] + '.png')
             plt.show()
-
-
-if __name__ == '__main__':
-    args = parse_args()
-
-    analyzer = Analyzer(args.input, args.type, args.begin, args.end, args.skip)
-    if args.converge:
-        analyzer.detect_converge()
-    if args.fit:
-        analyzer.fit()
-    analyzer.print_summary()
-    if args.plot:
-        analyzer.plot_data(plot_distribution=args.dist)
-    if args.output:
-        print_data_to_file(dict(zip(analyzer.labels, analyzer.data_list)), file=args.output)

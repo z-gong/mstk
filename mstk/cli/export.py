@@ -2,7 +2,6 @@
 
 import sys
 import pickle
-import traceback
 import argparse
 import numpy as np
 from openmm import openmm as mm
@@ -14,8 +13,9 @@ from mstk.chem import constant
 from mstk import logger
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('export', help='Export simulation files for various MD engines',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--top', type=str, required=True,
                         help='topology file for the system. '
                              'This topology must have charges and masses assigned. '
@@ -37,11 +37,11 @@ def parse_args():
     parser.add_argument('--namd', action='store_true', help='export NAMD files')
     parser.add_argument('--openmm', action='store_true', help='export OpenMM files')
     parser.add_argument('--all', action='store_true', help='export files for all supported MD engines')
-    return parser.parse_args()
+
+    parser.set_defaults(func=main)
 
 
-def main():
-    args = parse_args()
+def main(args):
     for arg, val in vars(args).items():
         logger.info(f'--{arg:10s} {val}')
 
@@ -99,7 +99,7 @@ def main():
             system.export_lammps(data_out='_lmp-data.lmp', in_out='_lmp-in.lmp')
         except Exception as e:
             logger.error('Failed exporting LAMMPS')
-            traceback.print_exc()
+            raise
 
     if args.gromacs or args.all:
         logger.info('Exporting GROMACS...')
@@ -107,7 +107,7 @@ def main():
             system.export_gromacs(gro_out='_gmx-conf.gro', top_out='_gmx-topol.top', mdp_out='_gmx-pp.mdp')
         except Exception as e:
             logger.error('Failed exporting GROMACS')
-            traceback.print_exc()
+            raise
 
     if args.namd or args.all:
         logger.info('Exporting NAMD...')
@@ -115,7 +115,7 @@ def main():
             system.export_namd(pdb_out='_namd-conf.pdb', psf_out='_namd-top.psf', prm_out=None)
         except Exception as e:
             logger.error('Failed exporting NAMD')
-            traceback.print_exc()
+            raise
 
     if args.openmm or args.all:
         logger.info('Exporting OpenMM...')
@@ -128,8 +128,4 @@ def main():
                 f.write(mm.XmlSerializer.serialize(omm_sys))
         except Exception as e:
             logger.error('Failed exporting OpenMM')
-            traceback.print_exc()
-
-
-if __name__ == '__main__':
-    main()
+            raise

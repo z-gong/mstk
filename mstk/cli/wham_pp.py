@@ -5,20 +5,19 @@ import argparse
 import numpy as np
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('wham-pp', help='Pre-process MD data for WHAM calculation',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-b', '--begin', type=float, default=0)
     parser.add_argument('-p', '--plot', action='store_true', help='plot the histogram')
     parser.add_argument('--skip', type=int, default=1)
     parser.add_argument('--nbin', type=int, help='number of bins for histogram')
     parser.add_argument('--type', type=str, default='openmm', choices=['openmm', 'lammps', 'plumed'])
 
-    return parser.parse_args()
+    parser.set_defaults(func=main)
 
 
-if __name__ == '__main__':
-    args = parse_args()
-
+def main(args):
     BEGIN = args.begin
     SKIP = args.skip
 

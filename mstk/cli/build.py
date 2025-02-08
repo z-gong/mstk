@@ -13,8 +13,9 @@ from mstk.chem import constant
 from mstk import logger
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('build', help='Build a system for MD simulation',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--top', nargs='+', type=str, required=True,
                         help='topology files for molecules. '
                              'String starts with : will be treated as SMILES')
@@ -43,11 +44,11 @@ def parse_args():
                              'If the argument box is provided, density will be ignored')
     parser.add_argument('--packmol', action='store_true',
                         help='generate Packmol input files instead of write coordinates directly')
-    return parser.parse_args()
+
+    parser.set_defaults(func=main)
 
 
-def main():
-    args = parse_args()
+def main(args):
     for arg, val in vars(args).items():
         logger.info(f'--{arg:10s} {val}')
 
@@ -157,7 +158,3 @@ def main():
         trj = Trajectory.open(args.oc, 'w')
         trj.write_frame(frame, top)
         trj.close()
-
-
-if __name__ == '__main__':
-    main()

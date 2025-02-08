@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
 import argparse
-
 from mstk.forcefield import ForceField
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('ffconv', help='Convert force field files',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--ff', nargs='+', type=str, required=True, help='force field files')
     parser.add_argument('-o', '--output', required=True, type=str, help='output file')
-    return parser.parse_args()
+
+    parser.set_defaults(func=main)
 
 
-if __name__ == '__main__':
-    args = parse_args()
-
+def main(args):
     ff = ForceField.open(*args.ff)
     print('%6i atom types\n'
           '%6i virtual site terms\n'

@@ -17,8 +17,9 @@ matplotlib.use('Agg')
 matplotlib.rcParams.update({'font.size': 15})
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+def add_subcommand(subparsers):
+    parser = subparsers.add_parser('analyze-rdf', help='Calculate radial distribution function',
+                                   formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', '--top', type=str, required=True, help='topology file')
     parser.add_argument('-c', '--conf', nargs='+', type=str, required=True, help='trajectory files')
     parser.add_argument('-o', '--output', default='rdf', type=str, help='Basename for output files')
@@ -41,11 +42,10 @@ def parse_args():
     parser.add_argument('--ignore', nargs='+', default=[], type=str,
                         help='ignore these molecules in topology in case topology and trajectory do not match')
 
-    return parser.parse_args()
+    parser.set_defaults(func=main)
 
 
-def main():
-    args = parse_args()
+def main(args):
     top = Topology.open(args.top)
     if args.ignore:
         molecules = [mol for mol in top.molecules if mol.name not in args.ignore]
@@ -114,7 +114,3 @@ def main():
     # ax.legend()
     fig.tight_layout()
     fig.savefig(f'{args.output}.png')
-
-
-if __name__ == '__main__':
-    main()
