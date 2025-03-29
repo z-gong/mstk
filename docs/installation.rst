@@ -20,7 +20,7 @@ It is recommended to install these dependencies with `conda`.
 Install `mstk`
 --------------
 
-`mstk` itself can be installed either with `pip` or from source code.
+`mstk` itself can be installed either with `pip` or `conda`.
 
 Install `mstk` with pip
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,18 +29,9 @@ Install `mstk` with pip
 
     pip install mstk
 
-Install `mstk` from source code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Clone it from GitHub:
+Install `mstk` with conda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-    git clone https://github.com/z-gong/mstk
-
-Add the following line to .bashrc so that it can be found by python interpreter:
-
-.. code-block:: bash
-
-    export PYTHONPATH=$PYTHONPATH:/path/of/mstk
-    export PATH=$PATH:/path/of/mstk/scripts
+    conda install -c conda-forge -c z-gong mstk
