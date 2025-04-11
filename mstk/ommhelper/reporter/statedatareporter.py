@@ -447,6 +447,9 @@ class StateDataReporter:
     def _compute_pressure(self, context: mm.Context, state: mm.State):
         '''
         Compute the isotropic pressure of a rectangular system
+
+        Because the contribution of constraints to the atomic virial cannot be evaluated,
+        the kinetic and virial contributions are calculated at constrained group level
         '''
         box = state.getPeriodicBoxVectors(asNumpy=True)
         positions = state.getPositions(asNumpy=True)
@@ -454,10 +457,11 @@ class StateDataReporter:
         volume = a[0] * b[1] * c[2]
         p_kinetic = (2 * state.getKineticEnergy() * unit.item / 3 / volume).value_in_unit(unit.bar)
 
-        # Because the contribution of constraints to the pressure cannot be evaluated,
-        # here I approximate it by removing the kinetic contribution of the internal motion of each constrained group.
-        # TODO I'm not confident about this formula
-        p_kinetic *= len(self._constrained_groups) * 3 / self._dof
+        # Instead of calculating the translational kinetic energy of constrained groups explicitly,
+        # I simply scale the total kinetic energy based on the translational DOF of constrained groups
+        # This is for the concern of performance
+        # This formula gives the correct average pressure, but doesn't give the correct fluctuation
+        p_kinetic *= (len(self._constrained_groups) * 3 - 3) / self._dof  # -3 comes from the COM motion removal
 
         scale = 0.0001
         context.setPeriodicBoxVectors(a * (1 + scale), b * (1 + scale), c * (1 + scale))
@@ -483,6 +487,9 @@ class StateDataReporter:
         '''
         Compute the anisotropic pressure of a rectangular system
 
+        Because the contribution of constraints to the atomic virial cannot be evaluated,
+        the kinetic and virial contributions are calculated at constrained group level
+
         Parameters
         ----------
         context : mm.Context
@@ -497,13 +504,12 @@ class StateDataReporter:
         box = state.getPeriodicBoxVectors(asNumpy=True)
         positions = state.getPositions(asNumpy=True)
         volume = box[0][0] * box[1][1] * box[2][2]
-
-        # TODO Assume kinetic energies are well-partitioned to each DOF
         p_kinetic = (2 * state.getKineticEnergy() * unit.item / 3 / volume).value_in_unit(unit.bar)
 
-        # Because the contribution of constraints to the pressure cannot be evaluated,
-        # here I approximate it by removing the kinetic contribution of the internal motion of each constrained group.
-        # TODO I'm not confident about this formula
+        # Instead of calculating the translational kinetic energy of constrained groups explicitly,
+        # I simply scale the total kinetic energy based on the translational DOF of constrained groups
+        # This is for the concern of performance
+        # This formula gives the correct average pressure, but doesn't give the correct fluctuation
         p_kinetic *= len(self._constrained_groups) * 3 / self._dof
 
         scale = 0.0001
