@@ -95,19 +95,14 @@ class GroTopology:
         if not top.has_position:
             raise Exception('Position is required for writing GRO file')
 
-        def format_float(value, max_length, default_decimal):
-            if value >= 10 ** max_length or value <= -10 ** (max_length - 1):
-                raise Exception(f'{value} too long for formatter')
-            formatter = f'%{max_length}.{default_decimal}f'
-            return (formatter % value)[:max_length]
-
         string = 'Created by mstk\n'
         string += f'{top.n_atom}\n'
 
+        if np.any(np.abs(top.positions) >= 1000):
+            raise Exception('Positions are too large to be written in GRO format')
+
         for atom in top.atoms:
             pos = atom.position
-            if any(np.abs(pos) >= 1000):
-                raise Exception('Positions are too large to be written in GRO format')
             string += "%5i%-5s%5s%5i%8.3f%8.3f%8.3f\n" % (
                 (atom.residue.id + 1) % 100000, atom.residue.name[:5], atom.name[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2]

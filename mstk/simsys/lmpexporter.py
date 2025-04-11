@@ -170,7 +170,7 @@ class LammpsExporter:
             x, y, z = atom.position * 10
             string += '%8i %6i %6i %12.6f %10.4f %10.4f %10.4f  # %8s %8s\n' % (
                 atom.id + 1, atom.molecule.id + 1, lmp_type_list.index(typ) + 1,
-                atom.charge, x, y, z, atom.name, atom.molecule.name)
+                atom.charge, x, y, z, atom.name, atom.residue.name)
 
         if top.n_bond > 0:
             string += '\nBonds\n\n'
@@ -300,11 +300,8 @@ thermo_style custom step temp press pe emol evdwl v_elec density
 thermo_modify flush yes
 thermo 1000
 
-variable slog equal logfreq(10,9,10)
-dump TRJ all custom 10 dump.lammpstrj id mol type element q xu yu zu
-dump_modify TRJ sort id element {' '.join(lmp_symbol_list)} every v_slog first yes
-dump DCD all dcd 10000 dump.dcd
-dump_modify DCD unwrap yes
+dump XTC all xtc 1000 dump.xtc
+dump_modify XTC unwrap yes
 
 restart 1000000 rst_*
 run 1000000

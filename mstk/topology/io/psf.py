@@ -8,7 +8,7 @@ from mstk.topology.virtualsite import TIP4PSite
 
 class Psf:
     '''
-    Generate Topology from PSF file.
+    Generate Topology from NAMD-variant (space-delimited instead of column-based) PSF file.
 
     Atoms, bonds, angles, dihedrals, impropers and virtual sites are parsed.
     Polarizability and thole parameters for Drude model are parsed,
@@ -240,9 +240,9 @@ class Psf:
         string = ''
 
         if top.is_drude:
-            string += 'PSF DRUDE\n\n'
+            string += 'PSF NAMD DRUDE\n\n'
         else:
-            string += 'PSF\n\n'
+            string += 'PSF NAMD\n\n'
 
         string += '%8i !NTITLE\n' % 1
         string += ' REMARKS Created by mstk\n\n'

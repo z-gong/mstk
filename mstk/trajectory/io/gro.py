@@ -104,12 +104,15 @@ class Gro(TrjHandler):
         string = 'Created by mstk: step= %i, t= %f ps\n' % (frame.step, frame.time)
         string += '%i\n' % len(subset)
 
+        if np.any(np.abs(frame.positions) >= 1000):
+            raise Exception('Positions are too large to be written in GRO format')
+        if write_velocity and np.any(np.abs(frame.velocities) >= 100):
+            raise Exception('Velocities are too large to be written in GRO format')
+
         for id in subset:
             atom = topology.atoms[id]
             residue = atom.residue
             pos = frame.positions[id]
-            if any(np.abs(pos) >= 1000):
-                raise Exception('Positions are too large to be written in GRO format')
             string += '%5i%5s%5s%5i%8.3f%8.3f%8.3f' % (
                 (residue.id + 1) % 100000, residue.name[:5], atom.symbol[:5], (atom.id + 1) % 100000,
                 pos[0], pos[1], pos[2])
@@ -124,5 +127,6 @@ class Gro(TrjHandler):
 
         self._file.write(string.encode())
         self._file.flush()
+
 
 TrjHandler.register_format('.gro', Gro)
