@@ -13,3 +13,4 @@ from .io.xyz import XyzTopology
 from .io.smi import Smi
 from .io.gro import GroTopology
 from .io.mae import Mae
+from .io.sdf import Sdf
