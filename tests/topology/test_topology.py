@@ -12,16 +12,11 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 
 
 def test_assign_charge():
-    top = Topology.open(cwd + '/files/c_3oh.msd')
+    top = Topology.open(cwd + '/files/c_3oh.psf')
     ff = ForceField.open(cwd + '/files/c_3oh.ppf')
     ff.assign_charge(top)
     charges = [atom.charge for atom in top.atoms]
     assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.16, 0.4791, -0.45, 0.16, 0.16, 0.16, -0.0291]
-
-    # the function to transfer BCI terms is removed
-    # ff.assign_charge(top, transfer_bci_terms=True)
-    # charges = [atom.charge for atom in top.atoms]
-    # assert pytest.approx(charges, abs=1E-6) == [-0.32, -0.1954, 0.5145, -0.45, 0.16, 0.16, 0.16, -0.0291]
 
 
 def test_compress():

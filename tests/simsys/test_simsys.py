@@ -20,18 +20,6 @@ def get_omm_integrator_platform():
     return integrator, platform
 
 
-@pytest.mark.skip(reason='function removed')
-def test_transfer_bonded_terms():
-    top = Topology.open(cwd + '/../topology/files/c_3oh.msd')
-    ff = ForceField.open(cwd + '/../topology/files/c_3oh.ppf')
-    ff.assign_charge(top, transfer_bci_terms=True)
-    system = System(top, ff, transfer_bonded_terms=True)
-    angle = next(a for a in system.topology.angles if a.name == 'C2-C3-H8')
-    assert ff.get_eqt_list_for_angle(angle)[0] == ('c_3', 'c_3o', 'h_1')
-    aterm = system.angle_terms[angle]
-    assert aterm.name == 'c_3,c_3,h_1'
-
-
 def test_team():
     ff = ForceField.open(cwd + '/files/10-benzene.ppf')
     top = Topology.open(cwd + '/files/10-benzene.lmp', improper_center=3)
@@ -82,7 +70,8 @@ def test_team_vacuum():
 
 def test_eqt_vdw():
     ff = ForceField.open(cwd + '/files/c_3ad.ppf')
-    top = Topology.open(cwd + '/files/c_3ad.msd')
+    top = Topology.open(cwd + '/files/c_3ad.psf')
+    top.set_positions(Topology.open(cwd + '/files/c_3ad.gro').positions)
     ff.assign_charge(top)
     system = System(top, ff)
 
