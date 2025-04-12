@@ -46,7 +46,7 @@ class Molecule():
         self._impropers: [Improper] = []
         self._rdmol = None  # this is for typing based on SMARTS
         self._is_rdmol_valid = False
-        self._default_residue = Residue(name)
+        self._default_residue = Residue(name.replace(' ', '_'))  # residue name cannot contain empty space
         self._added_residues = []
 
     def __repr__(self):
@@ -59,7 +59,7 @@ class Molecule():
     @name.setter
     def name(self, val):
         self._name = val
-        self._default_residue.name = val
+        self._default_residue.name = val.replace(' ', '_')  # residue name cannot contain empty space
 
     def __deepcopy__(self, memodict={}):
         '''
@@ -207,6 +207,8 @@ class Molecule():
 
         if name is not None:
             mol.name = name
+        elif rdmol.HasProp('_Name'):
+            mol.name = rdmol.GetProp('_Name')
         else:
             mol.name = CalcMolFormula(rdmol)
 
@@ -238,6 +240,7 @@ class Molecule():
             logger.warning(f'Not all bond orders are specified in {self}')
 
         rwmol = Chem.RWMol()
+        rwmol.SetProp('_Name', self.name)
         for atom in self.atoms:
             rdatom = Chem.Atom(atom.symbol)
             rdatom.SetFormalCharge(atom.formal_charge)

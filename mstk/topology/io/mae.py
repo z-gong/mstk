@@ -154,7 +154,7 @@ class Mae:
             residue_names = atom_block.data.get('s_m_pdb_residue_name', None)  # optional
             formal_charges = atom_block.data.get('i_m_formal_charge', None)  # optional
 
-            mol = Molecule(name=f_m_ct.data['s_m_title'].replace(' ', '_'))
+            mol = Molecule(name=f_m_ct.data['s_m_title'])
             for i, atom_number in enumerate(atom_block.data['i_m_atomic_number']):
                 element = Element(int(atom_number))
                 atom = Atom()
