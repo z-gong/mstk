@@ -1298,7 +1298,8 @@ class Molecule():
         -------
         substructure : Molecule
         '''
-        indexes = list(dict.fromkeys(indexes))
+        if len(set(indexes)) < len(indexes):
+            raise ValueError('Indexes should be unique')
 
         if deepcopy:
             mol = copy.deepcopy(self)
@@ -1332,11 +1333,11 @@ class Molecule():
         ids_set = set(indexes)
         bonds_kept = {}
         for atom in sub.atoms:
-            for bond in reversed(atom.bonds):
+            for bond in atom.bonds[:]:
                 if {a.id for a in bond.atoms} <= ids_set:
                     bonds_kept[bond] = None  # use dict name to store unique bonds in order
                 else:
-                    atom._bonds.pop()
+                    atom._bonds.remove(bond)
         sub._bonds.extend(bonds_kept)
 
         for conn in mol.angles:
