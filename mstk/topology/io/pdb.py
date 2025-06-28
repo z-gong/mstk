@@ -48,9 +48,14 @@ class Pdb:
 
         mol = self._molecule
         atom_ids = {}  # {int: Atom}
-        res_names = {}  # {int: str}
-        res_atoms = {}  # {int: [Atom]}
         _atom_started = False
+
+        res_atoms = []  # atoms for current residue
+        chain_last = None
+        resid_last = None
+        resname_last = None
+        icode_last = None
+
         for line in lines:
             line = line.rstrip()
             if _atom_started and line == 'ENDMDL':
@@ -59,12 +64,14 @@ class Pdb:
                 a, b, c, alpha, beta, gamma = list(map(float, line.split()[1:7]))
                 self.topology.cell.set_box([[a / 10, b / 10, c / 10],
                                             [alpha * DEG2RAD, beta * DEG2RAD, gamma * DEG2RAD]])
-            if line.startswith('ATOM') or line.startswith('HETATM'):
+            if line.startswith(('ATOM', 'HETATM')):
                 _atom_started = True
                 atom_id = int(line[6:11])
                 atom_name = line[12:16].strip()
                 res_name = line[17:21].strip()
+                chain_id = line[21].strip() or ''
                 res_id = int(line[22:26])
+                icode = line[26].strip() or ''
                 x = float(line[30:38]) / 10
                 y = float(line[38:46]) / 10
                 z = float(line[46:54]) / 10
@@ -76,7 +83,7 @@ class Pdb:
 
                 atom = Atom(atom_name)
                 atom.type = atom_name
-                atom.position = (x, y, z,)
+                atom.position = (x, y, z)
                 atom.symbol = element.symbol
                 atom.mass = element.mass
                 mol.add_atom(atom)
@@ -88,14 +95,24 @@ class Pdb:
                         atom.formal_charge *= -1
 
                 atom_ids[atom_id] = atom
-                if res_id not in res_names:
-                    res_names[res_id] = res_name
-                    res_atoms[res_id] = []
-                res_atoms[res_id].append(atom)
 
-        for resid, resname in res_names.items():
-            atoms = res_atoms[resid]
-            mol.add_residue(resname, atoms, refresh_residues=False)
+                # check if we need to start a new residue
+                if res_atoms and (
+                        chain_id != chain_last
+                        or res_id != resid_last
+                        or res_name != resname_last
+                        or icode != icode_last
+                ):
+                    mol.add_residue(resname_last, res_atoms, refresh_residues=False)
+                    res_atoms = []
+
+                res_atoms.append(atom)
+                chain_last, resid_last, resname_last, icode_last = chain_id, res_id, res_name, icode
+
+        # add final residue
+        if res_atoms:
+            mol.add_residue(resname_last, res_atoms, refresh_residues=False)
+
         mol.refresh_residues()
 
         prev_section = ''

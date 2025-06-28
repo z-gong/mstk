@@ -99,16 +99,22 @@ class Psf:
 
     def _parse_atoms(self, lines, parse_drude):
         '''
-        in psf file, drude particles always appear after attached atoms
+        Residues are defined sequentially: a new residue starts when (segid, resid, resname) differs from the previous atom.
+        In psf file, drude particles always appear after attached atoms.
         '''
         mol = self._molecule
         n_atom = int(lines[0].strip().split()[0])
-        res_names = {}  # {int: str}
-        res_atoms = {}  # {int: [Atom]}
+
+        res_atoms = []  # atoms for current residue
+        segid_last = None
+        resid_last = None
+        resname_last = None
+
         for i in range(n_atom):
             words = lines[1 + i].strip().split()
-            res_id = int(words[2])
-            res_name = words[3]
+            segid = words[1]
+            resid = words[2]
+            resname = words[3]
             atom_name = words[4]
             atom_type = words[5]
             charge, mass = list(map(float, words[6:8]))
@@ -131,14 +137,18 @@ class Psf:
 
             mol.add_atom(atom)
 
-            if res_id not in res_names:
-                res_names[res_id] = res_name
-                res_atoms[res_id] = []
-            res_atoms[res_id].append(atom)
+            # check if we need to start a new residue
+            if res_atoms and (segid != segid_last or resid != resid_last or resname != resname_last):
+                mol.add_residue(resname_last, res_atoms, refresh_residues=False)
+                res_atoms = []
 
-        for resid, resname in res_names.items():
-            atoms = res_atoms[resid]
-            mol.add_residue(resname, atoms, refresh_residues=False)
+            res_atoms.append(atom)
+            segid_last, resid_last, resname_last = segid, resid, resname
+
+        # add the final residue
+        if res_atoms:
+            mol.add_residue(resname_last, res_atoms, refresh_residues=False)
+
         mol.refresh_residues()
 
     def _parse_bonds(self, lines):
@@ -250,7 +260,7 @@ class Psf:
         string += '%8i !NATOM\n' % top.n_atom
         for i, atom in enumerate(top.atoms):
             string += '%8i %-4s %-4i %-7s %-5s %-6s %10.6f %13.4f %11i %8.4f %8.4f\n' % (
-                atom.id + 1, 'S', atom.residue.id + 1, atom.residue.name[:7], atom.name, atom.type,
+                atom.id + 1, 'S', atom.residue.id + 1, atom.residue.name, atom.name, atom.type,
                 atom.charge, atom.mass, 0, -atom.alpha * 1000, atom.thole / 2
             )
         string += '\n'
