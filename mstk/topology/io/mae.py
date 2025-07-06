@@ -2,7 +2,8 @@ import gzip
 import shlex
 from mstk.topology import Atom, Bond, Molecule, Topology, UnitCell
 from mstk.chem.element import Element
-from mstk.chem.constant import DEG2RAD
+from mstk.chem.constant import DEG2RAD, RAD2DEG
+from mstk.utils import flatten
 
 
 class MaeBlock:
@@ -22,12 +23,12 @@ class MaeBlock:
 
 class Mae:
     '''
-    Generate Topology from MAE or MAEGZ file of Schrödinger.
+    Generate Topology from an atomistic MAE or MAEGZ file of Schrödinger.
 
-    The atoms, positions, bonds are parsed.
+    The atom symbols, positions, bonds are parsed.
     Formal charges, residues will be parsed if avaiable.
+    Atom names will be parsed only if atom names for all atoms in one entry are available. Otherwise, atoms names in this entry will be re-assigned.
     The first available unit cell from the structure entryies will be parsed.
-    The atom names are ignored, because atom name in MAE can be empty.
     All other information are ignored.
 
     An MAE file can contain multiple structures. Each structure entry can contain multiple molecules.
@@ -153,8 +154,9 @@ class Mae:
             residue_numbers = atom_block.data.get('i_m_residue_number', None)  # optional
             residue_names = atom_block.data.get('s_m_pdb_residue_name', None)  # optional
             formal_charges = atom_block.data.get('i_m_formal_charge', None)  # optional
+            atom_names = atom_block.data.get('s_m_atom_name', None)  # optional
 
-            mol = Molecule(name=f_m_ct.data['s_m_title'])
+            mol = Molecule(name=f_m_ct.data.get('s_m_title', 'UNK'))
             for i, atom_number in enumerate(atom_block.data['i_m_atomic_number']):
                 element = Element(int(atom_number))
                 atom = Atom()
@@ -187,10 +189,13 @@ class Mae:
                     mol.add_residue(resname, atoms, refresh_residues=False)
                 mol.refresh_residues()
 
-            # don't use atom names in MAE. They could be empty. Reassign atom names
-            for residue in mol.residues:
-                for i_in_res, atom in enumerate(residue.atoms):
-                    atom.name = f'{atom.symbol}{i_in_res + 1}'
+            if atom_names and all(name.strip() for name in atom_names):
+                for atom in mol.atoms:
+                    atom.name = atom_names[atom.id_in_mol].strip()
+            else:  # don't use atom names in MAE if anyone is empty. Reassign atom names
+                for residue in mol.residues:
+                    for i_in_res, atom in enumerate(residue.atoms):
+                        atom.name = f'{atom.symbol}{i_in_res + 1}'
 
             try:
                 m_bond = next(block for block in f_m_ct.children if block.name == 'm_bond')
@@ -217,6 +222,123 @@ class Mae:
         top.generate_angle_dihedral_improper()
 
         return top
+
+    @staticmethod
+    def save_to(top, file, **kwargs):
+        '''
+        Save topology into an MAE file.
+
+        Atom elements, atom names, positions, formal charges, residues, bonds and unit cell will be saved.
+
+        The MAE file will contain only one entry. All molecules in the topology will be saved in that entry.
+
+        # TODO Save atom types and charges
+
+        Parameters
+        ----------
+        top : Topology
+        file : str
+        '''
+        suffix = file.split('.')[-1].lower()
+        if suffix == 'mae':
+            f = open(file, 'w')
+        elif suffix == 'maegz':
+            f = gzip.open(file, 'wt')
+        else:
+            raise Exception('Output must be a MAE or MAEGZ file')
+
+        string = '''{
+ s_m_m2io_version
+ :::
+ 2.0.0
+}
+'''
+        if top.cell.volume != 0:
+            string += '''f_m_ct {
+ i_m_ct_format
+ r_chorus_box_ax
+ r_chorus_box_ay
+ r_chorus_box_az
+ r_chorus_box_bx
+ r_chorus_box_by
+ r_chorus_box_bz
+ r_chorus_box_cx
+ r_chorus_box_cy
+ r_chorus_box_cz
+ r_pdb_PDB_CRYST1_a
+ r_pdb_PDB_CRYST1_alpha
+ r_pdb_PDB_CRYST1_b
+ r_pdb_PDB_CRYST1_beta
+ r_pdb_PDB_CRYST1_c
+ r_pdb_PDB_CRYST1_gamma
+ s_pdb_PDB_CRYST1_Space_Group
+ :::
+ 2
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.4f
+ %.1f
+ %.4f
+ %.1f
+ %.4f
+ %.1f
+ "P 1"
+''' % (*flatten(top.cell.vectors), *flatten(zip(top.cell.lengths, top.cell.angles * RAD2DEG)))
+        else:
+            string += '''f_m_ct {
+ i_m_ct_format
+ :::
+ 2
+'''
+        string += ''' m_atom[%i] {
+  # First column is atom index #
+  i_m_atomic_number
+  s_m_atom_name
+  r_m_x_coord
+  r_m_y_coord
+  r_m_z_coord
+  i_m_formal_charge
+  i_m_residue_number
+  s_m_pdb_residue_name
+  :::
+''' % (top.n_atom)
+        for atom in top.atoms:
+            string += f'  {atom.id + 1}' \
+                      f' {Element(atom.symbol).number}' \
+                      f' {atom.name}' \
+                      f' {atom.position[0] * 10:.4f}' \
+                      f' {atom.position[1] * 10:.4f}' \
+                      f' {atom.position[2] * 10:.4f}' \
+                      f' {atom.formal_charge}' \
+                      f' {atom.residue.id + 1}' \
+                      f' {atom.residue.name}\n'
+        string += '''  :::
+ }
+'''
+
+        string += ''' m_bond[%i] {
+  # First column is bond index #
+  i_m_from
+  i_m_to
+  i_m_order
+  :::
+''' % (top.n_bond)
+        for i, bond in enumerate(top.bonds):
+            string += f'  {i + 1} {bond.atom1.id + 1} {bond.atom2.id + 1} {bond.order}\n'
+        string += '''  :::
+ }
+}
+'''
+
+        f.write(string)
+        f.close()
 
 
 Topology.register_format('.mae', Mae)
