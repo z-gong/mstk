@@ -236,9 +236,6 @@ class Molecule():
         if self._is_rdmol_valid:
             return self._rdmol
 
-        if any(b.order == Bond.Order.UNSPECIFIED for b in self.bonds):
-            logger.warning(f'Not all bond orders are specified in {self}')
-
         rwmol = Chem.RWMol()
         rwmol.SetProp('_Name', self.name)
         for atom in self.atoms:
@@ -255,7 +252,10 @@ class Molecule():
             }
             rwmol.AddBond(bond.atom1.id_in_mol, bond.atom2.id_in_mol, d_bond_order[bond.order])
         # set aromaticity so that SMARTS matching and is_aromatic works correctly
-        Chem.SanitizeMol(rwmol)
+        if any(b.order == Bond.Order.UNSPECIFIED for b in self.bonds):
+            logger.warning(f'Bond orders missing in {self}. RDKit mol won\'t be sanitized')
+        else:
+            Chem.SanitizeMol(rwmol)
         self._rdmol = rwmol.GetMol()
         self._is_rdmol_valid = True
 
