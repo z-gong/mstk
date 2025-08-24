@@ -26,7 +26,7 @@ class Mae:
     Generate Topology from an atomistic MAE or MAEGZ file of Schrödinger.
 
     The atom symbols, positions, bonds are parsed.
-    Formal charges, residues will be parsed if avaiable.
+    Atom types, charges, formal charges, residues will be parsed if avaiable.
     Atom names will be parsed only if atom names for all atoms in one entry are available. Otherwise, atoms names in this entry will be re-assigned.
     The first available unit cell from the structure entryies will be parsed.
     All other information are ignored.
@@ -155,6 +155,8 @@ class Mae:
             residue_names = atom_block.data.get('s_m_pdb_residue_name', None)  # optional
             formal_charges = atom_block.data.get('i_m_formal_charge', None)  # optional
             atom_names = atom_block.data.get('s_m_atom_name', None)  # optional
+            atom_types = atom_block.data.get('s_m_atom_type', None)  # optional
+            charges = atom_block.data.get('r_m_charge', None)  # optional
 
             mol = Molecule(name=f_m_ct.data.get('s_m_title', 'UNK'))
             for i, atom_number in enumerate(atom_block.data['i_m_atomic_number']):
@@ -171,6 +173,10 @@ class Mae:
 
                 if formal_charges:
                     atom.formal_charge = int(formal_charges[i])
+                if atom_types:
+                    atom.type = atom_types[i]
+                if charges:
+                    atom.charge = float(charges[i])
 
             if residue_numbers:
                 groups = []
@@ -228,11 +234,9 @@ class Mae:
         '''
         Save topology into an MAE file.
 
-        Atom elements, atom names, positions, formal charges, residues, bonds and unit cell will be saved.
+        Atom elements, atom names, atom types, charges, positions, formal charges, residues, bonds and unit cell will be saved.
 
         The MAE file will contain only one entry. All molecules in the topology will be saved in that entry.
-
-        # TODO Save atom types and charges
 
         Parameters
         ----------
@@ -301,6 +305,8 @@ class Mae:
   # First column is atom index #
   i_m_atomic_number
   s_m_atom_name
+  s_m_atom_type
+  r_m_charge
   r_m_x_coord
   r_m_y_coord
   r_m_z_coord
@@ -310,14 +316,16 @@ class Mae:
   :::
 ''' % (top.n_atom)
         for atom in top.atoms:
-            string += f'  {atom.id + 1}' \
-                      f' {Element(atom.symbol).number}' \
-                      f' {atom.name}' \
+            string += f'  {atom.id + 1:<6d}' \
+                      f' {Element(atom.symbol).number:3d}' \
+                      f' {atom.name:6s}' \
+                      f' {atom.type:6s}' \
+                      f' {atom.charge:10.4f}' \
                       f' {atom.position[0] * 10:.4f}' \
                       f' {atom.position[1] * 10:.4f}' \
                       f' {atom.position[2] * 10:.4f}' \
-                      f' {atom.formal_charge}' \
-                      f' {atom.residue.id + 1}' \
+                      f' {atom.formal_charge:2d}' \
+                      f' {atom.residue.id + 1:4d}' \
                       f' {atom.residue.name}\n'
         string += '''  :::
  }
