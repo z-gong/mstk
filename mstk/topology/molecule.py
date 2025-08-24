@@ -1,8 +1,7 @@
 import itertools
 import copy
 import numpy as np
-from mstk import logger
-from mstk.chem.rdkit import create_mol_from_smiles
+from rdkit import Chem
 from mstk.chem.element import Element
 from mstk.forcefield.ffterm import *
 from .atom import Atom
@@ -115,17 +114,18 @@ class Molecule():
         return mol
 
     @staticmethod
-    def from_smiles(smiles):
+    def from_smiles(smiles, generate_positions=True):
         '''
         Initialize a molecule from SMILES string.
 
         RDKit is used for parsing SMILES. The Hydrogen atoms will be created.
-        The positions of all atoms will also be automatically generated.
+        By default, the positions of all atoms will be generated with RDKit.
         The SMILES string can contain the name of the molecule at the end, e.g. 'CCCC butane'.
 
         Parameters
         ----------
         smiles : str
+        generate_positions : bool
 
         Returns
         -------
@@ -141,7 +141,18 @@ class Molecule():
         else:
             name = None
 
-        rdmol = create_mol_from_smiles(smiles)
+        try:
+            rdmol = Chem.MolFromSmiles(smiles)
+        except:
+            raise Exception(f'Invalid SMILES: {smiles}')
+
+        rdmol = Chem.AddHs(rdmol)
+        if generate_positions:
+            from rdkit.Chem import AllChem
+            if AllChem.EmbedMolecule(rdmol, useRandomCoords=True) == -1:
+                if AllChem.EmbedMolecule(rdmol) == -1:
+                    raise Exception('Failed generating positions')
+
         mol = Molecule.from_rdmol(rdmol, name)
 
         return mol
