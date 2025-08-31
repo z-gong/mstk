@@ -15,21 +15,26 @@ else:
 class TypeDefine:
     def __init__(self, name, smarts, formal_charge=None):
         self.name = name
-        self.smarts = smarts
-        self.rdsmarts = None
-        self.formal_charge = formal_charge  # None means don't match formal charge
-        # smarts not provided means this is a fake root define
-        if smarts is not None:
-            try:
-                self.rdsmarts = Chem.MolFromSmarts(smarts)
-            except:
-                raise Exception('Invalid SMARTS: %s' % smarts)
+        self.smarts_list = []
+        self.rdsmarts_list = []
+        self.formal_charge_list = []
+        self.add_pattern(smarts, formal_charge)
 
         self.children: [TypeDefine] = []
         self.parent: TypeDefine = None
 
+    def add_pattern(self, smarts, formal_charge=None):
+        self.smarts_list.append(smarts)
+        self.formal_charge_list.append(formal_charge)  # None means don't match formal charge
+        # smarts not provided means this is a fake root define
+        if smarts is not None:
+            try:
+                self.rdsmarts_list.append(Chem.MolFromSmarts(smarts))
+            except:
+                raise Exception('Invalid SMARTS: %s' % smarts)
+
     def __repr__(self):
-        return '<TypeDefine: %s %s %s>' % (self.name, self.smarts, self.formal_charge)
+        return '<TypeDefine: %s %s %s>' % (self.name, self.smarts_list, self.formal_charge_list)
 
     def add_child(self, define):
         if define not in self.children:
@@ -145,7 +150,10 @@ class SmartsTyper(Typer):
                     formal_charge = int(words[2]) if len(words) > 2 else None
                 except ValueError:
                     raise Exception('Formal charge must be integer: ' + line)
-                self.defines[name] = TypeDefine(name, smarts, formal_charge)
+                if name not in self.defines:
+                    self.defines[name] = TypeDefine(name, smarts, formal_charge)
+                else:
+                    self.defines[name].add_pattern(smarts, formal_charge)
             if section == 'HierarchicalTree':
                 tree_lines.append(line.rstrip())
 
@@ -191,14 +199,15 @@ class SmartsTyper(Typer):
         if any(bond.order == Bond.Order.UNSPECIFIED for bond in molecule.bonds):
             raise TypingNotSupportedError(f'Typer requires all bond orders in {molecule} be set')
 
-        possible_defines = {i: [] for i in range(molecule.n_atom)}
+        possible_defines = {i: set() for i in range(molecule.n_atom)}
         for define in self.defines.values():
-            for indexes in molecule.rdmol.GetSubstructMatches(define.rdsmarts, uniquify=False, maxMatches=0):
-                if define.formal_charge is not None \
-                        and sum(molecule.atoms[i].formal_charge for i in indexes) != define.formal_charge:
-                    continue
-                idx = indexes[0]
-                possible_defines[idx].append(define)
+            for rdsmarts, formal_charge in zip(define.rdsmarts_list, define.formal_charge_list):
+                for indexes in molecule.rdmol.GetSubstructMatches(rdsmarts, uniquify=False, maxMatches=0):
+                    if formal_charge is not None and sum(
+                            molecule.atoms[i].formal_charge for i in indexes) != formal_charge:
+                        continue
+                    idx = indexes[0]
+                    possible_defines[idx].add(define)
 
         _undefined = []
         for i, atom in enumerate(molecule.atoms):
