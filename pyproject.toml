@@ -17,5 +17,8 @@ urls = { "Homepage" = "https://github.com/z-gong/mstk" }
 [project.scripts]
 mstk = "mstk.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["mstk*"]
+
 [tool.setuptools.package-data]
 mstk = ["data/forcefield/*"]
