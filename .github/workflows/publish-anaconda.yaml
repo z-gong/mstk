@@ -1,0 +1,33 @@
+name: Build and upload conda packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  conda_deployment:
+    name: Conda deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Miniforge
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: ""
+          auto-activate: true
+          conda-build-version: "25.*"
+
+      - name: Install anaconda client into base
+        run: |
+          conda install -y -c conda-forge anaconda-client
+
+      - name: Build and upload the conda packages
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.5.0
+        with:
+          meta_yaml_dir: conda # Replace with the path to your meta.yaml directory
+          user: z-gong # Replace with your Anaconda username (or an Anaconda organization username)
+          token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
