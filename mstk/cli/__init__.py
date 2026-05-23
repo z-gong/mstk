@@ -1,5 +1,5 @@
 import argparse
-from . import analyze_rdf, build, export, ffconv, logplot, topconv, trjconv, wham_pp
+from . import analyze_rdf, build, export, ffconv, logplot, sfe, topconv, trjconv, wham_pp
 
 
 def main():
@@ -14,6 +14,8 @@ def main():
     ffconv.add_subcommand(subparsers)
     topconv.add_subcommand(subparsers)
     trjconv.add_subcommand(subparsers)
+
+    sfe.add_subcommand(subparsers)
 
     logplot.add_subcommand(subparsers)
     analyze_rdf.add_subcommand(subparsers)

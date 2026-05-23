@@ -27,6 +27,7 @@ Modules
    simsys
    trajectory
    ommhelper
+   sfe
    chem
    scheduler
    analyzer

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import openmm
 from logging import Logger
@@ -23,6 +24,41 @@ def print_omm_info(logger=None):
             logger.info(msg)
         else:
             print(msg)
+
+
+def get_platform_properties(logger=None):
+    '''
+    Auto-detect the best available OpenMM platform.
+
+    Priority: CUDA > OpenCL > CPU. Override with OPENMM_PLATFORM env var.
+
+    Returns
+    -------
+    platform : mm.Platform
+    properties : dict
+    '''
+    available = [mm.Platform.getPlatform(i).getName() for i in range(mm.Platform.getNumPlatforms())]
+
+    name = os.environ.get('OPENMM_PLATFORM', None)
+    if name:
+        if name not in available:
+            if logger:
+                logger.error(f'Platform {name} not found. Available: {available}')
+            raise Exception(f'Invalid platform: OPENMM_PLATFORM={name}')
+    elif 'CUDA' in available:
+        name = 'CUDA'
+    elif 'OpenCL' in available:
+        name = 'OpenCL'
+    else:
+        name = 'CPU'
+
+    if logger:
+        logger.info(f'{name} platform selected')
+
+    platform = mm.Platform.getPlatformByName(name)
+    properties = {'Precision': 'mixed'} if name in ('CUDA', 'OpenCL') else {}
+
+    return platform, properties
 
 
 def minimize(sim, tolerance, gro_out=None, logger=None):
