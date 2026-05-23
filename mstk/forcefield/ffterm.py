@@ -1592,7 +1592,7 @@ class PeriodicDihedralTerm(DihedralTerm):
 
     class Phase:
         def __init__(self, phi, k, n):
-            if phi < -PI or phi > PI:
+            if phi < -PI - 0.0001 or phi > PI + 0.0001:
                 logger.error(f'phi should be in the range of -PI to PI')
             self.phi = phi
             self.k = k
@@ -1685,7 +1685,7 @@ class PeriodicDihedralTerm(DihedralTerm):
             if phase.n > 4:
                 raise Exception(f'{str(self)} does not follow OPLS convention, n > 4')
         for phase in phases:
-            if phase.phi != 0 and abs(phase.phi - PI) > 0.01:
+            if phase.phi != 0 and abs(phase.phi - PI) > 0.0001:
                 raise Exception(f'{str(self)} does not follow OPLS convention, phi != 0 or PI')
 
         k1 = k2 = k3 = k4 = 0.0
@@ -1696,7 +1696,7 @@ class PeriodicDihedralTerm(DihedralTerm):
                 else:
                     k1 -= phase.k
             elif phase.n == 2:
-                if abs(phase.phi - PI) < 0.01:
+                if abs(phase.phi - PI) < 0.0001:
                     k2 += phase.k
                 else:
                     k2 -= phase.k
@@ -1706,7 +1706,7 @@ class PeriodicDihedralTerm(DihedralTerm):
                 else:
                     k3 -= phase.k
             elif phase.n == 4:
-                if abs(phase.phi - PI) < 0.01:
+                if abs(phase.phi - PI) < 0.0001:
                     k4 += phase.k
                 else:
                     k4 -= phase.k
