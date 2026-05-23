@@ -10,6 +10,7 @@ parameter assignment, and input file generation for major simulation engines.
 
 * Assign atom types and force field parameters based on local chemical environment
 * Generate input files for LAMMPS, GROMACS, NAMD and OpenMM
+* Set up solvation free energy simulation
 * Support Drude polarizable model, coarse-grained model, virtual site, linear angle...
 * Read/write common topology (PSF, ZMAT, PDB, LAMMPS, ...) and trajectory (GRO, XTC, DCD, LAMMPS, ...) files
 * Access local and remote job schedulers like Slurm
@@ -17,13 +18,13 @@ parameter assignment, and input file generation for major simulation engines.
 ## Installation
 
 ```
-conda install -c conda-forge numpy pandas rdkit openmm chemfiles packmol
+conda install -c conda-forge numpy pandas rdkit openmm chemfiles packmol pymbar-core
 pip install mstk
 ```
 
 ## Quick Example
 
-Build a liquid mixture of 100 benzene and 1000 water molecules, ready for simulation.
+**Example 1** Build a liquid mixture of 100 benzene and 1000 water molecules, ready for simulation.
 
 ```python
 from mstk.topology import Molecule, Topology
@@ -64,6 +65,23 @@ __Important Note__:
 *The __primitive__ atom typing and force field used above are for demonstration purpose only and are __not__ well
 optimized for production use.*
 *For reliable simulation, please prepare you own `smt` and `zff` files or get them from a validated source.*
+
+
+**Example 2** Calculate the hydration free energy of benzene in water
+
+- 2.1 Build a system containing 1 benzene in 1000 water, following the above example
+
+- 2.2 Use the `mstk sfe run` command to perform alchemical simulation under different lambda windows
+```
+mstk sfe run -p _namd-top.psf -c _gmx-conf.gro -f primitive.zff --molid 0 -w %WINDOW% --nwindow 16
+```
+Run at 16 different windows by change %WINDOW% from 0 to 15.
+A series of dU values will be saved in dU_%WINDOW%.csv
+
+- 2.3 Use the `mstk sfe mbar` command to analyse free energy change
+```
+mstk sfe mbar *.csv
+```
 
 ## Documentation
 
