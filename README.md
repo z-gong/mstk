@@ -73,7 +73,7 @@ optimized for production use.*
 
 - 2.2 Use the `mstk sfe run` command to perform alchemical simulation under different lambda windows
 ```
-mstk sfe run -p _namd-top.psf -c _gmx-conf.gro -f primitive.zff --molid 0 -w %WINDOW% --nwindow 16
+mstk sfe run -p _namd-top.psf -c _gmx-conf.gro -f primitive.zff --molid 0 -i %WINDOW% --nwindow 16
 ```
 Run at 16 different windows by change %WINDOW% from 0 to 15.
 A series of dU values will be saved in dU_%WINDOW%.csv

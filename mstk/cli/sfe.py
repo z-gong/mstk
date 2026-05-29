@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import os
+import sys
 import argparse
 import numpy as np
 from openmm import openmm as mm, app
 from mstk import logger
-from mstk.ommhelper import get_platform_properties, unit
+from mstk import ommhelper as oh
+from mstk.ommhelper.unit import ps, kelvin, bar
 from mstk.chem import constant
 from mstk.topology import Topology
 from mstk.trajectory import Trajectory
@@ -31,7 +32,7 @@ def add_subcommand(subparsers):
                             help='force field file(s)')
     run_parser.add_argument('--molid', type=int, required=True,
                             help='index of the molecule to decouple')
-    run_parser.add_argument('-w', '--window', type=int, required=True,
+    run_parser.add_argument('-i', '--iwindow', type=int, required=True,
                             help='lambda window index (0-based)')
     run_parser.add_argument('--nwindow', type=int, default=16,
                             help='total number of lambda windows')
@@ -45,8 +46,13 @@ def add_subcommand(subparsers):
                             help='pressure in bar')
     run_parser.add_argument('--dt', type=float, default=0.002,
                             help='timestep in ps')
-    run_parser.add_argument('-o', '--output', type=str, default=None,
-                            help='output CSV file (default: dU_<window>.csv)')
+    run_parser.add_argument('--nstepdu', type=int, default=500,
+                            help='dU sampling interval in steps')
+    run_parser.add_argument('--nstepxtc', type=int, default=100000,
+                            help='XTC output interval in steps')
+    run_parser.add_argument('--rewind', type=str, default='auto',
+                            choices=['auto', 'on', 'off'],
+                            help='rewind on NaN: auto enables only at fully decoupled state')
     run_parser.set_defaults(func=_run)
 
     # sfe mbar
@@ -60,9 +66,6 @@ def add_subcommand(subparsers):
 
 
 def _run(args):
-
-    output = args.output or f'dU_{args.window}.csv'
-
     for arg, val in vars(args).items():
         if arg not in ('func', 'command', 'sfe_command'):
             logger.info(f'--{arg:15s} {val}')
@@ -77,58 +80,94 @@ def _run(args):
 
     # Build alchemical system.
     sfe = SFEManager(system, args.molid, n_lambda=args.nwindow)
-    sfe.omm_system.addForce(mm.MonteCarloBarostat(args.press * unit.bar, args.temp * unit.kelvin, 100))
+    sfe.omm_system.addForce(mm.MonteCarloBarostat(args.press * bar, args.temp * kelvin, 100))
 
-    lambda_coul, lambda_vdw = sfe.schedule[args.window]
-    logger.info(f'Window {args.window}/{args.nwindow}: '
+    lambda_coul, lambda_vdw = sfe.schedule[args.iwindow]
+    logger.info(f'Window {args.iwindow}/{args.nwindow}: '
                 f'lambda_coul={lambda_coul:.4f}, lambda_vdw={lambda_vdw:.4f}')
 
+    if args.rewind == 'auto':
+        rewind = (lambda_coul == 0.0 and lambda_vdw == 0.0)
+    else:
+        rewind = (args.rewind == 'on')
+    if rewind:
+        logger.info('NaN rewind enabled')
+
     # Create simulation.
-    platform, properties = get_platform_properties()
-    integrator = mm.LangevinMiddleIntegrator(args.temp * unit.kelvin, 1.0 / unit.ps, args.dt * unit.ps)
-    sim = app.Simulation(top.to_omm_topology(), sfe.omm_system, integrator, platform, properties)
+    integrator = mm.LangevinMiddleIntegrator(args.temp * kelvin, 1.0 / ps, args.dt * ps)
+    platform, properties = oh.get_platform_properties()
+    omm_top = top.to_omm_topology()
+    sim = app.Simulation(omm_top, sfe.omm_system, integrator, platform, properties)
     sim.context.setPositions(top.positions)
 
+    # Reporters
+    sim.reporters.append(oh.StateDataReporter(sys.stdout, 1000))
+    # include initial configuration in the XTC trajectory
+    xtc_file = f'dump_{args.iwindow}.xtc'
+    open(xtc_file, 'wb').close()
+    _xtc = app.XTCFile(xtc_file, omm_top, args.dt, interval=args.nstepxtc)
+    _xtc.writeModel(top.positions, periodicBoxVectors=omm_top.getPeriodicBoxVectors())
+    sim.reporters.append(app.XTCReporter(xtc_file, args.nstepxtc, append=True, enforcePeriodicBox=False))
+
+    if rewind:
+        for reporter in sim.reporters:
+            if reporter._reportInterval % args.nstepdu != 0:
+                raise ValueError(f'Reporter interval must be a multiple of --nstepdu for rewind')
+
     # Set initial lambda state.
-    sfe.set_lambda_state(sim.context, args.window)
+    sfe.set_lambda_state(sim.context, args.iwindow)
 
     # Minimize.
-    logger.info('Minimizing...')
-    sim.minimizeEnergy(maxIterations=1000)
+    oh.minimize(sim, 1000.0, logger=logger)
 
-    # Equilibration.
-    logger.info(f'Equilibrating for {args.nstepeq} steps...')
-    sim.step(args.nstepeq)
+    # Equilibration + Production.
+    n_eq = args.nstepeq // args.nstepdu
+    n_prod = args.nstep // args.nstepdu
+    logger.info(f'Equilibration: {args.nstepeq} steps. '
+                f'Production: {args.nstep} steps. '
+                f'Collecting {n_prod} dU samples...')
 
-    # Production: collect dU every 200 steps.
-    sample_interval = 200
-    n_samples = args.nstep // sample_interval
-    n_lambda = args.nwindow
-    logger.info(f'Production: {args.nstep} steps, collecting {n_samples} samples...')
-
+    output = f'dU_{args.iwindow}.csv'
     fout = open(output, 'w')
-    fout.write(f'# window={args.window} nwindow={n_lambda} temp={args.temp} press={args.press}\n')
-    fout.write(','.join([f'dU_{k}' for k in range(n_lambda)]) + '\n')
+    fout.write(f'# window={args.iwindow} nwindow={args.nwindow} temp={args.temp} press={args.press}\n')
+    fout.write('step,' + ','.join([f'dU_{k}' for k in range(args.nwindow)]) + '\n')
 
-    for sample in range(n_samples):
-        sim.step(sample_interval)
+    if rewind:
+        saved_state = sim.context.getState(getPositions=True, getVelocities=True)
+
+    for i in range(n_eq + n_prod):
+        if rewind:
+            try:
+                sim.step(args.nstepdu)
+            except ValueError:
+                pass
+            if np.isnan(sim.context.getState(getEnergy=True).getPotentialEnergy()._value):
+                logger.warning(f'NaN detected at step {(i + 1) * args.nstepdu}. Rewind.')
+                sim.context.setState(saved_state)
+                sim.step(args.nstepdu)
+            saved_state = sim.context.getState(getPositions=True, getVelocities=True)
+        else:
+            sim.step(args.nstepdu)
+
+        if i < n_eq:
+            continue
 
         U_current = sim.context.getState(getEnergy=True).getPotentialEnergy()._value
 
-        dU_row = np.zeros(n_lambda)
-        for k in range(n_lambda):
-            if k == args.window:
+        dU_row = np.zeros(args.nwindow)
+        for k in range(args.nwindow):
+            if k == args.iwindow:
                 continue
             sfe.set_lambda_state(sim.context, k)
             U_k = sim.context.getState(getEnergy=True).getPotentialEnergy()._value
             dU_row[k] = U_k - U_current
 
-        sfe.set_lambda_state(sim.context, args.window)
-        fout.write(','.join(f'{v:.6e}' for v in dU_row) + '\n')
+        sfe.set_lambda_state(sim.context, args.iwindow)
+        fout.write(f'{sim.currentStep},' + ','.join(f'{v:.6e}' for v in dU_row) + '\n')
         fout.flush()
 
     fout.close()
-    logger.info(f'Wrote {n_samples} samples to {output}')
+    logger.info(f'Wrote {n_prod} samples to {output}')
 
 
 def _parse_dU_header(filepath):
@@ -165,36 +204,37 @@ def _mbar(args):
     if len(presses) > 1:
         raise ValueError(f'Inconsistent press across files: {presses}')
 
-    n_lambda = nwindows.pop()
+    args.nwindow = nwindows.pop()
     temp = temps.pop()
 
     windows = [h['window'] for h in headers]
     if len(set(windows)) != len(windows):
         raise ValueError(f'Duplicate window indices found')
-    if set(windows) != set(range(n_lambda)):
-        missing = set(range(n_lambda)) - set(windows)
+    if set(windows) != set(range(args.nwindow)):
+        missing = set(range(args.nwindow)) - set(windows)
         raise ValueError(f'Missing windows: {sorted(missing)}')
 
     headers.sort(key=lambda h: h['window'])
-    logger.info(f'Found {n_lambda} SFE windows, temp={temp} K')
+    logger.info(f'Found {args.nwindow} SFE windows, temp={temp} K')
 
     R = constant.BOLTZMANN * constant.AVOGADRO / 1000  # kJ/(mol*K)
     beta = 1.0 / (R * temp)
 
+    # last nwindow columns are dU values; compatible with/without leading step column
     all_data = []
     for h in headers:
         data = np.loadtxt(h['file'], delimiter=',', skiprows=2)
-        all_data.append(data)
+        all_data.append(data[:, -args.nwindow:])
 
     N_k = np.array([d.shape[0] for d in all_data])
     n_total = int(N_k.sum())
 
-    u_kn = np.zeros((n_lambda, n_total))
+    u_kn = np.zeros((args.nwindow, n_total))
 
     offset = 0
     for data in all_data:
         n_i = data.shape[0]
-        for k in range(n_lambda):
+        for k in range(args.nwindow):
             u_kn[k, offset:offset + n_i] = beta * data[:, k]
         offset += n_i
 
