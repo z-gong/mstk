@@ -233,19 +233,35 @@ class GromacsExporter:
                             a2.id_in_mol + 1, drude_pairs[a2].id_in_mol + 1,
                             1, (a1.thole + a2.thole) / 2, a1.alpha, a2.alpha)
 
-            string += '\n[ constraints ]\n'
-            for bond in mol.bonds:
-                distance = system.constrain_bonds.get(bond)
-                if distance is not None:
-                    a1, a2 = bond.atom1, bond.atom2
-                    string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_mol + 1, a2.id_in_mol + 1, 1, distance)
-            for angle in mol.angles:
-                distance = system.constrain_angles.get(angle)
-                if distance is not None:
-                    a1, a3 = angle.atom1, angle.atom3
-                    string += '%6i %6i %6i %12.6f\n' % (
-                        a1.id_in_mol + 1, a3.id_in_mol + 1, 2, distance)
+            use_settles = False
+            if len(mol.angles) == 1 and len([b for b in mol.bonds if not b.is_drude]) == 2:
+                angle = mol.angles[0]
+                bond1, bond2 = angle.bonds
+                if (bond1 in system.constrain_bonds and bond2 in system.constrain_bonds
+                        and angle in system.constrain_angles):
+                    d1 = system.constrain_bonds[bond1]
+                    d2 = system.constrain_bonds[bond2]
+                    if abs(d1 - d2) < 1e-6:
+                        use_settles = True
+
+            if use_settles:
+                string += '\n[ settles ]\n'
+                string += '%6i %6i %12.6f %12.6f\n' % (
+                    angle.atom2.id_in_mol + 1, 1, d1, system.constrain_angles[angle])
+            else:
+                string += '\n[ constraints ]\n'
+                for bond in mol.bonds:
+                    distance = system.constrain_bonds.get(bond)
+                    if distance is not None:
+                        a1, a2 = bond.atom1, bond.atom2
+                        string += '%6i %6i %6i %12.6f\n' % (
+                            a1.id_in_mol + 1, a2.id_in_mol + 1, 1, distance)
+                for angle in mol.angles:
+                    distance = system.constrain_angles.get(angle)
+                    if distance is not None:
+                        a1, a3 = angle.atom1, angle.atom3
+                        string += '%6i %6i %6i %12.6f\n' % (
+                            a1.id_in_mol + 1, a3.id_in_mol + 1, 2, distance)
 
             string += '\n[ bonds ]\n'
             for bond in mol.bonds:
@@ -400,7 +416,13 @@ class GromacsExporter:
     @staticmethod
     def _export_mdp(system: System, mdp_out='grompp.mdp'):
         r_cut = system.ff.vdw_cutoff
-        tau_t = 0.2 if DrudePolarTerm in system.ff.polar_term_classes else 1.0
+        if system.ff.vdw_long_range == ForceField.VDW_LONGRANGE_CORRECT:
+            vdw_modifier = 'None'
+            disp_corr = 'EnerPres'
+        else:
+            vdw_modifier = 'Potential-shift'
+            disp_corr = 'no'
+
         string = f'''; Created by mstk
 integrator      = sd
 dt              = 0.002 ; ps
@@ -409,24 +431,24 @@ nsteps          = 1000000
 nstxout         = 0
 nstvout         = 0
 nstfout         = 0
-nstxout-compressed = 1000
+nstxout-compressed = 10000
 compressed-x-grps  = System
 
 cutoff-scheme   = Verlet
 pbc             = xyz
-; rlist           = {r_cut}
 coulombtype     = PME
 rcoulomb        = {r_cut}
 vdwtype         = Cut-off
 rvdw            = {r_cut}
-DispCorr        = EnerPres
+vdw-modifier    = {vdw_modifier}
+DispCorr        = {disp_corr}
 
 tcoupl          = no; v-rescale
 tc_grps         = System
-tau_t           = {tau_t}
+tau_t           = 1.0
 ref_t           = 300
 
-pcoupl          = berendsen ; parrinello-rahman
+pcoupl          = c-rescale ; berendsen ; parrinello-rahman
 pcoupltype      = isotropic
 tau_p           = 0.5; 5
 compressibility = 4.5e-5
