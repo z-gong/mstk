@@ -2,16 +2,16 @@
 Solvation Free Energy
 =====================
 
-Alchemical decoupling for computing solvation free energy (excess chemical potential)
-using OpenMM. The molecule is decoupled from its environment in two phases:
-Coulomb interactions are turned off first (with LJ fully on), then LJ interactions
-are turned off using a soft-core potential.
+Alchemical coupling for computing solvation free energy (excess chemical potential)
+using OpenMM. The molecule is coupled into its environment in two phases:
+LJ interactions are turned on first using a soft-core potential, then Coulomb
+interactions are turned on (with LJ fully on).
 
 Lambda Schedule
 ---------------
 
-- **Phase 1** (~1/3 of windows): ``lambda_coul`` 1→0, ``lambda_vdw`` = 1.
-- **Phase 2** (~2/3 of windows): ``lambda_coul`` = 0, ``lambda_vdw`` 1→0 (soft-core).
+- **Phase 1** (~3/4 of windows): ``lambda_vdw`` 0→1 (soft-core), ``lambda_coul`` = 0.
+- **Phase 2** (~1/4 of windows): ``lambda_coul`` 0→1, ``lambda_vdw`` = 1.
 
 Initial Force Decomposition
 ----------------------------

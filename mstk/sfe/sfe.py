@@ -1,9 +1,9 @@
 """
-Solvation free energy (SFE) via alchemical decoupling using mstk + OpenMM.
+Solvation free energy (SFE) via alchemical coupling using mstk + OpenMM.
 
-Decouples a single molecule from its environment in two phases:
-  Phase 1: Coulomb (lambda_coul 1->0), LJ fully on
-  Phase 2: LJ with soft-core (lambda_vdw 1->0), Coulomb already off
+Couples a single molecule into its environment in two phases:
+  Phase 1: LJ with soft-core (lambda_vdw 0->1), Coulomb off
+  Phase 2: Coulomb (lambda_coul 0->1), LJ fully on
 """
 
 import numpy as np
@@ -15,11 +15,11 @@ from ..chem import constant
 
 class SFEManager:
     """
-    Alchemical system for solvation free energy decoupling.
+    Alchemical system for solvation free energy calculation.
 
     Takes an mstk System and builds an OpenMM system with alchemical forces
-    for decoupling a single molecule from its environment.
-    Two-phase protocol: Coulomb first, then LJ with soft-core.
+    for coupling a single molecule into its environment.
+    Two-phase protocol: LJ with soft-core first, then Coulomb.
 
     Parameters
     ----------
@@ -61,7 +61,7 @@ class SFEManager:
     ...     U.append(sim.context.getState(getEnergy=True).getPotentialEnergy())
     >>>
     >>> # After collecting dU from all windows, run MBAR
-    >>> mu_ex, error, dG_adj, dG_adj_err = SFEManager.compute_mbar(u_kn, N_k, 300.0)
+    >>> dG, error, dG_adj, dG_adj_err = SFEManager.compute_mbar(u_kn, N_k, 300.0)
     """
 
     def __init__(self, system, mol_id, n_lambda=16):
@@ -224,8 +224,8 @@ class SFEManager:
         """
         Generate a lambda schedule with n_lambda windows.
 
-        First ~1/3 of windows decouple Coulomb (lambda_coul 1->0, lambda_vdw=1).
-        Remaining ~2/3 decouple LJ (lambda_vdw 1->0, lambda_coul=0).
+        First ~3/4 of windows couple LJ (lambda_vdw 0->1, lambda_coul=0).
+        Remaining ~1/4 couple Coulomb (lambda_coul 0->1, lambda_vdw=1).
 
         Parameters
         ----------
@@ -237,17 +237,17 @@ class SFEManager:
         schedule : list of (float, float)
             Each element is (lambda_coul, lambda_vdw).
         """
-        n_coul = max(2, int(round(n_lambda / 3)))
+        n_coul = max(2, int(round(n_lambda / 4)))
         n_vdw = n_lambda - n_coul
 
         schedule = []
-        for i in range(n_coul):
-            lam_coul = 1.0 - i / (n_coul - 1) if n_coul > 1 else 0.0
-            schedule.append((lam_coul, 1.0))
-
         for i in range(n_vdw):
-            lam_vdw = 1.0 - (i + 1) / n_vdw
+            lam_vdw = i / (n_vdw - 1) if n_vdw > 1 else 1.0
             schedule.append((0.0, lam_vdw))
+
+        for i in range(n_coul):
+            lam_coul = (i + 1) / n_coul
+            schedule.append((lam_coul, 1.0))
 
         return schedule
 
@@ -268,8 +268,8 @@ class SFEManager:
 
         Returns
         -------
-        mu_ex : float
-            Excess chemical potential in kJ/mol.
+        dG : float
+            Total free energy difference between first and last window in kJ/mol.
         error : float
             Statistical uncertainty in kJ/mol.
         dG_adj : np.ndarray, shape (n_lambda - 1,)
@@ -291,11 +291,8 @@ class SFEManager:
             mbar = pymbar.MBAR(u_kn, N_k)
             results = mbar.compute_free_energy_differences()
 
-        delta_f = results['Delta_f'][0, -1] / beta
-        delta_f_err = results['dDelta_f'][0, -1] / beta
-
-        mu_ex = -delta_f
-        error = delta_f_err
+        dG = results['Delta_f'][0, -1] / beta
+        error = results['dDelta_f'][0, -1] / beta
 
         n_lambda = len(N_k)
         dG_adj = np.array([
@@ -305,4 +302,4 @@ class SFEManager:
             results['dDelta_f'][i, i + 1] / beta for i in range(n_lambda - 1)
         ])
 
-        return mu_ex, error, dG_adj, dG_adj_err
+        return dG, error, dG_adj, dG_adj_err

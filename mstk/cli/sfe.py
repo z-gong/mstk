@@ -129,7 +129,7 @@ def _run(args):
 
     output = f'dU_{args.iwindow}.csv'
     fout = open(output, 'w')
-    fout.write(f'# window={args.iwindow} nwindow={args.nwindow} temp={args.temp} press={args.press}\n')
+    fout.write(f'# iwindow={args.iwindow} nwindow={args.nwindow} temp={args.temp} press={args.press}\n')
     fout.write('step,' + ','.join([f'dU_{k}' for k in range(args.nwindow)]) + '\n')
 
     if rewind:
@@ -179,11 +179,11 @@ def _parse_dU_header(filepath):
     for token in line[1:].split():
         key, val = token.split('=')
         meta[key] = val
-    for key in ('window', 'nwindow', 'temp', 'press'):
+    for key in ('iwindow', 'nwindow', 'temp', 'press'):
         if key not in meta:
             raise ValueError(f'{filepath}: missing "{key}" in header')
     return {
-        'window': int(meta['window']),
+        'iwindow': int(meta['iwindow']),
         'nwindow': int(meta['nwindow']),
         'temp': float(meta['temp']),
         'press': float(meta['press']),
@@ -207,14 +207,14 @@ def _mbar(args):
     args.nwindow = nwindows.pop()
     temp = temps.pop()
 
-    windows = [h['window'] for h in headers]
+    windows = [h['iwindow'] for h in headers]
     if len(set(windows)) != len(windows):
         raise ValueError(f'Duplicate window indices found')
     if set(windows) != set(range(args.nwindow)):
         missing = set(range(args.nwindow)) - set(windows)
         raise ValueError(f'Missing windows: {sorted(missing)}')
 
-    headers.sort(key=lambda h: h['window'])
+    headers.sort(key=lambda h: h['iwindow'])
     logger.info(f'Found {args.nwindow} SFE windows, temp={temp} K')
 
     R = constant.BOLTZMANN * constant.AVOGADRO / 1000  # kJ/(mol*K)
@@ -238,9 +238,9 @@ def _mbar(args):
             u_kn[k, offset:offset + n_i] = beta * data[:, k]
         offset += n_i
 
-    mu_ex, error, dG_adj, dG_adj_err = SFEManager.compute_mbar(u_kn, N_k, temp)
+    dG, error, dG_adj, dG_adj_err = SFEManager.compute_mbar(u_kn, N_k, temp)
 
     logger.info('Per-window dG (kJ/mol):')
     for i in range(len(dG_adj)):
         logger.info(f'  {i:2d} -> {i + 1:2d}: {dG_adj[i]:8.3f} +/- {dG_adj_err[i]:.3f}')
-    logger.info(f'MBAR result: mu_ex = {mu_ex:.3f} +/- {error:.3f} kJ/mol')
+    logger.info(f'Total: dG = {dG:.3f} +/- {error:.3f} kJ/mol')
