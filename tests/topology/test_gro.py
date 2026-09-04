@@ -33,6 +33,24 @@ def test_read():
     assert atom.has_position
 
 
+def test_read_repeated_resid():
+    gro = Topology.open(cwd + '/files/2chain.gro')
+    assert gro.n_atom == 26
+    assert gro.n_molecule == 6
+    assert gro.molecules[0].name == 'INI'
+    assert gro.molecules[0].n_atom == 1
+    assert gro.molecules[1].name == 'B'
+    assert gro.molecules[1].n_atom == 4
+    assert gro.molecules[2].name == 'A'
+    assert gro.molecules[2].n_atom == 8
+    assert gro.molecules[3].name == 'INI'
+    assert gro.molecules[3].n_atom == 1
+    assert gro.molecules[4].name == 'B'
+    assert gro.molecules[4].n_atom == 4
+    assert gro.molecules[5].name == 'A'
+    assert gro.molecules[5].n_atom == 8
+
+
 def test_write():
     tmpdir = tempfile.mkdtemp()
     zmat = Topology.open(cwd + '/files/100-SPCE.gro')

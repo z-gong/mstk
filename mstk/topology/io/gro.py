@@ -36,9 +36,10 @@ class GroTopology:
         self._parse(file)
 
     def _parse(self, file):
-        molecules = {}  # {int: Molecule}
+        molecules = []
         n_atom = 0
         last_resid = None
+        mol = None
         with open(file) as f:
             for i, line in enumerate(f):
                 if i == 0:
@@ -74,13 +75,11 @@ class GroTopology:
 
                 if res_id != last_resid:
                     mol = Molecule(res_name)
-                    molecules[res_id] = mol
+                    molecules.append(mol)
                     last_resid = res_id
-                else:
-                    mol = molecules[res_id]
                 mol.add_atom(atom)
 
-        self.topology.update_molecules(list(molecules.values()))
+        self.topology.update_molecules(molecules)
 
     @staticmethod
     def save_to(top, file, **kwargs):
