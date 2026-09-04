@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import os
 import re
-import pandas as pd
-from mstk.analyzer.series import block_average, is_converged
-from mstk.analyzer.fitting import polyfit, polyval
+
+import numpy as np
+
 from mstk.utils import print_data_to_file
 
 
@@ -51,7 +52,7 @@ class Analyzer:
         _ext_filetype = {
             'xvg': 'xvg',
             'out': 'openmm',
-            'txt': 'openmm',
+            'tsv': 'openmm',
             'log': 'lammps'
         }
         ext = os.path.splitext(log_file)[1].lstrip('.').lower()
@@ -170,33 +171,41 @@ class Analyzer:
                 self.data_list[i].append(float(words[i]))
 
     def detect_converge(self):
+        logging.getLogger('pymbar').setLevel(logging.ERROR)
+        from pymbar import timeseries
+
         for i in range(1, len(self.data_list)):
-            series = pd.Series(self.data_list[i], index=list(range(len(self.data_list[0]))))
-            converged, when = is_converged(series, frac_min=0)
-            self.when_list[i] = when
+            array = np.array(self.data_list[i])
+            t0, _, _ = timeseries.detect_equilibration(array, nskip=max(1, len(array) // 100))
+            self.when_list[i] = t0
 
     def fit(self):
         self.fit_coeff.append((0.0, 1.0))
         for i in range(1, len(self.data_list)):
             when = self.when_list[i]
-            coeff, score = polyfit(self.data_list[0][when:], self.data_list[i][when:], degree=1)
-            self.fit_coeff.append(coeff)
+            coeff = np.polyfit(self.data_list[0][when:], self.data_list[i][when:], 1)
+            self.fit_coeff.append((coeff[1], coeff[0]))
 
     def print_summary(self):
         string = 'File: %s, Steps: %i-%i, Samples: %i\n' % (
             self.log_file, self.data_list[0][0], self.data_list[0][-1], len(self.data_list[0]))
         string += ' %2s %15s %11s %8s %8s %8s %9s %9s\n' % (
-            'ID', 'LABEL', 'MEAN', 'STDERR', 'STDEV', 'WHEN', 'INTERCEPT', 'SLOPE')
+            'ID', 'LABEL', 'MEAN', 'STDEV', 'STDERR', 'WHEN', 'INTERCEPT', 'SLOPE')
+
         for i in range(1, len(self.labels)):
             when = self.when_list[i]
-            data = self.data_list[i][when:]
+            array = np.array(self.data_list[i][when:])
+            ave = np.mean(array)
+            std = np.std(array, ddof=1)
+            n_block = 5
+            block_means = [np.mean(b) for b in np.array_split(array, n_block)]
+            err_ave = np.std(block_means, ddof=1) / np.sqrt(n_block)
             if self.fit_coeff:
                 intercept, slope = self.fit_coeff[i]
             else:
                 intercept, slope = 0, 0
-            (ave, err_ave), (std, err_std) = block_average(data)
-            string += ' %2i %15s %11.5g %8.2g %8.2g %8.4g %9.3g %9.3g\n' % (
-                i, self.labels[i], ave, err_ave, std, self.data_list[0][when], intercept, slope)
+            string += ' %2i %15s %11.5g %8.2g %8.2g %8.3g %9.3g %9.3g\n' % (
+                i, self.labels[i], ave, std, err_ave, self.data_list[0][when], intercept, slope)
 
         print(string, end='')
 
@@ -220,7 +229,8 @@ class Analyzer:
             x_list, y_list = self.data_list[0][when:], self.data_list[idx][when:]
             ax1.plot(x_list, y_list)
             if self.fit_coeff:
-                y_pred_list = [polyval(x, self.fit_coeff[idx]) for x in x_list]
+                intercept, slope = self.fit_coeff[idx]
+                y_pred_list = [intercept + slope * x for x in x_list]
                 ax1.plot(x_list, y_pred_list, '--')
             ax1.set_xlabel(self.labels[0])
             ax1.set_ylabel(self.labels[idx])

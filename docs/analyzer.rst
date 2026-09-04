@@ -2,7 +2,7 @@ Analyzer
 ========
 
 Analyzer module provides a bunch of shortcuts for performing the most commonly used analysing method,
-like curve fitting, structure determination and time series analysis.
+like curve fitting and structure determination.
 
 .. note::
    *Deprecated. This module is developed for personal projects. It's not a comprehensive analysis toolkit.*
@@ -30,19 +30,6 @@ Structural analysis for vapor-liquid interface
 
     check_vle_density
     N_vaporize_condense
-
-Time series analysis
---------------------
-
-.. currentmodule:: mstk.analyzer.series
-
-.. autosummary::
-    :toctree: _generated/
-
-    block_average
-    average_of_blocks
-    is_converged
-    efficiency_with_block_size
 
 Curve fitting
 -------------
