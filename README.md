@@ -17,9 +17,16 @@ parameter assignment, and input file generation for major simulation engines.
 
 ## Installation
 
+### Install with conda
+
 ```
-conda install -c conda-forge numpy pandas rdkit openmm chemfiles packmol pymbar-core
-pip install mstk
+conda install -c conda-forge z-gong::mstk
+```
+
+### Install with pip
+
+```
+pip install numpy pandas rdkit openmm chemfiles packmol pymbar mstk
 ```
 
 ## Quick Example
@@ -61,7 +68,7 @@ omm_sys = system.to_omm_system()
 omm_top = top.to_omm_topology()
 ```
 
-__Important Note__:
+__Note__:
 *The __primitive__ atom typing and force field used above are for demonstration purpose only and are __not__ well
 optimized for production use.*
 *For reliable simulation, please prepare you own `smt` and `zff` files or get them from a validated source.*
