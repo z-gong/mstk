@@ -2,7 +2,10 @@ name: Build and upload conda packages
 
 on:
   release:
-    types: [published]
+    types: [ published ]
+  push:
+    branches:
+      - main
 
 jobs:
   conda_deployment:
@@ -16,10 +19,10 @@ jobs:
       - name: Set up Miniforge
         uses: conda-incubator/setup-miniconda@v4
         with:
-          miniforge-version: latest
+          miniforge-version: "26.3.2-3"
+          conda-build-version: "25.*"
           activate-environment: ""
           auto-activate: true
-          conda-build-version: "25.*"
 
       - name: Install anaconda client into base
         run: |
@@ -31,3 +34,4 @@ jobs:
           meta_yaml_dir: conda # Replace with the path to your meta.yaml directory
           user: z-gong # Replace with your Anaconda username (or an Anaconda organization username)
           token: ${{ secrets.ANACONDA_TOKEN }} # Replace with the name of your Anaconda Token secret
+          upload: ${{ github.event_name == 'release' }} # Set upload to true ONLY for release events
