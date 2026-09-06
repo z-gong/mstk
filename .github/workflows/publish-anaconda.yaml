@@ -19,6 +19,7 @@ jobs:
           miniforge-version: latest
           activate-environment: ""
           auto-activate: true
+          python-version: "3.10"
           conda-build-version: "25.*"
 
       - name: Install anaconda client into base
